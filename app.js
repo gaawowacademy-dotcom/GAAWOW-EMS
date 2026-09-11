@@ -1,28 +1,29 @@
-// =====================================================
-// GAAWOW EMS — PARENT PORTAL V1
-// =====================================================
+/* =========================================================
+   GAAWOW EMS — PARENT PORTAL
+   Phase 3
+========================================================= */
 
-// =====================================================
-// SUPABASE CONFIG
-// =====================================================
+
+/* =========================================================
+   SUPABASE CONFIG
+========================================================= */
 
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
 const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  "sb_publishable_2AvWfupkKf1b_s0RjIbAi5g_RqLCs145";
 
-const { createClient } = supabase;
+const db =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 
-const db = createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
 
-
-// =====================================================
-// ELEMENTS
-// =====================================================
+/* =========================================================
+   DOM ELEMENTS
+========================================================= */
 
 const loginPage =
   document.getElementById("loginPage");
@@ -67,9 +68,32 @@ const studentSelector =
   document.getElementById("studentSelector");
 
 
-// =====================================================
-// APPLICATION STATE
-// =====================================================
+/* =========================================================
+   DASHBOARD SUMMARY ELEMENTS
+========================================================= */
+
+const summaryProgress =
+  document.getElementById("summaryProgress");
+
+const summaryCourses =
+  document.getElementById("summaryCourses");
+
+const summaryAttendance =
+  document.getElementById("summaryAttendance");
+
+const summaryScore =
+  document.getElementById("summaryScore");
+
+const summaryCompleted =
+  document.getElementById("summaryCompleted");
+
+const summaryCourseText =
+  document.getElementById("summaryCourseText");
+
+
+/* =========================================================
+   STATE
+========================================================= */
 
 let currentUser = null;
 
@@ -82,569 +106,613 @@ let selectedStudentId = null;
 let currentModule = null;
 
 
-// =====================================================
-// SHOW LOGIN
-// =====================================================
+/* =========================================================
+   LOGIN
+========================================================= */
 
-function showLogin() {
+loginForm.addEventListener(
+  "submit",
+  async function (event) {
 
-  loginPage.style.display = "flex";
+    event.preventDefault();
 
-  dashboardPage.style.display = "none";
+    const email =
+      document.getElementById("email").value.trim();
 
-  closeContentPanel();
+    const password =
+      document.getElementById("password").value;
 
-}
+    if (!email || !password) {
+
+      showMessage(
+        "Please enter email and password.",
+        "error"
+      );
+
+      return;
+    }
+
+    setLoginLoading(true);
+
+    clearMessage();
+
+    try {
+
+      const {
+        data,
+        error
+      } = await db.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data.user) {
+        throw new Error("Login failed.");
+      }
+
+      currentUser = data.user;
 
 
-// =====================================================
-// SHOW DASHBOARD
-// =====================================================
+      /* Load parent */
 
-function showDashboard() {
-
-  loginPage.style.display = "none";
-
-  dashboardPage.style.display = "block";
-
-}
+      currentParent =
+        await loadParentData(currentUser.id);
 
 
-// =====================================================
-// LOGIN
-// =====================================================
+      if (!currentParent) {
 
-if (loginForm) {
+        await db.auth.signOut();
 
-  loginForm.addEventListener(
-    "submit",
-    async function (event) {
+        currentUser = null;
 
-      event.preventDefault();
-
-      const email =
-        document
-          .getElementById("email")
-          .value
-          .trim();
-
-      const password =
-        document
-          .getElementById("password")
-          .value;
-
-      loginButton.disabled = true;
-
-      loginButton.textContent =
-        "SIGNING IN...";
-
-      message.style.color =
-        "#0B4DA2";
-
-      message.textContent =
-        "Checking your account...";
-
-      try {
-
-        const {
-          data,
-          error
-        } =
-          await db.auth.signInWithPassword({
-            email: email,
-            password: password
-          });
-
-        if (error) {
-          throw error;
-        }
-
-        currentUser =
-          data.user;
-
-        console.log(
-          "Logged-in user:",
-          currentUser
+        throw new Error(
+          "Parent profile was not found. Please contact GAAWOW Academy."
         );
+      }
 
 
-        // -----------------------------------------
-        // LOAD PARENT
-        // -----------------------------------------
+      /* Load linked students */
 
-        await loadParentData(
-          currentUser.id
-        );
-
-
-        // -----------------------------------------
-        // LOAD CHILDREN
-        // -----------------------------------------
-
+      accessibleStudents =
         await loadParentStudents(
           currentParent.id
         );
 
 
-        welcomeTitle.textContent =
-          "Welcome to GAAWOW EMS";
+      if (!accessibleStudents.length) {
 
-        parentEmail.textContent =
-          currentParent.email ||
-          currentUser.email ||
-          "";
+        await db.auth.signOut();
 
-        renderStudents(
-          accessibleStudents
+        currentUser = null;
+        currentParent = null;
+
+        throw new Error(
+          "No students are linked to this parent account."
         );
-
-        populateStudentSelector();
-
-        showDashboard();
-
-        message.textContent = "";
-
-
-      } catch (error) {
-
-        console.error(
-          "Login error:",
-          error
-        );
-
-        message.style.color =
-          "#DC2626";
-
-        message.textContent =
-          error.message ||
-          "Login failed. Please check your details.";
-
-      } finally {
-
-        loginButton.disabled =
-          false;
-
-        loginButton.textContent =
-          "LOGIN TO PARENT PORTAL";
-
       }
 
+
+      /* Show dashboard */
+
+      renderParentHeader();
+
+      renderStudents();
+
+      populateStudentSelector();
+
+      showDashboard();
+
+
+      /* Load first student's summary */
+
+      if (accessibleStudents.length) {
+
+        selectedStudentId =
+          accessibleStudents[0].id;
+
+        await loadDashboardSummary(
+          selectedStudentId
+        );
+
+        openFirstStudentModule();
+      }
+
+      clearMessage();
+
+    } catch (error) {
+
+      console.error(
+        "Login error:",
+        error
+      );
+
+      showMessage(
+        getFriendlyError(error),
+        "error"
+      );
+
+    } finally {
+
+      setLoginLoading(false);
+
     }
-  );
 
-}
+  }
+);
 
 
-// =====================================================
-// LOAD PARENT
-// =====================================================
+/* =========================================================
+   LOAD PARENT DATA
+========================================================= */
 
 async function loadParentData(profileId) {
 
   const {
     data,
     error
-  } =
-    await db
-      .from("parents")
-      .select(`
-        id,
-        profile_id,
-        institution_id,
-        full_name,
-        phone,
-        email,
-        address,
-        occupation
-      `)
-      .eq(
-        "profile_id",
-        profileId
-      )
-      .maybeSingle();
+  } = await db
+    .from("parents")
+    .select(`
+      id,
+      institution_id,
+      profile_id,
+      full_name,
+      phone,
+      email,
+      address,
+      occupation,
+      created_at,
+      updated_at
+    `)
+    .eq("profile_id", profileId)
+    .maybeSingle();
 
   if (error) {
+
+    console.error(
+      "Parent query error:",
+      error
+    );
+
     throw error;
   }
 
-  if (!data) {
-
-    throw new Error(
-      "Parent profile was not found. Please contact GAAWOW Academy."
-    );
-
-  }
-
-  currentParent =
-    data;
-
-  console.log(
-    "Parent:",
-    currentParent
-  );
-
+  return data;
 }
 
 
-// =====================================================
-// LOAD ONLY LINKED STUDENTS
-// =====================================================
+/* =========================================================
+   LOAD PARENT STUDENTS
+========================================================= */
 
 async function loadParentStudents(parentId) {
-
-  // -----------------------------------------
-  // GET LINKS
-  // -----------------------------------------
 
   const {
     data: links,
     error: linkError
-  } =
-    await db
-      .from("parent_students")
-      .select(`
-        student_id,
-        relationship,
-        is_primary
-      `)
-      .eq(
-        "parent_id",
-        parentId
-      );
+  } = await db
+    .from("parent_students")
+    .select(`
+      id,
+      parent_id,
+      student_id,
+      relationship,
+      is_primary
+    `)
+    .eq("parent_id", parentId);
 
   if (linkError) {
+
+    console.error(
+      "Parent students link error:",
+      linkError
+    );
+
     throw linkError;
   }
 
-
   if (!links || !links.length) {
-
-    accessibleStudents = [];
-
-    return;
-
+    return [];
   }
-
 
   const studentIds =
     links
-      .map(
-        item => item.student_id
-      )
+      .map(row => row.student_id)
       .filter(Boolean);
 
-
   if (!studentIds.length) {
-
-    accessibleStudents = [];
-
-    return;
-
+    return [];
   }
 
-
-  // -----------------------------------------
-  // GET STUDENTS
-  // -----------------------------------------
 
   const {
     data: students,
     error: studentError
-  } =
-    await db
-      .from("students")
-      .select(`
-        id,
-        student_id,
-        full_name,
-        gender,
-        date_of_birth,
-        phone,
-        email,
-        address,
-        photo_url,
-        admission_date,
-        status,
-        emergency_contact_name,
-        emergency_contact_phone,
-        institution_id
-      `)
-      .in(
-        "id",
-        studentIds
-      );
+  } = await db
+    .from("students")
+    .select(`
+      id,
+      institution_id,
+      profile_id,
+      student_id,
+      full_name,
+      gender,
+      date_of_birth,
+      phone,
+      email,
+      address,
+      photo_url,
+      admission_date,
+      status,
+      emergency_contact_name,
+      emergency_contact_phone,
+      created_at,
+      updated_at
+    `)
+    .in("id", studentIds);
 
   if (studentError) {
+
+    console.error(
+      "Students query error:",
+      studentError
+    );
+
     throw studentError;
   }
 
 
-  // -----------------------------------------
-  // MERGE RELATIONSHIP
-  // -----------------------------------------
+  return (students || []).map(student => {
 
-  accessibleStudents =
-    (students || []).map(
-      student => {
+    const link =
+      links.find(
+        item =>
+          item.student_id === student.id
+      );
 
-        const link =
-          links.find(
-            item =>
-              item.student_id ===
-              student.id
-          );
+    return {
+      ...student,
+      relationship:
+        link?.relationship || "Parent",
+      is_primary:
+        Boolean(link?.is_primary)
+    };
 
-        return {
-          ...student,
-
-          relationship:
-            link?.relationship || "",
-
-          is_primary:
-            link?.is_primary || false
-        };
-
-      }
-    );
-
-
-  console.log(
-    "Parent accessible students:",
-    accessibleStudents
-  );
+  });
 
 }
 
 
-// =====================================================
-// RENDER STUDENTS
-// =====================================================
+/* =========================================================
+   HEADER
+========================================================= */
 
-function renderStudents(students) {
+function renderParentHeader() {
+
+  const name =
+    currentParent?.full_name ||
+    "Parent";
+
+  const email =
+    currentUser?.email ||
+    currentParent?.email ||
+    "";
+
+  welcomeTitle.textContent =
+    `Welcome, ${name}`;
+
+  parentEmail.textContent =
+    email;
+
+}
+
+
+/* =========================================================
+   RENDER STUDENTS
+========================================================= */
+
+function renderStudents() {
 
   studentsContainer.innerHTML = "";
 
+  const count =
+    accessibleStudents.length;
+
   studentCount.textContent =
-    students.length +
-    (
-      students.length === 1
-        ? " student"
-        : " students"
-    );
+    `${count} ${count === 1 ? "Student" : "Students"}`;
 
 
-  if (!students.length) {
+  if (!count) {
 
     studentsContainer.innerHTML = `
       <div class="empty">
-        <strong>
-          No Students Found
-        </strong>
-
-        No student is currently linked
-        to this parent account.
+        No linked students found.
       </div>
     `;
 
     return;
-
   }
 
 
-  students.forEach(
-    function (student) {
+  accessibleStudents.forEach(student => {
 
-      const card =
-        document.createElement("div");
+    const card =
+      document.createElement("div");
 
-      card.className =
-        "student-card";
+    card.className =
+      "student-card";
 
-
-      const status =
-        formatStatus(
-          student.status
-        );
+    card.dataset.studentId =
+      student.id;
 
 
-      card.innerHTML = `
-
-        <div class="student-header">
-
-          <div class="student-icon">
-            🎓
+    const photoHtml =
+      student.photo_url
+        ? `
+          <img
+            class="student-photo"
+            src="${safeUrl(student.photo_url)}"
+            alt="${escapeHtml(student.full_name || "Student")}"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+          >
+          <div
+            class="student-placeholder"
+            style="display:none;"
+          >
+            ${getInitials(student.full_name)}
           </div>
+        `
+        : `
+          <div class="student-placeholder">
+            ${getInitials(student.full_name)}
+          </div>
+        `;
+
+
+    card.innerHTML = `
+
+      <div class="student-main">
+
+        ${photoHtml}
+
+        <div>
 
           <div class="student-name">
+            ${escapeHtml(student.full_name || "Unnamed Student")}
+          </div>
 
-            <h3>
-              ${escapeHtml(
-                student.full_name
-              )}
-            </h3>
-
-            <div class="student-id">
-
-              Student ID:
-              ${escapeHtml(
-                student.student_id ||
-                "Not assigned"
-              )}
-
-            </div>
-
+          <div class="student-id">
+            ID:
+            ${escapeHtml(student.student_id || "N/A")}
           </div>
 
         </div>
 
+      </div>
 
-        <div class="student-status">
+      <span class="relationship">
+        ${escapeHtml(student.relationship || "Parent")}
+      </span>
 
-          <span class="status-dot"></span>
+      <button
+        type="button"
+        class="student-open"
+      >
+        View Student
+      </button>
 
-          ${escapeHtml(status)}
-
-        </div>
-
-
-        <div class="student-actions">
-
-          <button
-            class="student-action"
-            onclick="openStudentModule(
-              '${student.id}',
-              'progress'
-            )"
-          >
-            📊 Progress
-          </button>
+    `;
 
 
-          <button
-            class="student-action"
-            onclick="openStudentModule(
-              '${student.id}',
-              'attendance'
-            )"
-          >
-            📅 Attendance
-          </button>
+    card
+      .querySelector(".student-open")
+      .addEventListener(
+        "click",
+        () => {
 
+          selectedStudentId =
+            student.id;
 
-          <button
-            class="student-action"
-            onclick="openStudentModule(
-              '${student.id}',
-              'results'
-            )"
-          >
-            📝 Grades
-          </button>
+          populateStudentSelector();
 
+          studentSelector.value =
+            student.id;
 
-          <button
-            class="student-action"
-            onclick="openStudentModule(
-              '${student.id}',
-              'certificates'
-            )"
-          >
-            🏆 Certificates
-          </button>
+          loadDashboardSummary(
+            student.id
+          );
 
-        </div>
+          openStudentModule(
+            "progress",
+            student.id
+          );
 
-      `;
-
-      studentsContainer.appendChild(
-        card
+        }
       );
 
-    }
-  );
+
+    studentsContainer.appendChild(card);
+
+  });
+
+
+  updateActiveStudent();
 
 }
 
 
-// =====================================================
-// STUDENT SELECTOR
-// =====================================================
+/* =========================================================
+   UPDATE ACTIVE STUDENT
+========================================================= */
+
+function updateActiveStudent() {
+
+  document
+    .querySelectorAll(".student-card")
+    .forEach(card => {
+
+      card.classList.toggle(
+        "active",
+        card.dataset.studentId ===
+        selectedStudentId
+      );
+
+    });
+
+}
+
+
+/* =========================================================
+   STUDENT SELECTOR
+========================================================= */
 
 function populateStudentSelector() {
 
+  if (!studentSelector) {
+    return;
+  }
+
   studentSelector.innerHTML = "";
 
-  accessibleStudents.forEach(
-    student => {
+  accessibleStudents.forEach(student => {
 
-      const option =
-        document.createElement("option");
+    const option =
+      document.createElement("option");
 
-      option.value =
-        student.id;
+    option.value =
+      student.id;
 
-      option.textContent =
-        student.full_name;
+    option.textContent =
+      `${student.full_name} — ${student.student_id || "No ID"}`;
 
-      studentSelector.appendChild(
-        option
+    studentSelector.appendChild(option);
+
+  });
+
+
+  if (selectedStudentId) {
+
+    studentSelector.value =
+      selectedStudentId;
+
+  } else if (accessibleStudents.length) {
+
+    selectedStudentId =
+      accessibleStudents[0].id;
+
+    studentSelector.value =
+      selectedStudentId;
+
+  }
+
+}
+
+
+/* =========================================================
+   STUDENT SELECTOR CHANGE
+========================================================= */
+
+studentSelector.addEventListener(
+  "change",
+  async function () {
+
+    const studentId =
+      this.value;
+
+    if (!studentId) {
+      return;
+    }
+
+    selectedStudentId =
+      studentId;
+
+    updateActiveStudent();
+
+    await loadDashboardSummary(
+      studentId
+    );
+
+    if (currentModule) {
+
+      await openStudentModule(
+        currentModule,
+        studentId
       );
 
     }
-  );
 
-}
+  }
+);
 
 
-// =====================================================
-// OPEN FIRST STUDENT MODULE
-// =====================================================
+/* =========================================================
+   SERVICE BUTTONS
+========================================================= */
 
-function openFirstStudentModule(moduleName) {
+document
+  .querySelectorAll(".service-card")
+  .forEach(card => {
+
+    card.addEventListener(
+      "click",
+      async function () {
+
+        const moduleName =
+          this.dataset.module;
+
+        if (!selectedStudentId) {
+          return;
+        }
+
+        await openStudentModule(
+          moduleName,
+          selectedStudentId
+        );
+
+      }
+    );
+
+  });
+
+
+/* =========================================================
+   OPEN FIRST MODULE
+========================================================= */
+
+function openFirstStudentModule() {
 
   if (!accessibleStudents.length) {
-
-    alert(
-      "No student is linked to this parent account."
-    );
-
     return;
-
   }
 
+  const first =
+    accessibleStudents[0];
+
+  selectedStudentId =
+    first.id;
+
+  populateStudentSelector();
+
   openStudentModule(
-    accessibleStudents[0].id,
-    moduleName
+    "progress",
+    first.id
   );
 
 }
 
 
-// =====================================================
-// OPEN STUDENT MODULE
-// =====================================================
+/* =========================================================
+   OPEN MODULE
+========================================================= */
 
 async function openStudentModule(
-  studentId,
-  moduleName
+  moduleName,
+  studentId
 ) {
-
-  const student =
-    accessibleStudents.find(
-      item =>
-        item.id === studentId
-    );
-
-  if (!student) {
-
-    alert(
-      "You do not have access to this student."
-    );
-
-    return;
-
-  }
-
 
   selectedStudentId =
     studentId;
@@ -652,391 +720,476 @@ async function openStudentModule(
   currentModule =
     moduleName;
 
+  updateActiveStudent();
 
-  studentSelector.value =
-    studentId;
+  if (studentSelector) {
 
+    studentSelector.value =
+      studentId;
 
-  contentPanel.style.display =
-    "block";
+  }
 
-
-  contentPanel.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
-
-
-  const titles = {
-
-    progress:
-      "📊 Academic Progress",
-
-    attendance:
-      "📅 Attendance",
-
-    results:
-      "📝 Results & Grades",
-
-    courses:
-      "📚 Courses & Enrollment",
-
-    certificates:
-      "🏆 Certificates",
-
-    profile:
-      "👤 Student Profile"
-
-  };
+  await loadDashboardSummary(
+    studentId
+  );
 
 
-  contentTitle.textContent =
-    titles[moduleName] ||
-    "Student Information";
-
+  contentPanel.classList.remove(
+    "hidden"
+  );
 
   contentBody.innerHTML = `
     <div class="loading">
-      Loading ${escapeHtml(
-        titles[moduleName] ||
-        "information"
-      )}...
+      Loading...
     </div>
   `;
 
 
-  try {
+  switch (moduleName) {
 
-    switch (moduleName) {
+    case "progress":
 
-      case "progress":
-        await loadProgress(
-          studentId
-        );
-        break;
+      contentTitle.textContent =
+        "Academic Progress";
 
-      case "attendance":
-        await loadAttendance(
-          studentId
-        );
-        break;
-
-      case "results":
-        await loadResults(
-          studentId
-        );
-        break;
-
-      case "courses":
-        await loadCourses(
-          studentId
-        );
-        break;
-
-      case "certificates":
-        await loadCertificates(
-          studentId
-        );
-        break;
-
-      case "profile":
-        renderStudentProfile(
-          student
-        );
-        break;
-
-      default:
-
-        contentBody.innerHTML =
-          `<div class="empty">
-            Module not found.
-          </div>`;
-
-    }
-
-
-  } catch (error) {
-
-    console.error(
-      "Module error:",
-      error
-    );
-
-    contentBody.innerHTML = `
-      <div class="empty">
-
-        <strong>
-          Unable to load information
-        </strong>
-
-        ${escapeHtml(
-          error.message ||
-          "Please try again."
-        )}
-
-      </div>
-    `;
-
-  }
-
-}
-
-
-// =====================================================
-// CHANGE SELECTED STUDENT
-// =====================================================
-
-function changeSelectedStudent() {
-
-  const studentId =
-    studentSelector.value;
-
-  if (!studentId) {
-    return;
-  }
-
-  openStudentModule(
-    studentId,
-    currentModule
-  );
-
-}
-
-
-// =====================================================
-// PROGRESS
-// =====================================================
-
-async function loadProgress(studentId) {
-
-  const [
-    attendanceResult,
-    resultsResult
-  ] =
-    await Promise.all([
-
-      db
-        .from("attendance")
-        .select(`
-          id,
-          status
-        `)
-        .eq(
-          "student_id",
-          studentId
-        ),
-
-      db
-        .from("results")
-        .select(`
-          id,
-          score,
-          max_score,
-          percentage,
-          grade,
-          is_published
-        `)
-        .eq(
-          "student_id",
-          studentId
-        )
-        .eq(
-          "is_published",
-          true
-        )
-
-    ]);
-
-
-  if (attendanceResult.error) {
-    throw attendanceResult.error;
-  }
-
-  if (resultsResult.error) {
-    throw resultsResult.error;
-  }
-
-
-  const attendance =
-    attendanceResult.data || [];
-
-  const results =
-    resultsResult.data || [];
-
-
-  let present = 0;
-  let absent = 0;
-  let late = 0;
-
-
-  attendance.forEach(
-    item => {
-
-      const status =
-        String(
-          item.status || ""
-        ).toLowerCase();
-
-      if (
-        status.includes("present")
-      ) {
-        present++;
-
-      } else if (
-        status.includes("absent")
-      ) {
-        absent++;
-
-      } else if (
-        status.includes("late")
-      ) {
-        late++;
-      }
-
-    }
-  );
-
-
-  const percentages =
-    results
-      .map(
-        r =>
-          Number(
-            r.percentage
-          )
-      )
-      .filter(
-        n => !Number.isNaN(n)
+      await loadProgress(
+        studentId
       );
 
-
-  const average =
-    percentages.length
-      ? (
-          percentages.reduce(
-            (a, b) => a + b,
-            0
-          ) /
-          percentages.length
-        ).toFixed(1)
-      : null;
+      break;
 
 
-  contentBody.innerHTML = `
+    case "attendance":
 
-    <div class="profile-grid">
+      contentTitle.textContent =
+        "Attendance";
 
-      <div class="profile-field">
-        <small>Published Results</small>
-        <strong>
-          ${results.length}
-        </strong>
-      </div>
+      await loadAttendance(
+        studentId
+      );
 
-      <div class="profile-field">
-        <small>Average Score</small>
-        <strong>
-          ${
-            average !== null
-              ? average + "%"
-              : "No data"
-          }
-        </strong>
-      </div>
+      break;
 
-      <div class="profile-field">
-        <small>Present</small>
-        <strong>
-          ${present}
-        </strong>
-      </div>
 
-      <div class="profile-field">
-        <small>Absent</small>
-        <strong>
-          ${absent}
-        </strong>
-      </div>
+    case "results":
 
-      <div class="profile-field">
-        <small>Late</small>
-        <strong>
-          ${late}
-        </strong>
-      </div>
+      contentTitle.textContent =
+        "Results & Grades";
 
-    </div>
+      await loadResults(
+        studentId
+      );
 
-  `;
+      break;
+
+
+    case "courses":
+
+      contentTitle.textContent =
+        "Courses";
+
+      await loadCourses(
+        studentId
+      );
+
+      break;
+
+
+    case "certificates":
+
+      contentTitle.textContent =
+        "Certificates";
+
+      await loadCertificates(
+        studentId
+      );
+
+      break;
+
+
+    case "profile":
+
+      contentTitle.textContent =
+        "Student Profile";
+
+      renderStudentProfile(
+        studentId
+      );
+
+      break;
+
+
+    default:
+
+      contentTitle.textContent =
+        "Student Information";
+
+      contentBody.innerHTML = `
+        <div class="empty">
+          Select a service.
+        </div>
+      `;
+
+  }
 
 }
 
 
-// =====================================================
-// ATTENDANCE
-// =====================================================
+/* =========================================================
+   DASHBOARD SUMMARY
+========================================================= */
 
-async function loadAttendance(studentId) {
+async function loadDashboardSummary(
+  studentId
+) {
+
+  if (summaryProgress)
+    summaryProgress.textContent = "—";
+
+  if (summaryCourses)
+    summaryCourses.textContent = "Loading...";
+
+  if (summaryAttendance)
+    summaryAttendance.textContent = "—";
+
+  if (summaryScore)
+    summaryScore.textContent = "—";
+
+  if (summaryCompleted)
+    summaryCompleted.textContent = "—";
+
+  if (summaryCourseText)
+    summaryCourseText.textContent =
+      "Completed courses";
+
 
   const {
     data,
     error
-  } =
-    await db
-      .from("attendance")
-      .select(`
-        id,
-        status,
-        notes,
-        recorded_at,
-        lesson_id
-      `)
-      .eq(
-        "student_id",
-        studentId
-      )
-      .order(
-        "recorded_at",
-        {
-          ascending: false
-        }
-      );
+  } = await db
+    .from("academic_progress")
+    .select(`
+      academic_year,
+      total_courses,
+      completed_courses,
+      attendance_percentage,
+      average_score,
+      remarks,
+      updated_at
+    `)
+    .eq("student_id", studentId)
+    .order(
+      "updated_at",
+      { ascending: false }
+    )
+    .limit(1)
+    .maybeSingle();
 
 
   if (error) {
-    throw error;
+
+    console.error(
+      "Academic summary error:",
+      error
+    );
+
+    if (summaryCourses)
+      summaryCourses.textContent =
+        "No progress data";
+
+    return;
   }
 
 
-  if (!data || !data.length) {
+  if (!data) {
+
+    if (summaryCourses)
+      summaryCourses.textContent =
+        "No progress data";
+
+    if (summaryCourseText)
+      summaryCourseText.textContent =
+        "No academic record";
+
+    return;
+  }
+
+
+  const totalCourses =
+    Number(data.total_courses || 0);
+
+  const completedCourses =
+    Number(data.completed_courses || 0);
+
+
+  const progress =
+    totalCourses > 0
+      ? Math.round(
+          (completedCourses / totalCourses) * 100
+        )
+      : 0;
+
+
+  const attendance =
+    data.attendance_percentage !== null &&
+    data.attendance_percentage !== undefined
+      ? Number(
+          data.attendance_percentage
+        ).toFixed(0) + "%"
+      : "—";
+
+
+  const score =
+    data.average_score !== null &&
+    data.average_score !== undefined
+      ? Number(
+          data.average_score
+        ).toFixed(0) + "%"
+      : "—";
+
+
+  if (summaryProgress)
+    summaryProgress.textContent =
+      progress + "%";
+
+
+  if (summaryCourses)
+    summaryCourses.textContent =
+      `${completedCourses} of ${totalCourses} courses completed`;
+
+
+  if (summaryAttendance)
+    summaryAttendance.textContent =
+      attendance;
+
+
+  if (summaryScore)
+    summaryScore.textContent =
+      score;
+
+
+  if (summaryCompleted)
+    summaryCompleted.textContent =
+      `${completedCourses}/${totalCourses}`;
+
+
+  if (summaryCourseText) {
+
+    summaryCourseText.textContent =
+      data.academic_year
+        ? `Academic Year ${data.academic_year}`
+        : "Completed courses";
+
+  }
+
+}
+
+
+/* =========================================================
+   ACADEMIC PROGRESS
+========================================================= */
+
+async function loadProgress(
+  studentId
+) {
+
+  const {
+    data: progress,
+    error
+  } = await db
+    .from("academic_progress")
+    .select(`
+      academic_year,
+      total_courses,
+      completed_courses,
+      attendance_percentage,
+      average_score,
+      remarks,
+      updated_at
+    `)
+    .eq("student_id", studentId)
+    .order(
+      "updated_at",
+      { ascending: false }
+    )
+    .limit(1)
+    .maybeSingle();
+
+
+  if (error) {
+
+    renderError(error);
+
+    return;
+  }
+
+
+  if (!progress) {
 
     contentBody.innerHTML = `
       <div class="empty">
-        <strong>
-          No Attendance Records
-        </strong>
-
-        Attendance records for this student
-        are not available yet.
+        No academic progress record is available for this student yet.
       </div>
     `;
 
     return;
+  }
 
+
+  const total =
+    Number(progress.total_courses || 0);
+
+  const completed =
+    Number(progress.completed_courses || 0);
+
+  const progressPercent =
+    total > 0
+      ? Math.round((completed / total) * 100)
+      : 0;
+
+
+  const attendance =
+    progress.attendance_percentage != null
+      ? Number(progress.attendance_percentage).toFixed(0)
+      : "0";
+
+
+  const score =
+    progress.average_score != null
+      ? Number(progress.average_score).toFixed(0)
+      : "0";
+
+
+  contentBody.innerHTML = `
+
+    <div class="stats-row">
+
+      <div class="mini-stat">
+        <span>Total Courses</span>
+        <strong>${total}</strong>
+      </div>
+
+      <div class="mini-stat">
+        <span>Completed</span>
+        <strong>${completed}</strong>
+      </div>
+
+      <div class="mini-stat">
+        <span>Attendance</span>
+        <strong>${attendance}%</strong>
+      </div>
+
+      <div class="mini-stat">
+        <span>Average Score</span>
+        <strong>${score}%</strong>
+      </div>
+
+    </div>
+
+
+    <div class="progress-box">
+
+      <div class="progress-header">
+        <span>Course Completion</span>
+        <span>${progressPercent}%</span>
+      </div>
+
+      <div class="progress-track">
+
+        <div
+          class="progress-fill"
+          style="width:${Math.min(progressPercent, 100)}%"
+        ></div>
+
+      </div>
+
+    </div>
+
+
+    <div class="profile-item">
+
+      <span>Academic Year</span>
+
+      <strong>
+        ${escapeHtml(
+          progress.academic_year || "N/A"
+        )}
+      </strong>
+
+    </div>
+
+
+    <br>
+
+
+    <div class="profile-item">
+
+      <span>Teacher / Academic Remarks</span>
+
+      <strong>
+        ${escapeHtml(
+          progress.remarks || "No remarks"
+        )}
+      </strong>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   ATTENDANCE
+========================================================= */
+
+async function loadAttendance(
+  studentId
+) {
+
+  const {
+    data: attendance,
+    error
+  } = await db
+    .from("attendance")
+    .select(`
+      id,
+      lesson_id,
+      status,
+      notes,
+      recorded_at
+    `)
+    .eq("student_id", studentId)
+    .order(
+      "recorded_at",
+      { ascending: false }
+    );
+
+
+  if (error) {
+
+    renderError(error);
+
+    return;
+  }
+
+
+  if (!attendance || !attendance.length) {
+
+    contentBody.innerHTML = `
+      <div class="empty">
+        No attendance records are available yet.
+      </div>
+    `;
+
+    return;
   }
 
 
   const lessonIds =
-    [
-      ...new Set(
-        data
-          .map(
-            item =>
-              item.lesson_id
-          )
-          .filter(Boolean)
-      )
-    ];
+    attendance
+      .map(row => row.lesson_id)
+      .filter(Boolean);
 
 
   let lessons = [];
@@ -1045,30 +1198,33 @@ async function loadAttendance(studentId) {
   if (lessonIds.length) {
 
     const {
-      data: lessonData,
+      data,
       error: lessonError
-    } =
-      await db
-        .from("lessons")
-        .select(`
-          id,
-          title,
-          lesson_date,
-          start_time,
-          end_time,
-          room
-        `)
-        .in(
-          "id",
-          lessonIds
-        );
+    } = await db
+      .from("lessons")
+      .select(`
+        id,
+        title,
+        lesson_date,
+        start_time,
+        end_time,
+        room
+      `)
+      .in("id", lessonIds);
+
 
     if (lessonError) {
-      throw lessonError;
-    }
 
-    lessons =
-      lessonData || [];
+      console.error(
+        "Lessons error:",
+        lessonError
+      );
+
+    } else {
+
+      lessons = data || [];
+
+    }
 
   }
 
@@ -1076,98 +1232,168 @@ async function loadAttendance(studentId) {
   const lessonMap =
     new Map(
       lessons.map(
-        lesson => [
-          lesson.id,
-          lesson
-        ]
+        lesson => [lesson.id, lesson]
       )
     );
 
 
+  let present = 0;
+  let absent = 0;
+  let late = 0;
+
+
+  attendance.forEach(row => {
+
+    const status =
+      String(
+        row.status || ""
+      ).toLowerCase();
+
+
+    if (
+      status.includes("present")
+    ) {
+
+      present++;
+
+    } else if (
+      status.includes("absent")
+    ) {
+
+      absent++;
+
+    } else if (
+      status.includes("late")
+    ) {
+
+      late++;
+
+    }
+
+  });
+
+
+  const total =
+    attendance.length;
+
+
+  const percentage =
+    total
+      ? Math.round(
+          (present / total) * 100
+        )
+      : 0;
+
+
   contentBody.innerHTML = `
 
-    <div class="data-list">
+    <div class="stats-row">
 
-      ${data.map(
-        item => {
+      <div class="mini-stat">
+        <span>Total Records</span>
+        <strong>${total}</strong>
+      </div>
 
-          const lesson =
-            lessonMap.get(
-              item.lesson_id
-            );
+      <div class="mini-stat">
+        <span>Present</span>
+        <strong>${present}</strong>
+      </div>
 
-          return `
+      <div class="mini-stat">
+        <span>Absent</span>
+        <strong>${absent}</strong>
+      </div>
 
-            <div class="data-item">
+      <div class="mini-stat">
+        <span>Late</span>
+        <strong>${late}</strong>
+      </div>
 
-              <div class="data-item-title">
+    </div>
 
-                ${
-                  escapeHtml(
+
+    <div class="progress-box">
+
+      <div class="progress-header">
+        <span>Attendance Rate</span>
+        <span>${percentage}%</span>
+      </div>
+
+      <div class="progress-track">
+
+        <div
+          class="progress-fill"
+          style="width:${Math.min(percentage,100)}%"
+        ></div>
+
+      </div>
+
+    </div>
+
+
+    <div class="table-wrap">
+
+      <table class="data-table">
+
+        <thead>
+
+          <tr>
+            <th>Date</th>
+            <th>Lesson</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          ${attendance.map(row => {
+
+            const lesson =
+              lessonMap.get(
+                row.lesson_id
+              );
+
+            return `
+
+              <tr>
+
+                <td>
+                  ${formatDate(
+                    lesson?.lesson_date ||
+                    row.recorded_at
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
                     lesson?.title ||
                     "Lesson"
-                  )
-                }
+                  )}
+                </td>
 
-              </div>
+                <td>
+                  ${formatStatus(
+                    row.status
+                  )}
+                </td>
 
-              <div class="data-item-meta">
+                <td>
+                  ${escapeHtml(
+                    row.notes || "—"
+                  )}
+                </td>
 
-                Date:
-                ${
-                  escapeHtml(
-                    lesson?.lesson_date ||
-                    formatDate(
-                      item.recorded_at
-                    )
-                  )
-                }
+              </tr>
 
-                <br>
+            `;
 
-                Status:
-                <span class="badge badge-success">
-                  ${
-                    escapeHtml(
-                      formatStatus(
-                        item.status
-                      )
-                    )
-                  }
-                </span>
+          }).join("")}
 
-                ${
-                  lesson?.room
-                    ? `
-                      <br>
-                      Room:
-                      ${escapeHtml(
-                        lesson.room
-                      )}
-                    `
-                    : ""
-                }
+        </tbody>
 
-                ${
-                  item.notes
-                    ? `
-                      <br>
-                      Notes:
-                      ${escapeHtml(
-                        item.notes
-                      )}
-                    `
-                    : ""
-                }
-
-              </div>
-
-            </div>
-
-          `;
-
-        }
-      ).join("")}
+      </table>
 
     </div>
 
@@ -1176,95 +1402,83 @@ async function loadAttendance(studentId) {
 }
 
 
-// =====================================================
-// RESULTS
-// =====================================================
+/* =========================================================
+   RESULTS
+========================================================= */
 
-async function loadResults(studentId) {
+async function loadResults(
+  studentId
+) {
 
   const {
-    data,
+    data: results,
     error
-  } =
-    await db
-      .from("results")
-      .select(`
-        id,
-        exam_id,
-        subject_id,
-        score,
-        max_score,
-        percentage,
-        grade,
-        remarks,
-        is_published,
-        created_at
-      `)
-      .eq(
-        "student_id",
-        studentId
-      )
-      .eq(
-        "is_published",
-        true
-      )
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
+  } = await db
+    .from("results")
+    .select(`
+      id,
+      exam_id,
+      subject_id,
+      score,
+      max_score,
+      percentage,
+      grade,
+      remarks,
+      is_published,
+      created_at
+    `)
+    .eq("student_id", studentId)
+    .eq("is_published", true)
+    .order(
+      "created_at",
+      { ascending: false }
+    );
 
 
   if (error) {
-    throw error;
+
+    renderError(error);
+
+    return;
   }
 
 
-  if (!data || !data.length) {
+  if (!results || !results.length) {
 
     contentBody.innerHTML = `
       <div class="empty">
 
-        <strong>
-          No Published Results
-        </strong>
+        <div style="font-size:35px;margin-bottom:10px;">
+          📝
+        </div>
 
-        Results will appear here after
-        they are published by GAAWOW Academy.
+        <strong>No Published Results</strong>
+
+        <p style="margin-top:5px;">
+          Results will appear here when they are published by GAAWOW Academy.
+        </p>
 
       </div>
     `;
 
     return;
-
   }
 
 
   const examIds =
-    [
-      ...new Set(
-        data
-          .map(
-            item =>
-              item.exam_id
-          )
-          .filter(Boolean)
-      )
-    ];
+    [...new Set(
+      results
+        .map(row => row.exam_id)
+        .filter(Boolean)
+    )];
 
 
   const subjectIds =
-    [
-      ...new Set(
-        data
-          .map(
-            item =>
-              item.subject_id
-          )
-          .filter(Boolean)
-      )
-    ];
+    [...new Set(
+      results
+        .map(row => row.subject_id)
+        .filter(Boolean)
+    )];
 
 
   let exams = [];
@@ -1274,29 +1488,28 @@ async function loadResults(studentId) {
   if (examIds.length) {
 
     const {
-      data: examData,
+      data,
       error: examError
-    } =
-      await db
-        .from("exams")
-        .select(`
-          id,
-          title,
-          exam_type,
-          exam_date,
-          course_id
-        `)
-        .in(
-          "id",
-          examIds
-        );
+    } = await db
+      .from("exams")
+      .select(`
+        id,
+        title,
+        exam_type,
+        exam_date,
+        max_score
+      `)
+      .in("id", examIds);
 
-    if (examError) {
-      throw examError;
+
+    if (!examError) {
+      exams = data || [];
+    } else {
+      console.error(
+        "Exam lookup error:",
+        examError
+      );
     }
-
-    exams =
-      examData || [];
 
   }
 
@@ -1304,27 +1517,27 @@ async function loadResults(studentId) {
   if (subjectIds.length) {
 
     const {
-      data: subjectData,
+      data,
       error: subjectError
-    } =
-      await db
-        .from("subjects")
-        .select(`
-          id,
-          name,
-          code
-        `)
-        .in(
-          "id",
-          subjectIds
-        );
+    } = await db
+      .from("subjects")
+      .select(`
+        id,
+        name,
+        code,
+        max_score
+      `)
+      .in("id", subjectIds);
 
-    if (subjectError) {
-      throw subjectError;
+
+    if (!subjectError) {
+      subjects = data || [];
+    } else {
+      console.error(
+        "Subject lookup error:",
+        subjectError
+      );
     }
-
-    subjects =
-      subjectData || [];
 
   }
 
@@ -1332,10 +1545,7 @@ async function loadResults(studentId) {
   const examMap =
     new Map(
       exams.map(
-        exam => [
-          exam.id,
-          exam
-        ]
+        exam => [exam.id, exam]
       )
     );
 
@@ -1343,133 +1553,125 @@ async function loadResults(studentId) {
   const subjectMap =
     new Map(
       subjects.map(
-        subject => [
-          subject.id,
-          subject
-        ]
+        subject => [subject.id, subject]
       )
     );
 
 
   contentBody.innerHTML = `
 
-    <div class="data-list">
+    <div class="table-wrap">
 
-      ${data.map(
-        result => {
+      <table class="data-table">
 
-          const exam =
-            examMap.get(
-              result.exam_id
-            );
+        <thead>
 
-          const subject =
-            subjectMap.get(
-              result.subject_id
-            );
+          <tr>
+            <th>Exam</th>
+            <th>Date</th>
+            <th>Subject</th>
+            <th>Score</th>
+            <th>Percentage</th>
+            <th>Grade</th>
+            <th>Remarks</th>
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          ${results.map(row => {
+
+            const exam =
+              examMap.get(
+                row.exam_id
+              );
+
+            const subject =
+              subjectMap.get(
+                row.subject_id
+              );
+
+            const percentage =
+              row.percentage != null
+                ? Number(row.percentage).toFixed(1)
+                : row.max_score
+                  ? (
+                      Number(row.score) /
+                      Number(row.max_score) *
+                      100
+                    ).toFixed(1)
+                  : "—";
 
 
-          return `
+            return `
 
-            <div class="data-item">
+              <tr>
 
-              <div class="data-item-title">
-
-                ${
-                  escapeHtml(
-                    subject?.name ||
-                    "Subject"
-                  )
-                }
-
-                ${
-                  subject?.code
-                    ? `
-                      —
-                      ${escapeHtml(
-                        subject.code
-                      )}
-                    `
-                    : ""
-                }
-
-              </div>
-
-              <div class="data-item-meta">
-
-                Exam:
-                ${
-                  escapeHtml(
+                <td>
+                  ${escapeHtml(
                     exam?.title ||
                     "Exam"
-                  )
-                }
+                  )}
+                </td>
 
-                <br>
+                <td>
+                  ${formatDate(
+                    exam?.exam_date
+                  )}
+                </td>
 
-                Date:
-                ${
-                  escapeHtml(
-                    exam?.exam_date ||
-                    "—"
-                  )
-                }
-
-                <br>
-
-                Score:
-                <strong>
+                <td>
                   ${escapeHtml(
-                    result.score
+                    subject?.name ||
+                    "Subject"
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    String(row.score ?? "—")
                   )}
                   /
                   ${escapeHtml(
-                    result.max_score
-                  )}
-                </strong>
-
-                <br>
-
-                Percentage:
-                <strong>
-                  ${
-                    result.percentage ??
-                    "—"
-                  }%
-                </strong>
-
-                <br>
-
-                Grade:
-                <span class="badge badge-gold">
-                  ${
-                    escapeHtml(
-                      result.grade ||
-                      "—"
+                    String(
+                      row.max_score ??
+                      subject?.max_score ??
+                      exam?.max_score ??
+                      100
                     )
-                  }
-                </span>
+                  )}
+                </td>
 
-                ${
-                  result.remarks
-                    ? `
-                      <br>
-                      Remarks:
-                      ${escapeHtml(
-                        result.remarks
-                      )}
-                    `
-                    : ""
-                }
+                <td>
+                  <strong>
+                    ${percentage}%
+                  </strong>
+                </td>
 
-              </div>
+                <td>
+                  <span class="badge badge-neutral">
+                    ${escapeHtml(
+                      row.grade || "—"
+                    )}
+                  </span>
+                </td>
 
-            </div>
+                <td>
+                  ${escapeHtml(
+                    row.remarks || "—"
+                  )}
+                </td>
 
-          `;
+              </tr>
 
-        }
-      ).join("")}
+            `;
+
+          }).join("")}
+
+        </tbody>
+
+      </table>
 
     </div>
 
@@ -1478,89 +1680,70 @@ async function loadResults(studentId) {
 }
 
 
-// =====================================================
-// COURSES + ENROLLMENTS
-// =====================================================
+/* =========================================================
+   COURSES
+========================================================= */
 
-async function loadCourses(studentId) {
+async function loadCourses(
+  studentId
+) {
 
   const {
-    data,
+    data: enrollments,
     error
-  } =
-    await db
-      .from("enrollments")
-      .select(`
-        id,
-        course_id,
-        class_id,
-        enrollment_number,
-        enrollment_date,
-        start_date,
-        end_date,
-        status
-      `)
-      .eq(
-        "student_id",
-        studentId
-      )
-      .order(
-        "enrollment_date",
-        {
-          ascending: false
-        }
-      );
+  } = await db
+    .from("enrollments")
+    .select(`
+      id,
+      course_id,
+      class_id,
+      enrollment_number,
+      enrollment_date,
+      start_date,
+      end_date,
+      status
+    `)
+    .eq("student_id", studentId)
+    .order(
+      "created_at",
+      { ascending: false }
+    );
 
 
   if (error) {
-    throw error;
+
+    renderError(error);
+
+    return;
   }
 
 
-  if (!data || !data.length) {
+  if (!enrollments || !enrollments.length) {
 
     contentBody.innerHTML = `
       <div class="empty">
-
-        <strong>
-          No Course Enrollment
-        </strong>
-
-        No course enrollment was found
-        for this student.
-
+        No course enrollment records are available.
       </div>
     `;
 
     return;
-
   }
 
 
   const courseIds =
-    [
-      ...new Set(
-        data
-          .map(
-            item =>
-              item.course_id
-          )
-          .filter(Boolean)
-      )
-    ];
+    [...new Set(
+      enrollments
+        .map(row => row.course_id)
+        .filter(Boolean)
+    )];
 
 
   const classIds =
-    [
-      ...new Set(
-        data
-          .map(
-            item =>
-              item.class_id
-          )
-          .filter(Boolean)
-      )
-    ];
+    [...new Set(
+      enrollments
+        .map(row => row.class_id)
+        .filter(Boolean)
+    )];
 
 
   let courses = [];
@@ -1570,31 +1753,24 @@ async function loadCourses(studentId) {
   if (courseIds.length) {
 
     const {
-      data: courseData,
+      data,
       error: courseError
-    } =
-      await db
-        .from("courses")
-        .select(`
-          id,
-          name,
-          code,
-          description,
-          duration_months,
-          fee,
-          department_id
-        `)
-        .in(
-          "id",
-          courseIds
-        );
+    } = await db
+      .from("courses")
+      .select(`
+        id,
+        name,
+        code,
+        description,
+        duration_months,
+        is_active
+      `)
+      .in("id", courseIds);
 
-    if (courseError) {
-      throw courseError;
+
+    if (!courseError) {
+      courses = data || [];
     }
-
-    courses =
-      courseData || [];
 
   }
 
@@ -1602,30 +1778,26 @@ async function loadCourses(studentId) {
   if (classIds.length) {
 
     const {
-      data: classData,
+      data,
       error: classError
-    } =
-      await db
-        .from("classes")
-        .select(`
-          id,
-          name,
-          code,
-          academic_year,
-          room,
-          is_active
-        `)
-        .in(
-          "id",
-          classIds
-        );
+    } = await db
+      .from("classes")
+      .select(`
+        id,
+        name,
+        code,
+        academic_year,
+        room,
+        start_date,
+        end_date,
+        is_active
+      `)
+      .in("id", classIds);
 
-    if (classError) {
-      throw classError;
+
+    if (!classError) {
+      classes = data || [];
     }
-
-    classes =
-      classData || [];
 
   }
 
@@ -1633,10 +1805,7 @@ async function loadCourses(studentId) {
   const courseMap =
     new Map(
       courses.map(
-        course => [
-          course.id,
-          course
-        ]
+        course => [course.id, course]
       )
     );
 
@@ -1644,118 +1813,91 @@ async function loadCourses(studentId) {
   const classMap =
     new Map(
       classes.map(
-        item => [
-          item.id,
-          item
-        ]
+        item => [item.id, item]
       )
     );
 
 
   contentBody.innerHTML = `
 
-    <div class="data-list">
+    <div class="students-grid">
 
-      ${data.map(
-        enrollment => {
+      ${enrollments.map(enrollment => {
 
-          const course =
-            courseMap.get(
-              enrollment.course_id
-            );
+        const course =
+          courseMap.get(
+            enrollment.course_id
+          );
 
-          const classInfo =
-            classMap.get(
-              enrollment.class_id
-            );
+        const classInfo =
+          classMap.get(
+            enrollment.class_id
+          );
 
 
-          return `
+        return `
 
-            <div class="data-item">
+          <div class="student-card">
 
-              <div class="data-item-title">
+            <div
+              class="service-icon"
+              style="font-size:30px;"
+            >
+              📚
+            </div>
 
-                ${
-                  escapeHtml(
-                    course?.name ||
-                    "Course"
-                  )
-                }
+            <div class="student-name">
+              ${escapeHtml(
+                course?.name ||
+                "Course"
+              )}
+            </div>
 
+            <div class="student-id">
+              Code:
+              ${escapeHtml(
+                course?.code || "N/A"
+              )}
+            </div>
+
+            <span class="relationship">
+              ${formatStatus(
+                enrollment.status
+              )}
+            </span>
+
+            <div style="margin-top:13px;font-size:12px;color:#64748B;">
+
+              <div>
+                Class:
+                ${escapeHtml(
+                  classInfo?.name ||
+                  "N/A"
+                )}
               </div>
 
-              <div class="data-item-meta">
+              <div>
+                Academic Year:
+                ${escapeHtml(
+                  classInfo?.academic_year ||
+                  "N/A"
+                )}
+              </div>
 
-                Course Code:
-                ${
-                  escapeHtml(
-                    course?.code ||
-                    "—"
-                  )
-                }
-
-                <br>
-
-                Enrollment No:
-                ${
-                  escapeHtml(
-                    enrollment.enrollment_number ||
-                    "—"
-                  )
-                }
-
-                <br>
-
-                Class:
-                ${
-                  escapeHtml(
-                    classInfo?.name ||
-                    "—"
-                  )
-                }
-
-                ${
-                  classInfo?.academic_year
-                    ? `
-                      (${escapeHtml(
-                        classInfo.academic_year
-                      )})
-                    `
-                    : ""
-                }
-
-                <br>
-
-                Enrollment Date:
-                ${
-                  escapeHtml(
-                    enrollment.enrollment_date ||
-                    "—"
-                  )
-                }
-
-                <br>
-
-                Status:
-                <span class="badge badge-success">
-                  ${
-                    escapeHtml(
-                      formatStatus(
-                        enrollment.status
-                      )
-                    )
-                  }
-                </span>
-
+              <div>
+                Start:
+                ${formatDate(
+                  enrollment.start_date
+                )}
               </div>
 
             </div>
 
-          `;
+          </div>
 
-        }
-      ).join("")}
+        `;
+
+      }).join("")}
 
     </div>
 
@@ -1764,484 +1906,425 @@ async function loadCourses(studentId) {
 }
 
 
-// =====================================================
-// CERTIFICATES
-// =====================================================
+/* =========================================================
+   CERTIFICATES
+========================================================= */
 
-async function loadCertificates(studentId) {
+async function loadCertificates(
+  studentId
+) {
 
   const {
-    data,
+    data: certificates,
     error
-  } =
-    await db
-      .from("certificates")
-      .select(`
-        id,
-        course_id,
-        certificate_no,
-        certificate_id,
-        verify_code,
-        issue_date,
-        expiry_date,
-        status,
-        certificate_url,
-        pdf_url,
-        qr_url,
-        student_name_snapshot,
-        course_name_snapshot
-      `)
-      .eq(
-        "student_id",
-        studentId
-      )
-      .order(
-        "issue_date",
-        {
-          ascending: false
-        }
-      );
+  } = await db
+    .from("certificates")
+    .select(`
+      id,
+      course_id,
+      certificate_no,
+      certificate_id,
+      verify_code,
+      hash_code,
+      issue_date,
+      expiry_date,
+      status,
+      certificate_url,
+      pdf_url,
+      qr_url,
+      student_name_snapshot,
+      course_name_snapshot,
+      created_at
+    `)
+    .eq("student_id", studentId)
+    .order(
+      "issue_date",
+      { ascending: false }
+    );
 
 
   if (error) {
-    throw error;
+
+    renderError(error);
+
+    return;
   }
 
 
-  if (!data || !data.length) {
+  if (!certificates || !certificates.length) {
 
     contentBody.innerHTML = `
       <div class="empty">
 
-        <strong>
-          No Certificates
-        </strong>
+        <div style="font-size:35px;margin-bottom:10px;">
+          🏆
+        </div>
 
-        No certificate has been issued
-        to this student yet.
+        <strong>No Certificates Yet</strong>
+
+        <p style="margin-top:5px;">
+          Certificates will appear here when issued.
+        </p>
 
       </div>
     `;
 
     return;
-
   }
 
 
   contentBody.innerHTML = `
 
-    <div class="data-list">
+    ${certificates.map(cert => {
 
-      ${data.map(
-        certificate => {
+      const certificateUrl =
+        safeUrl(cert.certificate_url);
 
-          return `
+      const pdfUrl =
+        safeUrl(cert.pdf_url);
 
-            <div class="data-item">
-
-              <div class="data-item-title">
-
-                🏆
-                ${
-                  escapeHtml(
-                    certificate.course_name_snapshot ||
-                    "Certificate"
-                  )
-                }
-
-              </div>
-
-              <div class="data-item-meta">
-
-                Certificate No:
-                <strong>
-                  ${
-                    escapeHtml(
-                      certificate.certificate_no
-                    )
-                  }
-                </strong>
-
-                <br>
-
-                Certificate ID:
-                ${
-                  escapeHtml(
-                    certificate.certificate_id
-                  )
-                }
-
-                <br>
-
-                Issue Date:
-                ${
-                  escapeHtml(
-                    certificate.issue_date
-                  )
-                }
-
-                ${
-                  certificate.expiry_date
-                    ? `
-                      <br>
-                      Expiry Date:
-                      ${escapeHtml(
-                        certificate.expiry_date
-                      )}
-                    `
-                    : ""
-                }
-
-                <br>
-
-                Status:
-                <span class="badge badge-success">
-                  ${
-                    escapeHtml(
-                      formatStatus(
-                        certificate.status
-                      )
-                    )
-                  }
-                </span>
+      const qrUrl =
+        safeUrl(cert.qr_url);
 
 
-                <div class="certificate-actions">
+      return `
 
-                  ${
-                    certificate.pdf_url
-                      ? `
-                        <a
-                          class="small-button"
-                          href="${safeUrl(
-                            certificate.pdf_url
-                          )}"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          📄 View PDF
-                        </a>
-                      `
-                      : ""
-                  }
+        <div class="certificate-card">
+
+          <h3>
+            ${escapeHtml(
+              cert.course_name_snapshot ||
+              "Certificate"
+            )}
+          </h3>
+
+          <p>
+            Certificate No:
+            <strong>
+              ${escapeHtml(
+                cert.certificate_no ||
+                cert.certificate_id ||
+                "N/A"
+              )}
+            </strong>
+          </p>
+
+          <p>
+            Issue Date:
+            ${formatDate(
+              cert.issue_date
+            )}
+          </p>
+
+          <p>
+            Status:
+            ${formatStatus(
+              cert.status
+            )}
+          </p>
 
 
-                  ${
-                    certificate.certificate_url
-                      ? `
-                        <a
-                          class="small-button"
-                          href="${safeUrl(
-                            certificate.certificate_url
-                          )}"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          🎓 Certificate
-                        </a>
-                      `
-                      : ""
-                  }
+          <div class="certificate-actions">
+
+            ${
+              pdfUrl
+                ? `
+                  <a
+                    class="action-button"
+                    href="${pdfUrl}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View / Download PDF
+                  </a>
+                `
+                : ""
+            }
 
 
-                  ${
-                    certificate.qr_url
-                      ? `
-                        <a
-                          class="small-button gold"
-                          href="${safeUrl(
-                            certificate.qr_url
-                          )}"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          🔳 QR
-                        </a>
-                      `
-                      : ""
-                  }
+            ${
+              certificateUrl
+                ? `
+                  <a
+                    class="action-button gold"
+                    href="${certificateUrl}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View Certificate
+                  </a>
+                `
+                : ""
+            }
 
-                </div>
 
-              </div>
+            ${
+              qrUrl
+                ? `
+                  <a
+                    class="action-button gold"
+                    href="${qrUrl}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    QR
+                  </a>
+                `
+                : ""
+            }
 
-            </div>
+          </div>
 
-          `;
+        </div>
 
-        }
-      ).join("")}
+      `;
 
-    </div>
+    }).join("")}
 
   `;
 
 }
 
 
-// =====================================================
-// STUDENT PROFILE
-// =====================================================
+/* =========================================================
+   STUDENT PROFILE
+========================================================= */
 
-function renderStudentProfile(student) {
+function renderStudentProfile(
+  studentId
+) {
 
-  contentBody.innerHTML = `
+  const student =
+    accessibleStudents.find(
+      item =>
+        item.id === studentId
+    );
 
-    <div class="profile-grid">
 
-      <div class="profile-field">
+  if (!student) {
 
-        <small>Full Name</small>
-
-        <strong>
-          ${escapeHtml(
-            student.full_name
-          )}
-        </strong>
-
+    contentBody.innerHTML = `
+      <div class="empty">
+        Student profile could not be found.
       </div>
+    `;
 
-
-      <div class="profile-field">
-
-        <small>Student ID</small>
-
-        <strong>
-          ${escapeHtml(
-            student.student_id ||
-            "—"
-          )}
-        </strong>
-
-      </div>
-
-
-      <div class="profile-field">
-
-        <small>Gender</small>
-
-        <strong>
-          ${escapeHtml(
-            student.gender ||
-            "—"
-          )}
-        </strong>
-
-      </div>
-
-
-      <div class="profile-field">
-
-        <small>Date of Birth</small>
-
-        <strong>
-          ${escapeHtml(
-            student.date_of_birth ||
-            "—"
-          )}
-        </strong>
-
-      </div>
-
-
-      <div class="profile-field">
-
-        <small>Phone</small>
-
-        <strong>
-          ${escapeHtml(
-            student.phone ||
-            "—"
-          )}
-        </strong>
-
-      </div>
-
-
-      <div class="profile-field">
-
-        <small>Email</small>
-
-        <strong>
-          ${escapeHtml(
-            student.email ||
-            "—"
-          )}
-        </strong>
-
-      </div>
-
-
-      <div class="profile-field">
-
-        <small>Admission Date</small>
-
-        <strong>
-          ${escapeHtml(
-            student.admission_date ||
-            "—"
-          )}
-        </strong>
-
-      </div>
-
-
-      <div class="profile-field">
-
-        <small>Status</small>
-
-        <strong>
-          ${escapeHtml(
-            formatStatus(
-              student.status
-            )
-          )}
-        </strong>
-
-      </div>
-
-
-      <div class="profile-field">
-
-        <small>Address</small>
-
-        <strong>
-          ${escapeHtml(
-            student.address ||
-            "—"
-          )}
-        </strong>
-
-      </div>
-
-
-      <div class="profile-field">
-
-        <small>Parent Relationship</small>
-
-        <strong>
-          ${escapeHtml(
-            student.relationship ||
-            "—"
-          )}
-        </strong>
-
-      </div>
-
-    </div>
-
-  `;
-
-}
-
-
-// =====================================================
-// CLOSE CONTENT
-// =====================================================
-
-function closeContentPanel() {
-
-  if (!contentPanel) {
     return;
   }
 
-  contentPanel.style.display =
-    "none";
 
-  currentModule =
-    null;
+  const photo =
+    student.photo_url
+      ? `
+        <img
+          class="profile-photo"
+          src="${safeUrl(student.photo_url)}"
+          alt="${escapeHtml(student.full_name || "Student")}"
+        >
+      `
+      : `
+        <div class="student-placeholder">
+          ${getInitials(student.full_name)}
+        </div>
+      `;
+
+
+  contentBody.innerHTML = `
+
+    <div class="profile-header">
+
+      ${photo}
+
+      <div>
+
+        <h3>
+          ${escapeHtml(
+            student.full_name ||
+            "Unnamed Student"
+          )}
+        </h3>
+
+        <p>
+          Student ID:
+          ${escapeHtml(
+            student.student_id ||
+            "N/A"
+          )}
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div class="profile-grid">
+
+      ${profileItem(
+        "Student ID",
+        student.student_id
+      )}
+
+      ${profileItem(
+        "Gender",
+        student.gender
+      )}
+
+      ${profileItem(
+        "Date of Birth",
+        formatDate(student.date_of_birth)
+      )}
+
+      ${profileItem(
+        "Phone",
+        student.phone
+      )}
+
+      ${profileItem(
+        "Email",
+        student.email
+      )}
+
+      ${profileItem(
+        "Address",
+        student.address
+      )}
+
+      ${profileItem(
+        "Admission Date",
+        formatDate(student.admission_date)
+      )}
+
+      ${profileItem(
+        "Status",
+        formatStatusText(student.status)
+      )}
+
+      ${profileItem(
+        "Emergency Contact",
+        student.emergency_contact_name
+      )}
+
+      ${profileItem(
+        "Emergency Phone",
+        student.emergency_contact_phone
+      )}
+
+    </div>
+
+  `;
 
 }
 
 
-// =====================================================
-// LOGOUT
-// =====================================================
+/* =========================================================
+   PROFILE ITEM
+========================================================= */
 
-if (logoutButton) {
+function profileItem(
+  label,
+  value
+) {
 
-  logoutButton.addEventListener(
-    "click",
-    async function () {
+  return `
 
-      logoutButton.disabled =
-        true;
+    <div class="profile-item">
 
-      logoutButton.textContent =
-        "LOGGING OUT...";
+      <span>
+        ${escapeHtml(label)}
+      </span>
 
+      <strong>
+        ${escapeHtml(
+          value ?? "—"
+        )}
+      </strong>
 
-      try {
+    </div>
 
-        const {
-          error
-        } =
-          await db.auth.signOut();
+  `;
 
-        if (error) {
-          throw error;
-        }
-
-
-        currentUser =
-          null;
-
-        currentParent =
-          null;
-
-        accessibleStudents =
-          [];
-
-        selectedStudentId =
-          null;
-
-        currentModule =
-          null;
+}
 
 
-        studentsContainer.innerHTML =
-          "";
+/* =========================================================
+   SHOW DASHBOARD
+========================================================= */
 
-        parentEmail.textContent =
-          "";
+function showDashboard() {
 
-        message.textContent =
-          "";
+  loginPage.classList.add(
+    "hidden"
+  );
 
-        showLogin();
-
-
-      } catch (error) {
-
-        console.error(
-          "Logout error:",
-          error
-        );
-
-        alert(
-          "Logout failed. Please try again."
-        );
-
-
-      } finally {
-
-        logoutButton.disabled =
-          false;
-
-        logoutButton.textContent =
-          "LOGOUT";
-
-      }
-
-    }
+  dashboardPage.classList.remove(
+    "hidden"
   );
 
 }
 
 
-// =====================================================
-// CHECK EXISTING SESSION
-// =====================================================
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+logoutButton.addEventListener(
+  "click",
+  async function () {
+
+    try {
+
+      await db.auth.signOut();
+
+    } catch (error) {
+
+      console.error(
+        "Logout error:",
+        error
+      );
+
+    }
+
+
+    currentUser = null;
+    currentParent = null;
+    accessibleStudents = [];
+    selectedStudentId = null;
+    currentModule = null;
+
+
+    resetDashboardSummary();
+
+    contentPanel.classList.add(
+      "hidden"
+    );
+
+    contentBody.innerHTML = "";
+
+    studentsContainer.innerHTML = "";
+
+    studentSelector.innerHTML = "";
+
+
+    dashboardPage.classList.add(
+      "hidden"
+    );
+
+    loginPage.classList.remove(
+      "hidden"
+    );
+
+
+    loginForm.reset();
+
+    clearMessage();
+
+  }
+);
+
+
+/* =========================================================
+   SESSION CHECK
+========================================================= */
 
 async function checkSession() {
 
@@ -2250,8 +2333,7 @@ async function checkSession() {
     const {
       data,
       error
-    } =
-      await db.auth.getSession();
+    } = await db.auth.getSession();
 
 
     if (error) {
@@ -2259,49 +2341,78 @@ async function checkSession() {
     }
 
 
-    if (
-      data &&
-      data.session &&
-      data.session.user
-    ) {
-
-      currentUser =
-        data.session.user;
+    const session =
+      data?.session;
 
 
+    if (!session?.user) {
+
+      showLogin();
+
+      return;
+    }
+
+
+    currentUser =
+      session.user;
+
+
+    currentParent =
       await loadParentData(
         currentUser.id
       );
 
 
+    if (!currentParent) {
+
+      await db.auth.signOut();
+
+      showLogin();
+
+      return;
+    }
+
+
+    accessibleStudents =
       await loadParentStudents(
         currentParent.id
       );
 
 
-      welcomeTitle.textContent =
-        "Welcome to GAAWOW EMS";
+    if (!accessibleStudents.length) {
 
-      parentEmail.textContent =
-        currentParent.email ||
-        currentUser.email ||
-        "";
-
-
-      renderStudents(
-        accessibleStudents
-      );
-
-
-      populateStudentSelector();
-
-
-      showDashboard();
-
-
-    } else {
+      await db.auth.signOut();
 
       showLogin();
+
+      showMessage(
+        "No students are linked to this parent account.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    renderParentHeader();
+
+    renderStudents();
+
+    populateStudentSelector();
+
+    showDashboard();
+
+
+    if (accessibleStudents.length) {
+
+      selectedStudentId =
+        accessibleStudents[0].id;
+
+      await loadDashboardSummary(
+        selectedStudentId
+      );
+
+      openFirstStudentModule();
 
     }
 
@@ -2320,106 +2431,461 @@ async function checkSession() {
 }
 
 
-// =====================================================
-// SECURITY — ESCAPE HTML
-// =====================================================
+/* =========================================================
+   SHOW LOGIN
+========================================================= */
 
-function escapeHtml(value) {
+function showLogin() {
 
-  const div =
-    document.createElement("div");
+  dashboardPage.classList.add(
+    "hidden"
+  );
 
-  div.textContent =
-    value ?? "";
-
-  return div.innerHTML;
-
-}
-
-
-// =====================================================
-// SAFE URL
-// =====================================================
-
-function safeUrl(value) {
-
-  if (!value) {
-    return "#";
-  }
-
-  try {
-
-    const url =
-      new URL(
-        value,
-        window.location.href
-      );
-
-    if (
-      url.protocol !== "http:" &&
-      url.protocol !== "https:"
-    ) {
-      return "#";
-    }
-
-    return url.href;
-
-  } catch {
-
-    return "#";
-
-  }
+  loginPage.classList.remove(
+    "hidden"
+  );
 
 }
 
 
-// =====================================================
-// FORMAT STATUS
-// =====================================================
+/* =========================================================
+   RESET SUMMARY
+========================================================= */
 
-function formatStatus(value) {
+function resetDashboardSummary() {
 
-  if (!value) {
-    return "Unknown";
+  if (summaryProgress)
+    summaryProgress.textContent = "—";
+
+  if (summaryCourses)
+    summaryCourses.textContent = "Loading...";
+
+  if (summaryAttendance)
+    summaryAttendance.textContent = "—";
+
+  if (summaryScore)
+    summaryScore.textContent = "—";
+
+  if (summaryCompleted)
+    summaryCompleted.textContent = "—";
+
+  if (summaryCourseText)
+    summaryCourseText.textContent =
+      "Completed courses";
+
+}
+
+
+/* =========================================================
+   LOGIN LOADING
+========================================================= */
+
+function setLoginLoading(
+  loading
+) {
+
+  if (!loginButton) {
+    return;
   }
 
-  return String(value)
-    .replaceAll("_", " ")
-    .replace(
-      /\b\w/g,
-      char =>
-        char.toUpperCase()
+
+  loginButton.disabled =
+    loading;
+
+
+  loginButton.textContent =
+    loading
+      ? "Logging in..."
+      : "Login";
+
+}
+
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+
+function showMessage(
+  text,
+  type = "error"
+) {
+
+  if (!message) {
+    return;
+  }
+
+
+  message.textContent =
+    text;
+
+  message.className =
+    `message ${type}`;
+
+}
+
+
+function clearMessage() {
+
+  if (!message) {
+    return;
+  }
+
+
+  message.textContent =
+    "";
+
+  message.className =
+    "message";
+
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+function renderError(
+  error
+) {
+
+  console.error(
+    error
+  );
+
+
+  contentBody.innerHTML = `
+
+    <div class="error-box">
+
+      <strong>
+        Unable to load this information.
+      </strong>
+
+      <p style="margin-top:5px;">
+        Please try again later.
+      </p>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   FRIENDLY ERROR
+========================================================= */
+
+function getFriendlyError(
+  error
+) {
+
+  const message =
+    String(
+      error?.message ||
+      error ||
+      ""
     );
 
+
+  if (
+    message.toLowerCase()
+      .includes("invalid login credentials")
+  ) {
+
+    return "Email ama password-ka waa khalad.";
+
+  }
+
+
+  if (
+    message.toLowerCase()
+      .includes("email not confirmed")
+  ) {
+
+    return "Email-ka account-ka weli lama xaqiijin.";
+
+  }
+
+
+  if (
+    message.toLowerCase()
+      .includes("fetch")
+  ) {
+
+    return "Internet connection ama Supabase connection-ka ayaa dhibaato qaba.";
+
+  }
+
+
+  return message ||
+    "Waxaa dhacay qalad. Fadlan isku day mar kale.";
+
 }
 
 
-// =====================================================
-// FORMAT DATE
-// =====================================================
+/* =========================================================
+   FORMAT DATE
+========================================================= */
 
-function formatDate(value) {
+function formatDate(
+  value
+) {
 
   if (!value) {
     return "—";
   }
 
-  try {
 
-    return new Date(value)
-      .toLocaleDateString();
+  const date =
+    new Date(value);
 
-  } catch {
 
-    return String(value);
+  if (Number.isNaN(
+    date.getTime()
+  )) {
+
+    return escapeHtml(
+      String(value)
+    );
 
   }
+
+
+  return date.toLocaleDateString(
+    "en-GB",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }
+  );
 
 }
 
 
-// =====================================================
-// START
-// =====================================================
+/* =========================================================
+   FORMAT STATUS
+========================================================= */
+
+function formatStatus(
+  value
+) {
+
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+
+    return `
+      <span class="badge badge-neutral">
+        —
+      </span>
+    `;
+
+  }
+
+
+  const text =
+    String(value);
+
+
+  const lower =
+    text.toLowerCase();
+
+
+  let badgeClass =
+    "badge-neutral";
+
+
+  if (
+    lower.includes("present") ||
+    lower.includes("active") ||
+    lower.includes("completed") ||
+    lower.includes("pass") ||
+    lower.includes("valid")
+  ) {
+
+    badgeClass =
+      "badge-success";
+
+  } else if (
+    lower.includes("absent") ||
+    lower.includes("inactive") ||
+    lower.includes("fail") ||
+    lower.includes("invalid") ||
+    lower.includes("cancel")
+  ) {
+
+    badgeClass =
+      "badge-danger";
+
+  } else if (
+    lower.includes("late") ||
+    lower.includes("pending")
+  ) {
+
+    badgeClass =
+      "badge-warning";
+
+  }
+
+
+  return `
+
+    <span class="badge ${badgeClass}">
+      ${escapeHtml(
+        formatStatusText(text)
+      )}
+    </span>
+
+  `;
+
+}
+
+
+/* =========================================================
+   STATUS TEXT
+========================================================= */
+
+function formatStatusText(
+  value
+) {
+
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+
+    return "—";
+
+  }
+
+
+  return String(value)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, char =>
+      char.toUpperCase()
+    );
+
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHtml(
+  value
+) {
+
+  if (
+    value === null ||
+    value === undefined
+  ) {
+
+    return "";
+
+  }
+
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+
+/* =========================================================
+   SAFE URL
+========================================================= */
+
+function safeUrl(
+  value
+) {
+
+  if (!value) {
+    return "";
+  }
+
+
+  try {
+
+    const url =
+      new URL(
+        String(value),
+        window.location.href
+      );
+
+
+    if (
+      url.protocol === "http:" ||
+      url.protocol === "https:"
+    ) {
+
+      return url.href;
+
+    }
+
+  } catch (error) {
+
+    console.warn(
+      "Invalid URL:",
+      value
+    );
+
+  }
+
+
+  return "";
+
+}
+
+
+/* =========================================================
+   INITIALS
+========================================================= */
+
+function getInitials(
+  name
+) {
+
+  if (!name) {
+    return "S";
+  }
+
+
+  const parts =
+    String(name)
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+
+  if (parts.length === 1) {
+
+    return parts[0]
+      .substring(0, 2)
+      .toUpperCase();
+
+  }
+
+
+  return (
+    parts[0][0] +
+    parts[parts.length - 1][0]
+  ).toUpperCase();
+
+}
+
+
+/* =========================================================
+   START
+========================================================= */
 
 checkSession();
