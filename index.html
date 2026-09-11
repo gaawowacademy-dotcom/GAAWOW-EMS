@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS - Login</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .login-card {
+      background: #ffffff;
+      border-radius: 22px;
+      padding: 35px 30px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+      text-align: center;
+    }
+
+    .logo {
+      width: 150px;
+      max-width: 70%;
+      height: auto;
+      display: block;
+      margin: 0 auto 20px;
+    }
+
+    h1 {
+      color: #0B1E63;
+      font-size: 27px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+
+    .brand-line {
+      width: 70px;
+      height: 4px;
+      background: #D4AF37;
+      border-radius: 10px;
+      margin: 12px auto 25px;
+    }
+
+    .form-group {
+      text-align: left;
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      color: #1F2937;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 7px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 15px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 15px;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    input:focus {
+      border-color: #0B4DA2;
+      box-shadow: 0 0 0 3px rgba(11,77,162,0.12);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0B4DA2, #0B1E63);
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    button:hover {
+      opacity: 0.92;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    #message {
+      margin-top: 18px;
+      font-size: 14px;
+      min-height: 20px;
+    }
+
+    .footer {
+      margin-top: 25px;
+      color: #6b7280;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .footer strong {
+      color: #0B1E63;
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 30px 22px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="login-container">
+
+    <div class="login-card">
+
+      <!-- GAAWOW ACADEMY OFFICIAL LOGO -->
+      <img
+        class="logo"
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="Gaawow Academy Logo"
+      >
+
+      <h1>GAAWOW EMS</h1>
+
+      <div class="brand-line"></div>
+
+      <p class="subtitle">
+        Education Management System
+      </p>
+
+      <form id="loginForm">
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="Enter your email"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="Enter your password"
+            required
+          >
+        </div>
+
+        <button type="submit" id="loginButton">
+          LOGIN
+        </button>
+
+      </form>
+
+      <div id="message"></div>
+
+      <div class="footer">
+        <strong>GAAWOW ACADEMY</strong><br>
+        Ilayska Aqoonta iyo Xirfadda
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    /*
+      SUPABASE CONNECTION
+      ---------------------------------
+      Waxaan ku xiri doonaa Supabase
+      tallaabada xigta.
+    */
+
+    const SUPABASE_URL =
+      "https://mujmcunlmkvtbjslaely.supabase.co";
+
+    // HA gelin service_role key halkan.
+    // Waxaan ku dari doonaa Publishable/Anon key
+    // tallaabada xigta.
+
+    const SUPABASE_ANON_KEY =
+      "YOUR_SUPABASE_PUBLISHABLE_KEY";
+
+    const loginForm = document.getElementById("loginForm");
+    const loginButton = document.getElementById("loginButton");
+    const message = document.getElementById("message");
+
+    loginForm.addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      message.style.color = "#0B4DA2";
+      message.textContent =
+        "Supabase login connection-ka waxaa lagu dari doonaa tallaabada xigta.";
+
+    });
+  </script>
+
+</body>
+</html>
