@@ -2,13 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>GAAWOW EMS — Parent Portal</title>
+
+  <meta name="theme-color" content="#0B4DA2">
 
   <style>
     * {
@@ -17,27 +15,34 @@
       padding: 0;
     }
 
-    body {
-      font-family:
-        Inter,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Arial,
-        sans-serif;
+    :root {
+      --blue: #0B4DA2;
+      --navy: #0B1E63;
+      --gold: #D4AF37;
+      --bg: #F5F7FA;
+      --text: #1F2937;
+      --muted: #64748B;
+      --success: #16A34A;
+      --danger: #DC2626;
+      --white: #FFFFFF;
+      --border: #E2E8F0;
+      --shadow: 0 12px 35px rgba(11, 30, 99, 0.10);
+    }
 
-      background: #F5F7FA;
-      color: #1F2937;
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
     }
 
-    button,
-    input {
-      font: inherit;
+    button {
+      font-family: inherit;
+      cursor: pointer;
     }
 
     /* ==============================
-       LOGIN PAGE
+       LOGIN
     ============================== */
 
     #loginPage {
@@ -45,81 +50,47 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
-
+      padding: 20px;
       background:
-        radial-gradient(
-          circle at top right,
-          rgba(212,175,55,0.18),
-          transparent 30%
-        ),
-        linear-gradient(
-          135deg,
-          #0B1E63,
-          #0B4DA2
-        );
-    }
-
-    .login-wrapper {
-      width: 100%;
-      max-width: 440px;
-    }
-
-    .brand {
-      text-align: center;
-      color: white;
-      margin-bottom: 24px;
-    }
-
-    .brand-logo {
-      width: 105px;
-      height: 105px;
-      object-fit: contain;
-      background: white;
-      border-radius: 24px;
-      padding: 10px;
-      margin-bottom: 15px;
-
-      box-shadow:
-        0 15px 35px rgba(0,0,0,0.25);
-    }
-
-    .brand h1 {
-      font-size: 27px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-    }
-
-    .brand p {
-      margin-top: 6px;
-      color: #F0B46E;
-      font-size: 14px;
-      font-weight: 600;
+        radial-gradient(circle at top right, rgba(212,175,55,.18), transparent 35%),
+        linear-gradient(135deg, #f5f7fa, #eaf1fb);
     }
 
     .login-card {
-      background: rgba(255,255,255,0.97);
+      width: 100%;
+      max-width: 430px;
+      background: rgba(255,255,255,.96);
+      border: 1px solid rgba(212,175,55,.25);
       border-radius: 24px;
-      padding: 32px;
-
-      box-shadow:
-        0 25px 60px rgba(0,0,0,0.25);
+      padding: 34px 28px;
+      box-shadow: var(--shadow);
     }
 
-    .login-card h2 {
-      color: #0B1E63;
-      font-size: 23px;
-      margin-bottom: 7px;
+    .login-logo {
+      width: 105px;
+      height: 105px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto 18px;
+    }
+
+    .login-title {
+      text-align: center;
+      color: var(--navy);
+      font-size: 26px;
+      font-weight: 800;
     }
 
     .login-subtitle {
-      color: #6B7280;
+      text-align: center;
+      color: var(--muted);
+      margin-top: 7px;
+      margin-bottom: 28px;
       font-size: 14px;
-      margin-bottom: 25px;
     }
 
     .form-group {
-      margin-bottom: 18px;
+      margin-bottom: 17px;
     }
 
     .form-group label {
@@ -127,76 +98,63 @@
       font-size: 13px;
       font-weight: 700;
       margin-bottom: 7px;
-      color: #374151;
+      color: var(--navy);
     }
 
     .form-group input {
       width: 100%;
       padding: 14px 15px;
-
-      border: 1px solid #D1D5DB;
+      border: 1px solid var(--border);
       border-radius: 12px;
       outline: none;
-
-      background: #F9FAFB;
-      color: #111827;
-
-      transition: 0.2s;
+      font-size: 15px;
+      background: #fff;
+      transition: .2s;
     }
 
     .form-group input:focus {
-      border-color: #0B4DA2;
-      background: white;
-
-      box-shadow:
-        0 0 0 4px rgba(11,77,162,0.10);
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(11,77,162,.10);
     }
 
     #loginButton {
       width: 100%;
-      border: none;
+      border: 0;
       border-radius: 12px;
-
       padding: 15px;
-
-      background:
-        linear-gradient(
-          135deg,
-          #0B4DA2,
-          #0B1E63
-        );
-
-      color: white;
+      background: linear-gradient(135deg, var(--blue), var(--navy));
+      color: #fff;
       font-weight: 800;
-      cursor: pointer;
-
-      transition: 0.2s;
-
-      box-shadow:
-        0 8px 20px rgba(11,77,162,0.25);
-    }
-
-    #loginButton:hover {
-      transform: translateY(-1px);
+      font-size: 14px;
+      letter-spacing: .2px;
     }
 
     #loginButton:disabled {
-      opacity: 0.7;
+      opacity: .65;
       cursor: not-allowed;
     }
 
     #message {
-      margin-top: 15px;
+      min-height: 22px;
+      margin-top: 14px;
       text-align: center;
       font-size: 13px;
-      min-height: 20px;
+      font-weight: 600;
     }
 
     .login-footer {
       text-align: center;
-      margin-top: 20px;
-      color: #9CA3AF;
-      font-size: 11px;
+      margin-top: 25px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .gold-line {
+      width: 55px;
+      height: 3px;
+      background: var(--gold);
+      border-radius: 10px;
+      margin: 12px auto 0;
     }
 
     /* ==============================
@@ -209,414 +167,518 @@
     }
 
     .topbar {
-      background:
-        linear-gradient(
-          135deg,
-          #0B1E63,
-          #0B4DA2
-        );
-
-      color: white;
-
-      padding: 14px 20px;
-
-      box-shadow:
-        0 5px 20px rgba(0,0,0,0.12);
-    }
-
-    .topbar-inner {
-      max-width: 1200px;
-      margin: auto;
-
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: #fff;
+      padding: 13px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 15px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 5px 20px rgba(0,0,0,.12);
     }
 
-    .top-brand {
+    .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 11px;
+      min-width: 0;
     }
 
-    .top-logo {
-      width: 48px;
-      height: 48px;
+    .brand img {
+      width: 45px;
+      height: 45px;
       object-fit: contain;
-
-      background: white;
-      border-radius: 12px;
-      padding: 5px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 3px;
     }
 
-    .top-brand strong {
-      display: block;
-      font-size: 17px;
+    .brand-text {
+      min-width: 0;
     }
 
-    .top-brand span {
-      display: block;
-      font-size: 11px;
-      color: #F0B46E;
+    .brand-title {
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .brand-subtitle {
+      color: #e7d58d;
+      font-size: 10px;
       margin-top: 2px;
     }
 
     #logoutButton {
-      border: 1px solid rgba(255,255,255,0.35);
-      background: rgba(255,255,255,0.1);
-      color: white;
-
-      padding: 9px 14px;
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.10);
+      color: #fff;
       border-radius: 10px;
-
+      padding: 10px 14px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
+    }
 
-      cursor: pointer;
+    #logoutButton:disabled {
+      opacity: .6;
     }
 
     .dashboard-container {
-      max-width: 1200px;
+      width: min(1150px, 94%);
       margin: auto;
-      padding: 28px 20px 50px;
+      padding: 25px 0 50px;
     }
 
-    .welcome {
-      background: white;
+    .welcome-card {
+      background: linear-gradient(135deg, var(--blue), var(--navy));
       border-radius: 20px;
       padding: 25px;
-
+      color: #fff;
+      position: relative;
+      overflow: hidden;
       margin-bottom: 25px;
-
-      border-left: 5px solid #D4AF37;
-
-      box-shadow:
-        0 8px 25px rgba(15,23,42,0.06);
+      box-shadow: var(--shadow);
     }
 
-    .welcome h1 {
-      color: #0B1E63;
-      font-size: 25px;
-      margin-bottom: 5px;
+    .welcome-card::after {
+      content: "";
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      border: 1px solid rgba(212,175,55,.30);
+      right: -70px;
+      top: -70px;
     }
 
-    .welcome p {
-      color: #6B7280;
-      font-size: 14px;
-    }
-
-    .parent-email {
-      margin-top: 9px;
-      color: #0B4DA2 !important;
+    .welcome-label {
+      font-size: 12px;
+      color: #e7d58d;
       font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .7px;
     }
 
-    /* ==============================
-       SECTION TITLE
-    ============================== */
+    #welcomeTitle {
+      font-size: 25px;
+      margin-top: 7px;
+    }
+
+    #parentEmail {
+      color: rgba(255,255,255,.78);
+      margin-top: 7px;
+      font-size: 13px;
+      word-break: break-word;
+    }
 
     .section-title {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
+      justify-content: space-between;
+      margin: 25px 0 14px;
     }
 
     .section-title h2 {
-      color: #0B1E63;
+      color: var(--navy);
       font-size: 19px;
     }
 
     .section-title span {
+      color: var(--muted);
       font-size: 12px;
-      color: #6B7280;
     }
 
     /* ==============================
        STUDENTS
     ============================== */
 
-    .students-grid {
+    #studentsContainer {
       display: grid;
-      grid-template-columns:
-        repeat(auto-fit, minmax(280px, 1fr));
-
-      gap: 18px;
-      margin-bottom: 30px;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 17px;
     }
 
     .student-card {
-      background: white;
-      border-radius: 20px;
-      padding: 22px;
-
-      border: 1px solid #E5E7EB;
-
-      box-shadow:
-        0 8px 25px rgba(15,23,42,0.06);
-
-      transition: 0.2s;
-    }
-
-    .student-card:hover {
-      transform: translateY(-3px);
-
-      box-shadow:
-        0 14px 35px rgba(15,23,42,0.10);
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 6px 22px rgba(15,23,42,.05);
     }
 
     .student-header {
       display: flex;
+      gap: 13px;
       align-items: center;
-      gap: 14px;
-      margin-bottom: 18px;
     }
 
     .student-icon {
-      width: 55px;
-      height: 55px;
-
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #e9f2ff, #fff7db);
       display: flex;
       align-items: center;
       justify-content: center;
-
-      border-radius: 16px;
-
-      background:
-        linear-gradient(
-          135deg,
-          #0B4DA2,
-          #0B1E63
-        );
-
-      color: white;
       font-size: 25px;
-    }
-
-    .student-name {
-      flex: 1;
+      flex-shrink: 0;
     }
 
     .student-name h3 {
-      color: #111827;
+      color: var(--navy);
       font-size: 17px;
       margin-bottom: 4px;
     }
 
     .student-id {
-      color: #6B7280;
+      color: var(--muted);
       font-size: 11px;
+      word-break: break-word;
     }
 
     .student-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-
-      background: #ECFDF5;
-      color: #15803D;
-
-      padding: 6px 9px;
-      border-radius: 20px;
-
-      font-size: 11px;
+      margin-top: 15px;
+      font-size: 12px;
+      color: var(--success);
       font-weight: 700;
-
-      margin-bottom: 18px;
     }
 
     .status-dot {
-      width: 7px;
-      height: 7px;
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      display: inline-block;
       border-radius: 50%;
-      background: #16A34A;
+      margin-right: 5px;
     }
 
     .student-actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 9px;
+      gap: 8px;
+      margin-top: 17px;
     }
 
     .student-action {
-      border: 1px solid #E5E7EB;
-      background: #F9FAFB;
-
-      padding: 11px 8px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
       border-radius: 10px;
-
-      color: #374151;
-      font-size: 11px;
+      padding: 11px 7px;
+      color: var(--navy);
+      font-size: 12px;
       font-weight: 700;
-
-      cursor: pointer;
-      transition: 0.2s;
+      transition: .2s;
     }
 
     .student-action:hover {
-      background: #EEF4FF;
-      border-color: #0B4DA2;
-      color: #0B4DA2;
+      border-color: var(--gold);
+      background: #fffaf0;
+      transform: translateY(-1px);
     }
 
     /* ==============================
-       MODULES
+       SERVICES
     ============================== */
 
-    .modules-grid {
+    .services-grid {
       display: grid;
-      grid-template-columns:
-        repeat(auto-fit, minmax(180px, 1fr));
-
-      gap: 15px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
     }
 
-    .module-card {
-      background: white;
-      border-radius: 18px;
-      padding: 20px;
-
-      border: 1px solid #E5E7EB;
-
-      box-shadow:
-        0 6px 20px rgba(15,23,42,0.05);
+    .service-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      cursor: pointer;
+      transition: .2s;
     }
 
-    .module-icon {
-      font-size: 26px;
-      margin-bottom: 12px;
+    .service-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      border-color: rgba(212,175,55,.6);
     }
 
-    .module-card h3 {
-      color: #0B1E63;
+    .service-icon {
+      font-size: 25px;
+      margin-bottom: 9px;
+    }
+
+    .service-card h3 {
       font-size: 14px;
+      color: var(--navy);
       margin-bottom: 5px;
     }
 
-    .module-card p {
-      color: #6B7280;
+    .service-card p {
+      color: var(--muted);
       font-size: 11px;
       line-height: 1.5;
     }
 
-    .coming-soon {
-      margin-top: 12px;
+    /* ==============================
+       CONTENT PANEL
+    ============================== */
 
-      display: inline-block;
+    #contentPanel {
+      display: none;
+      margin-top: 25px;
+    }
 
-      font-size: 9px;
+    .content-card {
+      background: #fff;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      box-shadow: 0 6px 22px rgba(15,23,42,.05);
+      overflow: hidden;
+    }
+
+    .content-header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: #fff;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .content-header h2 {
+      font-size: 19px;
+    }
+
+    .back-button {
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.3);
+      padding: 9px 13px;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .content-body {
+      padding: 20px;
+    }
+
+    .student-selector {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 17px;
+      outline: none;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .data-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .data-item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fafcff;
+    }
+
+    .data-item-title {
+      color: var(--navy);
       font-weight: 800;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
 
-      color: #A16207;
-      background: #FEF3C7;
+    .data-item-meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
 
-      padding: 5px 8px;
-      border-radius: 8px;
+    .badge {
+      display: inline-block;
+      border-radius: 20px;
+      padding: 5px 9px;
+      background: #eef6ff;
+      color: var(--blue);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .badge-success {
+      background: #ecfdf3;
+      color: var(--success);
+    }
+
+    .badge-gold {
+      background: #fff9e8;
+      color: #9a7610;
     }
 
     .empty {
       grid-column: 1 / -1;
-
-      background: white;
-      padding: 35px;
-      border-radius: 18px;
-
+      background: #fff;
+      border: 1px dashed var(--border);
+      border-radius: 15px;
+      padding: 30px;
       text-align: center;
-
-      color: #6B7280;
-
-      border: 1px dashed #D1D5DB;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
     }
 
     .empty strong {
-      color: #0B1E63;
       display: block;
+      color: var(--navy);
       margin-bottom: 5px;
     }
 
-    .dashboard-footer {
+    .loading {
       text-align: center;
-      color: #9CA3AF;
-      font-size: 10px;
-      margin-top: 40px;
+      padding: 25px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
     }
 
-    /* ==============================
-       MOBILE
-    ============================== */
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
 
-    @media (max-width: 600px) {
+    .profile-field {
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 12px;
+      background: #fafcff;
+    }
 
-      #loginPage {
-        padding: 16px;
-      }
+    .profile-field small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      margin-bottom: 4px;
+    }
 
-      .login-card {
-        padding: 24px 20px;
-        border-radius: 20px;
-      }
+    .profile-field strong {
+      font-size: 13px;
+      color: var(--navy);
+      word-break: break-word;
+    }
 
-      .brand-logo {
-        width: 85px;
-        height: 85px;
-      }
+    .certificate-actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
 
-      .brand h1 {
-        font-size: 23px;
-      }
+    .small-button {
+      display: inline-block;
+      text-decoration: none;
+      border: 0;
+      background: var(--blue);
+      color: #fff;
+      padding: 8px 11px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+    }
 
-      .topbar {
-        padding: 11px 14px;
-      }
+    .small-button.gold {
+      background: var(--gold);
+      color: var(--navy);
+    }
 
-      .top-logo {
-        width: 42px;
-        height: 42px;
-      }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      padding: 30px 15px;
+    }
 
-      .top-brand strong {
-        font-size: 14px;
-      }
+    footer strong {
+      color: var(--navy);
+    }
 
-      .top-brand span {
-        font-size: 9px;
-      }
-
-      #logoutButton {
-        padding: 8px 10px;
-        font-size: 10px;
-      }
-
+    @media (max-width: 700px) {
       .dashboard-container {
-        padding: 20px 14px 40px;
+        width: 94%;
       }
 
-      .welcome {
+      .services-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .welcome-card {
         padding: 20px;
       }
 
-      .welcome h1 {
+      #welcomeTitle {
         font-size: 21px;
       }
 
-      .students-grid {
+      .profile-grid {
         grid-template-columns: 1fr;
-      }
-
-      .modules-grid {
-        grid-template-columns: 1fr 1fr;
       }
     }
 
-    @media (max-width: 380px) {
+    @media (max-width: 480px) {
+      .topbar {
+        padding: 10px 12px;
+      }
 
-      .modules-grid {
-        grid-template-columns: 1fr;
+      .brand-title {
+        font-size: 13px;
+      }
+
+      .brand-subtitle {
+        font-size: 9px;
+      }
+
+      .brand img {
+        width: 40px;
+        height: 40px;
+      }
+
+      #logoutButton {
+        padding: 9px 10px;
+        font-size: 10px;
+      }
+
+      .services-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .service-card {
+        padding: 13px;
+      }
+
+      .service-card h3 {
+        font-size: 12px;
+      }
+
+      .service-card p {
+        font-size: 10px;
       }
 
       .student-actions {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .content-header {
+        padding: 15px;
+      }
+
+      .content-body {
+        padding: 14px;
       }
     }
   </style>
@@ -625,86 +687,72 @@
 <body>
 
   <!-- =========================================
-       LOGIN
+       LOGIN PAGE
   ========================================== -->
 
   <section id="loginPage">
 
-    <div class="login-wrapper">
+    <div class="login-card">
 
-      <div class="brand">
+      <img
+        class="login-logo"
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
+      >
 
-        <img
-          class="brand-logo"
-          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-          alt="GAAWOW Academy Logo"
-        >
-
-        <h1>GAAWOW ACADEMY</h1>
-
-        <p>
-          Ilayska Aqoonta iyo Xirfadda
-        </p>
-
+      <div class="login-title">
+        GAAWOW EMS
       </div>
 
-      <div class="login-card">
+      <div class="login-subtitle">
+        Parent Portal
+        <div class="gold-line"></div>
+      </div>
 
-        <h2>Parent Portal</h2>
+      <form id="loginForm">
 
-        <p class="login-subtitle">
-          Sign in to monitor your student's academic journey.
-        </p>
+        <div class="form-group">
+          <label for="email">
+            Email Address
+          </label>
 
-        <form id="loginForm">
-
-          <div class="form-group">
-
-            <label for="email">
-              Email Address
-            </label>
-
-            <input
-              type="email"
-              id="email"
-              placeholder="Enter your email"
-              autocomplete="email"
-              required
-            >
-
-          </div>
-
-          <div class="form-group">
-
-            <label for="password">
-              Password
-            </label>
-
-            <input
-              type="password"
-              id="password"
-              placeholder="Enter your password"
-              autocomplete="current-password"
-              required
-            >
-
-          </div>
-
-          <button
-            type="submit"
-            id="loginButton"
+          <input
+            id="email"
+            type="email"
+            placeholder="Enter your email"
+            autocomplete="email"
+            required
           >
-            LOGIN TO PARENT PORTAL
-          </button>
-
-          <div id="message"></div>
-
-        </form>
-
-        <div class="login-footer">
-          GAAWOW EMS • Secure Parent Access
         </div>
 
+        <div class="form-group">
+          <label for="password">
+            Password
+          </label>
+
+          <input
+            id="password"
+            type="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <button
+          id="loginButton"
+          type="submit"
+        >
+          LOGIN TO PARENT PORTAL
+        </button>
+
+        <div id="message"></div>
+
+      </form>
+
+      <div class="login-footer">
+        <strong>GAAWOW Academy</strong><br>
+        Ilayska Aqoonta iyo Xirfadda
       </div>
 
     </div>
@@ -713,35 +761,35 @@
 
 
   <!-- =========================================
-       DASHBOARD
+       DASHBOARD PAGE
   ========================================== -->
 
   <section id="dashboardPage">
 
     <header class="topbar">
 
-      <div class="topbar-inner">
+      <div class="brand">
 
-        <div class="top-brand">
+        <img
+          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+          alt="GAAWOW Academy"
+        >
 
-          <img
-            class="top-logo"
-            src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-            alt="GAAWOW"
-          >
-
-          <div>
-            <strong>GAAWOW EMS</strong>
-            <span>Parent Portal</span>
+        <div class="brand-text">
+          <div class="brand-title">
+            GAAWOW EMS
           </div>
 
+          <div class="brand-subtitle">
+            Parent Portal
+          </div>
         </div>
 
-        <button id="logoutButton">
-          LOGOUT
-        </button>
-
       </div>
+
+      <button id="logoutButton">
+        LOGOUT
+      </button>
 
     </header>
 
@@ -750,204 +798,157 @@
 
       <!-- WELCOME -->
 
-      <section class="welcome">
+      <div class="welcome-card">
+
+        <div class="welcome-label">
+          Parent Dashboard
+        </div>
 
         <h1 id="welcomeTitle">
           Welcome to GAAWOW EMS
         </h1>
 
-        <p>
-          Monitor your student's education,
-          attendance and academic progress.
-        </p>
-
-        <p
-          id="parentEmail"
-          class="parent-email"
-        ></p>
-
-      </section>
-
-
-      <!-- STUDENTS -->
-
-      <div class="section-title">
-
-        <h2>
-          My Students
-        </h2>
-
-        <span>
-          Linked Students
-        </span>
+        <div id="parentEmail"></div>
 
       </div>
 
-      <div
-        id="studentsContainer"
-        class="students-grid"
-      ></div>
 
-
-      <!-- MODULES -->
+      <!-- CHILDREN -->
 
       <div class="section-title">
+        <h2>My Children</h2>
+        <span id="studentCount"></span>
+      </div>
 
-        <h2>
-          Parent Services
-        </h2>
+      <div id="studentsContainer"></div>
 
-        <span>
-          GAAWOW EMS
-        </span>
+
+      <!-- SERVICES -->
+
+      <div class="section-title">
+        <h2>Parent Services</h2>
+        <span>Student information</span>
+      </div>
+
+      <div class="services-grid">
+
+        <div
+          class="service-card"
+          onclick="openFirstStudentModule('progress')"
+        >
+          <div class="service-icon">📊</div>
+          <h3>Academic Progress</h3>
+          <p>View academic performance and progress.</p>
+        </div>
+
+        <div
+          class="service-card"
+          onclick="openFirstStudentModule('attendance')"
+        >
+          <div class="service-icon">📅</div>
+          <h3>Attendance</h3>
+          <p>View attendance records and status.</p>
+        </div>
+
+        <div
+          class="service-card"
+          onclick="openFirstStudentModule('results')"
+        >
+          <div class="service-icon">📝</div>
+          <h3>Results & Grades</h3>
+          <p>View published exam results.</p>
+        </div>
+
+        <div
+          class="service-card"
+          onclick="openFirstStudentModule('courses')"
+        >
+          <div class="service-icon">📚</div>
+          <h3>Courses</h3>
+          <p>View enrolled courses and classes.</p>
+        </div>
+
+        <div
+          class="service-card"
+          onclick="openFirstStudentModule('certificates')"
+        >
+          <div class="service-icon">🏆</div>
+          <h3>Certificates</h3>
+          <p>View certificates and verification links.</p>
+        </div>
+
+        <div
+          class="service-card"
+          onclick="openFirstStudentModule('profile')"
+        >
+          <div class="service-icon">👤</div>
+          <h3>Student Profile</h3>
+          <p>View student information.</p>
+        </div>
 
       </div>
 
-      <section class="modules-grid">
 
-        <div class="module-card">
+      <!-- DYNAMIC CONTENT -->
 
-          <div class="module-icon">📊</div>
+      <section id="contentPanel">
 
-          <h3>
-            Academic Progress
-          </h3>
+        <div class="content-card">
 
-          <p>
-            Track your student's learning
-            progress and performance.
-          </p>
+          <div class="content-header">
 
-          <span class="coming-soon">
-            CONNECTING
-          </span>
+            <h2 id="contentTitle">
+              Student Information
+            </h2>
 
-        </div>
+            <button
+              class="back-button"
+              onclick="closeContentPanel()"
+            >
+              ← Back
+            </button>
 
+          </div>
 
-        <div class="module-card">
+          <div class="content-body">
 
-          <div class="module-icon">📅</div>
+            <select
+              id="studentSelector"
+              class="student-selector"
+              onchange="changeSelectedStudent()"
+            ></select>
 
-          <h3>
-            Attendance
-          </h3>
+            <div id="contentBody">
+              <div class="loading">
+                Loading...
+              </div>
+            </div>
 
-          <p>
-            View attendance records and
-            participation history.
-          </p>
-
-          <span class="coming-soon">
-            CONNECTING
-          </span>
-
-        </div>
-
-
-        <div class="module-card">
-
-          <div class="module-icon">📝</div>
-
-          <h3>
-            Exams & Grades
-          </h3>
-
-          <p>
-            View examinations, grades and
-            academic results.
-          </p>
-
-          <span class="coming-soon">
-            CONNECTING
-          </span>
-
-        </div>
-
-
-        <div class="module-card">
-
-          <div class="module-icon">📚</div>
-
-          <h3>
-            Courses
-          </h3>
-
-          <p>
-            View enrolled courses and
-            academic programs.
-          </p>
-
-          <span class="coming-soon">
-            CONNECTING
-          </span>
-
-        </div>
-
-
-        <div class="module-card">
-
-          <div class="module-icon">🏆</div>
-
-          <h3>
-            Certificates
-          </h3>
-
-          <p>
-            Access verified student
-            certificates.
-          </p>
-
-          <span class="coming-soon">
-            CONNECTING
-          </span>
-
-        </div>
-
-
-        <div class="module-card">
-
-          <div class="module-icon">📢</div>
-
-          <h3>
-            Announcements
-          </h3>
-
-          <p>
-            Receive important academy
-            announcements.
-          </p>
-
-          <span class="coming-soon">
-            CONNECTING
-          </span>
+          </div>
 
         </div>
 
       </section>
-
-
-      <footer class="dashboard-footer">
-
-        © 2026 GAAWOW Academy
-        • Ilayska Aqoonta iyo Xirfadda
-
-      </footer>
 
     </main>
+
+
+    <footer>
+      <strong>GAAWOW Academy</strong><br>
+      Ilayska Aqoonta iyo Xirfadda<br>
+      Bur Hakaba Bay, Somalia
+    </footer>
 
   </section>
 
 
-  <!-- SUPABASE -->
+  <!-- Supabase -->
 
-  <script
-    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- APPLICATION -->
+  <!-- App -->
 
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 
 </body>
 </html>
