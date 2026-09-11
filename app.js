@@ -8,7 +8,7 @@ const SUPABASE_URL =
 
 // KEEP YOUR EXISTING PUBLISHABLE KEY HERE
 const SUPABASE_KEY =
-  "PASTE_YOUR_EXISTING_SUPABASE_PUBLISHABLE_KEY_HERE";
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
 const { createClient } = supabase;
 
