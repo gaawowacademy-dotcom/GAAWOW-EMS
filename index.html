@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>GAAWOW EMS - Login</title>
+  <title>GAAWOW EMS - Parent Portal</title>
 
   <style>
     * {
@@ -14,26 +14,28 @@
     }
 
     body {
-      min-height: 100vh;
       font-family: Arial, Helvetica, sans-serif;
       background: #F5F7FA;
+      color: #1F2937;
+      min-height: 100vh;
+    }
+
+    /* LOGIN */
+    #loginPage {
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
-      color: #1F2937;
-    }
-
-    .login-container {
-      width: 100%;
-      max-width: 420px;
     }
 
     .login-card {
-      background: #ffffff;
-      border-radius: 20px;
+      width: 100%;
+      max-width: 420px;
+      background: white;
       padding: 35px 30px;
-      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.10);
+      border-radius: 20px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.10);
       text-align: center;
       border-top: 5px solid #D4AF37;
     }
@@ -42,39 +44,36 @@
       width: 110px;
       height: 110px;
       object-fit: contain;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
 
-    h1 {
+    .login-card h1 {
       color: #0B4DA2;
       font-size: 25px;
-      margin-bottom: 5px;
     }
 
-    .subtitle {
+    .motto {
       color: #D4AF37;
       font-weight: bold;
-      font-size: 14px;
-      margin-bottom: 8px;
+      margin: 6px 0;
     }
 
-    .system-name {
+    .system {
       color: #6B7280;
       font-size: 13px;
-      margin-bottom: 28px;
+      margin-bottom: 25px;
     }
 
     .form-group {
       text-align: left;
-      margin-bottom: 18px;
+      margin-bottom: 17px;
     }
 
     label {
       display: block;
-      font-size: 14px;
-      font-weight: bold;
       margin-bottom: 7px;
-      color: #1F2937;
+      font-weight: bold;
+      font-size: 14px;
     }
 
     input {
@@ -84,12 +83,10 @@
       border-radius: 10px;
       font-size: 15px;
       outline: none;
-      transition: 0.2s;
     }
 
     input:focus {
       border-color: #0B4DA2;
-      box-shadow: 0 0 0 3px rgba(11, 77, 162, 0.10);
     }
 
     #loginButton {
@@ -102,45 +99,206 @@
       font-size: 16px;
       font-weight: bold;
       cursor: pointer;
-      transition: 0.2s;
-      margin-top: 5px;
-    }
-
-    #loginButton:hover {
-      background: #083B7D;
     }
 
     #loginButton:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
+      opacity: .6;
     }
 
     #message {
-      margin-top: 20px;
+      margin-top: 18px;
       font-size: 14px;
-      line-height: 1.6;
-      word-break: break-word;
+      line-height: 1.5;
     }
 
-    .footer {
-      margin-top: 25px;
-      font-size: 12px;
+    /* DASHBOARD */
+    #dashboardPage {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: #0B4DA2;
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      background: white;
+      border-radius: 8px;
+    }
+
+    .brand-title {
+      font-weight: bold;
+      font-size: 17px;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      opacity: .85;
+    }
+
+    #logoutButton {
+      border: 1px solid rgba(255,255,255,.7);
+      background: transparent;
+      color: white;
+      padding: 9px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .dashboard-container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 25px 18px 40px;
+    }
+
+    .welcome {
+      background: white;
+      border-left: 5px solid #D4AF37;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.05);
+    }
+
+    .welcome h2 {
+      color: #0B4DA2;
+      margin-bottom: 5px;
+    }
+
+    .welcome p {
+      color: #6B7280;
+      font-size: 14px;
+    }
+
+    .section-title {
+      color: #0B4DA2;
+      margin: 25px 0 12px;
+      font-size: 19px;
+    }
+
+    .students-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .student-card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.06);
+      border-top: 4px solid #D4AF37;
+    }
+
+    .student-icon {
+      width: 48px;
+      height: 48px;
+      background: #0B4DA2;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      margin-bottom: 12px;
+    }
+
+    .student-card h3 {
+      color: #0B4DA2;
+      margin-bottom: 5px;
+    }
+
+    .student-card p {
+      color: #6B7280;
+      font-size: 13px;
+    }
+
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .module {
+      background: white;
+      padding: 20px 12px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 3px 12px rgba(0,0,0,.05);
+      border: 1px solid #E5E7EB;
+      cursor: pointer;
+    }
+
+    .module-icon {
+      font-size: 27px;
+      margin-bottom: 8px;
+    }
+
+    .module-title {
+      color: #0B4DA2;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .coming {
+      color: #9CA3AF;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+
+    .empty {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
       color: #6B7280;
     }
 
-    .footer strong {
-      color: #0B4DA2;
+    .footer {
+      text-align: center;
+      margin-top: 35px;
+      color: #6B7280;
+      font-size: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .topbar {
+        align-items: flex-start;
+      }
+
+      .brand-title {
+        font-size: 14px;
+      }
+
+      .dashboard-container {
+        padding-top: 18px;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <div class="login-container">
+  <!-- ================= LOGIN PAGE ================= -->
+  <div id="loginPage">
 
     <div class="login-card">
 
-      <!-- GAAWOW ACADEMY LOGO -->
       <img
         class="logo"
         src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
@@ -149,39 +307,32 @@
 
       <h1>GAAWOW ACADEMY</h1>
 
-      <div class="subtitle">
+      <div class="motto">
         Ilayska Aqoonta iyo Xirfadda
       </div>
 
-      <div class="system-name">
-        Education Management System
+      <div class="system">
+        Parent Education Portal
       </div>
 
-      <!-- LOGIN FORM -->
       <form id="loginForm">
 
         <div class="form-group">
           <label for="email">Email Address</label>
-
           <input
             type="email"
             id="email"
-            name="email"
             placeholder="Enter your email"
-            autocomplete="email"
             required
           >
         </div>
 
         <div class="form-group">
           <label for="password">Password</label>
-
           <input
             type="password"
             id="password"
-            name="password"
             placeholder="Enter your password"
-            autocomplete="current-password"
             required
           >
         </div>
@@ -192,23 +343,120 @@
 
       </form>
 
-      <!-- LOGIN MESSAGE -->
       <div id="message"></div>
-
-      <div class="footer">
-        © 2026 <strong>Gaawow Academy</strong><br>
-        Bur Hakaba Bay, Somalia
-      </div>
 
     </div>
 
   </div>
 
 
-  <!-- SUPABASE LIBRARY -->
+  <!-- ================= PARENT DASHBOARD ================= -->
+  <div id="dashboardPage">
+
+    <header class="topbar">
+
+      <div class="brand">
+
+        <img
+          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+          alt="Gaawow Academy"
+        >
+
+        <div>
+          <div class="brand-title">GAAWOW EMS</div>
+          <div class="brand-subtitle">Parent Portal</div>
+        </div>
+
+      </div>
+
+      <button id="logoutButton">
+        LOGOUT
+      </button>
+
+    </header>
+
+
+    <main class="dashboard-container">
+
+      <section class="welcome">
+
+        <h2 id="welcomeTitle">
+          Welcome, Parent
+        </h2>
+
+        <p id="parentEmail"></p>
+
+      </section>
+
+
+      <!-- STUDENTS -->
+      <h2 class="section-title">
+        My Students
+      </h2>
+
+      <div id="studentsContainer" class="students-grid">
+      </div>
+
+
+      <!-- MODULES -->
+      <h2 class="section-title">
+        Student Information
+      </h2>
+
+      <div class="modules-grid">
+
+        <div class="module">
+          <div class="module-icon">📊</div>
+          <div class="module-title">Academic Progress</div>
+          <div class="coming">Coming next</div>
+        </div>
+
+        <div class="module">
+          <div class="module-icon">📅</div>
+          <div class="module-title">Attendance</div>
+          <div class="coming">Coming next</div>
+        </div>
+
+        <div class="module">
+          <div class="module-icon">📝</div>
+          <div class="module-title">Exams & Grades</div>
+          <div class="coming">Coming next</div>
+        </div>
+
+        <div class="module">
+          <div class="module-icon">📚</div>
+          <div class="module-title">Courses</div>
+          <div class="coming">Coming next</div>
+        </div>
+
+        <div class="module">
+          <div class="module-icon">🏆</div>
+          <div class="module-title">Certificates</div>
+          <div class="coming">Coming next</div>
+        </div>
+
+        <div class="module">
+          <div class="module-icon">🔔</div>
+          <div class="module-title">Announcements</div>
+          <div class="coming">Coming next</div>
+        </div>
+
+      </div>
+
+
+      <div class="footer">
+        © 2026 Gaawow Academy — Bur Hakaba Bay, Somalia
+      </div>
+
+    </main>
+
+  </div>
+
+
+  <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- GAAWOW EMS APPLICATION -->
+  <!-- APPLICATION -->
   <script src="app.js"></script>
 
 </body>
