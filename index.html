@@ -16,11 +16,12 @@
     body {
       min-height: 100vh;
       font-family: Arial, Helvetica, sans-serif;
-      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      background: #F5F7FA;
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       padding: 20px;
+      color: #1F2937;
     }
 
     .login-container {
@@ -30,38 +31,37 @@
 
     .login-card {
       background: #ffffff;
-      border-radius: 22px;
+      border-radius: 20px;
       padding: 35px 30px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.10);
       text-align: center;
+      border-top: 5px solid #D4AF37;
     }
 
     .logo {
-      width: 150px;
-      max-width: 70%;
-      height: auto;
-      display: block;
-      margin: 0 auto 20px;
+      width: 110px;
+      height: 110px;
+      object-fit: contain;
+      margin-bottom: 15px;
     }
 
     h1 {
-      color: #0B1E63;
-      font-size: 27px;
-      margin-bottom: 8px;
+      color: #0B4DA2;
+      font-size: 25px;
+      margin-bottom: 5px;
     }
 
     .subtitle {
-      color: #6b7280;
+      color: #D4AF37;
+      font-weight: bold;
       font-size: 14px;
-      margin-bottom: 28px;
+      margin-bottom: 8px;
     }
 
-    .brand-line {
-      width: 70px;
-      height: 4px;
-      background: #D4AF37;
-      border-radius: 10px;
-      margin: 12px auto 25px;
+    .system-name {
+      color: #6B7280;
+      font-size: 13px;
+      margin-bottom: 28px;
     }
 
     .form-group {
@@ -71,16 +71,16 @@
 
     label {
       display: block;
-      color: #1F2937;
-      font-weight: 600;
       font-size: 14px;
+      font-weight: bold;
       margin-bottom: 7px;
+      color: #1F2937;
     }
 
     input {
       width: 100%;
-      padding: 14px 15px;
-      border: 1px solid #d1d5db;
+      padding: 14px;
+      border: 1px solid #D1D5DB;
       border-radius: 10px;
       font-size: 15px;
       outline: none;
@@ -89,56 +89,47 @@
 
     input:focus {
       border-color: #0B4DA2;
-      box-shadow: 0 0 0 3px rgba(11,77,162,0.12);
+      box-shadow: 0 0 0 3px rgba(11, 77, 162, 0.10);
     }
 
-    button {
+    #loginButton {
       width: 100%;
       padding: 14px;
       border: none;
       border-radius: 10px;
-      background: linear-gradient(135deg, #0B4DA2, #0B1E63);
+      background: #0B4DA2;
       color: white;
       font-size: 16px;
-      font-weight: 700;
+      font-weight: bold;
       cursor: pointer;
-      margin-top: 8px;
+      transition: 0.2s;
+      margin-top: 5px;
     }
 
-    button:hover {
-      opacity: 0.92;
+    #loginButton:hover {
+      background: #083B7D;
     }
 
-    button:disabled {
-      opacity: 0.6;
+    #loginButton:disabled {
+      opacity: 0.65;
       cursor: not-allowed;
     }
 
     #message {
-      margin-top: 18px;
+      margin-top: 20px;
       font-size: 14px;
-      min-height: 20px;
+      line-height: 1.6;
+      word-break: break-word;
     }
 
     .footer {
       margin-top: 25px;
-      color: #6b7280;
       font-size: 12px;
-      line-height: 1.6;
+      color: #6B7280;
     }
 
     .footer strong {
-      color: #0B1E63;
-    }
-
-    @media (max-width: 480px) {
-      .login-card {
-        padding: 30px 22px;
-      }
-
-      h1 {
-        font-size: 24px;
-      }
+      color: #0B4DA2;
     }
   </style>
 </head>
@@ -149,39 +140,48 @@
 
     <div class="login-card">
 
-      <!-- GAAWOW ACADEMY OFFICIAL LOGO -->
+      <!-- GAAWOW ACADEMY LOGO -->
       <img
         class="logo"
         src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
         alt="Gaawow Academy Logo"
       >
 
-      <h1>GAAWOW EMS</h1>
+      <h1>GAAWOW ACADEMY</h1>
 
-      <div class="brand-line"></div>
+      <div class="subtitle">
+        Ilayska Aqoonta iyo Xirfadda
+      </div>
 
-      <p class="subtitle">
+      <div class="system-name">
         Education Management System
-      </p>
+      </div>
 
+      <!-- LOGIN FORM -->
       <form id="loginForm">
 
         <div class="form-group">
           <label for="email">Email Address</label>
+
           <input
             type="email"
             id="email"
+            name="email"
             placeholder="Enter your email"
+            autocomplete="email"
             required
           >
         </div>
 
         <div class="form-group">
           <label for="password">Password</label>
+
           <input
             type="password"
             id="password"
+            name="password"
             placeholder="Enter your password"
+            autocomplete="current-password"
             required
           >
         </div>
@@ -192,49 +192,24 @@
 
       </form>
 
+      <!-- LOGIN MESSAGE -->
       <div id="message"></div>
 
       <div class="footer">
-        <strong>GAAWOW ACADEMY</strong><br>
-        Ilayska Aqoonta iyo Xirfadda
+        © 2026 <strong>Gaawow Academy</strong><br>
+        Bur Hakaba Bay, Somalia
       </div>
 
     </div>
 
   </div>
 
-  <script>
-    /*
-      SUPABASE CONNECTION
-      ---------------------------------
-      Waxaan ku xiri doonaa Supabase
-      tallaabada xigta.
-    */
 
-    const SUPABASE_URL =
-      "https://mujmcunlmkvtbjslaely.supabase.co";
+  <!-- SUPABASE LIBRARY -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    // HA gelin service_role key halkan.
-    // Waxaan ku dari doonaa Publishable/Anon key
-    // tallaabada xigta.
-
-    const SUPABASE_ANON_KEY =
-      "YOUR_SUPABASE_PUBLISHABLE_KEY";
-
-    const loginForm = document.getElementById("loginForm");
-    const loginButton = document.getElementById("loginButton");
-    const message = document.getElementById("message");
-
-    loginForm.addEventListener("submit", function(event) {
-      event.preventDefault();
-
-      message.style.color = "#0B4DA2";
-      message.textContent =
-        "Supabase login connection-ka waxaa lagu dari doonaa tallaabada xigta.";
-
-    });
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
+  <!-- GAAWOW EMS APPLICATION -->
+  <script src="app.js"></script>
 
 </body>
 </html>
