@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>GAAWOW EMS — Super Admin</title>
+
+  <meta
+    name="theme-color"
+    content="#0B1E63"
+  >
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+      background: #F5F7FA;
+      color: #1F2937;
+    }
+
+    /* =========================
+       HEADER
+    ========================= */
+
+    .header {
+      background:
+        linear-gradient(
+          135deg,
+          #0B1E63,
+          #0B4DA2
+        );
+
+      color: white;
+
+      padding: 18px 24px;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      gap: 20px;
+
+      box-shadow:
+        0 4px 15px rgba(
+          0,
+          0,
+          0,
+          0.15
+        );
+
+      position: sticky;
+
+      top: 0;
+
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+
+      align-items: center;
+
+      gap: 14px;
+    }
+
+    .brand img {
+      width: 52px;
+      height: 52px;
+
+      object-fit: contain;
+
+      background: white;
+
+      border-radius: 12px;
+
+      padding: 5px;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .brand p {
+      color: #E8A317;
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    .admin-badge {
+      background: #D4AF37;
+
+      color: #0B1E63;
+
+      padding: 8px 14px;
+
+      border-radius: 30px;
+
+      font-size: 12px;
+
+      font-weight: 800;
+
+      white-space: nowrap;
+    }
+
+    /* =========================
+       MAIN
+    ========================= */
+
+    .container {
+      max-width: 1400px;
+
+      margin: auto;
+
+      padding: 28px 20px 50px;
+    }
+
+    .welcome {
+      background: white;
+
+      border-radius: 18px;
+
+      padding: 24px;
+
+      margin-bottom: 25px;
+
+      border-left:
+        5px solid #D4AF37;
+
+      box-shadow:
+        0 6px 20px rgba(
+          0,
+          0,
+          0,
+          0.06
+        );
+    }
+
+    .welcome h2 {
+      color: #0B1E63;
+
+      font-size: 25px;
+
+      margin-bottom: 7px;
+    }
+
+    .welcome p {
+      color: #6B7280;
+
+      font-size: 14px;
+    }
+
+    /* =========================
+       STATS
+    ========================= */
+
+    .stats {
+      display: grid;
+
+      grid-template-columns:
+        repeat(
+          4,
+          1fr
+        );
+
+      gap: 18px;
+
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+
+      border-radius: 16px;
+
+      padding: 20px;
+
+      box-shadow:
+        0 5px 18px rgba(
+          0,
+          0,
+          0,
+          0.06
+        );
+
+      border-top:
+        4px solid #0B4DA2;
+    }
+
+    .stat-icon {
+      font-size: 28px;
+
+      margin-bottom: 10px;
+    }
+
+    .stat-title {
+      color: #6B7280;
+
+      font-size: 13px;
+
+      margin-bottom: 6px;
+    }
+
+    .stat-number {
+      color: #0B1E63;
+
+      font-size: 26px;
+
+      font-weight: 800;
+    }
+
+    /* =========================
+       SECTION
+    ========================= */
+
+    .section-title {
+      display: flex;
+
+      justify-content: space-between;
+
+      align-items: center;
+
+      margin-bottom: 15px;
+    }
+
+    .section-title h3 {
+      color: #0B1E63;
+
+      font-size: 20px;
+    }
+
+    .section-title span {
+      font-size: 12px;
+
+      color: #6B7280;
+    }
+
+    /* =========================
+       MENU GRID
+    ========================= */
+
+    .menu-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(
+          4,
+          1fr
+        );
+
+      gap: 18px;
+    }
+
+    .menu-card {
+      background: white;
+
+      min-height: 145px;
+
+      border-radius: 18px;
+
+      padding: 22px;
+
+      cursor: pointer;
+
+      box-shadow:
+        0 5px 18px rgba(
+          0,
+          0,
+          0,
+          0.06
+        );
+
+      border:
+        1px solid #E5E7EB;
+
+      transition:
+        transform 0.2s,
+        box-shadow 0.2s,
+        border 0.2s;
+
+      display: flex;
+
+      flex-direction: column;
+
+      justify-content: center;
+    }
+
+    .menu-card:hover {
+      transform:
+        translateY(-4px);
+
+      border-color:
+        #D4AF37;
+
+      box-shadow:
+        0 10px 25px rgba(
+          11,
+          77,
+          162,
+          0.15
+        );
+    }
+
+    .menu-icon {
+      font-size: 34px;
+
+      margin-bottom: 12px;
+    }
+
+    .menu-card h4 {
+      color: #0B1E63;
+
+      font-size: 16px;
+
+      margin-bottom: 6px;
+    }
+
+    .menu-card p {
+      color: #6B7280;
+
+      font-size: 12px;
+
+      line-height: 1.5;
+    }
+
+    /* =========================
+       FOOTER
+    ========================= */
+
+    .footer {
+      margin-top: 35px;
+
+      background: #0B1E63;
+
+      color: white;
+
+      border-radius: 18px;
+
+      padding: 22px;
+
+      text-align: center;
+    }
+
+    .footer strong {
+      color: #D4AF37;
+    }
+
+    .footer p {
+      font-size: 12px;
+
+      color: #CBD5E1;
+
+      margin-top: 6px;
+    }
+
+    /* =========================
+       LOGOUT
+    ========================= */
+
+    .logout-btn {
+      margin-top: 18px;
+
+      border: none;
+
+      background: #DC2626;
+
+      color: white;
+
+      padding: 11px 22px;
+
+      border-radius: 10px;
+
+      font-weight: 700;
+
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* =========================
+       MOBILE
+    ========================= */
+
+    @media (
+      max-width: 1000px
+    ) {
+
+      .stats {
+        grid-template-columns:
+          repeat(
+            2,
+            1fr
+          );
+      }
+
+      .menu-grid {
+        grid-template-columns:
+          repeat(
+            2,
+            1fr
+          );
+      }
+
+    }
+
+    @media (
+      max-width: 600px
+    ) {
+
+      .header {
+        padding: 14px;
+      }
+
+      .brand h1 {
+        font-size: 16px;
+      }
+
+      .brand p {
+        font-size: 10px;
+      }
+
+      .brand img {
+        width: 45px;
+        height: 45px;
+      }
+
+      .admin-badge {
+        font-size: 10px;
+
+        padding:
+          7px 10px;
+      }
+
+      .container {
+        padding:
+          20px 14px 40px;
+      }
+
+      .welcome {
+        padding: 20px;
+      }
+
+      .welcome h2 {
+        font-size: 21px;
+      }
+
+      .stats {
+        grid-template-columns:
+          1fr 1fr;
+
+        gap: 12px;
+      }
+
+      .stat-card {
+        padding: 16px;
+      }
+
+      .stat-number {
+        font-size: 22px;
+      }
+
+      .menu-grid {
+        grid-template-columns:
+          1fr 1fr;
+
+        gap: 12px;
+      }
+
+      .menu-card {
+        min-height: 135px;
+
+        padding: 17px;
+      }
+
+      .menu-icon {
+        font-size: 28px;
+      }
+
+      .menu-card h4 {
+        font-size: 14px;
+      }
+
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- =========================
+       HEADER
+  ========================== -->
+
+  <header class="header">
+
+    <div class="brand">
+
+      <img
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
+      >
+
+      <div>
+
+        <h1>
+          GAAWOW EMS
+        </h1>
+
+        <p>
+          Education Management & Verification System
+        </p>
+
+      </div>
+
+    </div>
+
+    <div class="admin-badge">
+      SUPER ADMIN
+    </div>
+
+  </header>
+
+
+  <!-- =========================
+       MAIN
+  ========================== -->
+
+  <main class="container">
+
+    <section class="welcome">
+
+      <h2>
+        Welcome, GAAWOW Academy
+      </h2>
+
+      <p>
+        You are signed in as
+        <strong>
+          Super Administrator
+        </strong>.
+        You have system-wide management access.
+      </p>
+
+    </section>
+
+
+    <!-- =========================
+         STATS
+    ========================== -->
+
+    <div class="stats">
+
+      <div class="stat-card">
+
+        <div class="stat-icon">
+          🏫
+        </div>
+
+        <div class="stat-title">
+          Institutions
+        </div>
+
+        <div
+          class="stat-number"
+          id="institutionCount"
+        >
+          —
+        </div>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <div class="stat-icon">
+          👨‍🎓
+        </div>
+
+        <div class="stat-title">
+          Students
+        </div>
+
+        <div
+          class="stat-number"
+          id="studentCount"
+        >
+          —
+        </div>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <div class="stat-icon">
+          👨‍🏫
+        </div>
+
+        <div class="stat-title">
+          Teachers
+        </div>
+
+        <div
+          class="stat-number"
+          id="teacherCount"
+        >
+          —
+        </div>
+
+      </div>
+
+
+      <div class="stat-card">
+
+        <div class="stat-icon">
+          🎓
+        </div>
+
+        <div class="stat-title">
+          Certificates
+        </div>
+
+        <div
+          class="stat-number"
+          id="certificateCount"
+        >
+          —
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- =========================
+         MANAGEMENT
+    ========================== -->
+
+    <div class="section-title">
+
+      <h3>
+        System Management
+      </h3>
+
+      <span>
+        Super Admin Control Center
+      </span>
+
+    </div>
+
+
+    <div class="menu-grid">
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('institutions.html')"
+      >
+
+        <div class="menu-icon">
+          🏫
+        </div>
+
+        <h4>
+          Institutions
+        </h4>
+
+        <p>
+          Manage schools and academy institutions.
+        </p>
+
+      </div>
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('students.html')"
+      >
+
+        <div class="menu-icon">
+          👨‍🎓
+        </div>
+
+        <h4>
+          Students
+        </h4>
+
+        <p>
+          View and manage students.
+        </p>
+
+      </div>
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('teachers.html')"
+      >
+
+        <div class="menu-icon">
+          👨‍🏫
+        </div>
+
+        <h4>
+          Teachers
+        </h4>
+
+        <p>
+          Manage instructors and teachers.
+        </p>
+
+      </div>
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('parents.html')"
+      >
+
+        <div class="menu-icon">
+          👨‍👩‍👧
+        </div>
+
+        <h4>
+          Parents
+        </h4>
+
+        <p>
+          Manage parent accounts and relationships.
+        </p>
+
+      </div>
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('departments.html')"
+      >
+
+        <div class="menu-icon">
+          🏛️
+        </div>
+
+        <h4>
+          Departments
+        </h4>
+
+        <p>
+          Manage academy departments.
+        </p>
+
+      </div>
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('courses.html')"
+      >
+
+        <div class="menu-icon">
+          📚
+        </div>
+
+        <h4>
+          Courses
+        </h4>
+
+        <p>
+          Manage courses and academic programs.
+        </p>
+
+      </div>
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('classes.html')"
+      >
+
+        <div class="menu-icon">
+          📅
+        </div>
+
+        <h4>
+          Classes
+        </h4>
+
+        <p>
+          Manage classes and student enrollment.
+        </p>
+
+      </div>
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('exams.html')"
+      >
+
+        <div class="menu-icon">
+          📝
+        </div>
+
+        <h4>
+          Exams
+        </h4>
+
+        <p>
+          Manage examinations and assessments.
+        </p>
+
+      </div>
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('grades.html')"
+      >
+
+        <div class="menu-icon">
+          📊
+        </div>
+
+        <h4>
+          Grades
+        </h4>
+
+        <p>
+          View academic performance and grades.
+        </p>
+
+      </div>
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('certificates.html')"
+      >
+
+        <div class="menu-icon">
+          🎓
+        </div>
+
+        <h4>
+          Certificates
+        </h4>
+
+        <p>
+          Manage certificates and verification.
+        </p>
+
+      </div>
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('verification.html')"
+      >
+
+        <div class="menu-icon">
+          🔍
+        </div>
+
+        <h4>
+          Certificate Verification
+        </h4>
+
+        <p>
+          Verify GAAWOW certificates.
+        </p>
+
+      </div>
+
+
+      <div
+        class="menu-card"
+        onclick="openPage('audit-logs.html')"
+      >
+
+        <div class="menu-icon">
+          📋
+        </div>
+
+        <h4>
+          Audit Logs
+        </h4>
+
+        <p>
+          Monitor important system activities.
+        </p>
+
+      </div>
+
+
+    </div>
+
+
+    <!-- =========================
+         FOOTER
+    ========================== -->
+
+    <footer class="footer">
+
+      <div>
+        <strong>
+          GAAWOW ACADEMY
+        </strong>
+      </div>
+
+      <p>
+        Ilayska Aqoonta iyo Xirfadda
+      </p>
+
+      <button
+        class="logout-btn"
+        id="logoutBtn"
+      >
+        LOGOUT
+      </button>
+
+    </footer>
+
+  </main>
+
+
+  <!-- =========================
+       SUPABASE
+  ========================== -->
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
+
+  <script>
+
+    const SUPABASE_URL =
+      "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+    const supabaseClient =
+      window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
+
+
+    /* =========================
+       PAGE NAVIGATION
+    ========================== */
+
+    function openPage(page) {
+
+      window.location.href =
+        page;
+
+    }
+
+
+    /* =========================
+       AUTH CHECK
+    ========================== */
+
+    async function checkSuperAdmin() {
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient.auth.getSession();
+
+
+      if (
+        error ||
+        !data.session
+      ) {
+
+        window.location.href =
+          "index.html";
+
+        return false;
+
+      }
+
+
+      const user =
+        data.session.user;
+
+
+      const {
+        data: profile,
+        error: profileError
+      } =
+        await supabaseClient
+          .from("profiles")
+          .select(
+            "full_name, role, institution_id, is_active"
+          )
+          .eq(
+            "id",
+            user.id
+          )
+          .single();
+
+
+      if (
+        profileError ||
+        !profile
+      ) {
+
+        alert(
+          "Unable to load your profile."
+        );
+
+        return false;
+
+      }
+
+
+      if (
+        profile.role !==
+        "super_admin"
+      ) {
+
+        alert(
+          "Access denied. Super Admin only."
+        );
+
+        window.location.href =
+          "dashboard.html";
+
+        return false;
+
+      }
+
+
+      if (
+        profile.is_active !== true
+      ) {
+
+        alert(
+          "Your account is inactive."
+        );
+
+        await supabaseClient.auth.signOut();
+
+        window.location.href =
+          "index.html";
+
+        return false;
+
+      }
+
+
+      return true;
+
+    }
+
+
+    /* =========================
+       LOAD COUNTS
+    ========================== */
+
+    async function loadCounts() {
+
+      try {
+
+        const institutions =
+          await supabaseClient
+            .from("institutions")
+            .select(
+              "id",
+              {
+                count: "exact",
+                head: true
+              }
+            );
+
+
+        const students =
+          await supabaseClient
+            .from("students")
+            .select(
+              "id",
+              {
+                count: "exact",
+                head: true
+              }
+            );
+
+
+        const certificates =
+          await supabaseClient
+            .from("certificates")
+            .select(
+              "id",
+              {
+                count: "exact",
+                head: true
+              }
+            );
+
+
+        const teachers =
+          await supabaseClient
+            .from("profiles")
+            .select(
+              "id",
+              {
+                count: "exact",
+                head: true
+              }
+            )
+            .eq(
+              "role",
+              "teacher"
+            );
+
+
+        document.getElementById(
+          "institutionCount"
+        ).textContent =
+          institutions.count ?? "0";
+
+
+        document.getElementById(
+          "studentCount"
+        ).textContent =
+          students.count ?? "0";
+
+
+        document.getElementById(
+          "teacherCount"
+        ).textContent =
+          teachers.count ?? "0";
+
+
+        document.getElementById(
+          "certificateCount"
+        ).textContent =
+          certificates.count ?? "0";
+
+
+      } catch (error) {
+
+        console.error(
+          "Count error:",
+          error
+        );
+
+      }
+
+    }
+
+
+    /* =========================
+       LOGOUT
+    ========================== */
+
+    document
+      .getElementById("logoutBtn")
+      .addEventListener(
+        "click",
+        async function () {
+
+          this.disabled = true;
+
+          this.textContent =
+            "LOGGING OUT...";
+
+
+          await supabaseClient
+            .auth
+            .signOut();
+
+
+          sessionStorage.clear();
+
+
+          window.location.href =
+            "index.html";
+
+        }
+      );
+
+
+    /* =========================
+       START
+    ========================== */
+
+    async function start() {
+
+      const allowed =
+        await checkSuperAdmin();
+
+
+      if (!allowed) {
+        return;
+      }
+
+
+      await loadCounts();
+
+    }
+
+
+    start();
+
+  </script>
+
+</body>
+</html>
