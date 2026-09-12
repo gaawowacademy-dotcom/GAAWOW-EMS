@@ -242,8 +242,6 @@
       color: #991B1B;
     }
 
-    /* MODAL */
-
     .modal {
       display: none;
       position: fixed;
@@ -313,6 +311,29 @@
       outline: none;
     }
 
+    input:focus,
+    select:focus {
+      border-color: #0B4DA2;
+      box-shadow: 0 0 0 3px rgba(11,77,162,.10);
+    }
+
+    .institution-box {
+      background: #F0F6FF;
+      border: 1px solid #BFDBFE;
+      padding: 12px;
+      border-radius: 9px;
+    }
+
+    .institution-box label {
+      color: #0B1E63;
+    }
+
+    .institution-note {
+      font-size: 11px;
+      color: #6B7280;
+      margin-top: 3px;
+    }
+
     .form-actions {
       margin-top: 20px;
       display: flex;
@@ -338,6 +359,11 @@
       font-weight: bold;
     }
 
+    .save:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
     .student-details {
       line-height: 1.9;
     }
@@ -347,6 +373,7 @@
     }
 
     @media (max-width: 650px) {
+
       .top-section {
         flex-direction: column;
         align-items: stretch;
@@ -379,56 +406,104 @@
 <body>
 
 <header>
+
   <div class="brand">
-    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+
+    <img
+      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+      alt="GAAWOW Academy">
+
     <div>
       <h1>GAAWOW EMS</h1>
       <span>Students Management</span>
     </div>
+
   </div>
 
-  <button class="back-btn" onclick="goDashboard()">
+  <button
+    class="back-btn"
+    onclick="goDashboard()">
+
     ← Dashboard
+
   </button>
+
 </header>
+
 
 <main class="container">
 
   <div class="top-section">
+
     <div>
       <h2>Students</h2>
       <p>Manage GAAWOW Academy students</p>
     </div>
 
-    <button class="add-btn" onclick="openAddModal()">
+    <button
+      class="add-btn"
+      onclick="openAddModal()">
+
       + Add Student
+
     </button>
+
   </div>
 
-  <div id="message" class="message"></div>
+
+  <div
+    id="message"
+    class="message">
+  </div>
+
 
   <div class="toolbar">
+
     <input
       type="search"
       id="searchInput"
-      placeholder="Search student ID, name, phone..."
-    >
+      placeholder="Search student ID, name, phone...">
+
 
     <select id="statusFilter">
-      <option value="">All Status</option>
-      <option value="active">Active</option>
-      <option value="inactive">Inactive</option>
-      <option value="graduated">Graduated</option>
-      <option value="suspended">Suspended</option>
-      <option value="withdrawn">Withdrawn</option>
+
+      <option value="">
+        All Status
+      </option>
+
+      <option value="active">
+        Active
+      </option>
+
+      <option value="inactive">
+        Inactive
+      </option>
+
+      <option value="graduated">
+        Graduated
+      </option>
+
+      <option value="suspended">
+        Suspended
+      </option>
+
+      <option value="withdrawn">
+        Withdrawn
+      </option>
+
     </select>
+
   </div>
+
 
   <div class="table-card">
 
     <table>
+
       <thead>
+
         <tr>
+
           <th>Student ID</th>
           <th>Full Name</th>
           <th>Gender</th>
@@ -436,110 +511,314 @@
           <th>Status</th>
           <th>Admission</th>
           <th>Actions</th>
+
         </tr>
+
       </thead>
 
+
       <tbody id="studentsBody">
+
         <tr>
-          <td colspan="7" class="loading">
+
+          <td
+            colspan="7"
+            class="loading">
+
             Loading students...
+
           </td>
+
         </tr>
+
       </tbody>
+
     </table>
 
   </div>
 
 </main>
 
-<!-- ADD / EDIT MODAL -->
 
-<div class="modal" id="studentModal">
+<!-- ==========================================
+     ADD / EDIT STUDENT MODAL
+========================================== -->
+
+<div
+  class="modal"
+  id="studentModal">
 
   <div class="modal-box">
 
     <div class="modal-header">
-      <h3 id="modalTitle">Add Student</h3>
-      <button class="close" onclick="closeModal()">×</button>
+
+      <h3 id="modalTitle">
+        Add Student
+      </h3>
+
+      <button
+        class="close"
+        onclick="closeModal()">
+
+        ×
+
+      </button>
+
     </div>
+
 
     <form id="studentForm">
 
-      <input type="hidden" id="editId">
+      <input
+        type="hidden"
+        id="editId">
+
 
       <div class="form-grid">
 
-        <div class="form-group">
-          <label>Student ID *</label>
-          <input id="studentId" required>
+
+        <!-- INSTITUTION -->
+
+        <div
+          class="form-group full institution-box"
+          id="institutionGroup">
+
+          <label for="institutionId">
+            Institution *
+          </label>
+
+          <select
+            id="institutionId">
+
+            <option value="">
+              Loading institutions...
+            </option>
+
+          </select>
+
+          <div class="institution-note">
+            Super Admin: select the institution
+            where this student belongs.
+          </div>
+
         </div>
 
-        <div class="form-group">
-          <label>Full Name *</label>
-          <input id="fullName" required>
-        </div>
+
+        <!-- STUDENT ID -->
 
         <div class="form-group">
-          <label>Gender</label>
+
+          <label>
+            Student ID *
+          </label>
+
+          <input
+            id="studentId"
+            required
+            placeholder="e.g. GA-000001">
+
+        </div>
+
+
+        <!-- FULL NAME -->
+
+        <div class="form-group">
+
+          <label>
+            Full Name *
+          </label>
+
+          <input
+            id="fullName"
+            required
+            placeholder="Student full name">
+
+        </div>
+
+
+        <!-- GENDER -->
+
+        <div class="form-group">
+
+          <label>
+            Gender
+          </label>
+
           <select id="gender">
-            <option value="">Select Gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
+
+            <option value="">
+              Select Gender
+            </option>
+
+            <option value="male">
+              Male
+            </option>
+
+            <option value="female">
+              Female
+            </option>
+
           </select>
+
         </div>
 
-        <div class="form-group">
-          <label>Date of Birth</label>
-          <input type="date" id="dateOfBirth">
-        </div>
+
+        <!-- DATE OF BIRTH -->
 
         <div class="form-group">
-          <label>Phone</label>
-          <input id="phone">
+
+          <label>
+            Date of Birth
+          </label>
+
+          <input
+            type="date"
+            id="dateOfBirth">
+
         </div>
 
+
+        <!-- PHONE -->
+
         <div class="form-group">
-          <label>Email</label>
-          <input type="email" id="email">
+
+          <label>
+            Phone
+          </label>
+
+          <input
+            id="phone"
+            placeholder="Phone number">
+
         </div>
+
+
+        <!-- EMAIL -->
+
+        <div class="form-group">
+
+          <label>
+            Email
+          </label>
+
+          <input
+            type="email"
+            id="email"
+            placeholder="student@email.com">
+
+        </div>
+
+
+        <!-- ADDRESS -->
 
         <div class="form-group full">
-          <label>Address</label>
-          <input id="address">
+
+          <label>
+            Address
+          </label>
+
+          <input
+            id="address"
+            placeholder="Student address">
+
         </div>
 
-        <div class="form-group">
-          <label>Admission Date</label>
-          <input type="date" id="admissionDate">
-        </div>
+
+        <!-- ADMISSION DATE -->
 
         <div class="form-group">
-          <label>Status</label>
+
+          <label>
+            Admission Date
+          </label>
+
+          <input
+            type="date"
+            id="admissionDate">
+
+        </div>
+
+
+        <!-- STATUS -->
+
+        <div class="form-group">
+
+          <label>
+            Status
+          </label>
+
           <select id="status">
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="graduated">Graduated</option>
-            <option value="suspended">Suspended</option>
-            <option value="withdrawn">Withdrawn</option>
+
+            <option value="active">
+              Active
+            </option>
+
+            <option value="inactive">
+              Inactive
+            </option>
+
+            <option value="graduated">
+              Graduated
+            </option>
+
+            <option value="suspended">
+              Suspended
+            </option>
+
+            <option value="withdrawn">
+              Withdrawn
+            </option>
+
           </select>
+
         </div>
 
-        <div class="form-group">
-          <label>Emergency Contact Name</label>
-          <input id="emergencyContactName">
-        </div>
+
+        <!-- EMERGENCY CONTACT -->
 
         <div class="form-group">
-          <label>Emergency Contact Phone</label>
-          <input id="emergencyContactPhone">
+
+          <label>
+            Emergency Contact Name
+          </label>
+
+          <input
+            id="emergencyContactName">
+
         </div>
+
+
+        <!-- EMERGENCY PHONE -->
+
+        <div class="form-group">
+
+          <label>
+            Emergency Contact Phone
+          </label>
+
+          <input
+            id="emergencyContactPhone">
+
+        </div>
+
+
+        <!-- PHOTO -->
 
         <div class="form-group full">
-          <label>Photo URL</label>
-          <input id="photoUrl">
+
+          <label>
+            Photo URL
+          </label>
+
+          <input
+            id="photoUrl"
+            placeholder="https://...">
+
         </div>
+
 
       </div>
+
 
       <div class="form-actions">
 
@@ -547,14 +826,19 @@
           type="button"
           class="cancel"
           onclick="closeModal()">
+
           Cancel
+
         </button>
+
 
         <button
           type="submit"
           class="save"
           id="saveButton">
+
           Save Student
+
         </button>
 
       </div>
@@ -565,32 +849,47 @@
 
 </div>
 
-<!-- VIEW MODAL -->
 
-<div class="modal" id="viewModal">
+<!-- ==========================================
+     VIEW STUDENT MODAL
+========================================== -->
+
+<div
+  class="modal"
+  id="viewModal">
 
   <div class="modal-box">
 
     <div class="modal-header">
-      <h3>Student Profile</h3>
+
+      <h3>
+        Student Profile
+      </h3>
 
       <button
         class="close"
         onclick="closeViewModal()">
+
         ×
+
       </button>
+
     </div>
+
 
     <div
       id="studentDetails"
       class="student-details">
+
     </div>
 
   </div>
 
 </div>
 
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script src="students.js"></script>
 
 </body>
