@@ -1,0 +1,308 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1E63">  <title>GAAWOW EMS - Dashboard</title>  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #F5F7FA;
+      color: #1F2937;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      min-height: 70px;
+      background: linear-gradient(135deg, #07164a, #0B4DA2);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.18);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      font-size: 19px;
+    }
+
+    .brand p {
+      color: #F0D77A;
+      font-size: 11px;
+      margin-top: 3px;
+    }
+
+    .logout {
+      border: 1px solid rgba(255,255,255,.4);
+      background: rgba(255,255,255,.12);
+      color: white;
+      border-radius: 9px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 25px 18px;
+    }
+
+    .welcome {
+      background:
+        radial-gradient(circle at right, rgba(212,175,55,.25), transparent 32%),
+        linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      border-radius: 18px;
+      padding: 28px;
+      margin-bottom: 22px;
+      box-shadow: 0 12px 30px rgba(11,30,99,.18);
+    }
+
+    .welcome h2 {
+      font-size: 25px;
+      margin-bottom: 10px;
+    }
+
+    .gold-line {
+      width: 60px;
+      height: 4px;
+      background: #D4AF37;
+      border-radius: 10px;
+      margin: 12px 0;
+    }
+
+    .welcome p {
+      color: #e6edf9;
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 5px 18px rgba(0,0,0,.05);
+    }
+
+    .icon {
+      font-size: 27px;
+      margin-bottom: 12px;
+    }
+
+    .card h3 {
+      color: #0B1E63;
+      font-size: 16px;
+      margin-bottom: 7px;
+    }
+
+    .card p {
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .section-title {
+      color: #0B1E63;
+      margin: 25px 0 14px;
+      font-size: 19px;
+    }
+
+    .account {
+      margin-top: 22px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 15px;
+      padding: 20px;
+    }
+
+    .account-row {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .avatar {
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0B4DA2, #0B1E63);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 21px;
+    }
+
+    .account h3 {
+      color: #0B1E63;
+      margin-bottom: 5px;
+    }
+
+    .account p {
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 550px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .welcome h2 {
+        font-size: 21px;
+      }
+
+      .brand p {
+        display: none;
+      }
+    }
+  </style></head><body>  <header class="topbar"><div class="brand">
+
+  <img
+    class="logo"
+    src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+    alt="GAAWOW Academy"
+  >
+
+  <div>
+    <h1>GAAWOW EMS</h1>
+    <p>Education Management & Verification System</p>
+  </div>
+
+</div>
+
+<button id="logoutBtn" class="logout">
+  LOGOUT
+</button>
+
+  </header>  <main class="container"><section class="welcome">
+
+  <h2>Welcome to GAAWOW EMS 👋</h2>
+
+  <div class="gold-line"></div>
+
+  <p id="welcomeText">
+    Loading your account...
+  </p>
+
+</section>
+
+
+<h2 class="section-title">
+  EMS Modules
+</h2>
+
+
+<section class="grid">
+
+  <div class="card">
+    <div class="icon">🎓</div>
+    <h3>Students</h3>
+    <p>Manage student registration and academic information.</p>
+  </div>
+
+  <div class="card">
+    <div class="icon">📚</div>
+    <h3>Courses</h3>
+    <p>Manage departments, courses and academic programs.</p>
+  </div>
+
+  <div class="card">
+    <div class="icon">📝</div>
+    <h3>Exams</h3>
+    <p>Manage examinations and assessments.</p>
+  </div>
+
+  <div class="card">
+    <div class="icon">📊</div>
+    <h3>Grades</h3>
+    <p>Manage student grades and academic progress.</p>
+  </div>
+
+  <div class="card">
+    <div class="icon">📅</div>
+    <h3>Attendance</h3>
+    <p>Track student attendance and participation.</p>
+  </div>
+
+  <div class="card">
+    <div class="icon">🏆</div>
+    <h3>Certificates</h3>
+    <p>Manage certificates and certificate records.</p>
+  </div>
+
+  <div class="card">
+    <div class="icon">🔍</div>
+    <h3>Verification</h3>
+    <p>Verify GAAWOW Academy certificates.</p>
+  </div>
+
+  <div class="card">
+    <div class="icon">👤</div>
+    <h3>Profile</h3>
+    <p>View your GAAWOW EMS account information.</p>
+  </div>
+
+</section>
+
+
+<section class="account">
+
+  <div class="account-row">
+
+    <div id="avatar" class="avatar">
+      G
+    </div>
+
+    <div>
+
+      <h3 id="userName">
+        Loading...
+      </h3>
+
+      <p id="userEmail">
+        Loading...
+      </p>
+
+    </div>
+
+  </div>
+
+</section>
+
+  </main>  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>  <script src="dashboard.js"></script></body>
+</html>
