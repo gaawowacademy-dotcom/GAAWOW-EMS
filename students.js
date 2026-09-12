@@ -1,0 +1,859 @@
+const SUPABASE_URL =
+  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+const INSTITUTION_ID =
+  "63d98981-2399-4db8-a1f2-ee5a2b41d769";
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+let students = [];
+
+const studentsBody =
+  document.getElementById("studentsBody");
+
+const searchInput =
+  document.getElementById("searchInput");
+
+const statusFilter =
+  document.getElementById("statusFilter");
+
+const studentForm =
+  document.getElementById("studentForm");
+
+const studentModal =
+  document.getElementById("studentModal");
+
+const viewModal =
+  document.getElementById("viewModal");
+
+const messageBox =
+  document.getElementById("message");
+
+
+// ================================
+// SESSION CHECK
+// ================================
+
+async function checkSession() {
+
+  const {
+    data,
+    error
+  } = await supabaseClient.auth.getSession();
+
+  if (error || !data.session) {
+
+    window.location.href =
+      "index.html";
+
+    return false;
+  }
+
+  return true;
+}
+
+
+// ================================
+// LOAD STUDENTS
+// ================================
+
+async function loadStudents() {
+
+  studentsBody.innerHTML = `
+    <tr>
+      <td colspan="7" class="loading">
+        Loading students...
+      </td>
+    </tr>
+  `;
+
+  const {
+    data,
+    error
+  } = await supabaseClient
+    .from("students")
+    .select(`
+      id,
+      institution_id,
+      profile_id,
+      student_id,
+      full_name,
+      gender,
+      date_of_birth,
+      phone,
+      email,
+      address,
+      photo_url,
+      admission_date,
+      status,
+      emergency_contact_name,
+      emergency_contact_phone,
+      created_at,
+      updated_at
+    `)
+    .eq(
+      "institution_id",
+      INSTITUTION_ID
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false
+      }
+    );
+
+  if (error) {
+
+    console.error(
+      "Load students error:",
+      error
+    );
+
+    showMessage(
+      "Unable to load students: " +
+      error.message,
+      "error"
+    );
+
+    studentsBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="empty">
+          Unable to load students.
+        </td>
+      </tr>
+    `;
+
+    return;
+  }
+
+  students = data || [];
+
+  renderStudents();
+}
+
+
+// ================================
+// RENDER STUDENTS
+// ================================
+
+function renderStudents() {
+
+  const search =
+    searchInput.value
+      .trim()
+      .toLowerCase();
+
+  const status =
+    statusFilter.value;
+
+  const filtered =
+    students.filter(student => {
+
+      const matchesSearch =
+        !search ||
+        (student.student_id || "")
+          .toLowerCase()
+          .includes(search) ||
+        (student.full_name || "")
+          .toLowerCase()
+          .includes(search) ||
+        (student.phone || "")
+          .toLowerCase()
+          .includes(search);
+
+      const matchesStatus =
+        !status ||
+        student.status === status;
+
+      return (
+        matchesSearch &&
+        matchesStatus
+      );
+    });
+
+  if (!filtered.length) {
+
+    studentsBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="empty">
+          No students found.
+        </td>
+      </tr>
+    `;
+
+    return;
+  }
+
+  studentsBody.innerHTML =
+    filtered.map(student => {
+
+      const admission =
+        formatDate(
+          student.admission_date
+        );
+
+      return `
+        <tr>
+
+          <td>
+            <strong>
+              ${escapeHtml(
+                student.student_id || "-"
+              )}
+            </strong>
+          </td>
+
+          <td>
+            ${escapeHtml(
+              student.full_name || "-"
+            )}
+          </td>
+
+          <td>
+            ${escapeHtml(
+              student.gender || "-"
+            )}
+          </td>
+
+          <td>
+            ${escapeHtml(
+              student.phone || "-"
+            )}
+          </td>
+
+          <td>
+            <span class="status ${student.status}">
+              ${escapeHtml(
+                student.status || "-"
+              )}
+            </span>
+          </td>
+
+          <td>
+            ${admission}
+          </td>
+
+          <td>
+
+            <div class="actions">
+
+              <button
+                class="action-btn view"
+                onclick="viewStudent('${student.id}')">
+                View
+              </button>
+
+              <button
+                class="action-btn edit"
+                onclick="editStudent('${student.id}')">
+                Edit
+              </button>
+
+              <button
+                class="action-btn delete"
+                onclick="deleteStudent('${student.id}')">
+                Delete
+              </button>
+
+            </div>
+
+          </td>
+
+        </tr>
+      `;
+
+    }).join("");
+}
+
+
+// ================================
+// ADD STUDENT
+// ================================
+
+function openAddModal() {
+
+  studentForm.reset();
+
+  document.getElementById(
+    "editId"
+  ).value = "";
+
+  document.getElementById(
+    "modalTitle"
+  ).textContent = "Add Student";
+
+  document.getElementById(
+    "saveButton"
+  ).textContent = "Save Student";
+
+  document.getElementById(
+    "status"
+  ).value = "active";
+
+  studentModal.style.display =
+    "block";
+}
+
+
+// ================================
+// EDIT STUDENT
+// ================================
+
+function editStudent(id) {
+
+  const student =
+    students.find(
+      item => item.id === id
+    );
+
+  if (!student) {
+    return;
+  }
+
+  document.getElementById(
+    "editId"
+  ).value = student.id;
+
+  document.getElementById(
+    "studentId"
+  ).value =
+    student.student_id || "";
+
+  document.getElementById(
+    "fullName"
+  ).value =
+    student.full_name || "";
+
+  document.getElementById(
+    "gender"
+  ).value =
+    student.gender || "";
+
+  document.getElementById(
+    "dateOfBirth"
+  ).value =
+    student.date_of_birth || "";
+
+  document.getElementById(
+    "phone"
+  ).value =
+    student.phone || "";
+
+  document.getElementById(
+    "email"
+  ).value =
+    student.email || "";
+
+  document.getElementById(
+    "address"
+  ).value =
+    student.address || "";
+
+  document.getElementById(
+    "admissionDate"
+  ).value =
+    student.admission_date || "";
+
+  document.getElementById(
+    "status"
+  ).value =
+    student.status || "active";
+
+  document.getElementById(
+    "emergencyContactName"
+  ).value =
+    student.emergency_contact_name || "";
+
+  document.getElementById(
+    "emergencyContactPhone"
+  ).value =
+    student.emergency_contact_phone || "";
+
+  document.getElementById(
+    "photoUrl"
+  ).value =
+    student.photo_url || "";
+
+  document.getElementById(
+    "modalTitle"
+  ).textContent =
+    "Edit Student";
+
+  document.getElementById(
+    "saveButton"
+  ).textContent =
+    "Update Student";
+
+  studentModal.style.display =
+    "block";
+}
+
+
+// ================================
+// SAVE / UPDATE
+// ================================
+
+studentForm.addEventListener(
+  "submit",
+  async function(event) {
+
+    event.preventDefault();
+
+    const saveButton =
+      document.getElementById(
+        "saveButton"
+      );
+
+    saveButton.disabled = true;
+    saveButton.textContent =
+      "Saving...";
+
+    const editId =
+      document.getElementById(
+        "editId"
+      ).value;
+
+    const studentData = {
+
+      student_id:
+        document.getElementById(
+          "studentId"
+        ).value.trim(),
+
+      full_name:
+        document.getElementById(
+          "fullName"
+        ).value.trim(),
+
+      gender:
+        document.getElementById(
+          "gender"
+        ).value || null,
+
+      date_of_birth:
+        document.getElementById(
+          "dateOfBirth"
+        ).value || null,
+
+      phone:
+        document.getElementById(
+          "phone"
+        ).value.trim() || null,
+
+      email:
+        document.getElementById(
+          "email"
+        ).value.trim() || null,
+
+      address:
+        document.getElementById(
+          "address"
+        ).value.trim() || null,
+
+      admission_date:
+        document.getElementById(
+          "admissionDate"
+        ).value || null,
+
+      status:
+        document.getElementById(
+          "status"
+        ).value,
+
+      emergency_contact_name:
+        document.getElementById(
+          "emergencyContactName"
+        ).value.trim() || null,
+
+      emergency_contact_phone:
+        document.getElementById(
+          "emergencyContactPhone"
+        ).value.trim() || null,
+
+      photo_url:
+        document.getElementById(
+          "photoUrl"
+        ).value.trim() || null
+
+    };
+
+
+    let result;
+
+
+    // EDIT
+    if (editId) {
+
+      result =
+        await supabaseClient
+          .from("students")
+          .update(studentData)
+          .eq(
+            "id",
+            editId
+          )
+          .eq(
+            "institution_id",
+            INSTITUTION_ID
+          );
+
+    }
+
+    // ADD
+    else {
+
+      result =
+        await supabaseClient
+          .from("students")
+          .insert({
+
+            ...studentData,
+
+            institution_id:
+              INSTITUTION_ID
+
+          });
+
+    }
+
+
+    saveButton.disabled = false;
+
+    if (result.error) {
+
+      console.error(
+        "Save student error:",
+        result.error
+      );
+
+      showMessage(
+        result.error.message,
+        "error"
+      );
+
+      saveButton.textContent =
+        editId
+          ? "Update Student"
+          : "Save Student";
+
+      return;
+    }
+
+
+    saveButton.textContent =
+      "Saved ✓";
+
+    closeModal();
+
+    showMessage(
+      editId
+        ? "Student updated successfully."
+        : "Student added successfully.",
+      "success"
+    );
+
+    await loadStudents();
+
+  }
+);
+
+
+// ================================
+// VIEW STUDENT
+// ================================
+
+function viewStudent(id) {
+
+  const student =
+    students.find(
+      item => item.id === id
+    );
+
+  if (!student) {
+    return;
+  }
+
+  const photo =
+    student.photo_url
+      ? `
+        <img
+          src="${escapeHtml(student.photo_url)}"
+          style="
+            width:90px;
+            height:90px;
+            object-fit:cover;
+            border-radius:50%;
+            margin-bottom:15px;
+          "
+        >
+      `
+      : "";
+
+  document.getElementById(
+    "studentDetails"
+  ).innerHTML = `
+
+    <div style="text-align:center;">
+      ${photo}
+      <h2 style="color:#0B1E63;">
+        ${escapeHtml(
+          student.full_name || "-"
+        )}
+      </h2>
+      <p>
+        ${escapeHtml(
+          student.student_id || "-"
+        )}
+      </p>
+    </div>
+
+    <hr style="margin:18px 0;">
+
+    <p>
+      <strong>Gender:</strong>
+      ${escapeHtml(
+        student.gender || "-"
+      )}
+    </p>
+
+    <p>
+      <strong>Date of Birth:</strong>
+      ${formatDate(
+        student.date_of_birth
+      )}
+    </p>
+
+    <p>
+      <strong>Phone:</strong>
+      ${escapeHtml(
+        student.phone || "-"
+      )}
+    </p>
+
+    <p>
+      <strong>Email:</strong>
+      ${escapeHtml(
+        student.email || "-"
+      )}
+    </p>
+
+    <p>
+      <strong>Address:</strong>
+      ${escapeHtml(
+        student.address || "-"
+      )}
+    </p>
+
+    <p>
+      <strong>Admission Date:</strong>
+      ${formatDate(
+        student.admission_date
+      )}
+    </p>
+
+    <p>
+      <strong>Status:</strong>
+      ${escapeHtml(
+        student.status || "-"
+      )}
+    </p>
+
+    <p>
+      <strong>Emergency Contact:</strong>
+      ${escapeHtml(
+        student.emergency_contact_name || "-"
+      )}
+    </p>
+
+    <p>
+      <strong>Emergency Phone:</strong>
+      ${escapeHtml(
+        student.emergency_contact_phone || "-"
+      )}
+    </p>
+
+  `;
+
+  viewModal.style.display =
+    "block";
+}
+
+
+// ================================
+// DELETE
+// ================================
+
+async function deleteStudent(id) {
+
+  const student =
+    students.find(
+      item => item.id === id
+    );
+
+  if (!student) {
+    return;
+  }
+
+  const confirmed =
+    confirm(
+      `Delete ${student.full_name}?`
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const {
+    error
+  } =
+    await supabaseClient
+      .from("students")
+      .delete()
+      .eq(
+        "id",
+        id
+      )
+      .eq(
+        "institution_id",
+        INSTITUTION_ID
+      );
+
+  if (error) {
+
+    console.error(
+      "Delete student error:",
+      error
+    );
+
+    showMessage(
+      error.message,
+      "error"
+    );
+
+    return;
+  }
+
+  showMessage(
+    "Student deleted successfully.",
+    "success"
+  );
+
+  await loadStudents();
+}
+
+
+// ================================
+// MODAL FUNCTIONS
+// ================================
+
+function closeModal() {
+  studentModal.style.display =
+    "none";
+}
+
+function closeViewModal() {
+  viewModal.style.display =
+    "none";
+}
+
+
+// ================================
+// SEARCH
+// ================================
+
+searchInput.addEventListener(
+  "input",
+  renderStudents
+);
+
+statusFilter.addEventListener(
+  "change",
+  renderStudents
+);
+
+
+// ================================
+// DASHBOARD
+// ================================
+
+function goDashboard() {
+  window.location.href =
+    "dashboard.html";
+}
+
+
+// ================================
+// MESSAGE
+// ================================
+
+function showMessage(
+  text,
+  type
+) {
+
+  messageBox.textContent =
+    text;
+
+  messageBox.className =
+    "message " + type;
+
+  setTimeout(
+    () => {
+      messageBox.className =
+        "message";
+    },
+    4000
+  );
+}
+
+
+// ================================
+// HELPERS
+// ================================
+
+function formatDate(date) {
+
+  if (!date) {
+    return "-";
+  }
+
+  return new Date(date)
+    .toLocaleDateString();
+}
+
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+// ================================
+// START
+// ================================
+
+async function startStudentsPage() {
+
+  const authenticated =
+    await checkSession();
+
+  if (!authenticated) {
+    return;
+  }
+
+  await loadStudents();
+}
+
+startStudentsPage();
