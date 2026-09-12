@@ -4,16 +4,26 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-const INSTITUTION_ID =
-  "63d98981-2399-4db8-a1f2-ee5a2b41d769";
-
 const supabaseClient =
   window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
   );
 
+
+// ============================================
+// GLOBAL VARIABLES
+// ============================================
+
 let students = [];
+let currentUser = null;
+let currentRole = null;
+let currentInstitutionId = null;
+
+
+// ============================================
+// ELEMENTS
+// ============================================
 
 const studentsBody =
   document.getElementById("studentsBody");
@@ -37,9 +47,9 @@ const messageBox =
   document.getElementById("message");
 
 
-// ================================
-// SESSION CHECK
-// ================================
+// ============================================
+// SESSION + PROFILE CHECK
+// ============================================
 
 async function checkSession() {
 
@@ -56,13 +66,96 @@ async function checkSession() {
     return false;
   }
 
+  currentUser =
+    data.session.user;
+
+
+  // Get logged-in user's profile
+  const {
+    data: profile,
+    error: profileError
+  } =
+    await supabaseClient
+      .from("profiles")
+      .select(`
+        id,
+        full_name,
+        role,
+        institution_id,
+        is_active
+      `)
+      .eq(
+        "id",
+        currentUser.id
+      )
+      .single();
+
+
+  if (profileError) {
+
+    console.error(
+      "Profile error:",
+      profileError
+    );
+
+    showMessage(
+      "Unable to load user profile.",
+      "error"
+    );
+
+    return false;
+  }
+
+
+  if (!profile) {
+
+    showMessage(
+      "User profile not found.",
+      "error"
+    );
+
+    return false;
+  }
+
+
+  // Save role information
+  currentRole =
+    profile.role;
+
+  currentInstitutionId =
+    profile.institution_id;
+
+
+  console.log(
+    "Current Role:",
+    currentRole
+  );
+
+  console.log(
+    "Current Institution:",
+    currentInstitutionId
+  );
+
+
+  // Check active account
+  if (profile.is_active === false) {
+
+    await supabaseClient.auth.signOut();
+
+    window.location.href =
+      "index.html";
+
+    return false;
+  }
+
+
   return true;
 }
 
 
-// ================================
+// ============================================
 // LOAD STUDENTS
-// ================================
+// ============================================
 
 async function loadStudents() {
 
@@ -74,40 +167,79 @@ async function loadStudents() {
     </tr>
   `;
 
+
+  let query =
+    supabaseClient
+      .from("students")
+      .select(`
+        id,
+        institution_id,
+        profile_id,
+        student_id,
+        full_name,
+        gender,
+        date_of_birth,
+        phone,
+        email,
+        address,
+        photo_url,
+        admission_date,
+        status,
+        emergency_contact_name,
+        emergency_contact_phone,
+        created_at,
+        updated_at
+      `);
+
+
+  // ==========================================
+  // IMPORTANT
+  //
+  // SUPER ADMIN:
+  // No institution filter
+  // → sees ALL students
+  //
+  // SCHOOL ADMIN / TEACHER:
+  // Only their institution
+  // ==========================================
+
+  if (
+    currentRole !== "super_admin"
+  ) {
+
+    if (!currentInstitutionId) {
+
+      studentsBody.innerHTML = `
+        <tr>
+          <td colspan="7" class="empty">
+            Institution not assigned to this account.
+          </td>
+        </tr>
+      `;
+
+      return;
+    }
+
+
+    query =
+      query.eq(
+        "institution_id",
+        currentInstitutionId
+      );
+  }
+
+
   const {
     data,
     error
-  } = await supabaseClient
-    .from("students")
-    .select(`
-      id,
-      institution_id,
-      profile_id,
-      student_id,
-      full_name,
-      gender,
-      date_of_birth,
-      phone,
-      email,
-      address,
-      photo_url,
-      admission_date,
-      status,
-      emergency_contact_name,
-      emergency_contact_phone,
-      created_at,
-      updated_at
-    `)
-    .eq(
-      "institution_id",
-      INSTITUTION_ID
-    )
-    .order(
+  } =
+    await query.order(
       "created_at",
       {
         ascending: false
       }
     );
+
 
   if (error) {
 
@@ -133,15 +265,24 @@ async function loadStudents() {
     return;
   }
 
-  students = data || [];
+
+  students =
+    data || [];
+
+
+  console.log(
+    "Students loaded:",
+    students.length
+  );
+
 
   renderStudents();
 }
 
 
-// ================================
+// ============================================
 // RENDER STUDENTS
-// ================================
+// ============================================
 
 function renderStudents() {
 
@@ -152,6 +293,7 @@ function renderStudents() {
 
   const status =
     statusFilter.value;
+
 
   const filtered =
     students.filter(student => {
@@ -168,15 +310,18 @@ function renderStudents() {
           .toLowerCase()
           .includes(search);
 
+
       const matchesStatus =
         !status ||
         student.status === status;
+
 
       return (
         matchesSearch &&
         matchesStatus
       );
     });
+
 
   if (!filtered.length) {
 
@@ -191,6 +336,7 @@ function renderStudents() {
     return;
   }
 
+
   studentsBody.innerHTML =
     filtered.map(student => {
 
@@ -198,6 +344,7 @@ function renderStudents() {
         formatDate(
           student.admission_date
         );
+
 
       return `
         <tr>
@@ -229,7 +376,9 @@ function renderStudents() {
           </td>
 
           <td>
-            <span class="status ${student.status}">
+            <span class="status ${escapeHtml(
+              student.status || ""
+            )}">
               ${escapeHtml(
                 student.status || "-"
               )}
@@ -273,38 +422,68 @@ function renderStudents() {
 }
 
 
-// ================================
+// ============================================
 // ADD STUDENT
-// ================================
+// ============================================
 
 function openAddModal() {
 
+  /*
+   * Super Admin currently needs an institution
+   * selector in students.html before adding a
+   * student to a specific institution.
+   *
+   * For now, prevent incorrect insertion.
+   */
+
+  if (
+    currentRole === "super_admin" &&
+    !currentInstitutionId
+  ) {
+
+    showMessage(
+      "Super Admin: please select an institution before adding a student.",
+      "error"
+    );
+
+    return;
+  }
+
+
   studentForm.reset();
+
 
   document.getElementById(
     "editId"
   ).value = "";
 
+
   document.getElementById(
     "modalTitle"
-  ).textContent = "Add Student";
+  ).textContent =
+    "Add Student";
+
 
   document.getElementById(
     "saveButton"
-  ).textContent = "Save Student";
+  ).textContent =
+    "Save Student";
+
 
   document.getElementById(
     "status"
-  ).value = "active";
+  ).value =
+    "active";
+
 
   studentModal.style.display =
     "block";
 }
 
 
-// ================================
+// ============================================
 // EDIT STUDENT
-// ================================
+// ============================================
 
 function editStudent(id) {
 
@@ -313,92 +492,110 @@ function editStudent(id) {
       item => item.id === id
     );
 
+
   if (!student) {
     return;
   }
 
+
   document.getElementById(
     "editId"
-  ).value = student.id;
+  ).value =
+    student.id;
+
 
   document.getElementById(
     "studentId"
   ).value =
     student.student_id || "";
 
+
   document.getElementById(
     "fullName"
   ).value =
     student.full_name || "";
+
 
   document.getElementById(
     "gender"
   ).value =
     student.gender || "";
 
+
   document.getElementById(
     "dateOfBirth"
   ).value =
     student.date_of_birth || "";
+
 
   document.getElementById(
     "phone"
   ).value =
     student.phone || "";
 
+
   document.getElementById(
     "email"
   ).value =
     student.email || "";
+
 
   document.getElementById(
     "address"
   ).value =
     student.address || "";
 
+
   document.getElementById(
     "admissionDate"
   ).value =
     student.admission_date || "";
+
 
   document.getElementById(
     "status"
   ).value =
     student.status || "active";
 
+
   document.getElementById(
     "emergencyContactName"
   ).value =
     student.emergency_contact_name || "";
+
 
   document.getElementById(
     "emergencyContactPhone"
   ).value =
     student.emergency_contact_phone || "";
 
+
   document.getElementById(
     "photoUrl"
   ).value =
     student.photo_url || "";
+
 
   document.getElementById(
     "modalTitle"
   ).textContent =
     "Edit Student";
 
+
   document.getElementById(
     "saveButton"
   ).textContent =
     "Update Student";
+
 
   studentModal.style.display =
     "block";
 }
 
 
-// ================================
+// ============================================
 // SAVE / UPDATE
-// ================================
+// ============================================
 
 studentForm.addEventListener(
   "submit",
@@ -406,19 +603,25 @@ studentForm.addEventListener(
 
     event.preventDefault();
 
+
     const saveButton =
       document.getElementById(
         "saveButton"
       );
 
-    saveButton.disabled = true;
+
+    saveButton.disabled =
+      true;
+
     saveButton.textContent =
       "Saving...";
+
 
     const editId =
       document.getElementById(
         "editId"
       ).value;
+
 
     const studentData = {
 
@@ -488,7 +691,10 @@ studentForm.addEventListener(
     let result;
 
 
+    // ========================================
     // EDIT
+    // ========================================
+
     if (editId) {
 
       result =
@@ -498,16 +704,50 @@ studentForm.addEventListener(
           .eq(
             "id",
             editId
-          )
-          .eq(
-            "institution_id",
-            INSTITUTION_ID
           );
+
 
     }
 
+
+    // ========================================
     // ADD
+    // ========================================
+
     else {
+
+      let institutionForNewStudent =
+        currentInstitutionId;
+
+
+      /*
+       * Super Admin has no institution_id.
+       *
+       * Until students.html gets an institution
+       * selector, don't allow Super Admin to
+       * create a student accidentally.
+       */
+
+      if (
+        currentRole === "super_admin" &&
+        !institutionForNewStudent
+      ) {
+
+        saveButton.disabled =
+          false;
+
+        saveButton.textContent =
+          "Save Student";
+
+
+        showMessage(
+          "Super Admin needs an institution selection before adding a student.",
+          "error"
+        );
+
+        return;
+      }
+
 
       result =
         await supabaseClient
@@ -517,14 +757,15 @@ studentForm.addEventListener(
             ...studentData,
 
             institution_id:
-              INSTITUTION_ID
+              institutionForNewStudent
 
           });
-
     }
 
 
-    saveButton.disabled = false;
+    saveButton.disabled =
+      false;
+
 
     if (result.error) {
 
@@ -533,15 +774,18 @@ studentForm.addEventListener(
         result.error
       );
 
+
       showMessage(
         result.error.message,
         "error"
       );
 
+
       saveButton.textContent =
         editId
           ? "Update Student"
           : "Save Student";
+
 
       return;
     }
@@ -550,7 +794,9 @@ studentForm.addEventListener(
     saveButton.textContent =
       "Saved ✓";
 
+
     closeModal();
+
 
     showMessage(
       editId
@@ -559,15 +805,16 @@ studentForm.addEventListener(
       "success"
     );
 
+
     await loadStudents();
 
   }
 );
 
 
-// ================================
+// ============================================
 // VIEW STUDENT
-// ================================
+// ============================================
 
 function viewStudent(id) {
 
@@ -576,15 +823,19 @@ function viewStudent(id) {
       item => item.id === id
     );
 
+
   if (!student) {
     return;
   }
+
 
   const photo =
     student.photo_url
       ? `
         <img
-          src="${escapeHtml(student.photo_url)}"
+          src="${escapeHtml(
+            student.photo_url
+          )}"
           style="
             width:90px;
             height:90px;
@@ -596,25 +847,32 @@ function viewStudent(id) {
       `
       : "";
 
+
   document.getElementById(
     "studentDetails"
   ).innerHTML = `
 
     <div style="text-align:center;">
+
       ${photo}
+
       <h2 style="color:#0B1E63;">
         ${escapeHtml(
           student.full_name || "-"
         )}
       </h2>
+
       <p>
         ${escapeHtml(
           student.student_id || "-"
         )}
       </p>
+
     </div>
 
+
     <hr style="margin:18px 0;">
+
 
     <p>
       <strong>Gender:</strong>
@@ -623,12 +881,14 @@ function viewStudent(id) {
       )}
     </p>
 
+
     <p>
       <strong>Date of Birth:</strong>
       ${formatDate(
         student.date_of_birth
       )}
     </p>
+
 
     <p>
       <strong>Phone:</strong>
@@ -637,12 +897,14 @@ function viewStudent(id) {
       )}
     </p>
 
+
     <p>
       <strong>Email:</strong>
       ${escapeHtml(
         student.email || "-"
       )}
     </p>
+
 
     <p>
       <strong>Address:</strong>
@@ -651,12 +913,14 @@ function viewStudent(id) {
       )}
     </p>
 
+
     <p>
       <strong>Admission Date:</strong>
       ${formatDate(
         student.admission_date
       )}
     </p>
+
 
     <p>
       <strong>Status:</strong>
@@ -665,12 +929,14 @@ function viewStudent(id) {
       )}
     </p>
 
+
     <p>
       <strong>Emergency Contact:</strong>
       ${escapeHtml(
         student.emergency_contact_name || "-"
       )}
     </p>
+
 
     <p>
       <strong>Emergency Phone:</strong>
@@ -681,14 +947,15 @@ function viewStudent(id) {
 
   `;
 
+
   viewModal.style.display =
     "block";
 }
 
 
-// ================================
-// DELETE
-// ================================
+// ============================================
+// DELETE STUDENT
+// ============================================
 
 async function deleteStudent(id) {
 
@@ -697,18 +964,22 @@ async function deleteStudent(id) {
       item => item.id === id
     );
 
+
   if (!student) {
     return;
   }
+
 
   const confirmed =
     confirm(
       `Delete ${student.full_name}?`
     );
 
+
   if (!confirmed) {
     return;
   }
+
 
   const {
     error
@@ -719,11 +990,8 @@ async function deleteStudent(id) {
       .eq(
         "id",
         id
-      )
-      .eq(
-        "institution_id",
-        INSTITUTION_ID
       );
+
 
   if (error) {
 
@@ -732,46 +1000,54 @@ async function deleteStudent(id) {
       error
     );
 
+
     showMessage(
       error.message,
       "error"
     );
 
+
     return;
   }
+
 
   showMessage(
     "Student deleted successfully.",
     "success"
   );
 
+
   await loadStudents();
 }
 
 
-// ================================
+// ============================================
 // MODAL FUNCTIONS
-// ================================
+// ============================================
 
 function closeModal() {
+
   studentModal.style.display =
     "none";
 }
 
+
 function closeViewModal() {
+
   viewModal.style.display =
     "none";
 }
 
 
-// ================================
+// ============================================
 // SEARCH
-// ================================
+// ============================================
 
 searchInput.addEventListener(
   "input",
   renderStudents
 );
+
 
 statusFilter.addEventListener(
   "change",
@@ -779,19 +1055,20 @@ statusFilter.addEventListener(
 );
 
 
-// ================================
+// ============================================
 // DASHBOARD
-// ================================
+// ============================================
 
 function goDashboard() {
+
   window.location.href =
     "dashboard.html";
 }
 
 
-// ================================
+// ============================================
 // MESSAGE
-// ================================
+// ============================================
 
 function showMessage(
   text,
@@ -801,28 +1078,33 @@ function showMessage(
   messageBox.textContent =
     text;
 
+
   messageBox.className =
     "message " + type;
 
+
   setTimeout(
     () => {
+
       messageBox.className =
         "message";
+
     },
     4000
   );
 }
 
 
-// ================================
+// ============================================
 // HELPERS
-// ================================
+// ============================================
 
 function formatDate(date) {
 
   if (!date) {
     return "-";
   }
+
 
   return new Date(date)
     .toLocaleDateString();
@@ -832,28 +1114,46 @@ function formatDate(date) {
 function escapeHtml(value) {
 
   return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
 }
 
 
-// ================================
+// ============================================
 // START
-// ================================
+// ============================================
 
 async function startStudentsPage() {
 
   const authenticated =
     await checkSession();
 
+
   if (!authenticated) {
     return;
   }
 
+
   await loadStudents();
 }
+
 
 startStudentsPage();
