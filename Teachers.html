@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Teachers</title>
+
+  <meta name="theme-color" content="#0B4DA2">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #F5F7FA;
+      color: #1F2937;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+      box-shadow: 0 4px 15px rgba(0,0,0,.15);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 55px;
+      height: 55px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+    }
+
+    .brand p {
+      font-size: 12px;
+      opacity: .85;
+      margin-top: 3px;
+    }
+
+    .back-btn {
+      background: white;
+      color: #0B4DA2;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 25px auto;
+      padding: 0 18px;
+    }
+
+    .page-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .page-title h2 {
+      color: #0B1E63;
+      font-size: 28px;
+    }
+
+    .page-title p {
+      color: #6B7280;
+      margin-top: 5px;
+      font-size: 14px;
+    }
+
+    .add-btn {
+      border: none;
+      background: linear-gradient(135deg, #0B4DA2, #0B1E63);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 9px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 5px 12px rgba(11,77,162,.25);
+    }
+
+    .toolbar {
+      background: white;
+      border-radius: 12px;
+      padding: 15px;
+      display: grid;
+      grid-template-columns: 1fr 220px 180px;
+      gap: 12px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      background: white;
+      font-size: 14px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #0B4DA2;
+      box-shadow: 0 0 0 3px rgba(11,77,162,.1);
+    }
+
+    .table-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 950px;
+    }
+
+    th {
+      background: #0B1E63;
+      color: white;
+      padding: 13px 12px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 13px 12px;
+      border-bottom: 1px solid #E5E7EB;
+      font-size: 13px;
+    }
+
+    tr:hover td {
+      background: #F8FAFC;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .active {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .inactive {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      border: none;
+      padding: 7px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .view {
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+
+    .edit {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .toggle {
+      background: #E0E7FF;
+      color: #3730A3;
+    }
+
+    .delete {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 45px 20px;
+      color: #6B7280;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 35px;
+      color: #6B7280;
+    }
+
+    /* MODAL */
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-box {
+      background: white;
+      width: 100%;
+      max-width: 720px;
+      max-height: 92vh;
+      overflow-y: auto;
+      border-radius: 14px;
+      box-shadow: 0 15px 45px rgba(0,0,0,.25);
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      padding: 17px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 18px;
+    }
+
+    .close {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 25px;
+      cursor: pointer;
+    }
+
+    .form {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #374151;
+    }
+
+    .required {
+      color: #DC2626;
+    }
+
+    .note {
+      font-size: 11px;
+      color: #6B7280;
+      line-height: 1.5;
+    }
+
+    .modal-footer {
+      padding: 15px 20px;
+      border-top: 1px solid #E5E7EB;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .cancel-btn,
+    .save-btn {
+      padding: 11px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      border: none;
+    }
+
+    .cancel-btn {
+      background: #E5E7EB;
+      color: #374151;
+    }
+
+    .save-btn {
+      background: #0B4DA2;
+      color: white;
+    }
+
+    .save-btn:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    /* VIEW */
+
+    .view-content {
+      padding: 20px;
+    }
+
+    .profile-box {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #D4AF37;
+    }
+
+    .profile-name {
+      color: #0B1E63;
+      font-size: 23px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .detail {
+      margin: 7px 0;
+      font-size: 14px;
+    }
+
+    .detail strong {
+      color: #374151;
+    }
+
+    @media(max-width: 800px) {
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .form {
+        grid-template-columns: 1fr;
+      }
+
+      .form-group.full {
+        grid-column: auto;
+      }
+    }
+
+    @media(max-width: 500px) {
+      header {
+        padding: 14px;
+      }
+
+      .container {
+        margin-top: 18px;
+      }
+
+      .page-title h2 {
+        font-size: 23px;
+      }
+
+      .brand img {
+        width: 48px;
+        height: 48px;
+      }
+
+      .profile-box {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <img
+      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+      alt="GAAWOW Academy Logo"
+    >
+
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <p>Gaawow Academy Education Management System</p>
+    </div>
+  </div>
+
+  <button
+    class="back-btn"
+    onclick="location.href='super-admin.html'">
+    ← Super Admin
+  </button>
+</header>
+
+<main class="container">
+
+  <div class="page-title">
+    <div>
+      <h2>Teachers Management</h2>
+      <p>Manage teachers, institutions and account status.</p>
+    </div>
+
+    <button
+      class="add-btn"
+      onclick="openAddTeacher()">
+      + Add Teacher
+    </button>
+  </div>
+
+  <div class="toolbar">
+
+    <input
+      id="searchInput"
+      type="search"
+      placeholder="Search teacher name, phone, email or User ID..."
+    >
+
+    <select id="institutionFilter">
+      <option value="">All Institutions</option>
+    </select>
+
+    <select id="statusFilter">
+      <option value="">All Status</option>
+      <option value="active">Active</option>
+      <option value="inactive">Inactive</option>
+    </select>
+
+  </div>
+
+  <div class="table-card">
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Teacher</th>
+            <th>Phone</th>
+            <th>Institution</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="teachersTableBody">
+          <tr>
+            <td colspan="7" class="loading">
+              Loading teachers...
+            </td>
+          </tr>
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</main>
+
+
+<!-- ADD / EDIT MODAL -->
+
+<div
+  id="teacherModal"
+  class="modal">
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+
+      <h3 id="modalTitle">
+        Add Teacher
+      </h3>
+
+      <button
+        class="close"
+        onclick="closeTeacherModal()">
+        ×
+      </button>
+
+    </div>
+
+    <form id="teacherForm">
+
+      <input
+        type="hidden"
+        id="editId"
+      >
+
+      <div class="form">
+
+        <div class="form-group full">
+          <label>
+            Auth User ID <span class="required">*</span>
+          </label>
+
+          <input
+            id="teacherId"
+            type="text"
+            placeholder="Paste Supabase Auth User ID"
+            required
+          >
+
+          <div class="note">
+            This is the UUID of the teacher's Supabase Auth account.
+          </div>
+        </div>
+
+
+        <div class="form-group">
+          <label>
+            Full Name <span class="required">*</span>
+          </label>
+
+          <input
+            id="fullName"
+            type="text"
+            placeholder="Teacher full name"
+            required
+          >
+        </div>
+
+
+        <div class="form-group">
+          <label>Phone</label>
+
+          <input
+            id="phone"
+            type="text"
+            placeholder="Teacher phone"
+          >
+        </div>
+
+
+        <div class="form-group">
+          <label>Avatar URL</label>
+
+          <input
+            id="avatarUrl"
+            type="url"
+            placeholder="https://..."
+          >
+        </div>
+
+
+        <div class="form-group">
+          <label>
+            Institution <span class="required">*</span>
+          </label>
+
+          <select
+            id="institutionId"
+            required>
+
+            <option value="">
+              Loading institutions...
+            </option>
+
+          </select>
+        </div>
+
+
+        <div class="form-group">
+          <label>Status</label>
+
+          <select id="isActive">
+
+            <option value="true">
+              Active
+            </option>
+
+            <option value="false">
+              Inactive
+            </option>
+
+          </select>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+
+        <button
+          type="button"
+          class="cancel-btn"
+          onclick="closeTeacherModal()">
+          Cancel
+        </button>
+
+        <button
+          id="saveBtn"
+          type="submit"
+          class="save-btn">
+          Save Teacher
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+</div>
+
+
+<!-- VIEW MODAL -->
+
+<div
+  id="viewModal"
+  class="modal">
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+
+      <h3>Teacher Details</h3>
+
+      <button
+        class="close"
+        onclick="closeViewModal()">
+        ×
+      </button>
+
+    </div>
+
+    <div
+      id="viewContent"
+      class="view-content">
+    </div>
+
+    <div class="modal-footer">
+
+      <button
+        class="cancel-btn"
+        onclick="closeViewModal()">
+        Close
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="teachers.js?v=1"></script>
+
+</body>
+</html>
