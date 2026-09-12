@@ -16,6 +16,8 @@ const supabaseClient =
 // ============================================
 
 let students = [];
+let institutions = [];
+
 let currentUser = null;
 let currentRole = null;
 let currentInstitutionId = null;
@@ -46,9 +48,15 @@ const viewModal =
 const messageBox =
   document.getElementById("message");
 
+const institutionSelect =
+  document.getElementById("institutionId");
+
+const institutionGroup =
+  document.getElementById("institutionGroup");
+
 
 // ============================================
-// SESSION + PROFILE CHECK
+// SESSION + PROFILE
 // ============================================
 
 async function checkSession() {
@@ -56,7 +64,9 @@ async function checkSession() {
   const {
     data,
     error
-  } = await supabaseClient.auth.getSession();
+  } =
+    await supabaseClient.auth.getSession();
+
 
   if (error || !data.session) {
 
@@ -66,11 +76,11 @@ async function checkSession() {
     return false;
   }
 
+
   currentUser =
     data.session.user;
 
 
-  // Get logged-in user's profile
   const {
     data: profile,
     error: profileError
@@ -118,7 +128,6 @@ async function checkSession() {
   }
 
 
-  // Save role information
   currentRole =
     profile.role;
 
@@ -127,17 +136,16 @@ async function checkSession() {
 
 
   console.log(
-    "Current Role:",
+    "Current role:",
     currentRole
   );
 
   console.log(
-    "Current Institution:",
+    "Current institution:",
     currentInstitutionId
   );
 
 
-  // Check active account
   if (profile.is_active === false) {
 
     await supabaseClient.auth.signOut();
@@ -150,6 +158,120 @@ async function checkSession() {
 
 
   return true;
+}
+
+
+// ============================================
+// LOAD INSTITUTIONS
+// ============================================
+
+async function loadInstitutions() {
+
+  institutionSelect.innerHTML = `
+    <option value="">
+      Loading institutions...
+    </option>
+  `;
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("institutions")
+      .select(`
+        id,
+        name
+      `)
+      .order(
+        "name",
+        {
+          ascending: true
+        }
+      );
+
+
+  if (error) {
+
+    console.error(
+      "Load institutions error:",
+      error
+    );
+
+
+    institutionSelect.innerHTML = `
+      <option value="">
+        Unable to load institutions
+      </option>
+    `;
+
+
+    showMessage(
+      "Unable to load institutions: " +
+      error.message,
+      "error"
+    );
+
+
+    return;
+  }
+
+
+  institutions =
+    data || [];
+
+
+  institutionSelect.innerHTML = `
+    <option value="">
+      Select Institution
+    </option>
+  `;
+
+
+  institutions.forEach(
+    institution => {
+
+      const option =
+        document.createElement("option");
+
+      option.value =
+        institution.id;
+
+      option.textContent =
+        institution.name;
+
+      institutionSelect.appendChild(
+        option
+      );
+
+    }
+  );
+
+
+  // ==========================================
+  // ROLE BEHAVIOR
+  // ==========================================
+
+  if (
+    currentRole === "super_admin"
+  ) {
+
+    institutionGroup.style.display =
+      "flex";
+
+    institutionSelect.required =
+      true;
+
+  } else {
+
+    institutionGroup.style.display =
+      "none";
+
+    institutionSelect.required =
+      false;
+
+  }
 }
 
 
@@ -193,19 +315,24 @@ async function loadStudents() {
 
 
   // ==========================================
-  // IMPORTANT
-  //
-  // SUPER ADMIN:
-  // No institution filter
-  // → sees ALL students
-  //
-  // SCHOOL ADMIN / TEACHER:
-  // Only their institution
+  // SUPER ADMIN
   // ==========================================
 
   if (
-    currentRole !== "super_admin"
+    currentRole === "super_admin"
   ) {
+
+    // No institution filter.
+    // Super Admin sees ALL students.
+
+  }
+
+
+  // ==========================================
+  // OTHER USERS
+  // ==========================================
+
+  else {
 
     if (!currentInstitutionId) {
 
@@ -248,11 +375,13 @@ async function loadStudents() {
       error
     );
 
+
     showMessage(
       "Unable to load students: " +
       error.message,
       "error"
     );
+
 
     studentsBody.innerHTML = `
       <tr>
@@ -261,6 +390,7 @@ async function loadStudents() {
         </td>
       </tr>
     `;
+
 
     return;
   }
@@ -291,36 +421,42 @@ function renderStudents() {
       .trim()
       .toLowerCase();
 
+
   const status =
     statusFilter.value;
 
 
   const filtered =
-    students.filter(student => {
+    students.filter(
+      student => {
 
-      const matchesSearch =
-        !search ||
-        (student.student_id || "")
-          .toLowerCase()
-          .includes(search) ||
-        (student.full_name || "")
-          .toLowerCase()
-          .includes(search) ||
-        (student.phone || "")
-          .toLowerCase()
-          .includes(search);
+        const matchesSearch =
+          !search ||
+          (student.student_id || "")
+            .toLowerCase()
+            .includes(search) ||
 
+          (student.full_name || "")
+            .toLowerCase()
+            .includes(search) ||
 
-      const matchesStatus =
-        !status ||
-        student.status === status;
+          (student.phone || "")
+            .toLowerCase()
+            .includes(search);
 
 
-      return (
-        matchesSearch &&
-        matchesStatus
-      );
-    });
+        const matchesStatus =
+          !status ||
+          student.status === status;
+
+
+        return (
+          matchesSearch &&
+          matchesStatus
+        );
+
+      }
+    );
 
 
   if (!filtered.length) {
@@ -338,117 +474,116 @@ function renderStudents() {
 
 
   studentsBody.innerHTML =
-    filtered.map(student => {
+    filtered
+      .map(
+        student => {
 
-      const admission =
-        formatDate(
-          student.admission_date
-        );
+          const admission =
+            formatDate(
+              student.admission_date
+            );
 
 
-      return `
-        <tr>
+          return `
+            <tr>
 
-          <td>
-            <strong>
-              ${escapeHtml(
-                student.student_id || "-"
-              )}
-            </strong>
-          </td>
+              <td>
+                <strong>
+                  ${escapeHtml(
+                    student.student_id || "-"
+                  )}
+                </strong>
+              </td>
 
-          <td>
-            ${escapeHtml(
-              student.full_name || "-"
-            )}
-          </td>
 
-          <td>
-            ${escapeHtml(
-              student.gender || "-"
-            )}
-          </td>
+              <td>
+                ${escapeHtml(
+                  student.full_name || "-"
+                )}
+              </td>
 
-          <td>
-            ${escapeHtml(
-              student.phone || "-"
-            )}
-          </td>
 
-          <td>
-            <span class="status ${escapeHtml(
-              student.status || ""
-            )}">
-              ${escapeHtml(
-                student.status || "-"
-              )}
-            </span>
-          </td>
+              <td>
+                ${escapeHtml(
+                  student.gender || "-"
+                )}
+              </td>
 
-          <td>
-            ${admission}
-          </td>
 
-          <td>
+              <td>
+                ${escapeHtml(
+                  student.phone || "-"
+                )}
+              </td>
 
-            <div class="actions">
 
-              <button
-                class="action-btn view"
-                onclick="viewStudent('${student.id}')">
-                View
-              </button>
+              <td>
+                <span
+                  class="status ${escapeHtml(
+                    student.status || ""
+                  )}">
 
-              <button
-                class="action-btn edit"
-                onclick="editStudent('${student.id}')">
-                Edit
-              </button>
+                  ${escapeHtml(
+                    student.status || "-"
+                  )}
 
-              <button
-                class="action-btn delete"
-                onclick="deleteStudent('${student.id}')">
-                Delete
-              </button>
+                </span>
+              </td>
 
-            </div>
 
-          </td>
+              <td>
+                ${admission}
+              </td>
 
-        </tr>
-      `;
 
-    }).join("");
+              <td>
+
+                <div class="actions">
+
+                  <button
+                    class="action-btn view"
+                    onclick="viewStudent('${student.id}')">
+
+                    View
+
+                  </button>
+
+
+                  <button
+                    class="action-btn edit"
+                    onclick="editStudent('${student.id}')">
+
+                    Edit
+
+                  </button>
+
+
+                  <button
+                    class="action-btn delete"
+                    onclick="deleteStudent('${student.id}')">
+
+                    Delete
+
+                  </button>
+
+                </div>
+
+              </td>
+
+            </tr>
+          `;
+
+        }
+      )
+      .join("");
 }
 
 
 // ============================================
-// ADD STUDENT
+// OPEN ADD MODAL
 // ============================================
 
 function openAddModal() {
-
-  /*
-   * Super Admin currently needs an institution
-   * selector in students.html before adding a
-   * student to a specific institution.
-   *
-   * For now, prevent incorrect insertion.
-   */
-
-  if (
-    currentRole === "super_admin" &&
-    !currentInstitutionId
-  ) {
-
-    showMessage(
-      "Super Admin: please select an institution before adding a student.",
-      "error"
-    );
-
-    return;
-  }
-
 
   studentForm.reset();
 
@@ -474,6 +609,39 @@ function openAddModal() {
     "status"
   ).value =
     "active";
+
+
+  // ==========================================
+  // SUPER ADMIN
+  // ==========================================
+
+  if (
+    currentRole === "super_admin"
+  ) {
+
+    institutionSelect.value =
+      "";
+
+
+    institutionSelect.disabled =
+      false;
+
+  }
+
+
+  // ==========================================
+  // SCHOOL ADMIN / TEACHER
+  // ==========================================
+
+  else {
+
+    institutionSelect.value =
+      currentInstitutionId || "";
+
+    institutionSelect.disabled =
+      true;
+
+  }
 
 
   studentModal.style.display =
@@ -576,6 +744,11 @@ function editStudent(id) {
     student.photo_url || "";
 
 
+  // Set institution
+  institutionSelect.value =
+    student.institution_id || "";
+
+
   document.getElementById(
     "modalTitle"
   ).textContent =
@@ -588,13 +761,31 @@ function editStudent(id) {
     "Update Student";
 
 
+  // Super Admin can change institution.
+  // Other roles cannot.
+
+  if (
+    currentRole === "super_admin"
+  ) {
+
+    institutionSelect.disabled =
+      false;
+
+  } else {
+
+    institutionSelect.disabled =
+      true;
+
+  }
+
+
   studentModal.style.display =
     "block";
 }
 
 
 // ============================================
-// SAVE / UPDATE
+// SAVE / UPDATE STUDENT
 // ============================================
 
 studentForm.addEventListener(
@@ -613,6 +804,7 @@ studentForm.addEventListener(
     saveButton.disabled =
       true;
 
+
     saveButton.textContent =
       "Saving...";
 
@@ -622,6 +814,53 @@ studentForm.addEventListener(
         "editId"
       ).value;
 
+
+    // ========================================
+    // DETERMINE INSTITUTION
+    // ========================================
+
+    let selectedInstitutionId =
+      institutionSelect.value;
+
+
+    // For non-super-admin users,
+    // force their own institution.
+
+    if (
+      currentRole !== "super_admin"
+    ) {
+
+      selectedInstitutionId =
+        currentInstitutionId;
+
+    }
+
+
+    if (!selectedInstitutionId) {
+
+      saveButton.disabled =
+        false;
+
+
+      saveButton.textContent =
+        editId
+          ? "Update Student"
+          : "Save Student";
+
+
+      showMessage(
+        "Please select an institution.",
+        "error"
+      );
+
+
+      return;
+    }
+
+
+    // ========================================
+    // STUDENT DATA
+    // ========================================
 
     const studentData = {
 
@@ -692,7 +931,7 @@ studentForm.addEventListener(
 
 
     // ========================================
-    // EDIT
+    // UPDATE
     // ========================================
 
     if (editId) {
@@ -700,54 +939,27 @@ studentForm.addEventListener(
       result =
         await supabaseClient
           .from("students")
-          .update(studentData)
+          .update({
+
+            ...studentData,
+
+            institution_id:
+              selectedInstitutionId
+
+          })
           .eq(
             "id",
             editId
           );
 
-
     }
 
 
     // ========================================
-    // ADD
+    // INSERT
     // ========================================
 
     else {
-
-      let institutionForNewStudent =
-        currentInstitutionId;
-
-
-      /*
-       * Super Admin has no institution_id.
-       *
-       * Until students.html gets an institution
-       * selector, don't allow Super Admin to
-       * create a student accidentally.
-       */
-
-      if (
-        currentRole === "super_admin" &&
-        !institutionForNewStudent
-      ) {
-
-        saveButton.disabled =
-          false;
-
-        saveButton.textContent =
-          "Save Student";
-
-
-        showMessage(
-          "Super Admin needs an institution selection before adding a student.",
-          "error"
-        );
-
-        return;
-      }
-
 
       result =
         await supabaseClient
@@ -757,9 +969,10 @@ studentForm.addEventListener(
             ...studentData,
 
             institution_id:
-              institutionForNewStudent
+              selectedInstitutionId
 
           });
+
     }
 
 
@@ -829,6 +1042,19 @@ function viewStudent(id) {
   }
 
 
+  const institution =
+    institutions.find(
+      item =>
+        item.id === student.institution_id
+    );
+
+
+  const institutionName =
+    institution
+      ? institution.name
+      : student.institution_id || "-";
+
+
   const photo =
     student.photo_url
       ? `
@@ -872,6 +1098,14 @@ function viewStudent(id) {
 
 
     <hr style="margin:18px 0;">
+
+
+    <p>
+      <strong>Institution:</strong>
+      ${escapeHtml(
+        institutionName
+      )}
+    </p>
 
 
     <p>
@@ -1151,6 +1385,8 @@ async function startStudentsPage() {
     return;
   }
 
+
+  await loadInstitutions();
 
   await loadStudents();
 }
