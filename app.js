@@ -1,108 +1,154 @@
 // ==========================================
-// GAAWOW EMS - SUPABASE LOGIN
+// GAAWOW EMS - Supabase Configuration
 // ==========================================
 
 const SUPABASE_URL =
-  "https://mujmcunlmkvtbjslaely.supabase.co";
+  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
 const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
 // Create Supabase client
-const db = supabase.createClient(
+const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
 
-// Get page elements
+
+// ==========================================
+// DOM ELEMENTS
+// ==========================================
+
 const loginForm = document.getElementById("loginForm");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
 const loginButton = document.getElementById("loginButton");
 const message = document.getElementById("message");
+
+
+// ==========================================
+// MESSAGE FUNCTION
+// ==========================================
+
+function showMessage(text, type = "info") {
+
+  message.textContent = text;
+
+  if (type === "success") {
+    message.style.color = "#16A34A";
+  }
+
+  else if (type === "error") {
+    message.style.color = "#DC2626";
+  }
+
+  else {
+    message.style.color = "#64748B";
+  }
+}
+
 
 // ==========================================
 // LOGIN
 // ==========================================
 
-loginForm.addEventListener("submit", async (event) => {
+loginForm.addEventListener("submit", async function (event) {
 
   event.preventDefault();
 
-  const email = document
-    .getElementById("email")
-    .value
-    .trim();
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
 
-  const password = document
-    .getElementById("password")
-    .value;
+  if (!email || !password) {
+    showMessage(
+      "Please enter your email and password.",
+      "error"
+    );
+    return;
+  }
 
   loginButton.disabled = true;
   loginButton.textContent = "LOGGING IN...";
+  showMessage("Checking your account...", "info");
 
-  message.style.color = "#0B4DA2";
-  message.textContent = "Checking your account...";
 
   try {
 
-    // Login with Supabase
     const { data, error } =
-      await db.auth.signInWithPassword({
+      await supabaseClient.auth.signInWithPassword({
         email: email,
         password: password
       });
 
+
+    // --------------------------------------
+    // Supabase login error
+    // --------------------------------------
+
     if (error) {
-      throw error;
+
+      console.error("Supabase Login Error:", error);
+
+      showMessage(
+        error.message || "Login failed.",
+        "error"
+      );
+
+      return;
     }
 
-    console.log("LOGIN SUCCESS:", data.user);
 
-    // Get accessible students
-    const {
-      data: students,
-      error: studentError
-    } = await db
-      .from("students")
-      .select("id, full_name, institution_id");
+    // --------------------------------------
+    // Login successful
+    // --------------------------------------
 
-    if (studentError) {
-      throw studentError;
+    if (data && data.user) {
+
+      showMessage(
+        "Login successful! Welcome to GAAWOW EMS.",
+        "success"
+      );
+
+      console.log("Logged in user:", data.user);
+
+      // Save user ID for next pages
+      sessionStorage.setItem(
+        "gaawow_user_id",
+        data.user.id
+      );
+
+      sessionStorage.setItem(
+        "gaawow_user_email",
+        data.user.email || email
+      );
+
+
+      // ----------------------------------
+      // Redirect
+      // ----------------------------------
+
+      setTimeout(function () {
+
+        window.location.href = "dashboard.html";
+
+      }, 1000);
+
     }
 
-    // Show result
-    message.style.color = "#16A34A";
+  }
 
-    if (students && students.length > 0) {
+  catch (err) {
 
-      const studentNames = students
-        .map(student => student.full_name)
-        .join(", ");
+    console.error("Unexpected Login Error:", err);
 
-      message.innerHTML = `
-        <strong>Login successful!</strong><br><br>
-        Student(s) you can access:<br>
-        <strong>${studentNames}</strong>
-      `;
+    showMessage(
+      "Something went wrong. Please try again.",
+      "error"
+    );
 
-    } else {
+  }
 
-      message.innerHTML = `
-        <strong>Login successful!</strong><br><br>
-        No students found for this parent account.
-      `;
-    }
-
-  } catch (error) {
-
-    console.error("LOGIN ERROR:", error);
-
-    message.style.color = "#DC2626";
-
-    message.textContent =
-      error.message ||
-      "Login failed. Please check your email and password.";
-
-  } finally {
+  finally {
 
     loginButton.disabled = false;
     loginButton.textContent = "LOGIN";
@@ -110,3 +156,57 @@ loginForm.addEventListener("submit", async (event) => {
   }
 
 });
+
+
+// ==========================================
+// CHECK EXISTING SESSION
+// ==========================================
+
+async function checkExistingSession() {
+
+  try {
+
+    const { data, error } =
+      await supabaseClient.auth.getSession();
+
+    if (error) {
+
+      console.error(
+        "Session Error:",
+        error
+      );
+
+      return;
+    }
+
+
+    if (data && data.session) {
+
+      console.log(
+        "Existing session found:",
+        data.session.user.email
+      );
+
+      // Optional:
+      // If already logged in, go directly
+      // to dashboard.
+
+      // window.location.href = "dashboard.html";
+    }
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "Session Check Error:",
+      error
+    );
+
+  }
+
+}
+
+
+// Run session check
+checkExistingSession();
