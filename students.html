@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Students</title>
+
+  <meta name="theme-color" content="#0B4DA2">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #F5F7FA;
+      color: #1F2937;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+    }
+
+    .brand span {
+      display: block;
+      color: #E8A317;
+      font-size: 12px;
+      margin-top: 3px;
+    }
+
+    .back-btn {
+      border: 1px solid #E8A317;
+      background: transparent;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 25px 18px 50px;
+    }
+
+    .top-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 22px;
+    }
+
+    .top-section h2 {
+      color: #0B1E63;
+      font-size: 27px;
+    }
+
+    .top-section p {
+      color: #6B7280;
+      margin-top: 5px;
+    }
+
+    .add-btn {
+      background: #D4AF37;
+      color: #111827;
+      border: none;
+      padding: 13px 18px;
+      border-radius: 9px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .toolbar {
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 3px 15px rgba(0,0,0,.06);
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .toolbar input,
+    .toolbar select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .table-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 3px 15px rgba(0,0,0,.06);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 850px;
+    }
+
+    th {
+      background: #0B1E63;
+      color: white;
+      padding: 14px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid #E5E7EB;
+      font-size: 14px;
+    }
+
+    tr:hover {
+      background: #F9FAFB;
+    }
+
+    .status {
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .active {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .inactive {
+      background: #F3F4F6;
+      color: #374151;
+    }
+
+    .graduated {
+      background: #DBEAFE;
+      color: #1E40AF;
+    }
+
+    .suspended {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .withdrawn {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .action-btn {
+      border: none;
+      padding: 7px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .view {
+      background: #DBEAFE;
+      color: #1E40AF;
+    }
+
+    .edit {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .delete {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .loading,
+    .empty {
+      text-align: center;
+      padding: 35px;
+      color: #6B7280;
+    }
+
+    .message {
+      margin-bottom: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .success {
+      display: block;
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .error {
+      display: block;
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    /* MODAL */
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 100;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .modal-box {
+      max-width: 700px;
+      margin: 40px auto;
+      background: white;
+      border-radius: 14px;
+      padding: 25px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h3 {
+      color: #0B1E63;
+    }
+
+    .close {
+      border: none;
+      background: #F3F4F6;
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #374151;
+    }
+
+    input,
+    select {
+      padding: 11px;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .form-actions {
+      margin-top: 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .cancel {
+      background: #E5E7EB;
+      border: none;
+      padding: 11px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .save {
+      background: #0B4DA2;
+      color: white;
+      border: none;
+      padding: 11px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .student-details {
+      line-height: 1.9;
+    }
+
+    .student-details strong {
+      color: #0B1E63;
+    }
+
+    @media (max-width: 650px) {
+      .top-section {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .toolbar {
+        flex-direction: column;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .full {
+        grid-column: auto;
+      }
+
+      .brand h1 {
+        font-size: 16px;
+      }
+
+      .brand img {
+        width: 42px;
+        height: 42px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <span>Students Management</span>
+    </div>
+  </div>
+
+  <button class="back-btn" onclick="goDashboard()">
+    ← Dashboard
+  </button>
+</header>
+
+<main class="container">
+
+  <div class="top-section">
+    <div>
+      <h2>Students</h2>
+      <p>Manage GAAWOW Academy students</p>
+    </div>
+
+    <button class="add-btn" onclick="openAddModal()">
+      + Add Student
+    </button>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      id="searchInput"
+      placeholder="Search student ID, name, phone..."
+    >
+
+    <select id="statusFilter">
+      <option value="">All Status</option>
+      <option value="active">Active</option>
+      <option value="inactive">Inactive</option>
+      <option value="graduated">Graduated</option>
+      <option value="suspended">Suspended</option>
+      <option value="withdrawn">Withdrawn</option>
+    </select>
+  </div>
+
+  <div class="table-card">
+
+    <table>
+      <thead>
+        <tr>
+          <th>Student ID</th>
+          <th>Full Name</th>
+          <th>Gender</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Admission</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody id="studentsBody">
+        <tr>
+          <td colspan="7" class="loading">
+            Loading students...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+
+</main>
+
+<!-- ADD / EDIT MODAL -->
+
+<div class="modal" id="studentModal">
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+      <h3 id="modalTitle">Add Student</h3>
+      <button class="close" onclick="closeModal()">×</button>
+    </div>
+
+    <form id="studentForm">
+
+      <input type="hidden" id="editId">
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Student ID *</label>
+          <input id="studentId" required>
+        </div>
+
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input id="fullName" required>
+        </div>
+
+        <div class="form-group">
+          <label>Gender</label>
+          <select id="gender">
+            <option value="">Select Gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <input type="date" id="dateOfBirth">
+        </div>
+
+        <div class="form-group">
+          <label>Phone</label>
+          <input id="phone">
+        </div>
+
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email">
+        </div>
+
+        <div class="form-group full">
+          <label>Address</label>
+          <input id="address">
+        </div>
+
+        <div class="form-group">
+          <label>Admission Date</label>
+          <input type="date" id="admissionDate">
+        </div>
+
+        <div class="form-group">
+          <label>Status</label>
+          <select id="status">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="graduated">Graduated</option>
+            <option value="suspended">Suspended</option>
+            <option value="withdrawn">Withdrawn</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Emergency Contact Name</label>
+          <input id="emergencyContactName">
+        </div>
+
+        <div class="form-group">
+          <label>Emergency Contact Phone</label>
+          <input id="emergencyContactPhone">
+        </div>
+
+        <div class="form-group full">
+          <label>Photo URL</label>
+          <input id="photoUrl">
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+
+        <button
+          type="button"
+          class="cancel"
+          onclick="closeModal()">
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          class="save"
+          id="saveButton">
+          Save Student
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+<!-- VIEW MODAL -->
+
+<div class="modal" id="viewModal">
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+      <h3>Student Profile</h3>
+
+      <button
+        class="close"
+        onclick="closeViewModal()">
+        ×
+      </button>
+    </div>
+
+    <div
+      id="studentDetails"
+      class="student-details">
+    </div>
+
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="students.js"></script>
+
+</body>
+</html>
