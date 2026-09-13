@@ -4,12 +4,14 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
+const CREATE_TEACHER_FUNCTION_URL =
+  "https://mytyvqwrxnxpxnxpiicj.supabase.co/functions/v1/create-teacher";
+
 const supabaseClient =
   window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
   );
-
 
 let teachers = [];
 let institutions = [];
@@ -82,7 +84,6 @@ async function checkAccess() {
   currentUser =
     sessionData.session.user;
 
-
   const {
     data: profile,
     error
@@ -98,7 +99,6 @@ async function checkAccess() {
       )
       .single();
 
-
   if (error || !profile) {
 
     alert(
@@ -111,9 +111,7 @@ async function checkAccess() {
     return;
   }
 
-
   currentProfile = profile;
-
 
   if (
     profile.role !==
@@ -129,7 +127,6 @@ async function checkAccess() {
 
     return;
   }
-
 
   await loadInstitutions();
 
@@ -157,22 +154,20 @@ async function loadInstitutions() {
         }
       );
 
-
   if (error) {
 
     console.error(error);
 
     alert(
-      "Failed to load institutions."
+      "Failed to load institutions:\n\n" +
+      error.message
     );
 
     return;
   }
 
-
   institutions =
     data || [];
-
 
   const filter =
     document.getElementById(
@@ -184,14 +179,11 @@ async function loadInstitutions() {
       "institutionId"
     );
 
-
   filter.innerHTML =
     `<option value="">All Institutions</option>`;
 
-
   select.innerHTML =
     `<option value="">Select Institution</option>`;
-
 
   institutions.forEach(
     institution => {
@@ -201,7 +193,6 @@ async function loadInstitutions() {
           ${escapeHtml(institution.name)}
         </option>
       `;
-
 
       select.innerHTML += `
         <option value="${institution.id}">
@@ -224,7 +215,6 @@ async function loadTeachers() {
       "teachersTableBody"
     );
 
-
   tbody.innerHTML = `
     <tr>
       <td colspan="7" class="loading">
@@ -232,7 +222,6 @@ async function loadTeachers() {
       </td>
     </tr>
   `;
-
 
   const {
     data,
@@ -260,7 +249,6 @@ async function loadTeachers() {
         }
       );
 
-
   if (error) {
 
     console.error(
@@ -280,7 +268,6 @@ async function loadTeachers() {
 
     return;
   }
-
 
   teachers =
     (data || []).map(
@@ -303,7 +290,6 @@ async function loadTeachers() {
       }
     );
 
-
   renderTeachers();
 }
 
@@ -319,7 +305,6 @@ function renderTeachers() {
       "teachersTableBody"
     );
 
-
   const search =
     document
       .getElementById(
@@ -329,18 +314,15 @@ function renderTeachers() {
       .toLowerCase()
       .trim();
 
-
   const institutionId =
     document.getElementById(
       "institutionFilter"
     ).value;
 
-
   const status =
     document.getElementById(
       "statusFilter"
     ).value;
-
 
   let filtered =
     teachers.filter(
@@ -366,12 +348,10 @@ function renderTeachers() {
             .toLowerCase()
             .includes(search);
 
-
         const matchesInstitution =
           !institutionId ||
           teacher.institution_id ===
             institutionId;
-
 
         const matchesStatus =
           !status ||
@@ -381,7 +361,6 @@ function renderTeachers() {
               : teacher.is_active === false
           );
 
-
         return (
           matchesSearch &&
           matchesInstitution &&
@@ -389,7 +368,6 @@ function renderTeachers() {
         );
       }
     );
-
 
   if (!filtered.length) {
 
@@ -403,7 +381,6 @@ function renderTeachers() {
 
     return;
   }
-
 
   tbody.innerHTML =
     filtered
@@ -419,7 +396,6 @@ function renderTeachers() {
             teacher.is_active
               ? "Active"
               : "Inactive";
-
 
           return `
             <tr>
@@ -515,13 +491,11 @@ function openAddTeacher() {
     )
     .reset();
 
-
   document
     .getElementById(
       "editId"
     )
     .value = "";
-
 
   document
     .getElementById(
@@ -530,21 +504,17 @@ function openAddTeacher() {
     .textContent =
       "Add Teacher";
 
-
   document
     .getElementById(
       "saveBtn"
     )
     .textContent =
-      "Save Teacher";
-
+      "Create Teacher";
 
   document
     .getElementById(
-      "teacherId"
-    )
-    .disabled = false;
-
+      "password"
+    ).required = true;
 
   document
     .getElementById(
@@ -557,7 +527,7 @@ function openAddTeacher() {
 
 
 /* ================================
-   CLOSE ADD
+   CLOSE MODAL
 ================================ */
 
 function closeTeacherModal() {
@@ -573,55 +543,52 @@ function closeTeacherModal() {
 
 
 /* ================================
-   SAVE TEACHER
+   SAVE / CREATE TEACHER
 ================================ */
 
 async function saveTeacher(event) {
 
   event.preventDefault();
 
-
   const saveBtn =
     document.getElementById(
       "saveBtn"
     );
-
 
   const editId =
     document.getElementById(
       "editId"
     ).value.trim();
 
-
-  const teacherId =
-    document.getElementById(
-      "teacherId"
-    ).value.trim();
-
-
   const fullName =
     document.getElementById(
       "fullName"
     ).value.trim();
 
+  const email =
+    document.getElementById(
+      "email"
+    ).value.trim();
 
   const phone =
     document.getElementById(
       "phone"
     ).value.trim();
 
+  const password =
+    document.getElementById(
+      "password"
+    ).value;
 
   const avatarUrl =
     document.getElementById(
       "avatarUrl"
     ).value.trim();
 
-
   const institutionId =
     document.getElementById(
       "institutionId"
     ).value;
-
 
   const isActive =
     document.getElementById(
@@ -629,20 +596,30 @@ async function saveTeacher(event) {
     ).value === "true";
 
 
-  if (!teacherId) {
+  if (!fullName) {
 
     alert(
-      "Please enter the Auth User ID."
+      "Please enter teacher name."
     );
 
     return;
   }
 
 
-  if (!fullName) {
+  if (!editId && !email) {
 
     alert(
-      "Please enter teacher name."
+      "Please enter teacher email."
+    );
+
+    return;
+  }
+
+
+  if (!editId && !password) {
+
+    alert(
+      "Please enter teacher password."
     );
 
     return;
@@ -662,112 +639,197 @@ async function saveTeacher(event) {
   saveBtn.disabled = true;
 
   saveBtn.textContent =
-    "Saving...";
+    editId
+      ? "Updating..."
+      : "Creating...";
 
 
-  const payload = {
+  try {
 
-    id: teacherId,
+    /* ============================
+       EDIT EXISTING TEACHER
+    ============================ */
 
-    full_name: fullName,
+    if (editId) {
 
-    phone:
-      phone || null,
+      const {
+        error
+      } =
+        await supabaseClient
+          .from("profiles")
+          .update({
 
-    avatar_url:
-      avatarUrl || null,
+            full_name:
+              fullName,
 
-    role:
-      "teacher",
+            phone:
+              phone || null,
 
-    institution_id:
-      institutionId,
+            avatar_url:
+              avatarUrl || null,
 
-    is_active:
-      isActive,
+            institution_id:
+              institutionId,
 
-    updated_at:
-      new Date().toISOString()
-  };
+            is_active:
+              isActive,
 
+            updated_at:
+              new Date().toISOString()
 
-  let result;
-
-
-  if (editId) {
-
-    result =
-      await supabaseClient
-        .from("profiles")
-        .update({
-          full_name:
-            payload.full_name,
-
-          phone:
-            payload.phone,
-
-          avatar_url:
-            payload.avatar_url,
-
-          role:
-            "teacher",
-
-          institution_id:
-            payload.institution_id,
-
-          is_active:
-            payload.is_active,
-
-          updated_at:
-            payload.updated_at
-        })
-        .eq(
-          "id",
-          editId
-        );
-
-  } else {
-
-    result =
-      await supabaseClient
-        .from("profiles")
-        .insert([
-          payload
-        ]);
-  }
+          })
+          .eq(
+            "id",
+            editId
+          );
 
 
-  saveBtn.disabled = false;
+      if (error) {
+        throw error;
+      }
 
-  saveBtn.textContent =
-    "Save Teacher";
+
+      alert(
+        "Teacher updated successfully!"
+      );
+
+      closeTeacherModal();
+
+      await loadTeachers();
+
+      return;
+    }
 
 
-  if (result.error) {
+    /* ============================
+       CREATE NEW TEACHER
+    ============================ */
+
+    const {
+      data: sessionData,
+      error: sessionError
+    } =
+      await supabaseClient.auth.getSession();
+
+
+    if (
+      sessionError ||
+      !sessionData.session
+    ) {
+
+      throw new Error(
+        "Your Super Admin session has expired. Please login again."
+      );
+    }
+
+
+    const accessToken =
+      sessionData.session.access_token;
+
+
+    const response =
+      await fetch(
+        CREATE_TEACHER_FUNCTION_URL,
+        {
+
+          method: "POST",
+
+          headers: {
+
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              `Bearer ${accessToken}`,
+
+            "apikey":
+              SUPABASE_KEY
+
+          },
+
+          body:
+            JSON.stringify({
+
+              email:
+                email,
+
+              password:
+                password,
+
+              full_name:
+                fullName,
+
+              phone:
+                phone || null,
+
+              avatar_url:
+                avatarUrl || null,
+
+              institution_id:
+                institutionId,
+
+              is_active:
+                isActive
+
+            })
+        }
+      );
+
+
+    let resultData = null;
+
+    try {
+      resultData =
+        await response.json();
+    } catch (jsonError) {
+      resultData = null;
+    }
+
+
+    if (!response.ok) {
+
+      const message =
+        resultData?.error ||
+        resultData?.message ||
+        `Create Teacher failed. HTTP ${response.status}`;
+
+      throw new Error(
+        message
+      );
+    }
+
+
+    alert(
+      "Teacher account created successfully!"
+    );
+
+
+    closeTeacherModal();
+
+    await loadTeachers();
+
+
+  } catch (error) {
 
     console.error(
-      result.error
+      "Create Teacher Error:",
+      error
     );
 
     alert(
-      "Failed to save teacher:\n\n" +
-      result.error.message
+      "Failed to create/update teacher:\n\n" +
+      error.message
     );
 
-    return;
+  } finally {
+
+    saveBtn.disabled = false;
+
+    saveBtn.textContent =
+      editId
+        ? "Update Teacher"
+        : "Create Teacher";
   }
-
-
-  alert(
-    editId
-      ? "Teacher updated successfully!"
-      : "Teacher added successfully!"
-  );
-
-
-  closeTeacherModal();
-
-  await loadTeachers();
 }
 
 
@@ -782,7 +844,6 @@ function editTeacher(id) {
       item =>
         item.id === id
     );
-
 
   if (!teacher) {
 
@@ -804,25 +865,37 @@ function editTeacher(id) {
 
   document
     .getElementById(
-      "teacherId"
+      "fullName"
     )
     .value =
-      teacher.id;
+      teacher.full_name || "";
 
 
   document
     .getElementById(
-      "teacherId"
+      "email"
+    )
+    .value = "";
+
+
+  document
+    .getElementById(
+      "email"
     )
     .disabled = true;
 
 
   document
     .getElementById(
-      "fullName"
+      "password"
     )
-    .value =
-      teacher.full_name || "";
+    .value = "";
+
+
+  document
+    .getElementById(
+      "password"
+    ).required = false;
 
 
   document
@@ -897,11 +970,9 @@ function viewTeacher(id) {
         item.id === id
     );
 
-
   if (!teacher) {
     return;
   }
-
 
   const avatar =
     teacher.avatar_url ||
@@ -1011,15 +1082,12 @@ async function toggleTeacher(id) {
         item.id === id
     );
 
-
   if (!teacher) {
     return;
   }
 
-
   const newStatus =
     !teacher.is_active;
-
 
   const action =
     newStatus
@@ -1042,11 +1110,13 @@ async function toggleTeacher(id) {
     await supabaseClient
       .from("profiles")
       .update({
+
         is_active:
           newStatus,
 
         updated_at:
           new Date().toISOString()
+
       })
       .eq(
         "id",
@@ -1080,7 +1150,6 @@ async function deleteTeacher(id) {
       item =>
         item.id === id
     );
-
 
   if (!teacher) {
     return;
@@ -1123,7 +1192,7 @@ async function deleteTeacher(id) {
 
 
   alert(
-    "Teacher deleted successfully."
+    "Teacher profile deleted successfully."
   );
 
 
@@ -1184,5 +1253,6 @@ document.addEventListener(
     ) {
       closeViewModal();
     }
+
   }
 );
