@@ -1,14 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0">
 
   <title>GAAWOW EMS — Teachers</title>
 
-  <meta name="theme-color" content="#0B4DA2">
+  <meta
+    name="theme-color"
+    content="#0B4DA2">
 
   <style>
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -16,21 +24,35 @@
     }
 
     body {
-      font-family: Arial, Helvetica, sans-serif;
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
       background: #F5F7FA;
       color: #1F2937;
     }
 
     header {
-      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      background:
+        linear-gradient(
+          135deg,
+          #0B1E63,
+          #0B4DA2
+        );
+
       color: white;
       padding: 18px 24px;
+
       display: flex;
       align-items: center;
       justify-content: space-between;
+
       gap: 15px;
       flex-wrap: wrap;
-      box-shadow: 0 4px 15px rgba(0,0,0,.15);
+
+      box-shadow:
+        0 4px 15px
+        rgba(0,0,0,.15);
     }
 
     .brand {
@@ -96,33 +118,52 @@
 
     .add-btn {
       border: none;
-      background: linear-gradient(135deg, #0B4DA2, #0B1E63);
+      background:
+        linear-gradient(
+          135deg,
+          #0B4DA2,
+          #0B1E63
+        );
+
       color: white;
       padding: 12px 20px;
       border-radius: 9px;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 5px 12px rgba(11,77,162,.25);
+
+      box-shadow:
+        0 5px 12px
+        rgba(11,77,162,.25);
     }
 
     .toolbar {
       background: white;
       border-radius: 12px;
       padding: 15px;
+
       display: grid;
-      grid-template-columns: 1fr 220px 180px;
+      grid-template-columns:
+        1fr 220px 180px;
+
       gap: 12px;
       margin-bottom: 18px;
-      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+
+      box-shadow:
+        0 2px 10px
+        rgba(0,0,0,.06);
     }
 
     input,
     select {
       width: 100%;
       padding: 11px 12px;
-      border: 1px solid #D1D5DB;
+
+      border:
+        1px solid #D1D5DB;
+
       border-radius: 8px;
       background: white;
+
       font-size: 14px;
       outline: none;
     }
@@ -130,14 +171,20 @@
     input:focus,
     select:focus {
       border-color: #0B4DA2;
-      box-shadow: 0 0 0 3px rgba(11,77,162,.1);
+
+      box-shadow:
+        0 0 0 3px
+        rgba(11,77,162,.1);
     }
 
     .table-card {
       background: white;
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+
+      box-shadow:
+        0 2px 12px
+        rgba(0,0,0,.07);
     }
 
     .table-wrapper {
@@ -153,6 +200,7 @@
     th {
       background: #0B1E63;
       color: white;
+
       padding: 13px 12px;
       text-align: left;
       font-size: 13px;
@@ -160,7 +208,10 @@
 
     td {
       padding: 13px 12px;
-      border-bottom: 1px solid #E5E7EB;
+
+      border-bottom:
+        1px solid #E5E7EB;
+
       font-size: 13px;
     }
 
@@ -172,6 +223,7 @@
       display: inline-block;
       padding: 5px 9px;
       border-radius: 20px;
+
       font-size: 11px;
       font-weight: bold;
     }
@@ -196,6 +248,7 @@
       border: none;
       padding: 7px 9px;
       border-radius: 6px;
+
       cursor: pointer;
       font-size: 11px;
       font-weight: bold;
@@ -233,16 +286,25 @@
       color: #6B7280;
     }
 
-    /* MODAL */
+
+    /* =========================
+       MODAL
+    ========================= */
 
     .modal {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.55);
+
+      background:
+        rgba(0,0,0,.55);
+
       display: none;
+
       align-items: center;
       justify-content: center;
+
       padding: 20px;
+
       z-index: 1000;
     }
 
@@ -252,20 +314,38 @@
 
     .modal-box {
       background: white;
+
       width: 100%;
       max-width: 720px;
+
       max-height: 92vh;
+
       overflow-y: auto;
+
       border-radius: 14px;
-      box-shadow: 0 15px 45px rgba(0,0,0,.25);
+
+      box-shadow:
+        0 15px 45px
+        rgba(0,0,0,.25);
     }
 
     .modal-header {
-      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      background:
+        linear-gradient(
+          135deg,
+          #0B1E63,
+          #0B4DA2
+        );
+
       color: white;
+
       padding: 17px 20px;
+
       display: flex;
-      justify-content: space-between;
+
+      justify-content:
+        space-between;
+
       align-items: center;
     }
 
@@ -277,14 +357,19 @@
       background: transparent;
       border: none;
       color: white;
+
       font-size: 25px;
       cursor: pointer;
     }
 
     .form {
       padding: 20px;
+
       display: grid;
-      grid-template-columns: 1fr 1fr;
+
+      grid-template-columns:
+        1fr 1fr;
+
       gap: 15px;
     }
 
@@ -316,9 +401,15 @@
 
     .modal-footer {
       padding: 15px 20px;
-      border-top: 1px solid #E5E7EB;
+
+      border-top:
+        1px solid #E5E7EB;
+
       display: flex;
-      justify-content: flex-end;
+
+      justify-content:
+        flex-end;
+
       gap: 10px;
     }
 
@@ -326,6 +417,7 @@
     .save-btn {
       padding: 11px 18px;
       border-radius: 8px;
+
       cursor: pointer;
       font-weight: bold;
       border: none;
@@ -346,7 +438,49 @@
       cursor: not-allowed;
     }
 
-    /* VIEW */
+
+    /* =========================
+       PASSWORD
+    ========================= */
+
+    .password-wrap {
+      position: relative;
+    }
+
+    .password-wrap input {
+      padding-right: 75px;
+    }
+
+    .show-password {
+      position: absolute;
+
+      right: 8px;
+      top: 50%;
+
+      transform:
+        translateY(-50%);
+
+      border: none;
+
+      background: #EEF2FF;
+
+      color: #3730A3;
+
+      padding: 5px 8px;
+
+      border-radius: 5px;
+
+      font-size: 11px;
+
+      font-weight: bold;
+
+      cursor: pointer;
+    }
+
+
+    /* =========================
+       VIEW
+    ========================= */
 
     .view-content {
       padding: 20px;
@@ -354,23 +488,33 @@
 
     .profile-box {
       display: grid;
-      grid-template-columns: 110px 1fr;
+
+      grid-template-columns:
+        110px 1fr;
+
       gap: 20px;
+
       align-items: start;
     }
 
     .avatar {
       width: 100px;
       height: 100px;
+
       border-radius: 50%;
+
       object-fit: cover;
-      border: 3px solid #D4AF37;
+
+      border:
+        3px solid #D4AF37;
     }
 
     .profile-name {
       color: #0B1E63;
+
       font-size: 23px;
       font-weight: bold;
+
       margin-bottom: 10px;
     }
 
@@ -383,7 +527,13 @@
       color: #374151;
     }
 
+
+    /* =========================
+       MOBILE
+    ========================= */
+
     @media(max-width: 800px) {
+
       .toolbar {
         grid-template-columns: 1fr;
       }
@@ -395,9 +545,11 @@
       .form-group.full {
         grid-column: auto;
       }
+
     }
 
     @media(max-width: 500px) {
+
       header {
         padding: 14px;
       }
@@ -418,66 +570,119 @@
       .profile-box {
         grid-template-columns: 1fr;
       }
+
     }
+
   </style>
+
 </head>
+
 
 <body>
 
+
 <header>
+
   <div class="brand">
+
     <img
       src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-      alt="GAAWOW Academy Logo"
-    >
+      alt="GAAWOW Academy Logo">
 
     <div>
-      <h1>GAAWOW EMS</h1>
-      <p>Gaawow Academy Education Management System</p>
+
+      <h1>
+        GAAWOW EMS
+      </h1>
+
+      <p>
+        Gaawow Academy Education Management System
+      </p>
+
     </div>
+
   </div>
+
 
   <button
     class="back-btn"
     onclick="location.href='super-admin.html'">
+
     ← Super Admin
+
   </button>
+
 </header>
+
+
 
 <main class="container">
 
+
   <div class="page-title">
+
     <div>
-      <h2>Teachers Management</h2>
-      <p>Manage teachers, institutions and account status.</p>
+
+      <h2>
+        Teachers Management
+      </h2>
+
+      <p>
+        Manage teachers, institutions and account status.
+      </p>
+
     </div>
+
 
     <button
       class="add-btn"
       onclick="openAddTeacher()">
+
       + Add Teacher
+
     </button>
+
   </div>
 
+
+
   <div class="toolbar">
+
 
     <input
       id="searchInput"
       type="search"
-      placeholder="Search teacher name, phone, email or User ID..."
-    >
+      placeholder="Search teacher name, phone or User ID...">
+
 
     <select id="institutionFilter">
-      <option value="">All Institutions</option>
+
+      <option value="">
+        All Institutions
+      </option>
+
     </select>
 
+
     <select id="statusFilter">
-      <option value="">All Status</option>
-      <option value="active">Active</option>
-      <option value="inactive">Inactive</option>
+
+      <option value="">
+        All Status
+      </option>
+
+      <option value="active">
+        Active
+      </option>
+
+      <option value="inactive">
+        Inactive
+      </option>
+
     </select>
 
   </div>
+
+
 
   <div class="table-card">
 
@@ -486,23 +691,54 @@
       <table>
 
         <thead>
+
           <tr>
+
             <th>#</th>
-            <th>Teacher</th>
-            <th>Phone</th>
-            <th>Institution</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Actions</th>
+
+            <th>
+              Teacher
+            </th>
+
+            <th>
+              Phone
+            </th>
+
+            <th>
+              Institution
+            </th>
+
+            <th>
+              Role
+            </th>
+
+            <th>
+              Status
+            </th>
+
+            <th>
+              Actions
+            </th>
+
           </tr>
+
         </thead>
 
+
         <tbody id="teachersTableBody">
+
           <tr>
-            <td colspan="7" class="loading">
+
+            <td
+              colspan="7"
+              class="loading">
+
               Loading teachers...
+
             </td>
+
           </tr>
+
         </tbody>
 
       </table>
@@ -511,16 +747,22 @@
 
   </div>
 
+
 </main>
 
 
-<!-- ADD / EDIT MODAL -->
+
+<!-- =========================
+     ADD / EDIT MODAL
+========================= -->
 
 <div
   id="teacherModal"
   class="modal">
 
+
   <div class="modal-box">
+
 
     <div class="modal-header">
 
@@ -528,81 +770,188 @@
         Add Teacher
       </h3>
 
+
       <button
         class="close"
         onclick="closeTeacherModal()">
+
         ×
+
       </button>
 
     </div>
 
+
+
     <form id="teacherForm">
+
 
       <input
         type="hidden"
-        id="editId"
-      >
+        id="editId">
+
 
       <div class="form">
 
+
+        <!-- FULL NAME -->
+
         <div class="form-group full">
+
           <label>
-            Auth User ID <span class="required">*</span>
+
+            Full Name
+            <span class="required">
+              *
+            </span>
+
           </label>
 
-          <input
-            id="teacherId"
-            type="text"
-            placeholder="Paste Supabase Auth User ID"
-            required
-          >
-
-          <div class="note">
-            This is the UUID of the teacher's Supabase Auth account.
-          </div>
-        </div>
-
-
-        <div class="form-group">
-          <label>
-            Full Name <span class="required">*</span>
-          </label>
 
           <input
             id="fullName"
             type="text"
             placeholder="Teacher full name"
-            required
-          >
+            autocomplete="name"
+            required>
+
         </div>
 
 
+
+        <!-- EMAIL -->
+
         <div class="form-group">
-          <label>Phone</label>
+
+          <label>
+
+            Email
+            <span class="required">
+              *
+            </span>
+
+          </label>
+
+
+          <input
+            id="email"
+            type="email"
+            placeholder="teacher@example.com"
+            autocomplete="email"
+            required>
+
+
+          <div class="note">
+
+            Teacher will use this email to login.
+
+          </div>
+
+        </div>
+
+
+
+        <!-- PASSWORD -->
+
+        <div class="form-group">
+
+          <label>
+
+            Password
+            <span
+              class="required"
+              id="passwordRequired">
+
+              *
+
+            </span>
+
+          </label>
+
+
+          <div class="password-wrap">
+
+            <input
+              id="password"
+              type="password"
+              placeholder="Minimum 6 characters"
+              autocomplete="new-password"
+              minlength="6"
+              required>
+
+
+            <button
+              type="button"
+              class="show-password"
+              onclick="togglePassword()">
+
+              Show
+
+            </button>
+
+          </div>
+
+
+          <div class="note">
+
+            Password is required when creating a new teacher.
+
+          </div>
+
+        </div>
+
+
+
+        <!-- PHONE -->
+
+        <div class="form-group">
+
+          <label>
+            Phone
+          </label>
+
 
           <input
             id="phone"
             type="text"
             placeholder="Teacher phone"
-          >
+            autocomplete="tel">
+
         </div>
 
 
+
+        <!-- AVATAR -->
+
         <div class="form-group">
-          <label>Avatar URL</label>
+
+          <label>
+            Avatar URL
+          </label>
+
 
           <input
             id="avatarUrl"
             type="url"
-            placeholder="https://..."
-          >
+            placeholder="https://...">
+
         </div>
 
 
+
+        <!-- INSTITUTION -->
+
         <div class="form-group">
+
           <label>
-            Institution <span class="required">*</span>
+
+            Institution
+            <span class="required">
+              *
+            </span>
+
           </label>
+
 
           <select
             id="institutionId"
@@ -613,11 +962,19 @@
             </option>
 
           </select>
+
         </div>
 
 
+
+        <!-- STATUS -->
+
         <div class="form-group">
-          <label>Status</label>
+
+          <label>
+            Status
+          </label>
+
 
           <select id="isActive">
 
@@ -630,77 +987,151 @@
             </option>
 
           </select>
+
         </div>
+
 
       </div>
 
+
+
       <div class="modal-footer">
+
 
         <button
           type="button"
           class="cancel-btn"
           onclick="closeTeacherModal()">
+
           Cancel
+
         </button>
+
 
         <button
           id="saveBtn"
           type="submit"
           class="save-btn">
-          Save Teacher
+
+          Create Teacher
+
         </button>
 
+
       </div>
+
 
     </form>
 
   </div>
+
 </div>
 
 
-<!-- VIEW MODAL -->
+
+<!-- =========================
+     VIEW MODAL
+========================= -->
 
 <div
   id="viewModal"
   class="modal">
 
+
   <div class="modal-box">
+
 
     <div class="modal-header">
 
-      <h3>Teacher Details</h3>
+      <h3>
+        Teacher Details
+      </h3>
+
 
       <button
         class="close"
         onclick="closeViewModal()">
+
         ×
+
       </button>
 
     </div>
+
 
     <div
       id="viewContent"
       class="view-content">
     </div>
 
+
     <div class="modal-footer">
+
 
       <button
         class="cancel-btn"
         onclick="closeViewModal()">
+
         Close
+
       </button>
 
+
     </div>
+
 
   </div>
 
 </div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script src="teachers.js?v=1"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+</script>
+
+
+<script src="teachers.js?v=3"></script>
+
+
+<script>
+
+function togglePassword() {
+
+  const input =
+    document.getElementById(
+      "password"
+    );
+
+  const button =
+    document.querySelector(
+      ".show-password"
+    );
+
+
+  if (
+    input.type === "password"
+  ) {
+
+    input.type = "text";
+
+    button.textContent =
+      "Hide";
+
+  } else {
+
+    input.type = "password";
+
+    button.textContent =
+      "Show";
+
+  }
+
+}
+
+</script>
+
 
 </body>
+
 </html>
