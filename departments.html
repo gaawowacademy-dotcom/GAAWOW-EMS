@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Departments</title>
+
+  <meta name="theme-color" content="#0B1E63">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #F5F7FA;
+      color: #1F2937;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+      box-shadow: 0 4px 15px rgba(0,0,0,.15);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      margin-bottom: 3px;
+    }
+
+    .brand p {
+      font-size: 12px;
+      opacity: .85;
+    }
+
+    .back-btn {
+      text-decoration: none;
+      color: white;
+      border: 1px solid rgba(255,255,255,.35);
+      padding: 10px 16px;
+      border-radius: 9px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .back-btn:hover {
+      background: rgba(255,255,255,.12);
+    }
+
+    .container {
+      max-width: 1250px;
+      margin: 25px auto;
+      padding: 0 16px;
+    }
+
+    .top-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .title h2 {
+      color: #0B1E63;
+      font-size: 27px;
+    }
+
+    .title p {
+      color: #6B7280;
+      margin-top: 5px;
+      font-size: 14px;
+    }
+
+    .add-btn {
+      border: none;
+      background: linear-gradient(135deg, #0B4DA2, #0B1E63);
+      color: white;
+      padding: 12px 19px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(11,77,162,.25);
+    }
+
+    .add-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 13px;
+      padding: 18px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.07);
+      border-left: 4px solid #D4AF37;
+    }
+
+    .stat-card span {
+      color: #6B7280;
+      font-size: 13px;
+    }
+
+    .stat-card strong {
+      display: block;
+      color: #0B1E63;
+      font-size: 26px;
+      margin-top: 7px;
+    }
+
+    .filters {
+      background: white;
+      padding: 17px;
+      border-radius: 13px;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.06);
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      padding: 11px 12px;
+      font-size: 14px;
+      outline: none;
+      background: white;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #0B4DA2;
+      box-shadow: 0 0 0 3px rgba(11,77,162,.08);
+    }
+
+    .table-card {
+      background: white;
+      border-radius: 13px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.07);
+      overflow: hidden;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 850px;
+    }
+
+    th {
+      background: #0B1E63;
+      color: white;
+      text-align: left;
+      padding: 13px;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 13px;
+      border-bottom: 1px solid #E5E7EB;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: #F8FAFC;
+    }
+
+    .code {
+      font-weight: bold;
+      color: #0B4DA2;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .active {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .inactive {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .action-btn {
+      border: none;
+      border-radius: 7px;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .edit {
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+
+    .toggle {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: #6B7280;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 35px;
+      color: #0B4DA2;
+      font-weight: bold;
+    }
+
+    /* Modal */
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-box {
+      background: white;
+      width: 100%;
+      max-width: 600px;
+      border-radius: 15px;
+      box-shadow: 0 15px 50px rgba(0,0,0,.25);
+      overflow: hidden;
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      padding: 17px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 18px;
+    }
+
+    .close {
+      border: none;
+      background: transparent;
+      color: white;
+      font-size: 25px;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #374151;
+    }
+
+    .required {
+      color: #DC2626;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .cancel-btn,
+    .save-btn {
+      border: none;
+      padding: 11px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .cancel-btn {
+      background: #E5E7EB;
+      color: #374151;
+    }
+
+    .save-btn {
+      background: #0B4DA2;
+      color: white;
+    }
+
+    @media (max-width: 750px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .title h2 {
+        font-size: 22px;
+      }
+
+      .header {
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="header">
+
+    <div class="brand">
+      <img
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
+      >
+
+      <div>
+        <h1>GAAWOW EMS</h1>
+        <p>Ilayska Aqoonta iyo Xirfadda</p>
+      </div>
+    </div>
+
+    <a href="super-admin.html" class="back-btn">
+      ← Super Admin
+    </a>
+
+  </header>
+
+  <main class="container">
+
+    <section class="top-section">
+
+      <div class="title">
+        <h2>Departments Management</h2>
+        <p>Manage academic departments across institutions.</p>
+      </div>
+
+      <button class="add-btn" onclick="openAddModal()">
+        + Add Department
+      </button>
+
+    </section>
+
+    <section class="stats">
+
+      <div class="stat-card">
+        <span>Total Departments</span>
+        <strong id="totalDepartments">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Active Departments</span>
+        <strong id="activeDepartments">0</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Inactive Departments</span>
+        <strong id="inactiveDepartments">0</strong>
+      </div>
+
+    </section>
+
+    <section class="filters">
+
+      <input
+        type="search"
+        id="searchInput"
+        placeholder="Search department name or code..."
+      >
+
+      <select id="institutionFilter">
+        <option value="">All Institutions</option>
+      </select>
+
+      <select id="statusFilter">
+        <option value="">All Status</option>
+        <option value="true">Active</option>
+        <option value="false">Inactive</option>
+      </select>
+
+    </section>
+
+    <section class="table-card">
+
+      <div class="table-wrap">
+
+        <table>
+
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th>Code</th>
+              <th>Institution</th>
+              <th>Department Head</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody id="departmentsBody">
+
+            <tr>
+              <td colspan="6" class="loading">
+                Loading departments...
+              </td>
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- Add/Edit Modal -->
+
+  <div class="modal" id="departmentModal">
+
+    <div class="modal-box">
+
+      <div class="modal-header">
+
+        <h3 id="modalTitle">Add Department</h3>
+
+        <button class="close" onclick="closeModal()">
+          ×
+        </button>
+
+      </div>
+
+      <div class="modal-body">
+
+        <form id="departmentForm">
+
+          <input type="hidden" id="departmentId">
+
+          <div class="form-group">
+
+            <label>
+              Institution <span class="required">*</span>
+            </label>
+
+            <select id="institutionId" required>
+              <option value="">Select Institution</option>
+            </select>
+
+          </div>
+
+          <div class="form-group">
+
+            <label>
+              Department Name <span class="required">*</span>
+            </label>
+
+            <input
+              type="text"
+              id="departmentName"
+              placeholder="e.g. Health Sciences"
+              required
+            >
+
+          </div>
+
+          <div class="form-group">
+
+            <label>
+              Department Code <span class="required">*</span>
+            </label>
+
+            <input
+              type="text"
+              id="departmentCode"
+              placeholder="e.g. HSC"
+              required
+            >
+
+          </div>
+
+          <div class="form-group">
+
+            <label>Description</label>
+
+            <textarea
+              id="departmentDescription"
+              placeholder="Department description..."
+            ></textarea>
+
+          </div>
+
+          <div class="form-group">
+
+            <label>Department Head</label>
+
+            <select id="headProfileId">
+              <option value="">No Department Head</option>
+            </select>
+
+          </div>
+
+          <div class="form-group">
+
+            <label>Status</label>
+
+            <select id="isActive">
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+
+          </div>
+
+          <div class="form-actions">
+
+            <button
+              type="button"
+              class="cancel-btn"
+              onclick="closeModal()"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              class="save-btn"
+              id="saveBtn"
+            >
+              Save Department
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="departments.js?v=1"></script>
+
+</body>
+</html>
