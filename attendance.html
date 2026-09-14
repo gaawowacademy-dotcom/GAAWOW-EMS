@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Attendance</title>
+
+  <link rel="icon" type="image/png"
+        href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f7fa;
+      color: #1f2937;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0b1e63, #0b4da2);
+      color: white;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.12);
+    }
+
+    .header-inner {
+      max-width: 1250px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      background: white;
+      border-radius: 12px;
+      padding: 5px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 23px;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: #f0d98a;
+      font-size: 13px;
+    }
+
+    main {
+      max-width: 1250px;
+      margin: 25px auto;
+      padding: 0 15px 50px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .topbar h2 {
+      margin: 0;
+      color: #0b1e63;
+    }
+
+    .topbar p {
+      margin: 5px 0 0;
+      color: #6b7280;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 3px 14px rgba(0,0,0,.07);
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 13px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #374151;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: white;
+      font-size: 14px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #0b4da2;
+      box-shadow: 0 0 0 2px rgba(11,77,162,.1);
+    }
+
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 16px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-primary {
+      background: #0b4da2;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #083b7d;
+    }
+
+    .btn-gold {
+      background: #d4af37;
+      color: #111827;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #1f2937;
+    }
+
+    .btn-success {
+      background: #16a34a;
+      color: white;
+    }
+
+    .lesson-info {
+      display: none;
+      background: linear-gradient(135deg, #0b1e63, #0b4da2);
+      color: white;
+      border-radius: 14px;
+      padding: 18px;
+      margin-top: 18px;
+    }
+
+    .lesson-info h3 {
+      margin: 0 0 8px;
+    }
+
+    .lesson-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+      color: #e5e7eb;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 13px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: white;
+      border-radius: 13px;
+      padding: 17px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.06);
+      border-left: 5px solid #0b4da2;
+    }
+
+    .stat.present {
+      border-left-color: #16a34a;
+    }
+
+    .stat.absent {
+      border-left-color: #dc2626;
+    }
+
+    .stat.late {
+      border-left-color: #d4af37;
+    }
+
+    .stat.excused {
+      border-left-color: #7c3aed;
+    }
+
+    .stat small {
+      color: #6b7280;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 25px;
+      color: #0b1e63;
+    }
+
+    .attendance-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+
+    .attendance-header h3 {
+      margin: 0;
+      color: #0b1e63;
+    }
+
+    .quick-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+    }
+
+    th {
+      background: #0b1e63;
+      color: white;
+      padding: 13px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: #f8fafc;
+    }
+
+    .student-name {
+      font-weight: bold;
+      color: #0b1e63;
+    }
+
+    .student-id {
+      color: #6b7280;
+      font-size: 11px;
+      margin-top: 3px;
+    }
+
+    .status-select {
+      min-width: 125px;
+      font-weight: bold;
+    }
+
+    .notes-input {
+      min-width: 180px;
+    }
+
+    .message {
+      display: none;
+      padding: 12px;
+      border-radius: 9px;
+      margin-bottom: 15px;
+      font-size: 13px;
+    }
+
+    .success-message {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .error-message {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .info-message {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 35px;
+      color: #6b7280;
+    }
+
+    .save-bar {
+      display: none;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    @media (max-width: 1000px) {
+      .stats {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .filters {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .stats,
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .full {
+        grid-column: auto;
+      }
+
+      .brand h1 {
+        font-size: 19px;
+      }
+
+      .logo {
+        width: 50px;
+        height: 50px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+
+    <img
+      class="logo"
+      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+      alt="GAAWOW Academy Logo"
+    >
+
+    <div class="brand">
+      <h1>GAAWOW EMS</h1>
+      <p>Ilayska Aqoonta iyo Xirfadda</p>
+    </div>
+
+  </div>
+</header>
+
+<main>
+
+  <div class="topbar">
+    <div>
+      <h2>Attendance Management</h2>
+      <p>Record and manage student attendance by lesson</p>
+    </div>
+
+    <button
+      class="btn-gold"
+      onclick="loadSelectedLesson()"
+    >
+      ↻ Refresh
+    </button>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <!-- FILTERS -->
+
+  <section class="panel">
+
+    <div class="filters">
+
+      <div>
+        <label>Institution *</label>
+        <select id="institutionSelect">
+          <option value="">Select institution</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Course *</label>
+        <select id="courseSelect">
+          <option value="">Select course</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Class *</label>
+        <select id="classSelect">
+          <option value="">Select class</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Lesson *</label>
+        <select id="lessonSelect">
+          <option value="">Select lesson</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Search Student</label>
+        <input
+          id="studentSearch"
+          type="search"
+          placeholder="Search name or student ID..."
+        >
+      </div>
+
+      <div>
+        <label>Attendance Date</label>
+        <input
+          id="attendanceDate"
+          type="date"
+        >
+      </div>
+
+    </div>
+
+    <div id="lessonInfo" class="lesson-info">
+
+      <h3 id="lessonTitle">Lesson</h3>
+
+      <div class="lesson-meta">
+
+        <span id="lessonDate"></span>
+        <span id="lessonTime"></span>
+        <span id="lessonRoom"></span>
+        <span id="lessonTeacher"></span>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- STATS -->
+
+  <section class="stats">
+
+    <div class="stat">
+      <small>Total Students</small>
+      <strong id="totalStudents">0</strong>
+    </div>
+
+    <div class="stat present">
+      <small>Present</small>
+      <strong id="presentCount">0</strong>
+    </div>
+
+    <div class="stat absent">
+      <small>Absent</small>
+      <strong id="absentCount">0</strong>
+    </div>
+
+    <div class="stat late">
+      <small>Late</small>
+      <strong id="lateCount">0</strong>
+    </div>
+
+    <div class="stat excused">
+      <small>Excused</small>
+      <strong id="excusedCount">0</strong>
+    </div>
+
+  </section>
+
+
+  <!-- ATTENDANCE -->
+
+  <section class="panel">
+
+    <div class="attendance-header">
+
+      <h3>Student Attendance</h3>
+
+      <div class="quick-actions">
+
+        <button
+          class="btn-success"
+          onclick="markAll('present')"
+        >
+          ✓ All Present
+        </button>
+
+        <button
+          class="btn-secondary"
+          onclick="markAll('absent')"
+        >
+          All Absent
+        </button>
+
+      </div>
+
+    </div>
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Student</th>
+            <th>Student ID</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+
+        <tbody id="attendanceBody">
+
+          <tr>
+            <td colspan="5" class="empty">
+              Select Institution, Course, Class and Lesson
+              to load students.
+            </td>
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <div
+      id="saveBar"
+      class="save-bar"
+    >
+
+      <button
+        class="btn-secondary"
+        onclick="resetAttendance()"
+      >
+        Reset
+      </button>
+
+      <button
+        class="btn-primary"
+        onclick="saveAttendance()"
+      >
+        💾 Save Attendance
+      </button>
+
+    </div>
+
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="attendance.js"></script>
+
+</body>
+</html>
+
+2. "attendance.js"
