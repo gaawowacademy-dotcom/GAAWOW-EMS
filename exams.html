@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Exams Management</title>
+
+  <meta name="theme-color" content="#0B1E63">
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+  >
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #F5F7FA;
+      color: #1F2937;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.15);
+    }
+
+    header img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      border-radius: 10px;
+      background: white;
+      padding: 3px;
+    }
+
+    header h1 {
+      font-size: 21px;
+    }
+
+    header p {
+      font-size: 12px;
+      opacity: .85;
+      margin-top: 4px;
+    }
+
+    main {
+      max-width: 1250px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .topbar h2 {
+      color: #0B1E63;
+    }
+
+    .back-btn {
+      text-decoration: none;
+      background: #fff;
+      color: #0B4DA2;
+      border: 1px solid #dbe2ea;
+      padding: 10px 15px;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 20px rgba(11,30,99,.08);
+    }
+
+    .panel h3 {
+      color: #0B1E63;
+      margin-bottom: 15px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #374151;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #d6dce5;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-size: 14px;
+      outline: none;
+      background: white;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #0B4DA2;
+      box-shadow: 0 0 0 3px rgba(11,77,162,.08);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 17px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      border-radius: 10px;
+      padding: 11px 17px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .primary {
+      background: #0B4DA2;
+      color: white;
+    }
+
+    .primary:hover {
+      background: #083d82;
+    }
+
+    .gold {
+      background: #D4AF37;
+      color: #0B1E63;
+    }
+
+    .danger {
+      background: #DC2626;
+      color: white;
+    }
+
+    .secondary {
+      background: #eef2f7;
+      color: #374151;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: white;
+      padding: 18px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.06);
+      border-left: 5px solid #0B4DA2;
+    }
+
+    .stat.gold-border {
+      border-left-color: #D4AF37;
+    }
+
+    .stat h4 {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      font-size: 26px;
+      color: #0B1E63;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 850px;
+    }
+
+    th,
+    td {
+      padding: 13px 11px;
+      border-bottom: 1px solid #edf0f4;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      background: #0B1E63;
+      color: white;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    tr:hover td {
+      background: #f8fafc;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #eef2ff;
+      color: #0B4DA2;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 7px;
+    }
+
+    .small-btn {
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+
+    .empty,
+    .loading {
+      text-align: center;
+      padding: 35px;
+      color: #6b7280;
+    }
+
+    .message {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      padding: 14px 18px;
+      border-radius: 12px;
+      color: white;
+      font-weight: bold;
+      max-width: 350px;
+      box-shadow: 0 8px 25px rgba(0,0,0,.18);
+      display: none;
+    }
+
+    .message.success {
+      background: #16A34A;
+    }
+
+    .message.error {
+      background: #DC2626;
+    }
+
+    .message.info {
+      background: #0B4DA2;
+    }
+
+    .edit-mode {
+      border: 2px solid #D4AF37;
+    }
+
+    @media (max-width: 850px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      main {
+        padding: 12px;
+      }
+
+      .grid,
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      header h1 {
+        font-size: 17px;
+      }
+
+      .panel {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <img
+    src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+    alt="GAAWOW Academy Logo"
+  >
+
+  <div>
+    <h1>GAAWOW EMS</h1>
+    <p>Exams Management System</p>
+  </div>
+</header>
+
+<main>
+
+  <div class="topbar">
+    <div>
+      <h2>Exams Management</h2>
+      <p>Create, edit and manage academic examinations.</p>
+    </div>
+
+    <a class="back-btn" href="super-admin.html">
+      ← Dashboard
+    </a>
+  </div>
+
+  <!-- FORM -->
+  <section class="panel" id="examPanel">
+
+    <h3 id="formTitle">Create New Exam</h3>
+
+    <div class="grid">
+
+      <div class="field">
+        <label>Institution *</label>
+        <select id="institutionSelect">
+          <option value="">Select Institution</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Course *</label>
+        <select id="courseSelect">
+          <option value="">Select Course</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Class</label>
+        <select id="classSelect">
+          <option value="">Select Class</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Exam Title *</label>
+        <input
+          type="text"
+          id="examTitle"
+          placeholder="e.g. Midterm Examination"
+        >
+      </div>
+
+      <div class="field">
+        <label>Exam Type *</label>
+        <select id="examType">
+          <option value="">Select Exam Type</option>
+          <option value="quiz">Quiz</option>
+          <option value="midterm">Midterm</option>
+          <option value="final">Final</option>
+          <option value="practical">Practical</option>
+          <option value="assignment">Assignment</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Exam Date</label>
+        <input type="date" id="examDate">
+      </div>
+
+      <div class="field">
+        <label>Maximum Score *</label>
+        <input
+          type="number"
+          id="maxScore"
+          min="1"
+          step="0.01"
+          placeholder="e.g. 100"
+        >
+      </div>
+
+      <div class="field">
+        <label>Duration (Minutes)</label>
+        <input
+          type="number"
+          id="duration"
+          min="1"
+          placeholder="e.g. 120"
+        >
+      </div>
+
+      <div class="field full">
+        <label>Description</label>
+        <textarea
+          id="description"
+          placeholder="Optional exam description..."
+        ></textarea>
+      </div>
+
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="saveBtn">
+        Create Exam
+      </button>
+
+      <button class="secondary" id="resetBtn">
+        Reset
+      </button>
+    </div>
+
+  </section>
+
+  <!-- STATS -->
+  <section class="stats">
+
+    <div class="stat">
+      <h4>Total Exams</h4>
+      <strong id="totalCount">0</strong>
+    </div>
+
+    <div class="stat gold-border">
+      <h4>Quizzes</h4>
+      <strong id="quizCount">0</strong>
+    </div>
+
+    <div class="stat">
+      <h4>Midterms</h4>
+      <strong id="midtermCount">0</strong>
+    </div>
+
+    <div class="stat gold-border">
+      <h4>Finals</h4>
+      <strong id="finalCount">0</strong>
+    </div>
+
+  </section>
+
+  <!-- EXAMS LIST -->
+  <section class="panel">
+
+    <h3>Exam Records</h3>
+
+    <div class="filters">
+
+      <input
+        type="search"
+        id="searchInput"
+        placeholder="Search exam title..."
+      >
+
+      <select id="filterType">
+        <option value="">All Exam Types</option>
+        <option value="quiz">Quiz</option>
+        <option value="midterm">Midterm</option>
+        <option value="final">Final</option>
+        <option value="practical">Practical</option>
+        <option value="assignment">Assignment</option>
+        <option value="other">Other</option>
+      </select>
+
+    </div>
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Exam</th>
+            <th>Institution</th>
+            <th>Course</th>
+            <th>Class</th>
+            <th>Type</th>
+            <th>Date</th>
+            <th>Max Score</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="examBody">
+          <tr>
+            <td colspan="8" class="loading">
+              Loading exams...
+            </td>
+          </tr>
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+</main>
+
+<div id="messageBox" class="message"></div>
+
+<script src="exams.js"></script>
+
+</body>
+</html>
