@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Enrollments</title>
+
+  <link rel="icon" type="image/png"
+        href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f7fa;
+      color: #1f2937;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0b1e63, #0b4da2);
+      color: white;
+      padding: 22px 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.12);
+    }
+
+    .header-inner {
+      max-width: 1250px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      background: white;
+      border-radius: 12px;
+      padding: 5px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 23px;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: #f0d98a;
+      font-size: 13px;
+    }
+
+    main {
+      max-width: 1250px;
+      margin: 25px auto;
+      padding: 0 15px 40px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .topbar h2 {
+      margin: 0;
+      color: #0b1e63;
+    }
+
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 17px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-primary {
+      background: #0b4da2;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #083b7d;
+    }
+
+    .btn-gold {
+      background: #d4af37;
+      color: #111827;
+    }
+
+    .btn-danger {
+      background: #dc2626;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #1f2937;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.07);
+      border-left: 5px solid #0b4da2;
+    }
+
+    .stat.gold {
+      border-left-color: #d4af37;
+    }
+
+    .stat.green {
+      border-left-color: #16a34a;
+    }
+
+    .stat.red {
+      border-left-color: #dc2626;
+    }
+
+    .stat small {
+      color: #6b7280;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 27px;
+      color: #0b1e63;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 3px 14px rgba(0,0,0,.07);
+      margin-bottom: 20px;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    label {
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 6px;
+      display: block;
+      color: #374151;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: white;
+      font-size: 14px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #0b4da2;
+      box-shadow: 0 0 0 2px rgba(11,77,162,.1);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 950px;
+    }
+
+    th {
+      background: #0b1e63;
+      color: white;
+      padding: 13px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 13px;
+    }
+
+    tr:hover td {
+      background: #f8fafc;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .completed {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .dropped {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .suspended {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .actions button {
+      padding: 7px 10px;
+      font-size: 11px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 35px;
+      color: #6b7280;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 999;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .modal-box {
+      max-width: 650px;
+      margin: 30px auto;
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: #0b1e63;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 13px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: none;
+      font-size: 13px;
+    }
+
+    .success-message {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .error-message {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 25px;
+      color: #6b7280;
+    }
+
+    @media (max-width: 900px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .filters {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .stats,
+      .filters,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .full {
+        grid-column: auto;
+      }
+
+      .header-inner {
+        align-items: flex-start;
+      }
+
+      .brand h1 {
+        font-size: 19px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+    <img
+      class="logo"
+      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+      alt="GAAWOW Academy Logo"
+    >
+
+    <div class="brand">
+      <h1>GAAWOW EMS</h1>
+      <p>Ilayska Aqoonta iyo Xirfadda</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <div class="topbar">
+    <div>
+      <h2>Student Enrollments</h2>
+      <p style="margin:5px 0;color:#6b7280;">
+        Manage students enrolled in courses and classes
+      </p>
+    </div>
+
+    <button class="btn-gold" onclick="openEnrollmentModal()">
+      + New Enrollment
+    </button>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <section class="stats">
+    <div class="stat">
+      <small>Total Enrollments</small>
+      <strong id="totalCount">0</strong>
+    </div>
+
+    <div class="stat green">
+      <small>Active</small>
+      <strong id="activeCount">0</strong>
+    </div>
+
+    <div class="stat gold">
+      <small>Completed</small>
+      <strong id="completedCount">0</strong>
+    </div>
+
+    <div class="stat red">
+      <small>Other Status</small>
+      <strong id="otherCount">0</strong>
+    </div>
+  </section>
+
+  <section class="panel">
+
+    <div class="filters">
+
+      <div>
+        <label>Institution</label>
+        <select id="institutionFilter">
+          <option value="">All Institutions</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Course</label>
+        <select id="courseFilter">
+          <option value="">All Courses</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Class</label>
+        <select id="classFilter">
+          <option value="">All Classes</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Status</label>
+        <select id="statusFilter">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="completed">Completed</option>
+          <option value="dropped">Dropped</option>
+          <option value="suspended">Suspended</option>
+        </select>
+      </div>
+
+      <div class="full">
+        <label>Search</label>
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Search student name, student ID, enrollment number..."
+        >
+      </div>
+
+    </div>
+
+  </section>
+
+  <section class="panel">
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Student ID</th>
+            <th>Course</th>
+            <th>Class</th>
+            <th>Enrollment No.</th>
+            <th>Enrollment Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="enrollmentTableBody">
+          <tr>
+            <td colspan="8" class="loading">
+              Loading enrollments...
+            </td>
+          </tr>
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<!-- MODAL -->
+
+<div id="enrollmentModal" class="modal">
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+
+      <h3 id="modalTitle">New Enrollment</h3>
+
+      <button
+        class="btn-secondary"
+        onclick="closeEnrollmentModal()"
+      >
+        ✕
+      </button>
+
+    </div>
+
+    <div class="form-grid">
+
+      <div class="full">
+        <label>Institution *</label>
+        <select id="formInstitution">
+          <option value="">Select institution</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Course *</label>
+        <select id="formCourse">
+          <option value="">Select course</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Class</label>
+        <select id="formClass">
+          <option value="">Select class</option>
+        </select>
+      </div>
+
+      <div class="full">
+        <label>Student *</label>
+        <select id="formStudent">
+          <option value="">Select student</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Enrollment Number</label>
+        <input
+          id="formEnrollmentNumber"
+          type="text"
+          placeholder="e.g. ENR-2026-001"
+        >
+      </div>
+
+      <div>
+        <label>Status *</label>
+        <select id="formStatus">
+          <option value="active">Active</option>
+          <option value="completed">Completed</option>
+          <option value="dropped">Dropped</option>
+          <option value="suspended">Suspended</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Enrollment Date *</label>
+        <input id="formEnrollmentDate" type="date">
+      </div>
+
+      <div>
+        <label>Start Date</label>
+        <input id="formStartDate" type="date">
+      </div>
+
+      <div>
+        <label>End Date</label>
+        <input id="formEndDate" type="date">
+      </div>
+
+    </div>
+
+    <div class="modal-actions">
+
+      <button
+        class="btn-secondary"
+        onclick="closeEnrollmentModal()"
+      >
+        Cancel
+      </button>
+
+      <button
+        class="btn-primary"
+        onclick="saveEnrollment()"
+      >
+        Save Enrollment
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="enrollments.js"></script>
+
+</body>
+</html>
