@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Classes</title>
+  <meta name="theme-color" content="#0B1E63">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #F5F7FA;
+      color: #1F2937;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      padding: 18px 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+      box-shadow: 0 4px 15px rgba(0,0,0,.15);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      font-size: 21px;
+    }
+
+    .brand p {
+      font-size: 12px;
+      opacity: .85;
+      margin-top: 3px;
+    }
+
+    .back-btn {
+      text-decoration: none;
+      background: #D4AF37;
+      color: #0B1E63;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 1450px;
+      margin: auto;
+      padding: 25px;
+    }
+
+    .top-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+
+    .page-title h2 {
+      color: #0B1E63;
+      font-size: 27px;
+    }
+
+    .page-title p {
+      color: #6B7280;
+      margin-top: 5px;
+    }
+
+    .add-btn {
+      border: none;
+      background: linear-gradient(135deg, #D4AF37, #E8A317);
+      color: #0B1E63;
+      padding: 13px 20px;
+      border-radius: 9px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.07);
+      border-left: 5px solid #0B4DA2;
+    }
+
+    .stat-card:nth-child(2) {
+      border-left-color: #16A34A;
+    }
+
+    .stat-card:nth-child(3) {
+      border-left-color: #DC2626;
+    }
+
+    .stat-card span {
+      display: block;
+      color: #6B7280;
+      font-size: 13px;
+      margin-bottom: 7px;
+    }
+
+    .stat-card strong {
+      font-size: 27px;
+      color: #0B1E63;
+    }
+
+    .filters {
+      background: white;
+      padding: 18px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.06);
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      padding: 11px 12px;
+      outline: none;
+      background: white;
+      font-size: 14px;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #0B4DA2;
+      box-shadow: 0 0 0 2px rgba(11,77,162,.08);
+    }
+
+    .table-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.06);
+      overflow: hidden;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1150px;
+    }
+
+    th {
+      background: #0B1E63;
+      color: white;
+      padding: 14px 12px;
+      text-align: left;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 13px 12px;
+      border-bottom: 1px solid #E5E7EB;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: #F8FAFC;
+    }
+
+    .class-name {
+      font-weight: bold;
+      color: #0B1E63;
+    }
+
+    .code {
+      background: #EEF4FF;
+      color: #0B4DA2;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-weight: bold;
+      display: inline-block;
+    }
+
+    .status {
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .active {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .inactive {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      border: none;
+      padding: 7px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .edit-btn {
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+
+    .toggle-btn {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 35px;
+      color: #6B7280;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 30px;
+      color: #0B4DA2;
+      font-weight: bold;
+    }
+
+    #message {
+      margin-bottom: 15px;
+      display: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    /* MODAL */
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 1000;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .modal-content {
+      max-width: 700px;
+      margin: 30px auto;
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 15px 50px rgba(0,0,0,.25);
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      padding: 18px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 19px;
+    }
+
+    .close {
+      border: none;
+      background: transparent;
+      color: white;
+      font-size: 26px;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      padding: 22px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #374151;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 13px;
+    }
+
+    .modal-footer {
+      padding: 16px 22px;
+      background: #F9FAFB;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .cancel-btn,
+    .save-btn {
+      border: none;
+      padding: 11px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .cancel-btn {
+      background: #E5E7EB;
+      color: #374151;
+    }
+
+    .save-btn {
+      background: #0B4DA2;
+      color: white;
+    }
+
+    .required {
+      color: #DC2626;
+    }
+
+    @media (max-width: 900px) {
+      .filters {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 15px;
+      }
+
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .brand h1 {
+        font-size: 17px;
+      }
+
+      .page-title h2 {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+
+  <div class="brand">
+
+    <img
+      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+      alt="GAAWOW Academy Logo"
+    >
+
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <p>Gaawow Academy Education Management System</p>
+    </div>
+
+  </div>
+
+  <a href="super-admin.html" class="back-btn">
+    ← Back to Dashboard
+  </a>
+
+</header>
+
+
+<main class="container">
+
+  <section class="top-section">
+
+    <div class="page-title">
+      <h2>Classes Management</h2>
+      <p>Manage academic classes, courses, teachers and schedules.</p>
+    </div>
+
+    <button
+      class="add-btn"
+      onclick="openAddModal()"
+    >
+      + Add Class
+    </button>
+
+  </section>
+
+
+  <div id="message"></div>
+
+
+  <section class="stats">
+
+    <div class="stat-card">
+      <span>Total Classes</span>
+      <strong id="totalClasses">0</strong>
+    </div>
+
+    <div class="stat-card">
+      <span>Active Classes</span>
+      <strong id="activeClasses">0</strong>
+    </div>
+
+    <div class="stat-card">
+      <span>Inactive Classes</span>
+      <strong id="inactiveClasses">0</strong>
+    </div>
+
+  </section>
+
+
+  <section class="filters">
+
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Search class name or code..."
+    >
+
+    <select id="institutionFilter">
+      <option value="">All Institutions</option>
+    </select>
+
+    <select id="courseFilter">
+      <option value="">All Courses</option>
+    </select>
+
+    <select id="statusFilter">
+      <option value="">All Status</option>
+      <option value="true">Active</option>
+      <option value="false">Inactive</option>
+    </select>
+
+  </section>
+
+
+  <section class="table-card">
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Class</th>
+            <th>Code</th>
+            <th>Institution</th>
+            <th>Course</th>
+            <th>Academic Year</th>
+            <th>Teacher</th>
+            <th>Room</th>
+            <th>Schedule</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="classesTableBody">
+
+          <tr>
+            <td colspan="10" class="loading">
+              Loading classes...
+            </td>
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<!-- MODAL -->
+
+<div class="modal" id="classModal">
+
+  <div class="modal-content">
+
+    <div class="modal-header">
+
+      <h3 id="modalTitle">
+        Add Class
+      </h3>
+
+      <button
+        class="close"
+        onclick="closeModal()"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <form id="classForm">
+
+      <div class="modal-body">
+
+        <input
+          type="hidden"
+          id="classId"
+        >
+
+
+        <div class="form-group">
+
+          <label>
+            Institution <span class="required">*</span>
+          </label>
+
+          <select
+            id="institutionId"
+            required
+          >
+            <option value="">
+              Select Institution
+            </option>
+          </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Course <span class="required">*</span>
+          </label>
+
+          <select
+            id="courseId"
+            required
+          >
+            <option value="">
+              Select Course
+            </option>
+          </select>
+
+        </div>
+
+
+        <div class="form-row">
+
+          <div class="form-group">
+
+            <label>
+              Class Name <span class="required">*</span>
+            </label>
+
+            <input
+              type="text"
+              id="className"
+              placeholder="e.g. CHN Class A"
+              required
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              Class Code <span class="required">*</span>
+            </label>
+
+            <input
+              type="text"
+              id="classCode"
+              placeholder="e.g. CHN-A"
+              required
+            >
+
+          </div>
+
+        </div>
+
+
+        <div class="form-row">
+
+          <div class="form-group">
+
+            <label>
+              Academic Year
+            </label>
+
+            <input
+              type="text"
+              id="academicYear"
+              placeholder="e.g. 2026"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              Teacher
+            </label>
+
+            <select id="teacherId">
+
+              <option value="">
+                No Teacher Assigned
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <div class="form-row">
+
+          <div class="form-group">
+
+            <label>
+              Room
+            </label>
+
+            <input
+              type="text"
+              id="room"
+              placeholder="e.g. Room 4"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              Status
+            </label>
+
+            <select id="isActive">
+
+              <option value="true">
+                Active
+              </option>
+
+              <option value="false">
+                Inactive
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <div class="form-row">
+
+          <div class="form-group">
+
+            <label>
+              Start Date
+            </label>
+
+            <input
+              type="date"
+              id="startDate"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              End Date
+            </label>
+
+            <input
+              type="date"
+              id="endDate"
+            >
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="modal-footer">
+
+        <button
+          type="button"
+          class="cancel-btn"
+          onclick="closeModal()"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          class="save-btn"
+        >
+          Save Class
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="classes.js?v=1"></script>
+
+</body>
+</html>
