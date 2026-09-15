@@ -3,268 +3,391 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GAAWOW EMS — Payments Management</title>
 
-  <meta name="theme-color" content="#0B1E63">
+  <title>GAAWOW EMS — Payments</title>
+
   <link rel="icon" type="image/png"
-        href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+    href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-
-    body{
-      font-family:Arial,sans-serif;
-      background:#F5F7FA;
-      color:#1F2937
+    :root {
+      --blue: #0B4DA2;
+      --navy: #0B1E63;
+      --gold: #D4AF37;
+      --bg: #F5F7FA;
+      --text: #1F2937;
+      --success: #16A34A;
+      --danger: #DC2626;
+      --white: #ffffff;
+      --border: #e5e7eb;
     }
 
-    header{
-      background:linear-gradient(135deg,#0B1E63,#0B4DA2);
-      color:#fff;
-      padding:18px 20px;
-      box-shadow:0 4px 15px rgba(0,0,0,.15)
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    .header-inner{
-      max-width:1250px;
-      margin:auto;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:15px
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
     }
 
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:12px
+    header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: white;
+      padding: 18px 25px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.15);
     }
 
-    .brand img{
-      width:52px;
-      height:52px;
-      object-fit:contain;
-      background:#fff;
-      border-radius:10px;
-      padding:4px
+    .header-inner {
+      max-width: 1400px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
     }
 
-    .brand h1{font-size:21px}
-    .brand p{font-size:12px;opacity:.85;margin-top:3px}
-
-    .back-btn{
-      border:1px solid rgba(255,255,255,.4);
-      color:#fff;
-      background:rgba(255,255,255,.12);
-      padding:10px 15px;
-      border-radius:8px;
-      cursor:pointer;
-      font-weight:bold
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
-    .container{
-      max-width:1250px;
-      margin:25px auto;
-      padding:0 15px
+    .brand img {
+      width: 55px;
+      height: 55px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
     }
 
-    .page-title{margin-bottom:20px}
-    .page-title h2{color:#0B1E63;font-size:26px}
-    .page-title p{color:#6B7280;margin-top:5px}
-
-    .stats{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:15px;
-      margin-bottom:20px
+    .brand h1 {
+      font-size: 22px;
     }
 
-    .stat{
-      background:#fff;
-      border-radius:12px;
-      padding:18px;
-      box-shadow:0 3px 12px rgba(0,0,0,.07);
-      border-left:5px solid #D4AF37
+    .brand p {
+      font-size: 12px;
+      opacity: .85;
+      margin-top: 3px;
     }
 
-    .stat h3{font-size:25px;color:#0B1E63}
-    .stat p{color:#6B7280;margin-top:5px;font-size:14px}
-
-    .card{
-      background:#fff;
-      border-radius:14px;
-      padding:22px;
-      box-shadow:0 3px 15px rgba(0,0,0,.07);
-      margin-bottom:20px
+    .back-btn {
+      border: 1px solid rgba(255,255,255,.4);
+      background: rgba(255,255,255,.1);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
     }
 
-    .card h3{
-      color:#0B1E63;
-      margin-bottom:18px
+    .container {
+      max-width: 1400px;
+      margin: 25px auto;
+      padding: 0 18px;
     }
 
-    .form-grid{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:15px
+    .page-title {
+      margin-bottom: 20px;
     }
 
-    .field{
-      display:flex;
-      flex-direction:column;
-      gap:7px
+    .page-title h2 {
+      color: var(--navy);
+      font-size: 28px;
     }
 
-    .field label{
-      font-size:13px;
-      font-weight:bold;
-      color:#374151
+    .page-title p {
+      color: #6b7280;
+      margin-top: 5px;
     }
 
-    input,select{
-      width:100%;
-      padding:11px 12px;
-      border:1px solid #D1D5DB;
-      border-radius:8px;
-      outline:none;
-      background:#fff;
-      font-size:14px
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 22px;
     }
 
-    input:focus,select:focus{
-      border-color:#0B4DA2;
-      box-shadow:0 0 0 2px rgba(11,77,162,.1)
+    .stat {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      border-left: 5px solid var(--blue);
+      box-shadow: 0 3px 12px rgba(0,0,0,.07);
     }
 
-    .buttons{
-      display:flex;
-      gap:10px;
-      margin-top:18px;
-      flex-wrap:wrap
+    .stat.success {
+      border-left-color: var(--success);
     }
 
-    button{
-      border:none;
-      border-radius:8px;
-      padding:11px 17px;
-      cursor:pointer;
-      font-weight:bold
+    .stat.pending {
+      border-left-color: var(--gold);
     }
 
-    .primary{background:#0B4DA2;color:#fff}
-    .secondary{background:#E5E7EB;color:#1F2937}
-    .danger{background:#DC2626;color:#fff}
-    .edit{background:#D4AF37;color:#111827}
-
-    .table-tools{
-      display:grid;
-      grid-template-columns:1fr 180px;
-      gap:10px;
-      margin-bottom:15px
+    .stat h3 {
+      font-size: 13px;
+      color: #6b7280;
+      text-transform: uppercase;
+      margin-bottom: 8px;
     }
 
-    .table-wrap{
-      width:100%;
-      overflow-x:auto
+    .stat strong {
+      font-size: 26px;
+      color: var(--navy);
     }
 
-    table{
-      width:100%;
-      border-collapse:collapse;
-      min-width:1100px
+    .grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+      align-items: start;
     }
 
-    th,td{
-      padding:12px 10px;
-      border-bottom:1px solid #E5E7EB;
-      text-align:left;
-      font-size:13px
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 22px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.07);
     }
 
-    th{
-      background:#F3F4F6;
-      color:#0B1E63
+    .card h3 {
+      color: var(--navy);
+      margin-bottom: 18px;
+      font-size: 19px;
     }
 
-    tr:hover td{background:#FAFAFA}
-
-    .badge{
-      display:inline-block;
-      padding:5px 9px;
-      border-radius:20px;
-      font-size:11px;
-      font-weight:bold
+    .form-group {
+      margin-bottom: 13px;
     }
 
-    .paid{background:#DCFCE7;color:#166534}
-    .pending{background:#FEF3C7;color:#92400E}
-    .failed{background:#FEE2E2;color:#991B1B}
-    .refunded{background:#EDE9FE;color:#5B21B6}
-    .cancelled{background:#E5E7EB;color:#374151}
-
-    .actions{
-      display:flex;
-      gap:6px
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #374151;
     }
 
-    .actions button{
-      padding:7px 10px;
-      font-size:12px
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      outline: none;
+      background: white;
+      font-size: 14px;
     }
 
-    .message{
-      padding:12px;
-      border-radius:8px;
-      margin-bottom:15px;
-      display:none;
-      font-size:14px;
-      font-weight:bold
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(11,77,162,.1);
     }
 
-    .success{background:#DCFCE7;color:#166534}
-    .error{background:#FEE2E2;color:#991B1B}
-
-    .loading{
-      text-align:center;
-      padding:25px;
-      color:#6B7280
+    textarea {
+      min-height: 80px;
+      resize: vertical;
     }
 
-    footer{
-      text-align:center;
-      padding:25px;
-      color:#6B7280;
-      font-size:13px
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
     }
 
-    @media(max-width:850px){
-      .stats{grid-template-columns:repeat(2,1fr)}
-      .form-grid{grid-template-columns:repeat(2,1fr)}
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 11px 16px;
+      cursor: pointer;
+      font-weight: bold;
     }
 
-    @media(max-width:600px){
-      header{padding:14px}
-      .brand h1{font-size:17px}
-      .brand p{display:none}
-      .brand img{width:44px;height:44px}
-      .back-btn{padding:8px 10px;font-size:12px}
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+      flex: 1;
+    }
 
-      .container{margin:18px auto}
-      .page-title h2{font-size:22px}
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
 
-      .stats{
-        grid-template-columns:1fr 1fr;
-        gap:10px
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 180px;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 850px;
+    }
+
+    th {
+      background: #f3f4f6;
+      color: var(--navy);
+      text-align: left;
+      padding: 12px;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    tr:hover {
+      background: #fafafa;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .status-successful {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-failed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status-cancelled {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .status-refunded {
+      background: #ede9fe;
+      color: #5b21b6;
+    }
+
+    .action-btn {
+      padding: 7px 10px;
+      font-size: 12px;
+      margin-right: 4px;
+    }
+
+    .edit {
+      background: #e0ecff;
+      color: var(--blue);
+    }
+
+    .delete {
+      background: #fee2e2;
+      color: var(--danger);
+    }
+
+    .message {
+      display: none;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .message.success {
+      display: block;
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .message.error {
+      display: block;
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 25px;
+      color: #6b7280;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 35px;
+      color: #6b7280;
+    }
+
+    .required {
+      color: var(--danger);
+    }
+
+    @media (max-width: 1000px) {
+      .grid {
+        grid-template-columns: 1fr;
       }
 
-      .stat{padding:14px}
-      .stat h3{font-size:21px}
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
 
-      .form-grid{grid-template-columns:1fr}
-      .card{padding:16px}
+    @media (max-width: 600px) {
+      header {
+        padding: 14px;
+      }
 
-      .table-tools{
-        grid-template-columns:1fr
+      .brand h1 {
+        font-size: 17px;
+      }
+
+      .brand img {
+        width: 45px;
+        height: 45px;
+      }
+
+      .container {
+        margin: 18px auto;
+        padding: 0 12px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .stat {
+        padding: 14px;
+      }
+
+      .stat strong {
+        font-size: 20px;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -274,113 +397,108 @@
 
 <header>
   <div class="header-inner">
-
     <div class="brand">
-      <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-           alt="GAAWOW Academy">
-
+      <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
       <div>
         <h1>GAAWOW EMS</h1>
-        <p>Ilayska Aqoonta iyo Xirfadda</p>
+        <p>Payments Management</p>
       </div>
     </div>
 
-    <button class="back-btn" onclick="goDashboard()">
+    <button class="back-btn" onclick="goBack()">
       ← Dashboard
     </button>
-
   </div>
 </header>
 
 <div class="container">
 
   <div class="page-title">
-    <h2>Payments Management</h2>
-    <p>Manage student payments and transaction records.</p>
+    <h2>Payments</h2>
+    <p>Manage student payments and financial transactions.</p>
   </div>
 
   <div id="message" class="message"></div>
 
   <div class="stats">
-
     <div class="stat">
-      <h3 id="totalPayments">0</h3>
-      <p>Total Payments</p>
+      <h3>Total Payments</h3>
+      <strong id="totalPayments">0</strong>
     </div>
 
-    <div class="stat">
-      <h3 id="paidPayments">0</h3>
-      <p>Paid</p>
+    <div class="stat success">
+      <h3>Successful</h3>
+      <strong id="successfulPayments">0</strong>
     </div>
 
-    <div class="stat">
-      <h3 id="pendingPayments">0</h3>
-      <p>Pending</p>
+    <div class="stat pending">
+      <h3>Pending</h3>
+      <strong id="pendingPayments">0</strong>
     </div>
 
-    <div class="stat">
-      <h3 id="totalAmount">$0.00</h3>
-      <p>Total Amount</p>
+    <div class="stat success">
+      <h3>Total Successful Amount</h3>
+      <strong id="totalAmount">$0.00</strong>
     </div>
-
   </div>
 
-  <div class="card">
+  <div class="grid">
 
-    <h3 id="formTitle">Add New Payment</h3>
+    <!-- FORM -->
+    <div class="card">
+      <h3 id="formTitle">Add Payment</h3>
 
-    <form id="paymentForm">
+      <form id="paymentForm">
 
-      <div class="form-grid">
+        <input type="hidden" id="paymentId">
 
-        <div class="field">
-          <label>Institution *</label>
-          <select id="institutionSelect" required>
-            <option value="">Select institution</option>
+        <div class="form-group">
+          <label>Institution <span class="required">*</span></label>
+          <select id="institutionId" required>
+            <option value="">Select Institution</option>
           </select>
         </div>
 
-        <div class="field">
-          <label>Student *</label>
-          <select id="studentSelect" required>
-            <option value="">Select student</option>
+        <div class="form-group">
+          <label>Student <span class="required">*</span></label>
+          <select id="studentId" required disabled>
+            <option value="">Select Student</option>
           </select>
         </div>
 
-        <div class="field">
+        <div class="form-group">
           <label>Invoice</label>
-          <select id="invoiceSelect">
-            <option value="">No invoice / optional</option>
+          <select id="invoiceId">
+            <option value="">No Invoice</option>
           </select>
         </div>
 
-        <div class="field">
-          <label>Amount *</label>
+        <div class="form-group">
+          <label>Amount <span class="required">*</span></label>
           <input
             type="number"
             id="amount"
-            min="0.01"
+            min="0"
             step="0.01"
-            placeholder="e.g. 150"
+            placeholder="150.00"
             required
           >
         </div>
 
-        <div class="field">
-          <label>Currency *</label>
+        <div class="form-group">
+          <label>Currency <span class="required">*</span></label>
           <input
             type="text"
             id="currency"
             value="USD"
-            placeholder="USD"
             required
           >
         </div>
 
-        <div class="field">
+        <div class="form-group">
           <label>Payment Method</label>
           <select id="paymentMethod">
-            <option value="">Select method</option>
+            <option value="">Select Method</option>
             <option value="cash">Cash</option>
             <option value="bank">Bank</option>
             <option value="mobile_money">Mobile Money</option>
@@ -389,136 +507,117 @@
           </select>
         </div>
 
-        <div class="field">
+        <div class="form-group">
           <label>Provider</label>
           <input
             type="text"
             id="provider"
-            placeholder="e.g. EVC Plus"
+            placeholder="Hormuud, EVC Plus, Bank..."
           >
         </div>
 
-        <div class="field">
+        <div class="form-group">
           <label>Payer Phone</label>
           <input
             type="text"
             id="payerPhone"
-            placeholder="e.g. 061xxxxxxx"
+            placeholder="0612345678"
           >
         </div>
 
-        <div class="field">
+        <div class="form-group">
           <label>Provider Transaction ID</label>
           <input
             type="text"
             id="providerTransactionId"
-            placeholder="Provider transaction ID"
+            placeholder="TEST-TXN-001"
           >
         </div>
 
-        <div class="field">
+        <div class="form-group">
           <label>Transaction Reference</label>
           <input
             type="text"
             id="transactionReference"
-            placeholder="Payment reference"
+            placeholder="GAAWOW-PAY-001"
           >
         </div>
 
-        <div class="field">
-          <label>Status *</label>
+        <div class="form-group">
+          <label>Status <span class="required">*</span></label>
           <select id="status" required>
-            <option value="paid">Paid</option>
             <option value="pending">Pending</option>
+            <option value="successful">Successful</option>
             <option value="failed">Failed</option>
-            <option value="refunded">Refunded</option>
             <option value="cancelled">Cancelled</option>
+            <option value="refunded">Refunded</option>
           </select>
         </div>
 
-        <div class="field">
+        <div class="form-group">
           <label>Paid At</label>
-          <input
-            type="datetime-local"
-            id="paidAt"
-          >
+          <input type="datetime-local" id="paidAt">
         </div>
 
-      </div>
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">
+            Save Payment
+          </button>
 
-      <div class="buttons">
+          <button type="button" class="btn-secondary" onclick="resetForm()">
+            Reset
+          </button>
+        </div>
 
-        <button
-          type="submit"
-          class="primary"
-          id="saveBtn">
-          + Save Payment
-        </button>
-
-        <button
-          type="button"
-          class="secondary"
-          onclick="resetForm()">
-          Reset
-        </button>
-
-      </div>
-
-    </form>
-
-  </div>
-
-  <div class="card">
-
-    <div class="table-tools">
-
-      <input
-        type="text"
-        id="searchInput"
-        placeholder="Search student, reference, phone, provider..."
-      >
-
-      <select id="statusFilter">
-        <option value="">All Status</option>
-        <option value="paid">Paid</option>
-        <option value="pending">Pending</option>
-        <option value="failed">Failed</option>
-        <option value="refunded">Refunded</option>
-        <option value="cancelled">Cancelled</option>
-      </select>
-
+      </form>
     </div>
 
-    <div class="table-wrap">
+    <!-- TABLE -->
+    <div class="card">
 
-      <table>
+      <h3>Payment Records</h3>
 
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Student</th>
-            <th>Amount</th>
-            <th>Currency</th>
-            <th>Method</th>
-            <th>Provider</th>
-            <th>Reference</th>
-            <th>Status</th>
-            <th>Paid At</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+      <div class="toolbar">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search student, reference, provider..."
+        >
 
-        <tbody id="paymentsTable">
+        <select id="statusFilter">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="successful">Successful</option>
+          <option value="failed">Failed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="refunded">Refunded</option>
+        </select>
+      </div>
 
-          <tr>
-            <td colspan="10" class="loading">
-              Loading payments...
-            </td>
-          </tr>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Provider</th>
+              <th>Reference</th>
+              <th>Status</th>
+              <th>Paid At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
 
-        </tbody>
-
-      </table>
+          <tbody id="paymentsTableBody">
+            <tr>
+              <td colspan="8" class="loading">
+                Loading payments...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
     </div>
 
@@ -526,11 +625,6 @@
 
 </div>
 
-<footer>
-  © 2026 GAAWOW Academy — GAAWOW EMS
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="payments.js"></script>
 
 </body>
