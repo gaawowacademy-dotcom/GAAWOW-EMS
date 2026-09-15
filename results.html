@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Results Management</title>
+
+  <meta name="theme-color" content="#0B1E63">
+
+  <link rel="icon" type="image/png"
+        href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --blue: #0B4DA2;
+      --navy: #0B1E63;
+      --gold: #D4AF37;
+      --bg: #F5F7FA;
+      --text: #1F2937;
+      --success: #16A34A;
+      --danger: #DC2626;
+      --white: #ffffff;
+      --border: #E5E7EB;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: white;
+      padding: 18px 24px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.12);
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: white;
+      padding: 5px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    header p {
+      margin: 4px 0 0;
+      opacity: .85;
+      font-size: 13px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 24px auto;
+      padding: 0 18px;
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .back-btn {
+      text-decoration: none;
+      color: white;
+      background: var(--navy);
+      padding: 11px 17px;
+      border-radius: 9px;
+      font-weight: 600;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 5px 18px rgba(0,0,0,.05);
+    }
+
+    .panel-title {
+      margin: 0 0 16px;
+      color: var(--navy);
+      font-size: 18px;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #4B5563;
+    }
+
+    select,
+    input,
+    textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #D1D5DB;
+      border-radius: 9px;
+      background: white;
+      font-size: 14px;
+      outline: none;
+    }
+
+    select:focus,
+    input:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(11,77,162,.10);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 42px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 4px 14px rgba(0,0,0,.04);
+    }
+
+    .stat span {
+      display: block;
+      font-size: 12px;
+      color: #6B7280;
+      margin-bottom: 7px;
+      font-weight: 600;
+    }
+
+    .stat strong {
+      font-size: 25px;
+      color: var(--navy);
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+
+    .search {
+      max-width: 360px;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      padding: 11px 17px;
+      border-radius: 9px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .primary {
+      background: var(--blue);
+      color: white;
+    }
+
+    .gold {
+      background: var(--gold);
+      color: #111827;
+    }
+
+    .danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .secondary {
+      background: #E5E7EB;
+      color: #111827;
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1050px;
+    }
+
+    th {
+      background: var(--navy);
+      color: white;
+      padding: 13px 10px;
+      text-align: left;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .student-name {
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .student-id {
+      color: #6B7280;
+      font-size: 11px;
+      margin-top: 3px;
+    }
+
+    .score-input {
+      width: 100px;
+    }
+
+    .percentage {
+      font-weight: 800;
+      color: var(--blue);
+    }
+
+    .grade {
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .published {
+      transform: scale(1.2);
+      cursor: pointer;
+    }
+
+    .message {
+      display: none;
+      padding: 12px 15px;
+      border-radius: 9px;
+      margin-bottom: 18px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .message.success {
+      display: block;
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .message.error {
+      display: block;
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 35px 15px;
+      color: #6B7280;
+    }
+
+    .save-area {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .info-box {
+      background: #EFF6FF;
+      border-left: 4px solid var(--blue);
+      padding: 12px 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      color: #1E3A8A;
+      font-size: 13px;
+    }
+
+    .loading {
+      color: var(--blue);
+      font-weight: 600;
+    }
+
+    @media (max-width: 1100px) {
+      .filters {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .stats {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 700px) {
+      header {
+        padding: 15px;
+      }
+
+      header h1 {
+        font-size: 18px;
+      }
+
+      .container {
+        padding: 0 10px;
+      }
+
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .panel {
+        padding: 14px;
+      }
+
+      .top-actions {
+        align-items: stretch;
+      }
+
+      .back-btn {
+        text-align: center;
+      }
+
+      .save-area {
+        flex-direction: column;
+      }
+
+      .save-area button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+    <img
+      class="logo"
+      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+      alt="GAAWOW Academy Logo"
+    >
+
+    <div>
+      <h1>GAAWOW EMS — Results Management</h1>
+      <p>Academic Results & Student Performance</p>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="top-actions">
+    <div>
+      <h2 style="margin:0;color:#0B1E63;">Results Management</h2>
+      <p style="margin:5px 0 0;color:#6B7280;">
+        Enter, calculate and publish student examination results.
+      </p>
+    </div>
+
+    <a class="back-btn" href="super-admin.html">
+      ← Back to Dashboard
+    </a>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <div class="panel">
+
+    <h3 class="panel-title">Select Academic Context</h3>
+
+    <div class="filters">
+
+      <div class="field">
+        <label>Institution</label>
+        <select id="institutionSelect">
+          <option value="">Select institution</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Course</label>
+        <select id="courseSelect" disabled>
+          <option value="">Select course</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Class</label>
+        <select id="classSelect" disabled>
+          <option value="">Select class</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Exam</label>
+        <select id="examSelect" disabled>
+          <option value="">Select exam</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Subject</label>
+        <select id="subjectSelect" disabled>
+          <option value="">Select subject</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Student Search</label>
+        <input
+          type="text"
+          id="studentSearch"
+          placeholder="Search student..."
+        >
+      </div>
+
+    </div>
+
+    <div id="examInfo" class="info-box" style="display:none;"></div>
+
+  </div>
+
+  <div class="stats">
+
+    <div class="stat">
+      <span>TOTAL STUDENTS</span>
+      <strong id="totalStudents">0</strong>
+    </div>
+
+    <div class="stat">
+      <span>RESULTS ENTERED</span>
+      <strong id="enteredResults">0</strong>
+    </div>
+
+    <div class="stat">
+      <span>PUBLISHED</span>
+      <strong id="publishedResults">0</strong>
+    </div>
+
+    <div class="stat">
+      <span>PASS</span>
+      <strong id="passResults">0</strong>
+    </div>
+
+    <div class="stat">
+      <span>AVERAGE</span>
+      <strong id="averageScore">0%</strong>
+    </div>
+
+  </div>
+
+  <div class="panel">
+
+    <div class="toolbar">
+      <div>
+        <h3 class="panel-title" style="margin:0;">
+          Student Results
+        </h3>
+        <div id="statusText" style="font-size:12px;color:#6B7280;margin-top:4px;">
+          Select institution, course, class, exam and subject.
+        </div>
+      </div>
+
+      <input
+        class="search"
+        type="text"
+        id="tableSearch"
+        placeholder="Search by student name or ID..."
+      >
+    </div>
+
+    <div class="table-wrap">
+
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Student</th>
+            <th>Score</th>
+            <th>Max Score</th>
+            <th>Percentage</th>
+            <th>Grade</th>
+            <th>Remarks</th>
+            <th>Publish</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+
+        <tbody id="resultsBody">
+          <tr>
+            <td colspan="9" class="empty">
+              Select academic context to load students.
+            </td>
+          </tr>
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <div class="save-area">
+
+      <button
+        id="resetBtn"
+        class="secondary"
+      >
+        Reset
+      </button>
+
+      <button
+        id="saveBtn"
+        class="primary"
+        disabled
+      >
+        Save Results
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script src="results.js"></script>
+
+</body>
+</html>
