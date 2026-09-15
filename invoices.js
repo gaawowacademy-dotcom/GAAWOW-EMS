@@ -4,63 +4,85 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-const { createClient } =
+const supabaseClient =
   supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
-let invoices = [];
 let institutions = [];
 let students = [];
+let invoices = [];
 let editingId = null;
 
 
-/* =========================
-   INIT
-========================= */
+/* =====================================================
+   INITIALIZE
+===================================================== */
 
 document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
   try {
     const {
-      data: { session }
-    } = await supabase.auth.getSession();
+      data: { session },
+      error: sessionError
+    } = await supabaseClient.auth.getSession();
+
+    if (sessionError) {
+      throw sessionError;
+    }
 
     if (!session) {
-      location.href = "index.html";
+      window.location.href = "index.html";
       return;
     }
 
     currentUser = session.user;
 
     await checkSuperAdmin();
+
+    /*
+      IMPORTANT:
+      Load institutions FIRST.
+      Then invoices.
+    */
     await loadInstitutions();
+
+    await loadAllStudents();
+
     await loadInvoices();
 
     setupEvents();
 
   } catch (error) {
-    console.error(error);
-    showMessage(error.message, "error");
+
+    console.error("INIT ERROR:", error);
+
+    showMessage(
+      "System error: " + error.message,
+      "error"
+    );
   }
 }
 
 
-/* =========================
-   AUTH
-========================= */
+/* =====================================================
+   SUPER ADMIN CHECK
+===================================================== */
 
 async function checkSuperAdmin() {
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("profiles")
-    .select("full_name, role, institution_id, is_active")
+    .select(
+      "id, full_name, role, institution_id, is_active"
+    )
     .eq("id", currentUser.id)
     .single();
 
   if (error) {
     throw new Error(
-      "Profile could not be loaded: " + error.message
+      "Profile could not be loaded: " +
+      error.message
     );
   }
 
@@ -68,296 +90,652 @@ async function checkSuperAdmin() {
     data.role !== "super_admin" ||
     data.is_active !== true
   ) {
-    alert("Access denied. Super Admin only.");
-    location.href = "index.html";
+
+    alert(
+      "Access denied. Super Admin only."
+    );
+
+    window.location.href = "index.html";
     return;
   }
 }
 
 
-/* =========================
+/* =====================================================
    EVENTS
-========================= */
+===================================================== */
 
 function setupEvents() {
 
-  document
-    .getElementById("institution_id")
-    .addEventListener("change", async function () {
-      await loadStudents(this.value);
-    });
+  const institutionSelect =
+    document.getElementById("institution_id");
 
-  document
-    .getElementById("invoiceForm")
-    .addEventListener("submit", saveInvoice);
+  const form =
+    document.getElementById("invoiceForm");
 
-  document
-    .getElementById("search")
-    .addEventListener("input", renderInvoices);
+  const search =
+    document.getElementById("search");
 
-  document
-    .getElementById("filterStatus")
-    .addEventListener("change", renderInvoices);
+  const statusFilter =
+    document.getElementById("filterStatus");
 
-  document
-    .getElementById("filterInstitution")
-    .addEventListener("change", renderInvoices);
+  const institutionFilter =
+    document.getElementById("filterInstitution");
 
-  document
-    .getElementById("amount")
-    .addEventListener("input", autoStatus);
+  const amount =
+    document.getElementById("amount");
 
-  document
-    .getElementById("paid_amount")
-    .addEventListener("input", autoStatus);
+  const paidAmount =
+    document.getElementById("paid_amount");
+
+  if (institutionSelect) {
+
+    institutionSelect.addEventListener(
+      "change",
+      async function () {
+
+        await loadStudents(this.value);
+
+      }
+    );
+  }
+
+  if (form) {
+    form.addEventListener(
+      "submit",
+      saveInvoice
+    );
+  }
+
+  if (search) {
+    search.addEventListener(
+      "input",
+      renderInvoices
+    );
+  }
+
+  if (statusFilter) {
+    statusFilter.addEventListener(
+      "change",
+      renderInvoices
+    );
+  }
+
+  if (institutionFilter) {
+    institutionFilter.addEventListener(
+      "change",
+      renderInvoices
+    );
+  }
+
+  if (amount) {
+    amount.addEventListener(
+      "input",
+      autoStatus
+    );
+  }
+
+  if (paidAmount) {
+    paidAmount.addEventListener(
+      "input",
+      autoStatus
+    );
+  }
 }
 
 
-/* =========================
-   INSTITUTIONS
-========================= */
+/* =====================================================
+   LOAD INSTITUTIONS
+===================================================== */
 
 async function loadInstitutions() {
 
-  const { data, error } = await supabase
-    .from("institutions")
-    .select("id, name")
-    .order("name");
-
-  if (error) {
-    throw error;
-  }
-
-  institutions = data || [];
+  console.log(
+    "Loading institutions..."
+  );
 
   const select =
-    document.getElementById("institution_id");
+    document.getElementById(
+      "institution_id"
+    );
 
   const filter =
-    document.getElementById("filterInstitution");
+    document.getElementById(
+      "filterInstitution"
+    );
+
+  if (!select) {
+
+    console.error(
+      "institution_id not found"
+    );
+
+    return;
+  }
 
   select.innerHTML =
-    `<option value="">Select institution</option>`;
+    `<option value="">
+      Loading institutions...
+    </option>`;
 
-  filter.innerHTML =
-    `<option value="">All Institutions</option>`;
+  try {
 
-  institutions.forEach(inst => {
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from("institutions")
+      .select("id, name")
+      .order("name", {
+        ascending: true
+      });
 
-    const option =
-      document.createElement("option");
+    console.log(
+      "Institutions:",
+      data
+    );
 
-    option.value = inst.id;
-    option.textContent = inst.name;
+    if (error) {
+      throw error;
+    }
 
-    select.appendChild(option);
+    if (!data || data.length === 0) {
 
-    const filterOption =
-      document.createElement("option");
+      institutions = [];
 
-    filterOption.value = inst.id;
-    filterOption.textContent = inst.name;
+      select.innerHTML =
+        `<option value="">
+          No institutions found
+        </option>`;
 
-    filter.appendChild(filterOption);
-  });
+      if (filter) {
+
+        filter.innerHTML =
+          `<option value="">
+            No institutions found
+          </option>`;
+      }
+
+      return;
+    }
+
+    institutions = data;
+
+    /* Form dropdown */
+
+    select.innerHTML =
+      `<option value="">
+        Select institution
+      </option>`;
+
+    /* Filter dropdown */
+
+    if (filter) {
+
+      filter.innerHTML =
+        `<option value="">
+          All Institutions
+        </option>`;
+    }
+
+    data.forEach(function (institution) {
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        institution.id;
+
+      option.textContent =
+        institution.name;
+
+      select.appendChild(
+        option
+      );
+
+
+      if (filter) {
+
+        const filterOption =
+          document.createElement(
+            "option"
+          );
+
+        filterOption.value =
+          institution.id;
+
+        filterOption.textContent =
+          institution.name;
+
+        filter.appendChild(
+          filterOption
+        );
+      }
+
+    });
+
+    console.log(
+      "Institutions loaded:",
+      institutions.length
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Institution loading error:",
+      error
+    );
+
+    select.innerHTML =
+      `<option value="">
+        Error loading institutions
+      </option>`;
+
+    if (filter) {
+
+      filter.innerHTML =
+        `<option value="">
+          Error loading institutions
+        </option>`;
+    }
+
+    showMessage(
+      "Failed to load institutions: " +
+      error.message,
+      "error"
+    );
+  }
 }
 
 
-/* =========================
-   STUDENTS
-========================= */
+/* =====================================================
+   LOAD ALL STUDENTS
+===================================================== */
 
-async function loadStudents(institutionId) {
+async function loadAllStudents() {
+
+  try {
+
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from("students")
+      .select(
+        "id, institution_id, student_id, full_name, status"
+      )
+      .order("full_name", {
+        ascending: true
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    students = data || [];
+
+    console.log(
+      "Students loaded:",
+      students.length
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Students loading error:",
+      error
+    );
+
+    students = [];
+
+    showMessage(
+      "Failed to load students: " +
+      error.message,
+      "error"
+    );
+  }
+}
+
+
+/* =====================================================
+   LOAD STUDENTS BY INSTITUTION
+===================================================== */
+
+async function loadStudents(
+  institutionId
+) {
 
   const select =
-    document.getElementById("student_id");
+    document.getElementById(
+      "student_id"
+    );
+
+  if (!select) {
+    return;
+  }
 
   select.innerHTML =
-    `<option value="">Select student</option>`;
+    `<option value="">
+      Loading students...
+    </option>`;
 
   select.disabled = true;
 
   if (!institutionId) {
+
+    select.innerHTML =
+      `<option value="">
+        Select student
+      </option>`;
+
     return;
   }
 
-  const { data, error } = await supabase
-    .from("students")
-    .select(
-      "id, institution_id, student_id, full_name, status"
-    )
-    .eq("institution_id", institutionId)
-    .order("full_name");
+  try {
 
-  if (error) {
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from("students")
+      .select(
+        "id, institution_id, student_id, full_name, status"
+      )
+      .eq(
+        "institution_id",
+        institutionId
+      )
+      .order("full_name", {
+        ascending: true
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+
+      select.innerHTML =
+        `<option value="">
+          No students found
+        </option>`;
+
+      return;
+    }
+
+    select.innerHTML =
+      `<option value="">
+        Select student
+      </option>`;
+
+    data.forEach(function (student) {
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        student.id;
+
+      option.textContent =
+        student.full_name +
+        " — " +
+        student.student_id;
+
+      select.appendChild(
+        option
+      );
+    });
+
+    select.disabled = false;
+
+  } catch (error) {
+
+    console.error(
+      "Students error:",
+      error
+    );
+
+    select.innerHTML =
+      `<option value="">
+        Error loading students
+      </option>`;
+
     showMessage(
-      "Could not load students: " + error.message,
+      "Failed to load students: " +
+      error.message,
       "error"
     );
-    return;
   }
-
-  students = data || [];
-
-  students.forEach(student => {
-
-    const option =
-      document.createElement("option");
-
-    option.value = student.id;
-
-    option.textContent =
-      `${student.full_name} — ${student.student_id}`;
-
-    select.appendChild(option);
-  });
-
-  select.disabled = false;
 }
 
 
-/* =========================
+/* =====================================================
    LOAD INVOICES
-========================= */
+===================================================== */
 
 async function loadInvoices() {
 
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("*")
-    .order("created_at", {
-      ascending: false
-    });
+  try {
 
-  if (error) {
-    throw error;
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from("invoices")
+      .select("*")
+      .order("created_at", {
+        ascending: false
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    invoices = data || [];
+
+    renderInvoices();
+
+    updateStats();
+
+    console.log(
+      "Invoices loaded:",
+      invoices.length
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Invoice loading error:",
+      error
+    );
+
+    invoices = [];
+
+    showMessage(
+      "Failed to load invoices: " +
+      error.message,
+      "error"
+    );
+
+    renderInvoices();
+
+    updateStats();
   }
-
-  invoices = data || [];
-
-  await loadInvoiceStudents();
-
-  renderInvoices();
-  updateStats();
 }
 
 
-/* =========================
-   LOAD STUDENTS FOR INVOICES
-========================= */
-
-async function loadInvoiceStudents() {
-
-  const { data, error } = await supabase
-    .from("students")
-    .select(
-      "id, institution_id, student_id, full_name, status"
-    )
-    .order("full_name");
-
-  if (error) {
-    throw error;
-  }
-
-  students = data || [];
-}
-
-
-/* =========================
-   SAVE
-========================= */
+/* =====================================================
+   SAVE INVOICE
+===================================================== */
 
 async function saveInvoice(event) {
 
   event.preventDefault();
 
   const institutionId =
-    document.getElementById("institution_id").value;
+    document.getElementById(
+      "institution_id"
+    ).value;
 
   const studentId =
-    document.getElementById("student_id").value;
+    document.getElementById(
+      "student_id"
+    ).value;
 
   const invoiceNumber =
-    document.getElementById("invoice_number").value.trim();
+    document.getElementById(
+      "invoice_number"
+    ).value.trim();
 
   const description =
-    document.getElementById("description").value.trim();
+    document.getElementById(
+      "description"
+    ).value.trim();
 
   const amount =
-    Number(document.getElementById("amount").value);
+    Number(
+      document.getElementById(
+        "amount"
+      ).value
+    );
 
   const paidAmount =
-    Number(document.getElementById("paid_amount").value);
+    Number(
+      document.getElementById(
+        "paid_amount"
+      ).value
+    );
 
   const dueDate =
-    document.getElementById("due_date").value || null;
+    document.getElementById(
+      "due_date"
+    ).value || null;
 
   let status =
-    document.getElementById("status").value;
+    document.getElementById(
+      "status"
+    ).value;
+
+
+  /* Validation */
 
   if (!institutionId) {
+
     showMessage(
       "Please select an institution.",
       "error"
     );
+
     return;
   }
 
   if (!studentId) {
+
     showMessage(
       "Please select a student.",
       "error"
     );
+
     return;
   }
 
   if (!invoiceNumber) {
+
     showMessage(
       "Invoice number is required.",
       "error"
     );
+
     return;
   }
 
-  if (amount < 0 || paidAmount < 0) {
+  if (
+    !Number.isFinite(amount) ||
+    amount < 0
+  ) {
+
     showMessage(
-      "Amount cannot be negative.",
+      "Please enter a valid amount.",
       "error"
     );
+
+    return;
+  }
+
+  if (
+    !Number.isFinite(paidAmount) ||
+    paidAmount < 0
+  ) {
+
+    showMessage(
+      "Please enter a valid paid amount.",
+      "error"
+    );
+
     return;
   }
 
   if (paidAmount > amount) {
+
     showMessage(
       "Paid amount cannot be greater than invoice amount.",
       "error"
     );
+
     return;
   }
 
-  status = calculateStatus(
-    amount,
-    paidAmount,
-    status,
-    dueDate
-  );
+
+  /* Automatic status */
+
+  status =
+    calculateStatus(
+      amount,
+      paidAmount,
+      status,
+      dueDate
+    );
+
 
   const payload = {
-    institution_id: institutionId,
-    student_id: studentId,
-    invoice_number: invoiceNumber,
-    description: description || null,
-    amount: amount,
-    paid_amount: paidAmount,
-    due_date: dueDate,
-    status: status
+
+    institution_id:
+      institutionId,
+
+    student_id:
+      studentId,
+
+    invoice_number:
+      invoiceNumber,
+
+    description:
+      description || null,
+
+    amount:
+      amount,
+
+    paid_amount:
+      paidAmount,
+
+    due_date:
+      dueDate,
+
+    status:
+      status
   };
+
 
   try {
 
     if (editingId) {
 
-      const { error } = await supabase
+      const {
+        error
+      } = await supabaseClient
         .from("invoices")
         .update(payload)
         .eq("id", editingId);
@@ -373,9 +751,11 @@ async function saveInvoice(event) {
 
     } else {
 
-      const { error } = await supabase
+      const {
+        error
+      } = await supabaseClient
         .from("invoices")
-        .insert(payload);
+        .insert([payload]);
 
       if (error) {
         throw error;
@@ -387,13 +767,19 @@ async function saveInvoice(event) {
       );
     }
 
+
     resetForm();
+
+    hideForm();
 
     await loadInvoices();
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "SAVE INVOICE ERROR:",
+      error
+    );
 
     showMessage(
       "Failed to save invoice: " +
@@ -404,9 +790,9 @@ async function saveInvoice(event) {
 }
 
 
-/* =========================
-   STATUS
-========================= */
+/* =====================================================
+   CALCULATE STATUS
+===================================================== */
 
 function calculateStatus(
   amount,
@@ -415,21 +801,32 @@ function calculateStatus(
   dueDate
 ) {
 
-  if (selectedStatus === "cancelled") {
+  if (
+    selectedStatus ===
+    "cancelled"
+  ) {
     return "cancelled";
   }
 
-  if (amount > 0 && paidAmount >= amount) {
+  if (
+    amount > 0 &&
+    paidAmount >= amount
+  ) {
     return "paid";
   }
 
-  if (paidAmount > 0 && paidAmount < amount) {
+  if (
+    paidAmount > 0 &&
+    paidAmount < amount
+  ) {
     return "partial";
   }
 
   if (
     dueDate &&
-    new Date(dueDate + "T23:59:59") < new Date()
+    new Date(
+      dueDate + "T23:59:59"
+    ) < new Date()
   ) {
     return "overdue";
   }
@@ -438,117 +835,179 @@ function calculateStatus(
 }
 
 
+/* =====================================================
+   AUTO STATUS
+===================================================== */
+
 function autoStatus() {
 
   const amount =
-    Number(document.getElementById("amount").value);
+    Number(
+      document.getElementById(
+        "amount"
+      ).value
+    );
 
   const paid =
-    Number(document.getElementById("paid_amount").value);
+    Number(
+      document.getElementById(
+        "paid_amount"
+      ).value
+    );
 
   const dueDate =
-    document.getElementById("due_date").value;
+    document.getElementById(
+      "due_date"
+    ).value;
+
+  const status =
+    document.getElementById(
+      "status"
+    );
 
   if (!amount) {
     return;
   }
 
-  const status =
-    document.getElementById("status");
-
   if (paid >= amount) {
-    status.value = "paid";
+
+    status.value =
+      "paid";
+
   } else if (paid > 0) {
-    status.value = "partial";
+
+    status.value =
+      "partial";
+
   } else if (
     dueDate &&
-    new Date(dueDate + "T23:59:59") < new Date()
+    new Date(
+      dueDate + "T23:59:59"
+    ) < new Date()
   ) {
-    status.value = "overdue";
+
+    status.value =
+      "overdue";
+
   } else {
-    status.value = "unpaid";
+
+    status.value =
+      "unpaid";
   }
 }
 
 
-/* =========================
-   RENDER
-========================= */
+/* =====================================================
+   RENDER INVOICES
+===================================================== */
 
 function renderInvoices() {
 
   const tbody =
-    document.getElementById("invoiceTableBody");
+    document.getElementById(
+      "invoiceTableBody"
+    );
+
+  if (!tbody) {
+    return;
+  }
 
   const search =
-    document.getElementById("search")
-      .value
+    (
+      document.getElementById(
+        "search"
+      )?.value || ""
+    )
       .toLowerCase()
       .trim();
 
   const statusFilter =
-    document.getElementById("filterStatus").value;
+    document.getElementById(
+      "filterStatus"
+    )?.value || "";
 
   const institutionFilter =
-    document.getElementById("filterInstitution").value;
+    document.getElementById(
+      "filterInstitution"
+    )?.value || "";
+
 
   const filtered =
-    invoices.filter(invoice => {
+    invoices.filter(
+      function (invoice) {
 
-      const student =
-        students.find(
-          s => s.id === invoice.student_id
+        const student =
+          students.find(
+            s =>
+              s.id ===
+              invoice.student_id
+          );
+
+        const institution =
+          institutions.find(
+            i =>
+              i.id ===
+              invoice.institution_id
+          );
+
+        const studentName =
+          student?.full_name || "";
+
+        const studentCode =
+          student?.student_id || "";
+
+        const institutionName =
+          institution?.name || "";
+
+        const invoiceNumber =
+          invoice.invoice_number || "";
+
+
+        const searchMatch =
+          !search ||
+          invoiceNumber
+            .toLowerCase()
+            .includes(search) ||
+          studentName
+            .toLowerCase()
+            .includes(search) ||
+          studentCode
+            .toLowerCase()
+            .includes(search) ||
+          institutionName
+            .toLowerCase()
+            .includes(search);
+
+
+        const statusMatch =
+          !statusFilter ||
+          invoice.status ===
+            statusFilter;
+
+
+        const institutionMatch =
+          !institutionFilter ||
+          invoice.institution_id ===
+            institutionFilter;
+
+
+        return (
+          searchMatch &&
+          statusMatch &&
+          institutionMatch
         );
+      }
+    );
 
-      const institution =
-        institutions.find(
-          i => i.id === invoice.institution_id
-        );
-
-      const studentName =
-        student?.full_name || "";
-
-      const studentCode =
-        student?.student_id || "";
-
-      const institutionName =
-        institution?.name || "";
-
-      const matchesSearch =
-        !search ||
-        invoice.invoice_number
-          .toLowerCase()
-          .includes(search) ||
-        studentName
-          .toLowerCase()
-          .includes(search) ||
-        studentCode
-          .toLowerCase()
-          .includes(search) ||
-        institutionName
-          .toLowerCase()
-          .includes(search);
-
-      const matchesStatus =
-        !statusFilter ||
-        invoice.status === statusFilter;
-
-      const matchesInstitution =
-        !institutionFilter ||
-        invoice.institution_id === institutionFilter;
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesInstitution
-      );
-    });
 
   if (!filtered.length) {
 
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="empty">
+        <td
+          colspan="9"
+          class="empty"
+        >
           No invoices found.
         </td>
       </tr>
@@ -557,112 +1016,143 @@ function renderInvoices() {
     return;
   }
 
+
   tbody.innerHTML =
-    filtered.map(invoice => {
+    filtered.map(
+      function (invoice) {
 
-      const student =
-        students.find(
-          s => s.id === invoice.student_id
-        );
+        const student =
+          students.find(
+            s =>
+              s.id ===
+              invoice.student_id
+          );
 
-      const institution =
-        institutions.find(
-          i => i.id === invoice.institution_id
-        );
+        const institution =
+          institutions.find(
+            i =>
+              i.id ===
+              invoice.institution_id
+          );
 
-      const amount =
-        Number(invoice.amount || 0);
 
-      const paid =
-        Number(invoice.paid_amount || 0);
+        const amount =
+          Number(
+            invoice.amount || 0
+          );
 
-      const balance =
-        Math.max(amount - paid, 0);
+        const paid =
+          Number(
+            invoice.paid_amount || 0
+          );
 
-      return `
-        <tr>
+        const balance =
+          Math.max(
+            amount - paid,
+            0
+          );
 
-          <td>
-            <strong>
-              ${escapeHtml(invoice.invoice_number)}
-            </strong>
-          </td>
 
-          <td>
-            ${escapeHtml(
-              institution?.name || "Unknown"
-            )}
-          </td>
+        return `
+          <tr>
 
-          <td>
-            ${escapeHtml(
-              student?.full_name || "Unknown"
-            )}
-            <br>
-            <small>
+            <td>
+              <strong>
+                ${escapeHtml(
+                  invoice.invoice_number
+                )}
+              </strong>
+            </td>
+
+            <td>
               ${escapeHtml(
-                student?.student_id || ""
+                institution?.name ||
+                "Unknown"
               )}
-            </small>
-          </td>
+            </td>
 
-          <td>
-            $${amount.toFixed(2)}
-          </td>
+            <td>
+              ${escapeHtml(
+                student?.full_name ||
+                "Unknown"
+              )}
 
-          <td>
-            $${paid.toFixed(2)}
-          </td>
+              <br>
 
-          <td>
-            <strong>
-              $${balance.toFixed(2)}
-            </strong>
-          </td>
+              <small>
+                ${escapeHtml(
+                  student?.student_id ||
+                  ""
+                )}
+              </small>
+            </td>
 
-          <td>
-            ${invoice.due_date || "-"}
-          </td>
+            <td>
+              $${amount.toFixed(2)}
+            </td>
 
-          <td>
-            <span class="badge ${invoice.status}">
-              ${invoice.status}
-            </span>
-          </td>
+            <td>
+              $${paid.toFixed(2)}
+            </td>
 
-          <td>
+            <td>
+              <strong>
+                $${balance.toFixed(2)}
+              </strong>
+            </td>
 
-            <button
-              class="action-btn edit"
-              onclick="editInvoice('${invoice.id}')"
-            >
-              Edit
-            </button>
+            <td>
+              ${
+                invoice.due_date ||
+                "-"
+              }
+            </td>
 
-            <button
-              class="action-btn delete"
-              onclick="deleteInvoice('${invoice.id}')"
-            >
-              Delete
-            </button>
+            <td>
+              <span
+                class="badge ${invoice.status}"
+              >
+                ${escapeHtml(
+                  invoice.status
+                )}
+              </span>
+            </td>
 
-          </td>
+            <td>
 
-        </tr>
-      `;
+              <button
+                class="action-btn edit"
+                onclick="editInvoice('${invoice.id}')"
+              >
+                Edit
+              </button>
 
-    }).join("");
+              <button
+                class="action-btn delete"
+                onclick="deleteInvoice('${invoice.id}')"
+              >
+                Delete
+              </button>
+
+            </td>
+
+          </tr>
+        `;
+      }
+    ).join("");
 }
 
 
-/* =========================
-   EDIT
-========================= */
+/* =====================================================
+   EDIT INVOICE
+===================================================== */
 
 async function editInvoice(id) {
 
   const invoice =
-    invoices.find(i => i.id === id);
+    invoices.find(
+      i => i.id === id
+    );
 
   if (!invoice) {
     return;
@@ -672,49 +1162,84 @@ async function editInvoice(id) {
 
   showForm();
 
-  document.getElementById("formTitle").textContent =
+  document.getElementById(
+    "formTitle"
+  ).textContent =
     "Edit Invoice";
 
-  document.getElementById("institution_id").value =
+
+  const institutionSelect =
+    document.getElementById(
+      "institution_id"
+    );
+
+  institutionSelect.value =
     invoice.institution_id;
 
-  await loadStudents(invoice.institution_id);
 
-  document.getElementById("student_id").value =
+  await loadStudents(
+    invoice.institution_id
+  );
+
+
+  document.getElementById(
+    "student_id"
+  ).value =
     invoice.student_id;
 
-  document.getElementById("invoice_number").value =
+
+  document.getElementById(
+    "invoice_number"
+  ).value =
     invoice.invoice_number;
 
-  document.getElementById("description").value =
+
+  document.getElementById(
+    "description"
+  ).value =
     invoice.description || "";
 
-  document.getElementById("amount").value =
+
+  document.getElementById(
+    "amount"
+  ).value =
     invoice.amount;
 
-  document.getElementById("paid_amount").value =
+
+  document.getElementById(
+    "paid_amount"
+  ).value =
     invoice.paid_amount;
 
-  document.getElementById("due_date").value =
+
+  document.getElementById(
+    "due_date"
+  ).value =
     invoice.due_date || "";
 
-  document.getElementById("status").value =
+
+  document.getElementById(
+    "status"
+  ).value =
     invoice.status;
 }
 
 
-/* =========================
-   DELETE
-========================= */
+/* =====================================================
+   DELETE INVOICE
+===================================================== */
 
 async function deleteInvoice(id) {
 
   const invoice =
-    invoices.find(i => i.id === id);
+    invoices.find(
+      i => i.id === id
+    );
 
   if (!invoice) {
     return;
   }
+
 
   const confirmed =
     confirm(
@@ -725,20 +1250,33 @@ async function deleteInvoice(id) {
     return;
   }
 
+
   try {
 
-    const { data: payments, error: paymentError } =
-      await supabase
-        .from("payments")
-        .select("id")
-        .eq("invoice_id", id)
-        .limit(1);
+    /*
+      Do not delete invoices
+      that already have payments.
+    */
+
+    const {
+      data: payments,
+      error: paymentError
+    } = await supabaseClient
+      .from("payments")
+      .select("id")
+      .eq("invoice_id", id)
+      .limit(1);
+
 
     if (paymentError) {
       throw paymentError;
     }
 
-    if (payments && payments.length > 0) {
+
+    if (
+      payments &&
+      payments.length > 0
+    ) {
 
       showMessage(
         "This invoice has payment records and cannot be deleted.",
@@ -748,43 +1286,61 @@ async function deleteInvoice(id) {
       return;
     }
 
-    const { error } =
-      await supabase
-        .from("invoices")
-        .delete()
-        .eq("id", id);
+
+    const {
+      error
+    } = await supabaseClient
+      .from("invoices")
+      .delete()
+      .eq("id", id);
+
 
     if (error) {
       throw error;
     }
+
 
     showMessage(
       "Invoice deleted successfully.",
       "success"
     );
 
+
     await loadInvoices();
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "DELETE INVOICE ERROR:",
+      error
+    );
 
     showMessage(
-      "Delete failed: " + error.message,
+      "Delete failed: " +
+      error.message,
       "error"
     );
   }
 }
 
 
-/* =========================
+/* =====================================================
    FORM
-========================= */
+===================================================== */
 
 function showForm() {
 
-  document.getElementById("formCard")
-    .style.display = "block";
+  const formCard =
+    document.getElementById(
+      "formCard"
+    );
+
+  if (!formCard) {
+    return;
+  }
+
+  formCard.style.display =
+    "block";
 
   window.scrollTo({
     top: 0,
@@ -795,10 +1351,15 @@ function showForm() {
 
 function hideForm() {
 
-  resetForm();
+  const formCard =
+    document.getElementById(
+      "formCard"
+    );
 
-  document.getElementById("formCard")
-    .style.display = "none";
+  if (formCard) {
+    formCard.style.display =
+      "none";
+  }
 }
 
 
@@ -806,28 +1367,70 @@ function resetForm() {
 
   editingId = null;
 
-  document.getElementById("invoiceForm").reset();
+  const form =
+    document.getElementById(
+      "invoiceForm"
+    );
 
-  document.getElementById("formTitle").textContent =
-    "Create Invoice";
+  if (form) {
+    form.reset();
+  }
 
-  document.getElementById("student_id").innerHTML =
-    `<option value="">Select student</option>`;
 
-  document.getElementById("student_id").disabled =
-    true;
+  const formTitle =
+    document.getElementById(
+      "formTitle"
+    );
 
-  document.getElementById("paid_amount").value =
-    "0";
+  if (formTitle) {
 
-  document.getElementById("status").value =
-    "unpaid";
+    formTitle.textContent =
+      "Create Invoice";
+  }
+
+
+  const studentSelect =
+    document.getElementById(
+      "student_id"
+    );
+
+  if (studentSelect) {
+
+    studentSelect.innerHTML =
+      `<option value="">
+        Select student
+      </option>`;
+
+    studentSelect.disabled =
+      true;
+  }
+
+
+  const paidAmount =
+    document.getElementById(
+      "paid_amount"
+    );
+
+  if (paidAmount) {
+    paidAmount.value = "0";
+  }
+
+
+  const status =
+    document.getElementById(
+      "status"
+    );
+
+  if (status) {
+    status.value =
+      "unpaid";
+  }
 }
 
 
-/* =========================
-   STATS
-========================= */
+/* =====================================================
+   STATISTICS
+===================================================== */
 
 function updateStats() {
 
@@ -849,77 +1452,162 @@ function updateStats() {
       i => i.status === "paid"
     ).length;
 
+
   const outstanding =
     invoices.reduce(
-      (sum, invoice) => {
+      function (sum, invoice) {
 
-        if (invoice.status === "cancelled") {
+        if (
+          invoice.status ===
+          "cancelled"
+        ) {
           return sum;
         }
 
         const amount =
-          Number(invoice.amount || 0);
+          Number(
+            invoice.amount || 0
+          );
 
         const paidAmount =
-          Number(invoice.paid_amount || 0);
+          Number(
+            invoice.paid_amount || 0
+          );
 
-        return sum +
-          Math.max(amount - paidAmount, 0);
+        return (
+          sum +
+          Math.max(
+            amount - paidAmount,
+            0
+          )
+        );
 
       },
       0
     );
 
-  document.getElementById("totalInvoices")
-    .textContent = total;
 
-  document.getElementById("unpaidInvoices")
-    .textContent = unpaid;
+  const totalElement =
+    document.getElementById(
+      "totalInvoices"
+    );
 
-  document.getElementById("partialInvoices")
-    .textContent = partial;
+  const unpaidElement =
+    document.getElementById(
+      "unpaidInvoices"
+    );
 
-  document.getElementById("paidInvoices")
-    .textContent = paid;
+  const partialElement =
+    document.getElementById(
+      "partialInvoices"
+    );
 
-  document.getElementById("outstandingAmount")
-    .textContent =
-      "$" + outstanding.toFixed(2);
+  const paidElement =
+    document.getElementById(
+      "paidInvoices"
+    );
+
+  const outstandingElement =
+    document.getElementById(
+      "outstandingAmount"
+    );
+
+
+  if (totalElement) {
+    totalElement.textContent =
+      total;
+  }
+
+  if (unpaidElement) {
+    unpaidElement.textContent =
+      unpaid;
+  }
+
+  if (partialElement) {
+    partialElement.textContent =
+      partial;
+  }
+
+  if (paidElement) {
+    paidElement.textContent =
+      paid;
+  }
+
+  if (outstandingElement) {
+    outstandingElement.textContent =
+      "$" +
+      outstanding.toFixed(2);
+  }
 }
 
 
-/* =========================
+/* =====================================================
    MESSAGE
-========================= */
+===================================================== */
 
-function showMessage(text, type) {
+function showMessage(
+  text,
+  type
+) {
 
   const box =
-    document.getElementById("message");
+    document.getElementById(
+      "message"
+    );
 
-  box.textContent = text;
+  if (!box) {
+    return;
+  }
+
+  box.textContent =
+    text;
 
   box.className =
     "message " + type;
 
-  box.style.display = "block";
+  box.style.display =
+    "block";
 
-  setTimeout(() => {
-    box.style.display = "none";
-  }, 5000);
+
+  setTimeout(
+    function () {
+
+      box.style.display =
+        "none";
+
+    },
+    5000
+  );
 }
 
 
-/* =========================
-   HTML SECURITY
-========================= */
+/* =====================================================
+   ESCAPE HTML
+===================================================== */
 
 function escapeHtml(value) {
 
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+  return String(
+    value ?? ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
 }
