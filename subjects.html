@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Subjects Management</title>
+
+  <meta name="theme-color" content="#0B1E63">
+  <link rel="icon" type="image/png"
+        href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #F5F7FA;
+      color: #1F2937;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      padding: 18px 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.15);
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      font-size: 21px;
+    }
+
+    .brand p {
+      font-size: 12px;
+      opacity: .85;
+      margin-top: 3px;
+    }
+
+    .back-btn {
+      border: 1px solid rgba(255,255,255,.4);
+      color: white;
+      background: rgba(255,255,255,.12);
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 25px auto;
+      padding: 0 15px;
+    }
+
+    .page-title {
+      margin-bottom: 20px;
+    }
+
+    .page-title h2 {
+      color: #0B1E63;
+      font-size: 26px;
+    }
+
+    .page-title p {
+      color: #6B7280;
+      margin-top: 5px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.07);
+      border-left: 5px solid #D4AF37;
+    }
+
+    .stat h3 {
+      font-size: 28px;
+      color: #0B1E63;
+    }
+
+    .stat p {
+      color: #6B7280;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 3px 15px rgba(0,0,0,.07);
+      margin-bottom: 20px;
+    }
+
+    .card h3 {
+      color: #0B1E63;
+      margin-bottom: 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #374151;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      outline: none;
+      background: white;
+      font-size: 14px;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #0B4DA2;
+      box-shadow: 0 0 0 2px rgba(11,77,162,.1);
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 11px 17px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .primary {
+      background: #0B4DA2;
+      color: white;
+    }
+
+    .primary:hover {
+      background: #083c80;
+    }
+
+    .secondary {
+      background: #E5E7EB;
+      color: #1F2937;
+    }
+
+    .danger {
+      background: #DC2626;
+      color: white;
+    }
+
+    .edit {
+      background: #D4AF37;
+      color: #111827;
+    }
+
+    .table-tools {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    .search {
+      max-width: 400px;
+      flex: 1;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 750px;
+    }
+
+    th,
+    td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #E5E7EB;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background: #F3F4F6;
+      color: #0B1E63;
+    }
+
+    tr:hover td {
+      background: #FAFAFA;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .active {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .inactive {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .actions button {
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: none;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .success {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .error {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 25px;
+      color: #6B7280;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px;
+      color: #6B7280;
+      font-size: 13px;
+    }
+
+    @media (max-width: 850px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding: 14px;
+      }
+
+      .brand h1 {
+        font-size: 17px;
+      }
+
+      .brand p {
+        display: none;
+      }
+
+      .brand img {
+        width: 44px;
+        height: 44px;
+      }
+
+      .back-btn {
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+
+      .container {
+        margin: 18px auto;
+      }
+
+      .page-title h2 {
+        font-size: 22px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .stat {
+        padding: 14px;
+      }
+
+      .stat h3 {
+        font-size: 23px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      .table-tools {
+        display: block;
+      }
+
+      .search {
+        max-width: 100%;
+        margin-bottom: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+      <div>
+        <h1>GAAWOW EMS</h1>
+        <p>Ilayska Aqoonta iyo Xirfadda</p>
+      </div>
+    </div>
+
+    <button class="back-btn" onclick="goDashboard()">← Dashboard</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="page-title">
+    <h2>Subjects Management</h2>
+    <p>Create, manage and organize academic subjects.</p>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <div class="stats">
+    <div class="stat">
+      <h3 id="totalSubjects">0</h3>
+      <p>Total Subjects</p>
+    </div>
+
+    <div class="stat">
+      <h3 id="activeSubjects">0</h3>
+      <p>Active Subjects</p>
+    </div>
+
+    <div class="stat">
+      <h3 id="inactiveSubjects">0</h3>
+      <p>Inactive Subjects</p>
+    </div>
+
+    <div class="stat">
+      <h3 id="totalCourses">0</h3>
+      <p>Courses</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 id="formTitle">Add New Subject</h3>
+
+    <form id="subjectForm">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Institution *</label>
+          <select id="institutionSelect" required>
+            <option value="">Select institution</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Course</label>
+          <select id="courseSelect">
+            <option value="">Select course (optional)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Subject Name *</label>
+          <input
+            type="text"
+            id="subjectName"
+            placeholder="e.g. Anatomy"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label>Subject Code</label>
+          <input
+            type="text"
+            id="subjectCode"
+            placeholder="e.g. ANAT101"
+          >
+        </div>
+
+        <div class="field">
+          <label>Max Score *</label>
+          <input
+            type="number"
+            id="maxScore"
+            min="1"
+            step="0.01"
+            value="100"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <select id="statusSelect">
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="buttons">
+        <button type="submit" class="primary" id="saveBtn">
+          + Save Subject
+        </button>
+
+        <button type="button" class="secondary" onclick="resetForm()">
+          Reset
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <div class="card">
+
+    <div class="table-tools">
+      <input
+        class="search"
+        type="text"
+        id="searchInput"
+        placeholder="Search subject, code, course..."
+      >
+    </div>
+
+    <div class="table-wrap">
+
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Subject</th>
+            <th>Code</th>
+            <th>Course</th>
+            <th>Max Score</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="subjectsTable">
+          <tr>
+            <td colspan="7" class="loading">
+              Loading subjects...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  © 2026 GAAWOW Academy — GAAWOW EMS
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="subjects.js"></script>
+
+</body>
+</html>
