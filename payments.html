@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GAAWOW EMS — Payments Management</title>
+
+  <meta name="theme-color" content="#0B1E63">
+  <link rel="icon" type="image/png"
+        href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    body{
+      font-family:Arial,sans-serif;
+      background:#F5F7FA;
+      color:#1F2937
+    }
+
+    header{
+      background:linear-gradient(135deg,#0B1E63,#0B4DA2);
+      color:#fff;
+      padding:18px 20px;
+      box-shadow:0 4px 15px rgba(0,0,0,.15)
+    }
+
+    .header-inner{
+      max-width:1250px;
+      margin:auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:15px
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px
+    }
+
+    .brand img{
+      width:52px;
+      height:52px;
+      object-fit:contain;
+      background:#fff;
+      border-radius:10px;
+      padding:4px
+    }
+
+    .brand h1{font-size:21px}
+    .brand p{font-size:12px;opacity:.85;margin-top:3px}
+
+    .back-btn{
+      border:1px solid rgba(255,255,255,.4);
+      color:#fff;
+      background:rgba(255,255,255,.12);
+      padding:10px 15px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:bold
+    }
+
+    .container{
+      max-width:1250px;
+      margin:25px auto;
+      padding:0 15px
+    }
+
+    .page-title{margin-bottom:20px}
+    .page-title h2{color:#0B1E63;font-size:26px}
+    .page-title p{color:#6B7280;margin-top:5px}
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:15px;
+      margin-bottom:20px
+    }
+
+    .stat{
+      background:#fff;
+      border-radius:12px;
+      padding:18px;
+      box-shadow:0 3px 12px rgba(0,0,0,.07);
+      border-left:5px solid #D4AF37
+    }
+
+    .stat h3{font-size:25px;color:#0B1E63}
+    .stat p{color:#6B7280;margin-top:5px;font-size:14px}
+
+    .card{
+      background:#fff;
+      border-radius:14px;
+      padding:22px;
+      box-shadow:0 3px 15px rgba(0,0,0,.07);
+      margin-bottom:20px
+    }
+
+    .card h3{
+      color:#0B1E63;
+      margin-bottom:18px
+    }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:15px
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:7px
+    }
+
+    .field label{
+      font-size:13px;
+      font-weight:bold;
+      color:#374151
+    }
+
+    input,select{
+      width:100%;
+      padding:11px 12px;
+      border:1px solid #D1D5DB;
+      border-radius:8px;
+      outline:none;
+      background:#fff;
+      font-size:14px
+    }
+
+    input:focus,select:focus{
+      border-color:#0B4DA2;
+      box-shadow:0 0 0 2px rgba(11,77,162,.1)
+    }
+
+    .buttons{
+      display:flex;
+      gap:10px;
+      margin-top:18px;
+      flex-wrap:wrap
+    }
+
+    button{
+      border:none;
+      border-radius:8px;
+      padding:11px 17px;
+      cursor:pointer;
+      font-weight:bold
+    }
+
+    .primary{background:#0B4DA2;color:#fff}
+    .secondary{background:#E5E7EB;color:#1F2937}
+    .danger{background:#DC2626;color:#fff}
+    .edit{background:#D4AF37;color:#111827}
+
+    .table-tools{
+      display:grid;
+      grid-template-columns:1fr 180px;
+      gap:10px;
+      margin-bottom:15px
+    }
+
+    .table-wrap{
+      width:100%;
+      overflow-x:auto
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:1100px
+    }
+
+    th,td{
+      padding:12px 10px;
+      border-bottom:1px solid #E5E7EB;
+      text-align:left;
+      font-size:13px
+    }
+
+    th{
+      background:#F3F4F6;
+      color:#0B1E63
+    }
+
+    tr:hover td{background:#FAFAFA}
+
+    .badge{
+      display:inline-block;
+      padding:5px 9px;
+      border-radius:20px;
+      font-size:11px;
+      font-weight:bold
+    }
+
+    .paid{background:#DCFCE7;color:#166534}
+    .pending{background:#FEF3C7;color:#92400E}
+    .failed{background:#FEE2E2;color:#991B1B}
+    .refunded{background:#EDE9FE;color:#5B21B6}
+    .cancelled{background:#E5E7EB;color:#374151}
+
+    .actions{
+      display:flex;
+      gap:6px
+    }
+
+    .actions button{
+      padding:7px 10px;
+      font-size:12px
+    }
+
+    .message{
+      padding:12px;
+      border-radius:8px;
+      margin-bottom:15px;
+      display:none;
+      font-size:14px;
+      font-weight:bold
+    }
+
+    .success{background:#DCFCE7;color:#166534}
+    .error{background:#FEE2E2;color:#991B1B}
+
+    .loading{
+      text-align:center;
+      padding:25px;
+      color:#6B7280
+    }
+
+    footer{
+      text-align:center;
+      padding:25px;
+      color:#6B7280;
+      font-size:13px
+    }
+
+    @media(max-width:850px){
+      .stats{grid-template-columns:repeat(2,1fr)}
+      .form-grid{grid-template-columns:repeat(2,1fr)}
+    }
+
+    @media(max-width:600px){
+      header{padding:14px}
+      .brand h1{font-size:17px}
+      .brand p{display:none}
+      .brand img{width:44px;height:44px}
+      .back-btn{padding:8px 10px;font-size:12px}
+
+      .container{margin:18px auto}
+      .page-title h2{font-size:22px}
+
+      .stats{
+        grid-template-columns:1fr 1fr;
+        gap:10px
+      }
+
+      .stat{padding:14px}
+      .stat h3{font-size:21px}
+
+      .form-grid{grid-template-columns:1fr}
+      .card{padding:16px}
+
+      .table-tools{
+        grid-template-columns:1fr
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+
+    <div class="brand">
+      <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+           alt="GAAWOW Academy">
+
+      <div>
+        <h1>GAAWOW EMS</h1>
+        <p>Ilayska Aqoonta iyo Xirfadda</p>
+      </div>
+    </div>
+
+    <button class="back-btn" onclick="goDashboard()">
+      ← Dashboard
+    </button>
+
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="page-title">
+    <h2>Payments Management</h2>
+    <p>Manage student payments and transaction records.</p>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <div class="stats">
+
+    <div class="stat">
+      <h3 id="totalPayments">0</h3>
+      <p>Total Payments</p>
+    </div>
+
+    <div class="stat">
+      <h3 id="paidPayments">0</h3>
+      <p>Paid</p>
+    </div>
+
+    <div class="stat">
+      <h3 id="pendingPayments">0</h3>
+      <p>Pending</p>
+    </div>
+
+    <div class="stat">
+      <h3 id="totalAmount">$0.00</h3>
+      <p>Total Amount</p>
+    </div>
+
+  </div>
+
+  <div class="card">
+
+    <h3 id="formTitle">Add New Payment</h3>
+
+    <form id="paymentForm">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Institution *</label>
+          <select id="institutionSelect" required>
+            <option value="">Select institution</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Student *</label>
+          <select id="studentSelect" required>
+            <option value="">Select student</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Invoice</label>
+          <select id="invoiceSelect">
+            <option value="">No invoice / optional</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Amount *</label>
+          <input
+            type="number"
+            id="amount"
+            min="0.01"
+            step="0.01"
+            placeholder="e.g. 150"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label>Currency *</label>
+          <input
+            type="text"
+            id="currency"
+            value="USD"
+            placeholder="USD"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label>Payment Method</label>
+          <select id="paymentMethod">
+            <option value="">Select method</option>
+            <option value="cash">Cash</option>
+            <option value="bank">Bank</option>
+            <option value="mobile_money">Mobile Money</option>
+            <option value="card">Card</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Provider</label>
+          <input
+            type="text"
+            id="provider"
+            placeholder="e.g. EVC Plus"
+          >
+        </div>
+
+        <div class="field">
+          <label>Payer Phone</label>
+          <input
+            type="text"
+            id="payerPhone"
+            placeholder="e.g. 061xxxxxxx"
+          >
+        </div>
+
+        <div class="field">
+          <label>Provider Transaction ID</label>
+          <input
+            type="text"
+            id="providerTransactionId"
+            placeholder="Provider transaction ID"
+          >
+        </div>
+
+        <div class="field">
+          <label>Transaction Reference</label>
+          <input
+            type="text"
+            id="transactionReference"
+            placeholder="Payment reference"
+          >
+        </div>
+
+        <div class="field">
+          <label>Status *</label>
+          <select id="status" required>
+            <option value="paid">Paid</option>
+            <option value="pending">Pending</option>
+            <option value="failed">Failed</option>
+            <option value="refunded">Refunded</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Paid At</label>
+          <input
+            type="datetime-local"
+            id="paidAt"
+          >
+        </div>
+
+      </div>
+
+      <div class="buttons">
+
+        <button
+          type="submit"
+          class="primary"
+          id="saveBtn">
+          + Save Payment
+        </button>
+
+        <button
+          type="button"
+          class="secondary"
+          onclick="resetForm()">
+          Reset
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+  <div class="card">
+
+    <div class="table-tools">
+
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search student, reference, phone, provider..."
+      >
+
+      <select id="statusFilter">
+        <option value="">All Status</option>
+        <option value="paid">Paid</option>
+        <option value="pending">Pending</option>
+        <option value="failed">Failed</option>
+        <option value="refunded">Refunded</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+
+    </div>
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Student</th>
+            <th>Amount</th>
+            <th>Currency</th>
+            <th>Method</th>
+            <th>Provider</th>
+            <th>Reference</th>
+            <th>Status</th>
+            <th>Paid At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="paymentsTable">
+
+          <tr>
+            <td colspan="10" class="loading">
+              Loading payments...
+            </td>
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</div>
+
+<footer>
+  © 2026 GAAWOW Academy — GAAWOW EMS
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="payments.js"></script>
+
+</body>
+</html>
