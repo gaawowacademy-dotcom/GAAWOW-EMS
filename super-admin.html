@@ -24,11 +24,7 @@
     }
 
     body {
-      font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
+      font-family: Arial, Helvetica, sans-serif;
       background: #F5F7FA;
       color: #1F2937;
     }
@@ -38,45 +34,30 @@
     ========================= */
 
     .header {
-      background:
-        linear-gradient(
-          135deg,
-          #0B1E63,
-          #0B4DA2
-        );
+      background: linear-gradient(
+        135deg,
+        #0B1E63,
+        #0B4DA2
+      );
 
       color: white;
-
       padding: 18px 24px;
 
       display: flex;
-
       align-items: center;
-
       justify-content: space-between;
 
       gap: 20px;
-
-      box-shadow:
-        0 4px 15px rgba(
-          0,
-          0,
-          0,
-          0.15
-        );
+      box-shadow: 0 4px 15px rgba(0,0,0,.15);
 
       position: sticky;
-
       top: 0;
-
       z-index: 100;
     }
 
     .brand {
       display: flex;
-
       align-items: center;
-
       gap: 14px;
     }
 
@@ -85,11 +66,9 @@
       height: 52px;
 
       object-fit: contain;
-
       background: white;
 
       border-radius: 12px;
-
       padding: 5px;
     }
 
@@ -106,15 +85,12 @@
 
     .admin-badge {
       background: #D4AF37;
-
       color: #0B1E63;
 
       padding: 8px 14px;
-
       border-radius: 30px;
 
       font-size: 12px;
-
       font-weight: 800;
 
       white-space: nowrap;
@@ -126,7 +102,6 @@
 
     .container {
       max-width: 1400px;
-
       margin: auto;
 
       padding: 28px 20px 50px;
@@ -136,26 +111,17 @@
       background: white;
 
       border-radius: 18px;
-
       padding: 24px;
 
       margin-bottom: 25px;
 
-      border-left:
-        5px solid #D4AF37;
+      border-left: 5px solid #D4AF37;
 
-      box-shadow:
-        0 6px 20px rgba(
-          0,
-          0,
-          0,
-          0.06
-        );
+      box-shadow: 0 6px 20px rgba(0,0,0,.06);
     }
 
     .welcome h2 {
       color: #0B1E63;
-
       font-size: 25px;
 
       margin-bottom: 7px;
@@ -163,7 +129,6 @@
 
     .welcome p {
       color: #6B7280;
-
       font-size: 14px;
     }
 
@@ -175,10 +140,7 @@
       display: grid;
 
       grid-template-columns:
-        repeat(
-          4,
-          1fr
-        );
+        repeat(4, 1fr);
 
       gap: 18px;
 
@@ -189,52 +151,51 @@
       background: white;
 
       border-radius: 16px;
-
       padding: 20px;
 
       box-shadow:
-        0 5px 18px rgba(
-          0,
-          0,
-          0,
-          0.06
-        );
+        0 5px 18px rgba(0,0,0,.06);
 
-      border-top:
-        4px solid #0B4DA2;
+      border-top: 4px solid #0B4DA2;
+    }
+
+    .stat-card:nth-child(2) {
+      border-top-color: #D4AF37;
+    }
+
+    .stat-card:nth-child(3) {
+      border-top-color: #16A34A;
+    }
+
+    .stat-card:nth-child(4) {
+      border-top-color: #7C3AED;
     }
 
     .stat-icon {
       font-size: 28px;
-
       margin-bottom: 10px;
     }
 
     .stat-title {
       color: #6B7280;
-
       font-size: 13px;
-
       margin-bottom: 6px;
     }
 
     .stat-number {
       color: #0B1E63;
-
       font-size: 26px;
-
       font-weight: 800;
     }
 
     /* =========================
-       SECTION
+       SECTION TITLE
     ========================= */
 
     .section-title {
       display: flex;
 
       justify-content: space-between;
-
       align-items: center;
 
       margin-bottom: 15px;
@@ -242,13 +203,11 @@
 
     .section-title h3 {
       color: #0B1E63;
-
       font-size: 20px;
     }
 
     .section-title span {
       font-size: 12px;
-
       color: #6B7280;
     }
 
@@ -260,10 +219,7 @@
       display: grid;
 
       grid-template-columns:
-        repeat(
-          4,
-          1fr
-        );
+        repeat(4, 1fr);
 
       gap: 18px;
     }
@@ -280,20 +236,14 @@
       cursor: pointer;
 
       box-shadow:
-        0 5px 18px rgba(
-          0,
-          0,
-          0,
-          0.06
-        );
+        0 5px 18px rgba(0,0,0,.06);
 
-      border:
-        1px solid #E5E7EB;
+      border: 1px solid #E5E7EB;
 
       transition:
-        transform 0.2s,
-        box-shadow 0.2s,
-        border 0.2s;
+        transform .2s,
+        box-shadow .2s,
+        border .2s;
 
       display: flex;
 
@@ -303,30 +253,26 @@
     }
 
     .menu-card:hover {
-      transform:
-        translateY(-4px);
+      transform: translateY(-4px);
 
-      border-color:
-        #D4AF37;
+      border-color: #D4AF37;
 
       box-shadow:
         0 10px 25px rgba(
           11,
           77,
           162,
-          0.15
+          .15
         );
     }
 
     .menu-icon {
       font-size: 34px;
-
       margin-bottom: 12px;
     }
 
     .menu-card h4 {
       color: #0B1E63;
-
       font-size: 16px;
 
       margin-bottom: 6px;
@@ -341,6 +287,22 @@
     }
 
     /* =========================
+       FINANCE CARDS
+    ========================= */
+
+    .finance-card {
+      border-top: 4px solid #16A34A;
+    }
+
+    .mobile-money-card {
+      border-top: 4px solid #D4AF37;
+    }
+
+    .reports-card {
+      border-top: 4px solid #0B4DA2;
+    }
+
+    /* =========================
        FOOTER
     ========================= */
 
@@ -348,7 +310,6 @@
       margin-top: 35px;
 
       background: #0B1E63;
-
       color: white;
 
       border-radius: 18px;
@@ -364,7 +325,6 @@
 
     .footer p {
       font-size: 12px;
-
       color: #CBD5E1;
 
       margin-top: 6px;
@@ -380,7 +340,6 @@
       border: none;
 
       background: #DC2626;
-
       color: white;
 
       padding: 11px 22px;
@@ -393,38 +352,28 @@
     }
 
     .logout-btn:hover {
-      opacity: 0.9;
+      opacity: .9;
     }
 
     /* =========================
        MOBILE
     ========================= */
 
-    @media (
-      max-width: 1000px
-    ) {
+    @media (max-width: 1000px) {
 
       .stats {
         grid-template-columns:
-          repeat(
-            2,
-            1fr
-          );
+          repeat(2, 1fr);
       }
 
       .menu-grid {
         grid-template-columns:
-          repeat(
-            2,
-            1fr
-          );
+          repeat(2, 1fr);
       }
 
     }
 
-    @media (
-      max-width: 600px
-    ) {
+    @media (max-width: 600px) {
 
       .header {
         padding: 14px;
@@ -445,9 +394,7 @@
 
       .admin-badge {
         font-size: 10px;
-
-        padding:
-          7px 10px;
+        padding: 7px 10px;
       }
 
       .container {
@@ -487,7 +434,6 @@
 
       .menu-card {
         min-height: 135px;
-
         padding: 17px;
       }
 
@@ -497,6 +443,10 @@
 
       .menu-card h4 {
         font-size: 14px;
+      }
+
+      .menu-card p {
+        font-size: 11px;
       }
 
     }
@@ -662,7 +612,7 @@
       </h3>
 
       <span>
-        Super Admin Control Center
+        17 Core EMS Modules
       </span>
 
     </div>
@@ -671,18 +621,15 @@
     <div class="menu-grid">
 
 
+      <!-- 01 -->
       <div
         class="menu-card"
         onclick="openPage('institutions.html')"
       >
 
-        <div class="menu-icon">
-          🏫
-        </div>
+        <div class="menu-icon">🏫</div>
 
-        <h4>
-          Institutions
-        </h4>
+        <h4>Institutions</h4>
 
         <p>
           Manage schools and academy institutions.
@@ -691,18 +638,15 @@
       </div>
 
 
+      <!-- 02 -->
       <div
         class="menu-card"
         onclick="openPage('students.html')"
       >
 
-        <div class="menu-icon">
-          👨‍🎓
-        </div>
+        <div class="menu-icon">👨‍🎓</div>
 
-        <h4>
-          Students
-        </h4>
+        <h4>Students</h4>
 
         <p>
           View and manage students.
@@ -711,38 +655,15 @@
       </div>
 
 
-      <div
-        class="menu-card"
-        onclick="openPage('teachers.html')"
-      >
-
-        <div class="menu-icon">
-          👨‍🏫
-        </div>
-
-        <h4>
-          Teachers
-        </h4>
-
-        <p>
-          Manage instructors and teachers.
-        </p>
-
-      </div>
-
-
+      <!-- 03 -->
       <div
         class="menu-card"
         onclick="openPage('parents.html')"
       >
 
-        <div class="menu-icon">
-          👨‍👩‍👧
-        </div>
+        <div class="menu-icon">👨‍👩‍👧</div>
 
-        <h4>
-          Parents
-        </h4>
+        <h4>Parents</h4>
 
         <p>
           Manage parent accounts and relationships.
@@ -751,18 +672,32 @@
       </div>
 
 
+      <!-- 04 -->
+      <div
+        class="menu-card"
+        onclick="openPage('teachers.html')"
+      >
+
+        <div class="menu-icon">👨‍🏫</div>
+
+        <h4>Teachers</h4>
+
+        <p>
+          Manage instructors and teachers.
+        </p>
+
+      </div>
+
+
+      <!-- 05 -->
       <div
         class="menu-card"
         onclick="openPage('departments.html')"
       >
 
-        <div class="menu-icon">
-          🏛️
-        </div>
+        <div class="menu-icon">🏛️</div>
 
-        <h4>
-          Departments
-        </h4>
+        <h4>Departments</h4>
 
         <p>
           Manage academy departments.
@@ -771,18 +706,15 @@
       </div>
 
 
+      <!-- 06 -->
       <div
         class="menu-card"
         onclick="openPage('courses.html')"
       >
 
-        <div class="menu-icon">
-          📚
-        </div>
+        <div class="menu-icon">📚</div>
 
-        <h4>
-          Courses
-        </h4>
+        <h4>Courses</h4>
 
         <p>
           Manage courses and academic programs.
@@ -791,18 +723,15 @@
       </div>
 
 
+      <!-- 07 -->
       <div
         class="menu-card"
         onclick="openPage('classes.html')"
       >
 
-        <div class="menu-icon">
-          📅
-        </div>
+        <div class="menu-icon">📅</div>
 
-        <h4>
-          Classes
-        </h4>
+        <h4>Classes</h4>
 
         <p>
           Manage classes and student enrollment.
@@ -811,18 +740,15 @@
       </div>
 
 
+      <!-- 08 -->
       <div
         class="menu-card"
         onclick="openPage('exams.html')"
       >
 
-        <div class="menu-icon">
-          📝
-        </div>
+        <div class="menu-icon">📝</div>
 
-        <h4>
-          Exams
-        </h4>
+        <h4>Exams</h4>
 
         <p>
           Manage examinations and assessments.
@@ -831,58 +757,49 @@
       </div>
 
 
+      <!-- 09 -->
       <div
         class="menu-card"
         onclick="openPage('grades.html')"
       >
 
-        <div class="menu-icon">
-          📊
-        </div>
+        <div class="menu-icon">📊</div>
 
-        <h4>
-          Grades
-        </h4>
+        <h4>Grades</h4>
 
         <p>
-          View academic performance and grades.
+          Manage student grades and academic performance.
         </p>
 
       </div>
 
 
+      <!-- 10 -->
       <div
         class="menu-card"
         onclick="openPage('certificates.html')"
       >
 
-        <div class="menu-icon">
-          🎓
-        </div>
+        <div class="menu-icon">🎓</div>
 
-        <h4>
-          Certificates
-        </h4>
+        <h4>Certificates</h4>
 
         <p>
-          Manage certificates and verification.
+          Issue and manage student certificates.
         </p>
 
       </div>
 
 
+      <!-- 11 -->
       <div
         class="menu-card"
         onclick="openPage('verification.html')"
       >
 
-        <div class="menu-icon">
-          🔍
-        </div>
+        <div class="menu-icon">🔍</div>
 
-        <h4>
-          Certificate Verification
-        </h4>
+        <h4>Verify</h4>
 
         <p>
           Verify GAAWOW certificates.
@@ -891,21 +808,103 @@
       </div>
 
 
+      <!-- 12 -->
       <div
         class="menu-card"
         onclick="openPage('audit-logs.html')"
       >
 
-        <div class="menu-icon">
-          📋
-        </div>
+        <div class="menu-icon">🛡️</div>
 
-        <h4>
-          Audit Logs
-        </h4>
+        <h4>Audit Logs</h4>
 
         <p>
           Monitor important system activities.
+        </p>
+
+      </div>
+
+
+      <!-- 13 -->
+      <div
+        class="menu-card"
+        onclick="openPage('subjects.html')"
+      >
+
+        <div class="menu-icon">📖</div>
+
+        <h4>Subjects</h4>
+
+        <p>
+          Manage subjects and academic units.
+        </p>
+
+      </div>
+
+
+      <!-- 14 -->
+      <div
+        class="menu-card finance-card"
+        onclick="openPage('payments.html')"
+      >
+
+        <div class="menu-icon">💰</div>
+
+        <h4>Payments</h4>
+
+        <p>
+          Manage student and institutional payments.
+        </p>
+
+      </div>
+
+
+      <!-- 15 -->
+      <div
+        class="menu-card mobile-money-card"
+        onclick="openPage('mobile-money.html')"
+      >
+
+        <div class="menu-icon">📱</div>
+
+        <h4>Mobile Money</h4>
+
+        <p>
+          Manage mobile money payment transactions.
+        </p>
+
+      </div>
+
+
+      <!-- 16 -->
+      <div
+        class="menu-card finance-card"
+        onclick="openPage('invoices.html')"
+      >
+
+        <div class="menu-icon">🧾</div>
+
+        <h4>Invoices</h4>
+
+        <p>
+          Create and manage payment invoices.
+        </p>
+
+      </div>
+
+
+      <!-- 17 -->
+      <div
+        class="menu-card reports-card"
+        onclick="openPage('reports.html')"
+      >
+
+        <div class="menu-icon">📈</div>
+
+        <h4>Reports</h4>
+
+        <p>
+          View academic, financial and system reports.
         </p>
 
       </div>
@@ -972,8 +971,7 @@
 
     function openPage(page) {
 
-      window.location.href =
-        page;
+      window.location.href = page;
 
     }
 
@@ -1063,7 +1061,9 @@
           "Your account is inactive."
         );
 
-        await supabaseClient.auth.signOut();
+        await supabaseClient
+          .auth
+          .signOut();
 
         window.location.href =
           "index.html";
@@ -1207,7 +1207,7 @@
 
     /* =========================
        START
-    ========================== */
+    ========================= */
 
     async function start() {
 
