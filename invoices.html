@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Invoices</title>
+
+  <link rel="icon" href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+
+  <style>
+    :root {
+      --blue: #0B4DA2;
+      --navy: #0B1E63;
+      --gold: #D4AF37;
+      --bg: #F5F7FA;
+      --text: #1F2937;
+      --green: #16A34A;
+      --red: #DC2626;
+      --orange: #F59E0B;
+      --white: #FFFFFF;
+      --border: #E5E7EB;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: white;
+      padding: 18px 20px;
+    }
+
+    .header-inner {
+      max-width: 1250px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      background: white;
+      border-radius: 12px;
+      padding: 5px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: #E8C95A;
+      font-size: 13px;
+    }
+
+    .back-btn {
+      background: white;
+      color: var(--navy);
+      border: none;
+      padding: 10px 15px;
+      border-radius: 9px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    main {
+      max-width: 1250px;
+      margin: 25px auto;
+      padding: 0 15px;
+    }
+
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .title-row h2 {
+      margin: 0;
+      color: var(--navy);
+    }
+
+    .add-btn {
+      background: linear-gradient(135deg, var(--gold), #B8860B);
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 9px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: white;
+      border-radius: 13px;
+      padding: 17px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.06);
+      border-left: 4px solid var(--blue);
+    }
+
+    .stat:nth-child(2) {
+      border-left-color: var(--gold);
+    }
+
+    .stat:nth-child(3) {
+      border-left-color: var(--orange);
+    }
+
+    .stat:nth-child(4) {
+      border-left-color: var(--green);
+    }
+
+    .stat:nth-child(5) {
+      border-left-color: var(--red);
+    }
+
+    .stat small {
+      color: #6B7280;
+      display: block;
+      margin-bottom: 7px;
+    }
+
+    .stat strong {
+      font-size: 22px;
+      color: var(--navy);
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.06);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      color: var(--navy);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #374151;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      padding: 11px;
+      font-size: 14px;
+      outline: none;
+      background: white;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(11,77,162,.08);
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .form-actions {
+      margin-top: 17px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .save-btn {
+      background: var(--blue);
+      color: white;
+      border: none;
+      padding: 11px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .cancel-btn {
+      background: #6B7280;
+      color: white;
+      border: none;
+      padding: 11px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 950px;
+    }
+
+    th {
+      background: var(--navy);
+      color: white;
+      padding: 12px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 11px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    tr:hover td {
+      background: #F9FAFB;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .unpaid {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .partial {
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+
+    .paid {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .cancelled {
+      background: #F3F4F6;
+      color: #374151;
+    }
+
+    .overdue {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .action-btn {
+      border: none;
+      padding: 6px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      margin-right: 4px;
+    }
+
+    .edit {
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+
+    .delete {
+      background: #FEE2E2;
+      color: #B91C1C;
+    }
+
+    .message {
+      display: none;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .success {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .error {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 30px;
+      color: #6B7280;
+    }
+
+    @media (max-width: 900px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .filters {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header-inner {
+        align-items: flex-start;
+      }
+
+      .brand h1 {
+        font-size: 17px;
+      }
+
+      .brand img {
+        width: 48px;
+        height: 48px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+      <div>
+        <h1>GAAWOW EMS</h1>
+        <p>Invoices Management</p>
+      </div>
+    </div>
+
+    <button class="back-btn" onclick="location.href='super-admin.html'">
+      ← Dashboard
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <div class="title-row">
+    <div>
+      <h2>Invoices Management</h2>
+      <p>Manage student invoices and payment balances.</p>
+    </div>
+
+    <button class="add-btn" onclick="showForm()">
+      + New Invoice
+    </button>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <div class="stats">
+    <div class="stat">
+      <small>Total Invoices</small>
+      <strong id="totalInvoices">0</strong>
+    </div>
+
+    <div class="stat">
+      <small>Unpaid</small>
+      <strong id="unpaidInvoices">0</strong>
+    </div>
+
+    <div class="stat">
+      <small>Partial</small>
+      <strong id="partialInvoices">0</strong>
+    </div>
+
+    <div class="stat">
+      <small>Paid</small>
+      <strong id="paidInvoices">0</strong>
+    </div>
+
+    <div class="stat">
+      <small>Outstanding</small>
+      <strong id="outstandingAmount">$0.00</strong>
+    </div>
+  </div>
+
+  <div class="card" id="formCard" style="display:none;">
+    <h3 id="formTitle">Create Invoice</h3>
+
+    <form id="invoiceForm">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Institution *</label>
+          <select id="institution_id" required>
+            <option value="">Select institution</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Student *</label>
+          <select id="student_id" required disabled>
+            <option value="">Select student</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Invoice Number *</label>
+          <input
+            type="text"
+            id="invoice_number"
+            required
+            placeholder="INV-2026-001"
+          >
+        </div>
+
+        <div class="field full">
+          <label>Description</label>
+          <textarea
+            id="description"
+            placeholder="e.g. Course tuition fee for 2026"
+          ></textarea>
+        </div>
+
+        <div class="field">
+          <label>Amount *</label>
+          <input
+            type="number"
+            id="amount"
+            min="0"
+            step="0.01"
+            required
+            placeholder="150.00"
+          >
+        </div>
+
+        <div class="field">
+          <label>Paid Amount *</label>
+          <input
+            type="number"
+            id="paid_amount"
+            min="0"
+            step="0.01"
+            value="0"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label>Due Date</label>
+          <input type="date" id="due_date">
+        </div>
+
+        <div class="field">
+          <label>Status *</label>
+          <select id="status" required>
+            <option value="unpaid">Unpaid</option>
+            <option value="partial">Partial</option>
+            <option value="paid">Paid</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="overdue">Overdue</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+        <button class="save-btn" type="submit">
+          Save Invoice
+        </button>
+
+        <button
+          class="cancel-btn"
+          type="button"
+          onclick="hideForm()"
+        >
+          Cancel
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <div class="card">
+
+    <h3>Invoice List</h3>
+
+    <div class="filters">
+
+      <input
+        type="text"
+        id="search"
+        placeholder="Search invoice number, student..."
+      >
+
+      <select id="filterStatus">
+        <option value="">All Statuses</option>
+        <option value="unpaid">Unpaid</option>
+        <option value="partial">Partial</option>
+        <option value="paid">Paid</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="overdue">Overdue</option>
+      </select>
+
+      <select id="filterInstitution">
+        <option value="">All Institutions</option>
+      </select>
+
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Invoice</th>
+            <th>Institution</th>
+            <th>Student</th>
+            <th>Amount</th>
+            <th>Paid</th>
+            <th>Balance</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="invoiceTableBody">
+          <tr>
+            <td colspan="9" class="empty">
+              Loading invoices...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="invoices.js"></script>
+
+</body>
+</html>
