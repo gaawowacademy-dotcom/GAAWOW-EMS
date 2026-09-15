@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Grades</title>
+
+  <link rel="icon" type="image/png"
+    href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --blue: #0B4DA2;
+      --navy: #0B1E63;
+      --gold: #D4AF37;
+      --bg: #F5F7FA;
+      --text: #1F2937;
+      --green: #16A34A;
+      --red: #DC2626;
+      --white: #ffffff;
+      --border: #dbe2ea;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      font-size: 12px;
+      opacity: .85;
+    }
+
+    .back-btn {
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.1);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .container {
+      width: min(1400px, 94%);
+      margin: 22px auto;
+    }
+
+    .page-title {
+      margin-bottom: 18px;
+    }
+
+    .page-title h2 {
+      margin: 0;
+      color: var(--navy);
+      font-size: 28px;
+    }
+
+    .page-title p {
+      margin: 6px 0 0;
+      color: #64748b;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 4px 18px rgba(11, 30, 99, .08);
+      border: 1px solid #edf0f4;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #475569;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      color: var(--text);
+      outline: none;
+      font-size: 14px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(11,77,162,.1);
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 11px 17px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .primary {
+      background: var(--blue);
+      color: white;
+    }
+
+    .gold {
+      background: var(--gold);
+      color: var(--navy);
+    }
+
+    .danger {
+      background: var(--red);
+      color: white;
+    }
+
+    .secondary {
+      background: #e8edf4;
+      color: var(--navy);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+    }
+
+    .stat {
+      background: white;
+      border-radius: 12px;
+      padding: 17px;
+      border-left: 5px solid var(--blue);
+      box-shadow: 0 3px 12px rgba(0,0,0,.05);
+    }
+
+    .stat:nth-child(2) {
+      border-left-color: var(--gold);
+    }
+
+    .stat:nth-child(3) {
+      border-left-color: var(--green);
+    }
+
+    .stat:nth-child(4) {
+      border-left-color: #7c3aed;
+    }
+
+    .stat:nth-child(5) {
+      border-left-color: var(--navy);
+    }
+
+    .stat-label {
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    .stat-value {
+      font-size: 26px;
+      font-weight: bold;
+      color: var(--navy);
+      margin-top: 5px;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+    }
+
+    th {
+      background: var(--navy);
+      color: white;
+      padding: 12px 10px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 11px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: #f8fafc;
+    }
+
+    .grade {
+      display: inline-block;
+      min-width: 38px;
+      text-align: center;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-weight: bold;
+      background: #e8edf4;
+      color: var(--navy);
+    }
+
+    .grade-a-plus,
+    .grade-a {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .grade-b {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .grade-c {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .grade-d {
+      background: #ffedd5;
+      color: #9a3412;
+    }
+
+    .grade-f {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .published {
+      color: var(--green);
+      font-weight: bold;
+    }
+
+    .not-published {
+      color: #64748b;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .actions button {
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+
+    .message {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .message.success {
+      display: block;
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .message.error {
+      display: block;
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .loading {
+      color: #64748b;
+      padding: 15px 0;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1000px) {
+      .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stats {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 650px) {
+      .container {
+        width: 96%;
+      }
+
+      .form-grid,
+      .search-row,
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 15px;
+      }
+
+      .page-title h2 {
+        font-size: 23px;
+      }
+
+      header {
+        padding: 13px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <p>Ilayska Aqoonta iyo Xirfadda</p>
+    </div>
+  </div>
+
+  <button class="back-btn" onclick="goDashboard()">
+    ← Dashboard
+  </button>
+</header>
+
+<main class="container">
+
+  <div class="page-title">
+    <h2>Grade Management</h2>
+    <p>Manage student grades, scores and academic performance.</p>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <!-- FORM -->
+  <section class="card">
+    <div class="card-title">Enter Grade</div>
+
+    <div class="form-grid">
+
+      <div class="field">
+        <label>Institution</label>
+        <select id="institutionSelect">
+          <option value="">Select institution</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Exam</label>
+        <select id="examSelect">
+          <option value="">Select exam</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Student</label>
+        <select id="studentSelect">
+          <option value="">Select student</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Score</label>
+        <input
+          type="number"
+          id="scoreInput"
+          min="0"
+          step="0.01"
+          placeholder="Enter score">
+      </div>
+
+      <div class="field">
+        <label>Max Score</label>
+        <input
+          type="number"
+          id="maxScoreInput"
+          min="0"
+          step="0.01"
+          placeholder="Max score">
+      </div>
+
+      <div class="field">
+        <label>Percentage</label>
+        <input
+          type="number"
+          id="percentageInput"
+          readonly
+          placeholder="Auto calculated">
+      </div>
+
+      <div class="field">
+        <label>Grade</label>
+        <input
+          type="text"
+          id="gradeInput"
+          readonly
+          placeholder="Auto calculated">
+      </div>
+
+      <div class="field">
+        <label>Remarks</label>
+        <input
+          type="text"
+          id="remarksInput"
+          placeholder="Optional remarks">
+      </div>
+
+    </div>
+
+    <div class="buttons">
+      <button class="primary" id="saveBtn">
+        Save Grade
+      </button>
+
+      <button class="secondary" id="resetBtn">
+        Reset
+      </button>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="stats">
+
+    <div class="stat">
+      <div class="stat-label">Total Grades</div>
+      <div class="stat-value" id="totalGrades">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">A+ / A</div>
+      <div class="stat-value" id="topGrades">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Passed</div>
+      <div class="stat-value" id="passedGrades">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Failed</div>
+      <div class="stat-value" id="failedGrades">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Average</div>
+      <div class="stat-value" id="averageScore">0%</div>
+    </div>
+
+  </section>
+
+  <br>
+
+  <!-- LIST -->
+  <section class="card">
+
+    <div class="card-title">Grades List</div>
+
+    <div class="search-row">
+
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Search student, exam, grade...">
+
+      <select id="gradeFilter">
+        <option value="">All Grades</option>
+        <option value="A+">A+</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+        <option value="D">D</option>
+        <option value="F">F</option>
+      </select>
+
+      <select id="publishFilter">
+        <option value="">All Results</option>
+        <option value="true">Published</option>
+        <option value="false">Not Published</option>
+      </select>
+
+    </div>
+
+    <div id="tableLoading" class="loading">
+      Loading grades...
+    </div>
+
+    <div class="table-wrap">
+      <table id="gradesTable" class="hidden">
+
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Student</th>
+            <th>Exam</th>
+            <th>Score</th>
+            <th>Max</th>
+            <th>Percentage</th>
+            <th>Grade</th>
+            <th>Remarks</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="gradesBody"></tbody>
+
+      </table>
+    </div>
+
+  </section>
+
+</main>
+
+<script src="grades.js"></script>
+
+</body>
+</html>
