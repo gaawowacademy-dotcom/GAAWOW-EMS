@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Mobile Money & Payments</title>
+
+  <link rel="icon" href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --blue: #0B4DA2;
+      --navy: #0B1E63;
+      --gold: #D4AF37;
+      --bg: #F5F7FA;
+      --text: #1F2937;
+      --green: #16A34A;
+      --red: #DC2626;
+      --orange: #F59E0B;
+      --white: #ffffff;
+      --border: #E5E7EB;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: white;
+      padding: 18px 24px;
+      box-shadow: 0 4px 18px rgba(0,0,0,.15);
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand img {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      background: white;
+      border-radius: 12px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      opacity: .85;
+    }
+
+    .back-btn {
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.12);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .back-btn:hover {
+      background: rgba(255,255,255,.2);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 25px auto;
+      padding: 0 18px;
+    }
+
+    .page-title {
+      margin-bottom: 20px;
+    }
+
+    .page-title h2 {
+      margin: 0;
+      color: var(--navy);
+    }
+
+    .page-title p {
+      margin-top: 6px;
+      color: #6B7280;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 22px;
+    }
+
+    .stat {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0,0,0,.05);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: #6B7280;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 25px;
+      font-weight: bold;
+      color: var(--navy);
+    }
+
+    .panel {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 14px rgba(0,0,0,.05);
+    }
+
+    .panel h3 {
+      margin-top: 0;
+      color: var(--navy);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #374151;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      padding: 11px 12px;
+      font-size: 14px;
+      outline: none;
+      background: white;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(11,77,162,.1);
+    }
+
+    textarea {
+      min-height: 85px;
+      resize: vertical;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 11px 17px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .primary {
+      background: var(--blue);
+      color: white;
+    }
+
+    .primary:hover {
+      background: var(--navy);
+    }
+
+    .secondary {
+      background: #E5E7EB;
+      color: #111827;
+    }
+
+    .danger {
+      background: var(--red);
+      color: white;
+    }
+
+    .search-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1050px;
+    }
+
+    th {
+      background: #F3F4F6;
+      color: var(--navy);
+      font-size: 13px;
+      text-align: left;
+      padding: 13px 10px;
+      white-space: nowrap;
+    }
+
+    td {
+      border-top: 1px solid var(--border);
+      padding: 12px 10px;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    tr:hover {
+      background: #FAFAFA;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .successful {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .pending {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .failed,
+    .cancelled {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .refunded {
+      background: #EDE9FE;
+      color: #5B21B6;
+    }
+
+    .method {
+      font-weight: bold;
+      color: var(--blue);
+    }
+
+    .action-btn {
+      padding: 7px 10px;
+      font-size: 12px;
+      margin-right: 4px;
+    }
+
+    .edit-btn {
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+
+    .delete-btn {
+      background: #FEE2E2;
+      color: #B91C1C;
+    }
+
+    .message {
+      display: none;
+      padding: 12px 15px;
+      border-radius: 9px;
+      margin-bottom: 18px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .success-message {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .error-message {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 25px;
+      color: #6B7280;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px;
+      color: #6B7280;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1000px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .search-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 650px) {
+      .header-inner {
+        align-items: flex-start;
+      }
+
+      .brand h1 {
+        font-size: 17px;
+      }
+
+      .brand img {
+        width: 48px;
+        height: 48px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid,
+      .search-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .container {
+        padding: 0 10px;
+      }
+
+      .panel {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy Logo">
+      <div>
+        <h1>GAAWOW EMS</h1>
+        <p>Mobile Money & Payment Management</p>
+      </div>
+    </div>
+
+    <button class="back-btn" onclick="goBack()">← Dashboard</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="page-title">
+    <h2>Mobile Money & Payments</h2>
+    <p>Manage EVC, eDahab, Jeeb, MasterCard and Bank Account payments.</p>
+  </div>
+
+  <div id="message" class="message"></div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Total Transactions</div>
+      <div class="stat-value" id="totalPayments">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Successful</div>
+      <div class="stat-value" id="successfulPayments">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Pending</div>
+      <div class="stat-value" id="pendingPayments">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Successful Amount</div>
+      <div class="stat-value" id="successfulAmount">$0.00</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3 id="formTitle">Add Payment</h3>
+
+    <input type="hidden" id="paymentId">
+
+    <div class="form-grid">
+
+      <div class="field">
+        <label>Institution *</label>
+        <select id="institution">
+          <option value="">Select Institution</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Student *</label>
+        <select id="student">
+          <option value="">Select Student</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Invoice</label>
+        <select id="invoice">
+          <option value="">No Invoice</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Payment Method *</label>
+        <select id="paymentMethod">
+          <option value="">Select Method</option>
+          <option value="EVC Plus">EVC Plus</option>
+          <option value="eDahab">eDahab</option>
+          <option value="Jeeb">Jeeb</option>
+          <option value="MasterCard">MasterCard</option>
+          <option value="Bank Account">Bank Account</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Provider / Bank</label>
+        <input id="provider" type="text" placeholder="Provider or Bank name">
+      </div>
+
+      <div class="field">
+        <label>Amount *</label>
+        <input id="amount" type="number" step="0.01" min="0" placeholder="0.00">
+      </div>
+
+      <div class="field">
+        <label>Currency *</label>
+        <select id="currency">
+          <option value="USD">USD</option>
+          <option value="SOS">SOS</option>
+      </select>
+      </div>
+
+      <div class="field">
+        <label>Payer Phone</label>
+        <input id="payerPhone" type="text" placeholder="252...">
+      </div>
+
+      <div class="field">
+        <label>Transaction Reference</label>
+        <input id="transactionReference" type="text" placeholder="Transaction reference">
+      </div>
+
+      <div class="field">
+        <label>Provider Transaction ID</label>
+        <input id="providerTransactionId" type="text" placeholder="Provider transaction ID">
+      </div>
+
+      <div class="field">
+        <label>Status *</label>
+        <select id="status">
+          <option value="pending">Pending</option>
+          <option value="successful">Successful</option>
+          <option value="failed">Failed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="refunded">Refunded</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Paid At</label>
+        <input id="paidAt" type="datetime-local">
+      </div>
+
+      <div class="field full">
+        <label>Notes / Metadata</label>
+        <textarea id="metadata" placeholder="Optional notes about this payment"></textarea>
+      </div>
+
+    </div>
+
+    <div class="buttons">
+      <button class="primary" onclick="savePayment()">Save Payment</button>
+      <button class="secondary" onclick="resetForm()">Reset</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Payment Transactions</h3>
+
+    <div class="search-grid">
+      <input id="searchInput"
+             type="text"
+             placeholder="Search student, reference, phone, provider..."
+             oninput="renderPayments()">
+
+      <select id="filterMethod" onchange="renderPayments()">
+        <option value="">All Methods</option>
+        <option value="EVC Plus">EVC Plus</option>
+        <option value="eDahab">eDahab</option>
+        <option value="Jeeb">Jeeb</option>
+        <option value="MasterCard">MasterCard</option>
+        <option value="Bank Account">Bank Account</option>
+      </select>
+
+      <select id="filterStatus" onchange="renderPayments()">
+        <option value="">All Statuses</option>
+        <option value="pending">Pending</option>
+        <option value="successful">Successful</option>
+        <option value="failed">Failed</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="refunded">Refunded</option>
+      </select>
+    </div>
+
+    <div class="table-wrapper" style="margin-top:18px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Student</th>
+            <th>Method</th>
+            <th>Provider / Bank</th>
+            <th>Amount</th>
+            <th>Currency</th>
+            <th>Phone</th>
+            <th>Reference</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="paymentsBody">
+          <tr>
+            <td colspan="10" class="loading">Loading payments...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  © 2026 GAAWOW Academy — Ilayska Aqoonta iyo Xirfadda
+</footer>
+
+<script src="mobile-money.js"></script>
+
+</body>
+</html>
