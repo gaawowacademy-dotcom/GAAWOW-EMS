@@ -62,11 +62,14 @@ const statusText =
   document.getElementById("statusText");
 
 
-// --------------------------------------------------
+// ================================================
 // INIT
-// --------------------------------------------------
+// ================================================
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener(
+  "DOMContentLoaded",
+  init
+);
 
 async function init() {
 
@@ -80,7 +83,10 @@ async function init() {
     } = await supabase.auth.getUser();
 
     if (error || !user) {
-      window.location.href = "index.html";
+
+      window.location.href =
+        "index.html";
+
       return;
     }
 
@@ -98,20 +104,28 @@ async function init() {
         institution_id,
         is_active
       `)
-      .eq("id", currentUser.id)
+      .eq(
+        "id",
+        currentUser.id
+      )
       .single();
 
     if (profileError || !profile) {
+
       showMessage(
         "User profile not found.",
         "error"
       );
+
       return;
     }
 
     currentProfile = profile;
 
-    if (profile.role !== "super_admin") {
+    if (
+      profile.role !==
+      "super_admin"
+    ) {
 
       showMessage(
         "Access denied. Only Super Admin can manage results.",
@@ -119,6 +133,7 @@ async function init() {
       );
 
       saveBtn.disabled = true;
+
       return;
     }
 
@@ -129,16 +144,17 @@ async function init() {
     console.error(error);
 
     showMessage(
-      "System error: " + error.message,
+      "System error: " +
+      error.message,
       "error"
     );
   }
 }
 
 
-// --------------------------------------------------
+// ================================================
 // INSTITUTIONS
-// --------------------------------------------------
+// ================================================
 
 async function loadInstitutions() {
 
@@ -151,33 +167,44 @@ async function loadInstitutions() {
     .order("name");
 
   if (error) {
+
     showMessage(
       "Could not load institutions: " +
       error.message,
       "error"
     );
+
     return;
   }
 
   institutionSelect.innerHTML =
     `<option value="">Select institution</option>`;
 
-  (data || []).forEach(inst => {
+  (data || []).forEach(
+    institution => {
 
-    const option =
-      document.createElement("option");
+      const option =
+        document.createElement(
+          "option"
+        );
 
-    option.value = inst.id;
-    option.textContent = inst.name;
+      option.value =
+        institution.id;
 
-    institutionSelect.appendChild(option);
-  });
+      option.textContent =
+        institution.name;
+
+      institutionSelect.appendChild(
+        option
+      );
+    }
+  );
 }
 
 
-// --------------------------------------------------
+// ================================================
 // COURSES
-// --------------------------------------------------
+// ================================================
 
 async function loadCourses() {
 
@@ -201,13 +228,10 @@ async function loadCourses() {
     "Select subject"
   );
 
-  students = [];
-  existingResults = [];
-
   clearResultsTable();
 
   if (!selectedInstitution) {
-    courseSelect.disabled = true;
+
     return;
   }
 
@@ -219,8 +243,7 @@ async function loadCourses() {
     .select(`
       id,
       name,
-      code,
-      department_id
+      code
     `)
     .eq(
       "institution_id",
@@ -243,28 +266,36 @@ async function loadCourses() {
     return;
   }
 
-  data.forEach(course => {
+  data.forEach(
+    course => {
 
-    const option =
-      document.createElement("option");
+      const option =
+        document.createElement(
+          "option"
+        );
 
-    option.value = course.id;
+      option.value =
+        course.id;
 
-    option.textContent =
-      course.code
-        ? `${course.name} (${course.code})`
-        : course.name;
+      option.textContent =
+        course.code
+          ? `${course.name} (${course.code})`
+          : course.name;
 
-    courseSelect.appendChild(option);
-  });
+      courseSelect.appendChild(
+        option
+      );
+    }
+  );
 
-  courseSelect.disabled = false;
+  courseSelect.disabled =
+    false;
 }
 
 
-// --------------------------------------------------
+// ================================================
 // CLASSES
-// --------------------------------------------------
+// ================================================
 
 async function loadClasses() {
 
@@ -278,16 +309,9 @@ async function loadClasses() {
     "Select exam"
   );
 
-  resetSelect(
-    subjectSelect,
-    "Select subject"
-  );
-
   clearResultsTable();
 
   if (!selectedCourse) {
-
-    classSelect.disabled = true;
     return;
   }
 
@@ -328,35 +352,47 @@ async function loadClasses() {
     return;
   }
 
-  data.forEach(item => {
+  data.forEach(
+    item => {
 
-    const option =
-      document.createElement("option");
+      const option =
+        document.createElement(
+          "option"
+        );
 
-    option.value = item.id;
+      option.value =
+        item.id;
 
-    let text = item.name;
+      let text =
+        item.name;
 
-    if (item.code) {
-      text += ` (${item.code})`;
+      if (item.code) {
+        text +=
+          ` (${item.code})`;
+      }
+
+      if (item.academic_year) {
+        text +=
+          ` — ${item.academic_year}`;
+      }
+
+      option.textContent =
+        text;
+
+      classSelect.appendChild(
+        option
+      );
     }
+  );
 
-    if (item.academic_year) {
-      text += ` — ${item.academic_year}`;
-    }
-
-    option.textContent = text;
-
-    classSelect.appendChild(option);
-  });
-
-  classSelect.disabled = false;
+  classSelect.disabled =
+    false;
 }
 
 
-// --------------------------------------------------
+// ================================================
 // EXAMS
-// --------------------------------------------------
+// ================================================
 
 async function loadExams() {
 
@@ -365,16 +401,9 @@ async function loadExams() {
     "Select exam"
   );
 
-  resetSelect(
-    subjectSelect,
-    "Select subject"
-  );
-
   clearResultsTable();
 
   if (!selectedClass) {
-
-    examSelect.disabled = true;
     return;
   }
 
@@ -422,26 +451,34 @@ async function loadExams() {
     return;
   }
 
-  data.forEach(exam => {
+  data.forEach(
+    exam => {
 
-    const option =
-      document.createElement("option");
+      const option =
+        document.createElement(
+          "option"
+        );
 
-    option.value = exam.id;
+      option.value =
+        exam.id;
 
-    option.textContent =
-      `${exam.title} — ${formatExamType(exam.exam_type)}`;
+      option.textContent =
+        `${exam.title} — ${formatExamType(exam.exam_type)}`;
 
-    examSelect.appendChild(option);
-  });
+      examSelect.appendChild(
+        option
+      );
+    }
+  );
 
-  examSelect.disabled = false;
+  examSelect.disabled =
+    false;
 }
 
 
-// --------------------------------------------------
+// ================================================
 // SUBJECTS
-// --------------------------------------------------
+// ================================================
 
 async function loadSubjects() {
 
@@ -453,8 +490,6 @@ async function loadSubjects() {
   clearResultsTable();
 
   if (!selectedCourse) {
-
-    subjectSelect.disabled = true;
     return;
   }
 
@@ -494,31 +529,39 @@ async function loadSubjects() {
     return;
   }
 
-  data.forEach(subject => {
+  data.forEach(
+    subject => {
 
-    const option =
-      document.createElement("option");
+      const option =
+        document.createElement(
+          "option"
+        );
 
-    option.value = subject.id;
+      option.value =
+        subject.id;
 
-    option.textContent =
-      subject.code
-        ? `${subject.name} (${subject.code}) — Max ${subject.max_score}`
-        : `${subject.name} — Max ${subject.max_score}`;
+      option.textContent =
+        subject.code
+          ? `${subject.name} (${subject.code}) — Max ${subject.max_score}`
+          : `${subject.name} — Max ${subject.max_score}`;
 
-    option.dataset.maxScore =
-      subject.max_score;
+      option.dataset.maxScore =
+        subject.max_score;
 
-    subjectSelect.appendChild(option);
-  });
+      subjectSelect.appendChild(
+        option
+      );
+    }
+  );
 
-  subjectSelect.disabled = false;
+  subjectSelect.disabled =
+    false;
 }
 
 
-// --------------------------------------------------
-// STUDENTS
-// --------------------------------------------------
+// ================================================
+// STUDENTS + RESULTS
+// ================================================
 
 async function loadStudentsAndResults() {
 
@@ -568,15 +611,18 @@ async function loadStudentsAndResults() {
   }
 
   const studentIds =
-    [...new Set(
-      (enrollments || [])
-        .map(row => row.student_id)
-        .filter(Boolean)
-    )];
+    [
+      ...new Set(
+        (enrollments || [])
+          .map(
+            row =>
+              row.student_id
+          )
+          .filter(Boolean)
+      )
+    ];
 
   if (!studentIds.length) {
-
-    students = [];
 
     updateStats();
 
@@ -591,7 +637,8 @@ async function loadStudentsAndResults() {
     statusText.textContent =
       "No active students found.";
 
-    saveBtn.disabled = true;
+    saveBtn.disabled =
+      true;
 
     return;
   }
@@ -629,7 +676,8 @@ async function loadStudentsAndResults() {
     return;
   }
 
-  students = studentData || [];
+  students =
+    studentData || [];
 
   const {
     data: resultsData,
@@ -687,9 +735,9 @@ async function loadStudentsAndResults() {
 }
 
 
-// --------------------------------------------------
-// RENDER TABLE
-// --------------------------------------------------
+// ================================================
+// RENDER
+// ================================================
 
 function renderResultsTable() {
 
@@ -703,22 +751,28 @@ function renderResultsTable() {
       .toLowerCase();
 
   const filtered =
-    students.filter(student => {
+    students.filter(
+      student => {
 
-      const name =
-        (student.full_name || "")
-          .toLowerCase();
+        const name =
+          (
+            student.full_name ||
+            ""
+          ).toLowerCase();
 
-      const id =
-        (student.student_id || "")
-          .toLowerCase();
+        const id =
+          (
+            student.student_id ||
+            ""
+          ).toLowerCase();
 
-      return (
-        !search ||
-        name.includes(search) ||
-        id.includes(search)
-      );
-    });
+        return (
+          !search ||
+          name.includes(search) ||
+          id.includes(search)
+        );
+      }
+    );
 
   if (!filtered.length) {
 
@@ -741,7 +795,8 @@ function renderResultsTable() {
       const existing =
         existingResults.find(
           result =>
-            result.student_id === student.id
+            result.student_id ===
+            student.id
         );
 
       const score =
@@ -759,7 +814,9 @@ function renderResultsTable() {
       const percentage =
         existing &&
         existing.percentage !== null
-          ? Number(existing.percentage)
+          ? Number(
+              existing.percentage
+            )
           : calculatePercentage(
               score,
               maxScore
@@ -769,7 +826,9 @@ function renderResultsTable() {
         existing &&
         existing.grade
           ? existing.grade
-          : calculateGrade(percentage);
+          : calculateGrade(
+              percentage
+            );
 
       const remarks =
         existing &&
@@ -799,13 +858,15 @@ function renderResultsTable() {
         <td>
           <div class="student-name">
             ${escapeHtml(
-              student.full_name || "Unnamed"
+              student.full_name ||
+              "Unnamed"
             )}
           </div>
 
           <div class="student-id">
             ${escapeHtml(
-              student.student_id || ""
+              student.student_id ||
+              ""
             )}
           </div>
         </td>
@@ -817,7 +878,6 @@ function renderResultsTable() {
             min="0"
             step="0.01"
             value="${score}"
-            data-field="score"
             placeholder="Score"
           >
         </td>
@@ -829,13 +889,14 @@ function renderResultsTable() {
             min="0"
             step="0.01"
             value="${maxScore}"
-            data-field="max_score"
           >
         </td>
 
         <td>
           <span class="percentage">
-            ${formatPercentage(percentage)}
+            ${formatPercentage(
+              percentage
+            )}
           </span>
         </td>
 
@@ -849,7 +910,9 @@ function renderResultsTable() {
           <input
             type="text"
             class="remarks"
-            value="${escapeAttribute(remarks)}"
+            value="${escapeAttribute(
+              remarks
+            )}"
             placeholder="Remarks..."
           >
         </td>
@@ -872,7 +935,9 @@ function renderResultsTable() {
         </td>
       `;
 
-      resultsBody.appendChild(tr);
+      resultsBody.appendChild(
+        tr
+      );
     }
   );
 
@@ -880,86 +945,128 @@ function renderResultsTable() {
 }
 
 
-// --------------------------------------------------
+// ================================================
 // ROW EVENTS
-// --------------------------------------------------
+// ================================================
 
 function attachRowEvents() {
 
   document
-    .querySelectorAll(".score, .max-score")
-    .forEach(input => {
+    .querySelectorAll(
+      ".score, .max-score"
+    )
+    .forEach(
+      input => {
 
-      input.addEventListener(
-        "input",
-        function () {
+        input.addEventListener(
+          "input",
+          function () {
 
-          const row =
-            this.closest("tr");
+            const row =
+              this.closest("tr");
 
-          updateRowCalculation(row);
-
-          updateStats();
-        }
-      );
-    });
-
-  document
-    .querySelectorAll(".delete-result")
-    .forEach(button => {
-
-      button.addEventListener(
-        "click",
-        async function () {
-
-          const row =
-            this.closest("tr");
-
-          const resultId =
-            row.dataset.resultId;
-
-          if (!resultId) return;
-
-          const confirmed =
-            confirm(
-              "Delete this student's result?"
+            updateRowCalculation(
+              row
             );
 
-          if (!confirmed) return;
+            updateStats();
+          }
+        );
+      }
+    );
 
-          await deleteResult(
-            resultId,
-            row.dataset.studentId
-          );
-        }
-      );
-    });
+  document
+    .querySelectorAll(
+      ".published"
+    )
+    .forEach(
+      input => {
+
+        input.addEventListener(
+          "change",
+          updateStats
+        );
+      }
+    );
+
+  document
+    .querySelectorAll(
+      ".delete-result"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          async function () {
+
+            const row =
+              this.closest("tr");
+
+            const resultId =
+              row.dataset.resultId;
+
+            if (!resultId) {
+              return;
+            }
+
+            const confirmed =
+              confirm(
+                "Delete this student's result?"
+              );
+
+            if (!confirmed) {
+              return;
+            }
+
+            await deleteResult(
+              resultId,
+              row.dataset.studentId
+            );
+          }
+        );
+      }
+    );
 }
 
 
-// --------------------------------------------------
-// CALCULATE ROW
-// --------------------------------------------------
+// ================================================
+// CALCULATION
+// ================================================
 
-function updateRowCalculation(row) {
+function updateRowCalculation(
+  row
+) {
 
   const scoreInput =
-    row.querySelector(".score");
+    row.querySelector(
+      ".score"
+    );
 
   const maxInput =
-    row.querySelector(".max-score");
+    row.querySelector(
+      ".max-score"
+    );
 
   const percentageEl =
-    row.querySelector(".percentage");
+    row.querySelector(
+      ".percentage"
+    );
 
   const gradeEl =
-    row.querySelector(".grade");
+    row.querySelector(
+      ".grade"
+    );
 
   const score =
-    parseFloat(scoreInput.value);
+    parseFloat(
+      scoreInput.value
+    );
 
   const maxScore =
-    parseFloat(maxInput.value);
+    parseFloat(
+      maxInput.value
+    );
 
   const percentage =
     calculatePercentage(
@@ -968,19 +1075,23 @@ function updateRowCalculation(row) {
     );
 
   const grade =
-    calculateGrade(percentage);
+    calculateGrade(
+      percentage
+    );
 
   percentageEl.textContent =
-    formatPercentage(percentage);
+    formatPercentage(
+      percentage
+    );
 
   gradeEl.textContent =
     grade || "—";
 }
 
 
-// --------------------------------------------------
-// SAVE ALL RESULTS
-// --------------------------------------------------
+// ================================================
+// SAVE
+// ================================================
 
 async function saveResults() {
 
@@ -1008,7 +1119,8 @@ async function saveResults() {
     return;
   }
 
-  saveBtn.disabled = true;
+  saveBtn.disabled =
+    true;
 
   saveBtn.textContent =
     "Saving...";
@@ -1017,7 +1129,9 @@ async function saveResults() {
 
     const rows =
       Array.from(
-        resultsBody.querySelectorAll("tr[data-student-id]")
+        resultsBody.querySelectorAll(
+          "tr[data-student-id]"
+        )
       );
 
     for (const row of rows) {
@@ -1026,16 +1140,24 @@ async function saveResults() {
         row.dataset.studentId;
 
       const scoreInput =
-        row.querySelector(".score");
+        row.querySelector(
+          ".score"
+        );
 
       const maxInput =
-        row.querySelector(".max-score");
+        row.querySelector(
+          ".max-score"
+        );
 
       const remarksInput =
-        row.querySelector(".remarks");
+        row.querySelector(
+          ".remarks"
+        );
 
       const publishedInput =
-        row.querySelector(".published");
+        row.querySelector(
+          ".published"
+        );
 
       const score =
         parseFloat(
@@ -1069,7 +1191,7 @@ async function saveResults() {
       ) {
 
         throw new Error(
-          "Invalid score or max score for one of the students."
+          "Invalid score or max score."
         );
       }
 
@@ -1096,52 +1218,16 @@ async function saveResults() {
         );
 
       const grade =
-        calculateGrade(percentage);
+        calculateGrade(
+          percentage
+        );
 
       const existing =
         existingResults.find(
           result =>
-            result.student_id === studentId
+            result.student_id ===
+            studentId
         );
-
-      const payload = {
-
-        institution_id:
-          selectedInstitution,
-
-        student_id:
-          studentId,
-
-        exam_id:
-          selectedExam,
-
-        subject_id:
-          selectedSubject,
-
-        score:
-          score,
-
-        max_score:
-          maxScore,
-
-        percentage:
-          percentage,
-
-        grade:
-          grade,
-
-        remarks:
-          remarks || null,
-
-        is_published:
-          isPublished,
-
-        created_by:
-          currentUser.id,
-
-        updated_at:
-          new Date().toISOString()
-      };
 
       let response;
 
@@ -1151,26 +1237,28 @@ async function saveResults() {
           await supabase
             .from("results")
             .update({
+
               score:
-                payload.score,
+                score,
 
               max_score:
-                payload.max_score,
+                maxScore,
 
               percentage:
-                payload.percentage,
+                percentage,
 
               grade:
-                payload.grade,
+                grade,
 
               remarks:
-                payload.remarks,
+                remarks || null,
 
               is_published:
-                payload.is_published,
+                isPublished,
 
               updated_at:
-                payload.updated_at
+                new Date().toISOString()
+
             })
             .eq(
               "id",
@@ -1183,38 +1271,40 @@ async function saveResults() {
           await supabase
             .from("results")
             .insert({
+
               institution_id:
-                payload.institution_id,
+                selectedInstitution,
 
               student_id:
-                payload.student_id,
+                studentId,
 
               exam_id:
-                payload.exam_id,
+                selectedExam,
 
               subject_id:
-                payload.subject_id,
+                selectedSubject,
 
               score:
-                payload.score,
+                score,
 
               max_score:
-                payload.max_score,
+                maxScore,
 
               percentage:
-                payload.percentage,
+                percentage,
 
               grade:
-                payload.grade,
+                grade,
 
               remarks:
-                payload.remarks,
+                remarks || null,
 
               is_published:
-                payload.is_published,
+                isPublished,
 
               created_by:
-                payload.created_by
+                currentUser.id
+
             });
       }
 
@@ -1251,9 +1341,9 @@ async function saveResults() {
 }
 
 
-// --------------------------------------------------
-// DELETE RESULT
-// --------------------------------------------------
+// ================================================
+// DELETE
+// ================================================
 
 async function deleteResult(
   resultId,
@@ -1279,7 +1369,8 @@ async function deleteResult(
     existingResults =
       existingResults.filter(
         result =>
-          result.id !== resultId
+          result.id !==
+          resultId
       );
 
     renderResultsTable();
@@ -1304,9 +1395,9 @@ async function deleteResult(
 }
 
 
-// --------------------------------------------------
+// ================================================
 // EXAM INFO
-// --------------------------------------------------
+// ================================================
 
 async function showExamInfo() {
 
@@ -1328,8 +1419,7 @@ async function showExamInfo() {
       exam_type,
       exam_date,
       max_score,
-      duration_minutes,
-      description
+      duration_minutes
     `)
     .eq(
       "id",
@@ -1342,18 +1432,33 @@ async function showExamInfo() {
   }
 
   examInfo.innerHTML = `
-    <strong>${escapeHtml(data.title)}</strong>
+    <strong>
+      ${escapeHtml(data.title)}
+    </strong>
+
     &nbsp; • &nbsp;
-    ${formatExamType(data.exam_type)}
-    ${data.exam_date
-      ? `&nbsp; • &nbsp; ${data.exam_date}`
-      : ""}
-    ${data.max_score !== null
-      ? `&nbsp; • &nbsp; Exam Max Score: ${data.max_score}`
-      : ""}
-    ${data.duration_minutes
-      ? `&nbsp; • &nbsp; ${data.duration_minutes} minutes`
-      : ""}
+
+    ${formatExamType(
+      data.exam_type
+    )}
+
+    ${
+      data.exam_date
+        ? `&nbsp; • &nbsp; ${data.exam_date}`
+        : ""
+    }
+
+    ${
+      data.max_score !== null
+        ? `&nbsp; • &nbsp; Exam Max Score: ${data.max_score}`
+        : ""
+    }
+
+    ${
+      data.duration_minutes
+        ? `&nbsp; • &nbsp; ${data.duration_minutes} minutes`
+        : ""
+    }
   `;
 
   examInfo.style.display =
@@ -1361,9 +1466,9 @@ async function showExamInfo() {
 }
 
 
-// --------------------------------------------------
+// ================================================
 // STATS
-// --------------------------------------------------
+// ================================================
 
 function updateStats() {
 
@@ -1380,56 +1485,64 @@ function updateStats() {
     );
 
   let entered = 0;
-  let published = 0;
+  let publishedCount = 0;
   let passed = 0;
   let percentageTotal = 0;
   let percentageCount = 0;
 
-  rows.forEach(row => {
+  rows.forEach(
+    row => {
 
-    const score =
-      parseFloat(
-        row.querySelector(".score")?.value
-      );
-
-    const maxScore =
-      parseFloat(
-        row.querySelector(".max-score")?.value
-      );
-
-    if (
-      !isNaN(score) &&
-      !isNaN(maxScore) &&
-      maxScore > 0
-    ) {
-
-      entered++;
-
-      const percentage =
-        calculatePercentage(
-          score,
-          maxScore
+      const score =
+        parseFloat(
+          row.querySelector(
+            ".score"
+          )?.value
         );
 
-      percentageTotal +=
-        percentage;
+      const maxScore =
+        parseFloat(
+          row.querySelector(
+            ".max-score"
+          )?.value
+        );
 
-      percentageCount++;
+      if (
+        !isNaN(score) &&
+        !isNaN(maxScore) &&
+        maxScore > 0
+      ) {
 
-      if (percentage >= 50) {
-        passed++;
+        entered++;
+
+        const percentage =
+          calculatePercentage(
+            score,
+            maxScore
+          );
+
+        percentageTotal +=
+          percentage;
+
+        percentageCount++;
+
+        if (
+          percentage >= 50
+        ) {
+          passed++;
+        }
+      }
+
+      const isPublished =
+        row.querySelector(
+          ".published"
+        )?.checked;
+
+      if (isPublished) {
+        publishedCount++;
       }
     }
-
-    const published =
-      row.querySelector(
-        ".published"
-      )?.checked;
-
-    if (published) {
-      published++;
-    }
-  });
+  );
 
   document.getElementById(
     "enteredResults"
@@ -1439,7 +1552,7 @@ function updateStats() {
   document.getElementById(
     "publishedResults"
   ).textContent =
-    published;
+    publishedCount;
 
   document.getElementById(
     "passResults"
@@ -1461,9 +1574,9 @@ function updateStats() {
 }
 
 
-// --------------------------------------------------
+// ================================================
 // EVENT LISTENERS
-// --------------------------------------------------
+// ================================================
 
 institutionSelect.addEventListener(
   "change",
@@ -1511,8 +1624,6 @@ classSelect.addEventListener(
     selectedSubject = "";
 
     await loadExams();
-
-    clearResultsTable();
   }
 );
 
@@ -1526,14 +1637,7 @@ examSelect.addEventListener(
 
     selectedSubject = "";
 
-    await loadSubjects();
-
-    if (
-      selectedExam &&
-      selectedSubject
-    ) {
-      await loadStudentsAndResults();
-    }
+    clearResultsTable();
 
     if (selectedExam) {
       await showExamInfo();
@@ -1618,9 +1722,9 @@ resetBtn.addEventListener(
 );
 
 
-// --------------------------------------------------
+// ================================================
 // HELPERS
-// --------------------------------------------------
+// ================================================
 
 function resetSelect(
   select,
@@ -1630,7 +1734,8 @@ function resetSelect(
   select.innerHTML =
     `<option value="">${placeholder}</option>`;
 
-  select.disabled = true;
+  select.disabled =
+    true;
 }
 
 
@@ -1649,7 +1754,8 @@ function clearResultsTable() {
 
   updateStats();
 
-  saveBtn.disabled = true;
+  saveBtn.disabled =
+    true;
 
   examInfo.style.display =
     "none";
@@ -1670,7 +1776,35 @@ function getSelectedSubjectMaxScore() {
     return "";
   }
 
-  return option.dataset.maxScore || "";
+  return (
+    option.dataset.maxScore ||
+    ""
+  );
+}
+
+
+// ================================================
+// GAAWOW EMS GRADING SYSTEM
+// ================================================
+
+function calculateGrade(
+  percentage
+) {
+
+  const p =
+    Number(percentage);
+
+  if (isNaN(p)) {
+    return "";
+  }
+
+  if (p >= 90) return "A+";
+  if (p >= 80) return "A";
+  if (p >= 70) return "B";
+  if (p >= 60) return "C";
+  if (p >= 50) return "D";
+
+  return "F";
 }
 
 
@@ -1702,26 +1836,6 @@ function calculatePercentage(
 }
 
 
-function calculateGrade(
-  percentage
-) {
-
-  const p =
-    Number(percentage);
-
-  if (isNaN(p)) {
-    return "";
-  }
-
-  if (p >= 80) return "A";
-  if (p >= 70) return "B";
-  if (p >= 60) return "C";
-  if (p >= 50) return "D";
-
-  return "F";
-}
-
-
 function formatPercentage(
   percentage
 ) {
@@ -1747,10 +1861,10 @@ function formatExamType(
     return "";
   }
 
-  return type
-    .charAt(0)
-    .toUpperCase() +
-    type.slice(1);
+  return (
+    type.charAt(0).toUpperCase() +
+    type.slice(1)
+  );
 }
 
 
@@ -1791,11 +1905,26 @@ function escapeHtml(
 ) {
 
   return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
 }
 
 
@@ -1823,10 +1952,13 @@ function showMessage(
     behavior: "smooth"
   });
 
-  setTimeout(() => {
+  setTimeout(
+    () => {
 
-    messageBox.className =
-      "message";
+      messageBox.className =
+        "message";
 
-  }, 5000);
+    },
+    5000
+  );
 }
