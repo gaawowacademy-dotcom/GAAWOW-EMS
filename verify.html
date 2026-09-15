@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW Academy — Verify Certificate</title>
+
+  <link rel="icon"
+        href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f5f7fa, #e8eef7);
+      color: #1f2937;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0b1e63, #0b4da2);
+      color: white;
+      padding: 22px 16px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,.15);
+    }
+
+    header img {
+      width: 78px;
+      height: 78px;
+      object-fit: contain;
+      margin-bottom: 8px;
+    }
+
+    header h1 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+
+    header p {
+      font-size: 13px;
+      opacity: .9;
+    }
+
+    .container {
+      width: min(700px, 94%);
+      margin: 35px auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(11,30,99,.12);
+      border: 1px solid #e5e7eb;
+    }
+
+    .title {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    .title h2 {
+      color: #0b1e63;
+      margin-bottom: 7px;
+    }
+
+    .title p {
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 7px;
+      color: #0b1e63;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      outline: none;
+      font-size: 15px;
+    }
+
+    input:focus {
+      border-color: #0b4da2;
+      box-shadow: 0 0 0 3px rgba(11,77,162,.1);
+    }
+
+    button {
+      border: none;
+      background: linear-gradient(135deg, #0b4da2, #0b1e63);
+      color: white;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      min-width: 120px;
+    }
+
+    button:hover {
+      opacity: .92;
+    }
+
+    .message {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      display: none;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .success {
+      display: block;
+      background: #ecfdf5;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .error {
+      display: block;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .certificate {
+      display: none;
+      margin-top: 25px;
+      border: 2px solid #d4af37;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .certificate-header {
+      background: linear-gradient(135deg, #0b1e63, #0b4da2);
+      color: white;
+      padding: 22px;
+      text-align: center;
+    }
+
+    .certificate-header img {
+      width: 65px;
+      margin-bottom: 8px;
+    }
+
+    .certificate-header h2 {
+      color: #d4af37;
+      margin-bottom: 5px;
+    }
+
+    .verified {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 7px 14px;
+      border-radius: 20px;
+      background: #16a34a;
+      color: white;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .certificate-body {
+      padding: 22px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      padding: 12px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .row:last-child {
+      border-bottom: none;
+    }
+
+    .label {
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .value {
+      text-align: right;
+      font-weight: bold;
+      color: #0b1e63;
+    }
+
+    .status-valid {
+      color: #16a34a;
+    }
+
+    .status-revoked {
+      color: #dc2626;
+    }
+
+    .status-expired {
+      color: #b45309;
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .links a {
+      flex: 1;
+      min-width: 150px;
+      text-align: center;
+      text-decoration: none;
+      padding: 12px;
+      border-radius: 9px;
+      font-weight: bold;
+      background: #f3f4f6;
+      color: #0b4da2;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px;
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    @media (max-width: 600px) {
+      .input-row {
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .row {
+        flex-direction: column;
+      }
+
+      .value {
+        text-align: left;
+      }
+
+      .card {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+       alt="GAAWOW Academy Logo">
+
+  <h1>GAAWOW ACADEMY</h1>
+  <p>Ilayska Aqoonta iyo Xirfadda</p>
+</header>
+
+<div class="container">
+
+  <div class="card">
+
+    <div class="title">
+      <h2>Certificate Verification</h2>
+      <p>
+        Enter the Certificate ID, Certificate No, or Verify Code
+        to verify authenticity.
+      </p>
+    </div>
+
+    <label for="searchInput">
+      Certificate ID / Certificate No / Verify Code
+    </label>
+
+    <div class="input-row">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="Example: CERT-2026-001"
+        autocomplete="off"
+      >
+
+      <button id="verifyBtn">
+        VERIFY
+      </button>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div id="certificate" class="certificate">
+
+      <div class="certificate-header">
+
+        <img
+          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+          alt="GAAWOW Academy Logo"
+        >
+
+        <h2>GAAWOW ACADEMY</h2>
+
+        <div id="statusBadge" class="verified">
+          VERIFIED
+        </div>
+
+      </div>
+
+      <div class="certificate-body">
+
+        <div class="row">
+          <span class="label">Student Name</span>
+          <span id="studentName" class="value">—</span>
+        </div>
+
+        <div class="row">
+          <span class="label">Course</span>
+          <span id="courseName" class="value">—</span>
+        </div>
+
+        <div class="row">
+          <span class="label">Certificate No</span>
+          <span id="certificateNo" class="value">—</span>
+        </div>
+
+        <div class="row">
+          <span class="label">Certificate ID</span>
+          <span id="certificateId" class="value">—</span>
+        </div>
+
+        <div class="row">
+          <span class="label">Verify Code</span>
+          <span id="verifyCode" class="value">—</span>
+        </div>
+
+        <div class="row">
+          <span class="label">Issue Date</span>
+          <span id="issueDate" class="value">—</span>
+        </div>
+
+        <div class="row">
+          <span class="label">Expiry Date</span>
+          <span id="expiryDate" class="value">—</span>
+        </div>
+
+        <div class="row">
+          <span class="label">Status</span>
+          <span id="status" class="value">—</span>
+        </div>
+
+        <div class="links">
+          <a id="certificateLink"
+             href="#"
+             target="_blank"
+             style="display:none;">
+            View Certificate
+          </a>
+
+          <a id="pdfLink"
+             href="#"
+             target="_blank"
+             style="display:none;">
+            View PDF
+          </a>
+
+          <a id="qrLink"
+             href="#"
+             target="_blank"
+             style="display:none;">
+            QR Verification
+          </a>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<footer>
+  © 2026 GAAWOW Academy — Ilayska Aqoonta iyo Xirfadda
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="verify.js"></script>
+
+</body>
+</html>
