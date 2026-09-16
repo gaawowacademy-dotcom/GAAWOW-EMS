@@ -4,16 +4,14 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-
 const supabaseClient =
-  supabase.createClient(
+  window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
   );
 
-
-const searchInput =
-  document.getElementById("searchInput");
+const verifyCodeInput =
+  document.getElementById("verifyCode");
 
 const verifyBtn =
   document.getElementById("verifyBtn");
@@ -21,32 +19,35 @@ const verifyBtn =
 const message =
   document.getElementById("message");
 
-const certificate =
-  document.getElementById("certificate");
+const result =
+  document.getElementById("result");
 
+const statusEl =
+  document.getElementById("status");
 
-function formatDate(date) {
+const certificateNo =
+  document.getElementById("certificateNo");
 
-  if (!date) {
-    return "—";
-  }
+const certificateId =
+  document.getElementById("certificateId");
 
-  const d =
-    new Date(date + "T00:00:00");
+const verificationCode =
+  document.getElementById("verificationCode");
 
-  if (isNaN(d.getTime())) {
-    return date;
-  }
+const studentName =
+  document.getElementById("studentName");
 
-  return d.toLocaleDateString(
-    "en-US",
-    {
-      year: "numeric",
-      month: "long",
-      day: "numeric"
-    }
-  );
-}
+const courseName =
+  document.getElementById("courseName");
+
+const issueDate =
+  document.getElementById("issueDate");
+
+const expiryDate =
+  document.getElementById("expiryDate");
+
+const links =
+  document.getElementById("links");
 
 
 function showMessage(text, type) {
@@ -55,97 +56,38 @@ function showMessage(text, type) {
 
   message.className =
     "message " + type;
+
+  message.style.display = "block";
 }
 
 
 function hideMessage() {
 
-  message.textContent = "";
+  message.style.display = "none";
 
-  message.className =
-    "message";
 }
 
 
-function clearCertificate() {
+function formatDate(value) {
 
-  certificate.style.display =
-    "none";
-
-  document.getElementById(
-    "studentName"
-  ).textContent = "";
-
-  document.getElementById(
-    "courseName"
-  ).textContent = "";
-
-  document.getElementById(
-    "certificateNo"
-  ).textContent = "";
-
-  document.getElementById(
-    "certificateId"
-  ).textContent = "";
-
-  document.getElementById(
-    "verifyCode"
-  ).textContent = "";
-
-  document.getElementById(
-    "issueDate"
-  ).textContent = "";
-
-  document.getElementById(
-    "expiryDate"
-  ).textContent = "";
-
-  document.getElementById(
-    "status"
-  ).textContent = "";
-
-  document.getElementById(
-    "statusBadge"
-  ).textContent = "";
-
-  hideLink("certificateLink");
-  hideLink("pdfLink");
-  hideLink("qrLink");
-}
-
-
-function hideLink(id) {
-
-  const link =
-    document.getElementById(id);
-
-  link.style.display =
-    "none";
-
-  link.href = "#";
-}
-
-
-function setupLink(id, url) {
-
-  const link =
-    document.getElementById(id);
-
-  if (
-    url &&
-    url.trim() !== ""
-  ) {
-
-    link.href =
-      url.trim();
-
-    link.style.display =
-      "block";
-
-  } else {
-
-    hideLink(id);
+  if (!value) {
+    return "—";
   }
+
+  const date = new Date(value + "T00:00:00");
+
+  if (isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString(
+    "en-GB",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }
+  );
 }
 
 
@@ -157,14 +99,8 @@ function calculateStatus(cert) {
 
   if (
     cert.expiry_date &&
-    new Date(
-      cert.expiry_date + "T23:59:59"
-    ) < new Date()
+    new Date(cert.expiry_date + "T23:59:59") < new Date()
   ) {
-    return "expired";
-  }
-
-  if (cert.status === "expired") {
     return "expired";
   }
 
@@ -172,166 +108,120 @@ function calculateStatus(cert) {
 }
 
 
+function clearResult() {
+
+  result.style.display = "none";
+
+  links.innerHTML = "";
+
+}
+
+
 function displayCertificate(cert) {
 
-  const currentStatus =
+  const effectiveStatus =
     calculateStatus(cert);
 
-
-  document.getElementById(
-    "studentName"
-  ).textContent =
-    cert.student_name || "—";
-
-
-  document.getElementById(
-    "courseName"
-  ).textContent =
-    cert.course_name || "—";
-
-
-  document.getElementById(
-    "certificateNo"
-  ).textContent =
+  certificateNo.textContent =
     cert.certificate_no || "—";
 
-
-  document.getElementById(
-    "certificateId"
-  ).textContent =
+  certificateId.textContent =
     cert.certificate_id || "—";
 
-
-  document.getElementById(
-    "verifyCode"
-  ).textContent =
+  verificationCode.textContent =
     cert.verify_code || "—";
 
+  studentName.textContent =
+    cert.student_name || "—";
 
-  document.getElementById(
-    "issueDate"
-  ).textContent =
+  courseName.textContent =
+    cert.course_name || "—";
+
+  issueDate.textContent =
     formatDate(cert.issue_date);
 
-
-  document.getElementById(
-    "expiryDate"
-  ).textContent =
+  expiryDate.textContent =
     formatDate(cert.expiry_date);
 
+  statusEl.textContent =
+    effectiveStatus.toUpperCase();
 
-  const status =
-    document.getElementById("status");
+  statusEl.style.background =
+    effectiveStatus === "valid"
+      ? "#16A34A"
+      : effectiveStatus === "expired"
+      ? "#D97706"
+      : "#DC2626";
 
+  links.innerHTML = "";
 
-  status.textContent =
-    currentStatus.toUpperCase();
+  result.style.display = "block";
 
+  if (cert.certificate_url) {
 
-  status.className =
-    "info-value status-" +
-    currentStatus;
+    const a = document.createElement("a");
 
+    a.href = cert.certificate_url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = "Certificate";
 
-  const badge =
-    document.getElementById(
-      "statusBadge"
-    );
-
-
-  if (currentStatus === "valid") {
-
-    badge.textContent =
-      "✓ CERTIFICATE VERIFIED";
-
-    badge.style.background =
-      "#16a34a";
-
-  } else if (
-    currentStatus === "revoked"
-  ) {
-
-    badge.textContent =
-      "✕ CERTIFICATE REVOKED";
-
-    badge.style.background =
-      "#dc2626";
-
-  } else {
-
-    badge.textContent =
-      "⚠ CERTIFICATE EXPIRED";
-
-    badge.style.background =
-      "#b45309";
+    links.appendChild(a);
   }
 
+  if (cert.pdf_url) {
 
-  /*
-    These fields are intentionally
-    not returned by the RPC yet.
-    They will work automatically
-    if added later.
-  */
+    const a = document.createElement("a");
 
-  setupLink(
-    "certificateLink",
-    cert.certificate_url
-  );
+    a.href = cert.pdf_url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = "PDF";
 
-  setupLink(
-    "pdfLink",
-    cert.pdf_url
-  );
+    links.appendChild(a);
+  }
 
-  setupLink(
-    "qrLink",
-    cert.qr_url
-  );
+  if (cert.qr_url) {
 
+    const a = document.createElement("a");
 
-  certificate.style.display =
-    "block";
+    a.href = cert.qr_url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = "QR Link";
+
+    links.appendChild(a);
+  }
+
 }
 
 
 async function verifyCertificate() {
 
   const search =
-    searchInput.value.trim();
+    verifyCodeInput.value.trim();
 
+  clearResult();
+  hideMessage();
 
   if (!search) {
 
-    clearCertificate();
-
     showMessage(
-      "Please enter a Certificate ID, Certificate No, or Verify Code.",
+      "Please enter a certificate number, ID, or verification code.",
       "error"
     );
+
+    verifyCodeInput.focus();
 
     return;
   }
 
-
-  clearCertificate();
-
-  hideMessage();
-
-
-  verifyBtn.disabled =
-    true;
-
-  verifyBtn.textContent =
-    "VERIFYING...";
-
+  verifyBtn.disabled = true;
+  verifyBtn.textContent = "VERIFYING...";
 
   try {
 
-    const {
-      data,
-      error
-    } =
+    const { data, error } =
       await supabaseClient.rpc(
         "verify_certificate",
         {
@@ -339,92 +229,50 @@ async function verifyCertificate() {
         }
       );
 
-
     if (error) {
 
       console.error(
-        "RPC Error:",
+        "Verification error:",
         error
       );
 
       throw error;
     }
 
-
-    if (
-      !data ||
-      data.length === 0
-    ) {
+    if (!data || data.length === 0) {
 
       showMessage(
-        "Certificate not found. Please check your Certificate ID, Certificate No, or Verify Code.",
+        "Certificate not found. Please check the code and try again.",
         "error"
       );
 
       return;
     }
 
+    displayCertificate(data[0]);
 
-    const cert =
-      data[0];
-
-
-    displayCertificate(cert);
-
-
-    const currentStatus =
-      calculateStatus(cert);
-
-
-    if (
-      currentStatus === "valid"
-    ) {
-
-      showMessage(
-        "✓ Certificate successfully verified.",
-        "success"
-      );
-
-    } else if (
-      currentStatus === "revoked"
-    ) {
-
-      showMessage(
-        "This certificate has been revoked.",
-        "error"
-      );
-
-    } else {
-
-      showMessage(
-        "This certificate has expired.",
-        "error"
-      );
-    }
-
+    showMessage(
+      "Certificate successfully verified.",
+      "success"
+    );
 
   } catch (error) {
 
-    console.error(
-      "Verification failed:",
-      error
-    );
-
+    console.error(error);
 
     showMessage(
       "Unable to verify certificate. Please try again.",
       "error"
     );
 
-
   } finally {
 
-    verifyBtn.disabled =
-      false;
-
+    verifyBtn.disabled = false;
     verifyBtn.textContent =
-      "VERIFY";
+      "VERIFY CERTIFICATE";
+
   }
+
 }
 
 
@@ -434,14 +282,11 @@ verifyBtn.addEventListener(
 );
 
 
-searchInput.addEventListener(
+verifyCodeInput.addEventListener(
   "keydown",
   function(event) {
 
-    if (
-      event.key === "Enter"
-    ) {
-
+    if (event.key === "Enter") {
       verifyCertificate();
     }
 
@@ -449,34 +294,20 @@ searchInput.addEventListener(
 );
 
 
-/*
-  Automatic verification
-  Example:
+// Automatically verify ?code=...
+const params =
+  new URLSearchParams(
+    window.location.search
+  );
 
-  verify.html?code=GAW-2026-001
-*/
+const urlCode =
+  params.get("code");
 
-window.addEventListener(
-  "DOMContentLoaded",
-  function() {
+if (urlCode) {
 
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
+  verifyCodeInput.value =
+    urlCode;
 
+  verifyCertificate();
 
-    const code =
-      params.get("code");
-
-
-    if (code) {
-
-      searchInput.value =
-        code;
-
-      verifyCertificate();
-    }
-
-  }
-);
+}
