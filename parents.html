@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Parent Management</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --blue:#0B4DA2;
+      --navy:#0B1E63;
+      --gold:#D4AF37;
+      --bg:#F5F7FA;
+      --text:#1F2937;
+      --green:#16A34A;
+      --red:#DC2626;
+      --orange:#EA580C;
+      --border:#E5E7EB;
+      --white:#fff;
+    }
+
+    * {
+      box-sizing:border-box;
+    }
+
+    body {
+      margin:0;
+      font-family:Arial,Helvetica,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    header {
+      background:linear-gradient(135deg,var(--navy),var(--blue));
+      color:white;
+      padding:17px 22px;
+      box-shadow:0 4px 18px rgba(0,0,0,.15);
+    }
+
+    .header-inner {
+      max-width:1400px;
+      margin:auto;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:15px;
+    }
+
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .brand img {
+      width:52px;
+      height:52px;
+      object-fit:contain;
+      background:white;
+      border-radius:10px;
+      padding:4px;
+    }
+
+    .brand h1 {
+      margin:0;
+      font-size:21px;
+    }
+
+    .brand p {
+      margin:4px 0 0;
+      font-size:12px;
+      opacity:.85;
+    }
+
+    .back {
+      color:white;
+      text-decoration:none;
+      padding:10px 15px;
+      border:1px solid rgba(255,255,255,.35);
+      border-radius:9px;
+      background:rgba(255,255,255,.1);
+      font-weight:bold;
+    }
+
+    main {
+      max-width:1400px;
+      margin:25px auto;
+      padding:0 18px;
+    }
+
+    .title-row {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:15px;
+      margin-bottom:20px;
+    }
+
+    .title-row h2 {
+      margin:0;
+      color:var(--navy);
+      font-size:28px;
+    }
+
+    .title-row p {
+      margin:6px 0 0;
+      color:#6B7280;
+    }
+
+    .add-btn {
+      border:0;
+      background:linear-gradient(135deg,var(--gold),#B98B12);
+      color:white;
+      padding:12px 18px;
+      border-radius:9px;
+      cursor:pointer;
+      font-weight:800;
+    }
+
+    .stats {
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:15px;
+      margin-bottom:20px;
+    }
+
+    .stat {
+      background:white;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:18px;
+      box-shadow:0 4px 15px rgba(0,0,0,.05);
+    }
+
+    .stat-label {
+      font-size:12px;
+      color:#6B7280;
+      font-weight:bold;
+    }
+
+    .stat-value {
+      margin-top:8px;
+      font-size:27px;
+      font-weight:800;
+      color:var(--navy);
+    }
+
+    .filters {
+      background:white;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:16px;
+      margin-bottom:18px;
+    }
+
+    .filter-grid {
+      display:grid;
+      grid-template-columns:2fr 1fr auto;
+      gap:10px;
+    }
+
+    input,
+    select {
+      width:100%;
+      padding:11px 12px;
+      border:1px solid #D1D5DB;
+      border-radius:9px;
+      background:white;
+      font-size:14px;
+      outline:none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color:var(--blue);
+      box-shadow:0 0 0 3px rgba(11,77,162,.1);
+    }
+
+    .clear-btn {
+      border:0;
+      background:var(--navy);
+      color:white;
+      padding:11px 17px;
+      border-radius:9px;
+      cursor:pointer;
+      font-weight:bold;
+    }
+
+    .table-card {
+      background:white;
+      border:1px solid var(--border);
+      border-radius:14px;
+      overflow:hidden;
+      box-shadow:0 4px 15px rgba(0,0,0,.05);
+    }
+
+    .table-wrap {
+      overflow-x:auto;
+    }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      min-width:1050px;
+    }
+
+    th {
+      background:#F8FAFC;
+      color:var(--navy);
+      padding:14px;
+      text-align:left;
+      font-size:12px;
+      text-transform:uppercase;
+      border-bottom:1px solid var(--border);
+    }
+
+    td {
+      padding:13px 14px;
+      border-bottom:1px solid #EEF0F3;
+      font-size:13px;
+      vertical-align:middle;
+    }
+
+    tr:hover td {
+      background:#FAFCFF;
+    }
+
+    .parent-name {
+      font-weight:800;
+      color:var(--navy);
+    }
+
+    .sub {
+      color:#6B7280;
+      font-size:11px;
+      margin-top:3px;
+    }
+
+    .badge {
+      display:inline-block;
+      padding:5px 9px;
+      border-radius:20px;
+      font-size:11px;
+      font-weight:800;
+    }
+
+    .active {
+      background:#DCFCE7;
+      color:#166534;
+    }
+
+    .inactive {
+      background:#FEE2E2;
+      color:#991B1B;
+    }
+
+    .linked {
+      background:#DBEAFE;
+      color:#1D4ED8;
+    }
+
+    .actions {
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+
+    .btn {
+      border:1px solid #D1D5DB;
+      background:white;
+      padding:7px 10px;
+      border-radius:7px;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:bold;
+    }
+
+    .btn:hover {
+      background:#F3F4F6;
+    }
+
+    .btn-blue {
+      color:var(--blue);
+      border-color:var(--blue);
+    }
+
+    .btn-red {
+      color:var(--red);
+      border-color:var(--red);
+    }
+
+    .empty,
+    .loading {
+      text-align:center;
+      padding:45px;
+      color:#6B7280;
+    }
+
+    .pagination {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:15px 18px;
+    }
+
+    .page-buttons {
+      display:flex;
+      gap:7px;
+    }
+
+    .page-buttons button {
+      border:1px solid #D1D5DB;
+      background:white;
+      padding:8px 12px;
+      border-radius:7px;
+      cursor:pointer;
+    }
+
+    .page-buttons button:disabled {
+      opacity:.45;
+      cursor:not-allowed;
+    }
+
+    /* MODAL */
+
+    .modal {
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      z-index:1000;
+      padding:20px;
+      overflow:auto;
+    }
+
+    .modal-box {
+      max-width:720px;
+      margin:25px auto;
+      background:white;
+      border-radius:15px;
+      overflow:hidden;
+      box-shadow:0 20px 60px rgba(0,0,0,.3);
+    }
+
+    .modal-header {
+      background:linear-gradient(135deg,var(--navy),var(--blue));
+      color:white;
+      padding:17px 20px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .modal-header h3 {
+      margin:0;
+    }
+
+    .close {
+      border:0;
+      background:transparent;
+      color:white;
+      font-size:28px;
+      cursor:pointer;
+    }
+
+    .modal-body {
+      padding:20px;
+    }
+
+    .form-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:13px;
+    }
+
+    .field {
+      margin-bottom:3px;
+    }
+
+    .field.full {
+      grid-column:1 / -1;
+    }
+
+    label {
+      display:block;
+      margin-bottom:6px;
+      font-size:12px;
+      font-weight:bold;
+      color:#374151;
+    }
+
+    .modal-actions {
+      margin-top:20px;
+      display:flex;
+      justify-content:flex-end;
+      gap:9px;
+    }
+
+    .save-btn {
+      border:0;
+      background:var(--blue);
+      color:white;
+      padding:11px 18px;
+      border-radius:9px;
+      cursor:pointer;
+      font-weight:bold;
+    }
+
+    .cancel-btn {
+      border:1px solid #D1D5DB;
+      background:white;
+      padding:11px 18px;
+      border-radius:9px;
+      cursor:pointer;
+      font-weight:bold;
+    }
+
+    .notice {
+      display:none;
+      padding:12px;
+      border-radius:9px;
+      margin-bottom:15px;
+      font-size:13px;
+      font-weight:bold;
+    }
+
+    .notice.error {
+      background:#FEE2E2;
+      color:#991B1B;
+    }
+
+    .notice.success {
+      background:#DCFCE7;
+      color:#166534;
+    }
+
+    /* LINKS MODAL */
+
+    .student-list {
+      margin-top:12px;
+    }
+
+    .student-row {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      border:1px solid var(--border);
+      border-radius:9px;
+      padding:12px;
+      margin-bottom:8px;
+      background:#FAFCFF;
+    }
+
+    .student-name {
+      font-weight:800;
+      color:var(--navy);
+    }
+
+    .link-form {
+      background:#F8FAFC;
+      border:1px solid var(--border);
+      padding:14px;
+      border-radius:10px;
+      margin-bottom:15px;
+    }
+
+    @media(max-width:900px) {
+      .stats {
+        grid-template-columns:repeat(2,1fr);
+      }
+
+      .filter-grid {
+        grid-template-columns:1fr 1fr;
+      }
+    }
+
+    @media(max-width:600px) {
+      .header-inner,
+      .title-row {
+        flex-direction:column;
+        align-items:flex-start;
+      }
+
+      .stats {
+        grid-template-columns:1fr 1fr;
+      }
+
+      .filter-grid {
+        grid-template-columns:1fr;
+      }
+
+      .form-grid {
+        grid-template-columns:1fr;
+      }
+
+      .field.full {
+        grid-column:auto;
+      }
+
+      .add-btn {
+        width:100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+
+    <div class="brand">
+      <img
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy"
+      >
+
+      <div>
+        <h1>GAAWOW EMS</h1>
+        <p>Parent Management</p>
+      </div>
+    </div>
+
+    <a class="back" href="dashboard.html">
+      ← Dashboard
+    </a>
+
+  </div>
+</header>
+
+<main>
+
+  <div class="title-row">
+
+    <div>
+      <h2>Parent Management</h2>
+      <p>Manage parents and parent–student relationships.</p>
+    </div>
+
+    <button
+      class="add-btn"
+      id="addParentBtn"
+    >
+      + Add Parent
+    </button>
+
+  </div>
+
+  <div id="notice" class="notice"></div>
+
+  <section class="stats">
+
+    <div class="stat">
+      <div class="stat-label">TOTAL PARENTS</div>
+      <div class="stat-value" id="totalParents">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">ACTIVE</div>
+      <div class="stat-value" id="activeParents">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">LINKED PARENTS</div>
+      <div class="stat-value" id="linkedParents">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">STUDENT LINKS</div>
+      <div class="stat-value" id="totalLinks">0</div>
+    </div>
+
+  </section>
+
+  <section class="filters">
+
+    <div class="filter-grid">
+
+      <input
+        id="searchInput"
+        placeholder="Search parent name, phone, email..."
+      >
+
+      <select id="institutionFilter">
+        <option value="">All Institutions</option>
+      </select>
+
+      <button
+        class="clear-btn"
+        id="clearBtn"
+      >
+        Clear
+      </button>
+
+    </div>
+
+  </section>
+
+  <section class="table-card">
+
+    <div id="loading" class="loading">
+      Loading parents...
+    </div>
+
+    <div
+      id="empty"
+      class="empty"
+      style="display:none;"
+    >
+      No parents found.
+    </div>
+
+    <div class="table-wrap">
+
+      <table
+        id="parentsTable"
+        style="display:none;"
+      >
+
+        <thead>
+          <tr>
+            <th>Parent</th>
+            <th>Contact</th>
+            <th>Institution</th>
+            <th>Students</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody id="parentsBody"></tbody>
+
+      </table>
+
+    </div>
+
+    <div class="pagination">
+
+      <span id="pageInfo">
+        Page 1
+      </span>
+
+      <div class="page-buttons">
+
+        <button id="prevBtn">
+          ← Previous
+        </button>
+
+        <button id="nextBtn">
+          Next →
+        </button>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<!-- ADD / EDIT PARENT -->
+
+<div
+  class="modal"
+  id="parentModal"
+>
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+
+      <h3 id="modalTitle">
+        Add Parent
+      </h3>
+
+      <button
+        class="close"
+        id="closeParentModal"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="field full">
+
+          <label>Institution</label>
+
+          <select id="parentInstitution">
+            <option value="">
+              Select institution
+            </option>
+          </select>
+
+        </div>
+
+        <div class="field">
+
+          <label>Full Name *</label>
+
+          <input
+            id="parentName"
+            placeholder="Parent full name"
+          >
+
+        </div>
+
+        <div class="field">
+
+          <label>Phone</label>
+
+          <input
+            id="parentPhone"
+            placeholder="Phone number"
+          >
+
+        </div>
+
+        <div class="field">
+
+          <label>Email</label>
+
+          <input
+            id="parentEmail"
+            type="email"
+            placeholder="Email address"
+          >
+
+        </div>
+
+        <div class="field">
+
+          <label>Occupation</label>
+
+          <input
+            id="parentOccupation"
+            placeholder="Occupation"
+          >
+
+        </div>
+
+        <div class="field full">
+
+          <label>Address</label>
+
+          <input
+            id="parentAddress"
+            placeholder="Address"
+          >
+
+        </div>
+
+      </div>
+
+      <div class="modal-actions">
+
+        <button
+          class="cancel-btn"
+          id="cancelParentBtn"
+        >
+          Cancel
+        </button>
+
+        <button
+          class="save-btn"
+          id="saveParentBtn"
+        >
+          Save Parent
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- LINK STUDENT MODAL -->
+
+<div
+  class="modal"
+  id="linkModal"
+>
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+
+      <h3>
+        Parent ↔ Student
+      </h3>
+
+      <button
+        class="close"
+        id="closeLinkModal"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <div id="linkParentInfo"></div>
+
+      <div class="link-form">
+
+        <label>Student</label>
+
+        <select id="studentSelect">
+          <option value="">
+            Select student
+          </option>
+        </select>
+
+        <br><br>
+
+        <label>Relationship</label>
+
+        <select id="relationshipSelect">
+          <option value="Father">Father</option>
+          <option value="Mother">Mother</option>
+          <option value="Guardian">Guardian</option>
+          <option value="Brother">Brother</option>
+          <option value="Sister">Sister</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <br><br>
+
+        <label>
+          <input
+            type="checkbox"
+            id="primaryCheck"
+          >
+          Primary Parent
+        </label>
+
+        <br><br>
+
+        <button
+          class="save-btn"
+          id="linkStudentBtn"
+        >
+          Link Student
+        </button>
+
+      </div>
+
+      <h4 style="color:#0B1E63;">
+        Linked Students
+      </h4>
+
+      <div
+        id="linkedStudents"
+        class="student-list"
+      ></div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script src="parents.js"></script>
+
+</body>
+</html>
