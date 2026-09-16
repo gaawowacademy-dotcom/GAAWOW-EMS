@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Support Center</title>
+
+  <meta name="theme-color" content="#0B1E63">
+
+  <style>
+    :root {
+      --blue: #0B4DA2;
+      --navy: #0B1E63;
+      --gold: #D4AF37;
+      --bg: #F5F7FA;
+      --text: #1F2937;
+      --white: #ffffff;
+      --green: #16A34A;
+      --red: #DC2626;
+      --orange: #F59E0B;
+      --border: #E5E7EB;
+      --muted: #64748B;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: white;
+      padding: 18px 24px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.12);
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand img {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      background: white;
+      border-radius: 12px;
+      padding: 5px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      opacity: .85;
+      font-size: 13px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      border-radius: 9px;
+      padding: 10px 15px;
+      font-weight: 700;
+    }
+
+    .btn-back {
+      background: rgba(255,255,255,.15);
+      color: white;
+      border: 1px solid rgba(255,255,255,.3);
+    }
+
+    .btn-logout {
+      background: var(--gold);
+      color: var(--navy);
+    }
+
+    main {
+      max-width: 1400px;
+      margin: 25px auto;
+      padding: 0 20px;
+    }
+
+    .page-title {
+      margin-bottom: 20px;
+    }
+
+    .page-title h2 {
+      margin: 0;
+      color: var(--navy);
+      font-size: 28px;
+    }
+
+    .page-title p {
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 15px;
+      margin-bottom: 22px;
+    }
+
+    .stat {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.05);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      margin-top: 8px;
+      color: var(--navy);
+    }
+
+    .toolbar {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 18px;
+      border: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr auto;
+      gap: 12px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #CBD5E1;
+      border-radius: 9px;
+      font-size: 14px;
+      outline: none;
+      background: white;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(11,77,162,.1);
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--navy);
+    }
+
+    .table-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 3px 12px rgba(0,0,0,.05);
+    }
+
+    .table-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .table-head h3 {
+      margin: 0;
+      color: var(--navy);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 950px;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid #EEF2F7;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      background: #F8FAFC;
+      color: var(--navy);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    tr:hover td {
+      background: #FAFCFF;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .status-open {
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+
+    .status-progress {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .status-resolved {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .status-closed {
+      background: #E5E7EB;
+      color: #374151;
+    }
+
+    .priority-low {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .priority-medium {
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+
+    .priority-high {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .priority-urgent {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .btn-view {
+      background: var(--navy);
+      color: white;
+      padding: 7px 11px;
+      font-size: 11px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--muted);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 30px;
+      color: var(--blue);
+      font-weight: 700;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      padding: 18px;
+    }
+
+    .pagination button {
+      background: var(--blue);
+      color: white;
+    }
+
+    .pagination button:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, .65);
+      z-index: 1000;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .modal.show {
+      display: block;
+    }
+
+    .modal-box {
+      max-width: 850px;
+      margin: 30px auto;
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: white;
+      padding: 18px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+    }
+
+    .close {
+      background: transparent;
+      color: white;
+      font-size: 24px;
+      padding: 0 5px;
+    }
+
+    .modal-body {
+      padding: 22px;
+    }
+
+    .ticket-info {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .info-box {
+      background: #F8FAFC;
+      padding: 13px;
+      border-radius: 9px;
+    }
+
+    .info-box small {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .info-box strong {
+      color: var(--navy);
+    }
+
+    .description-box {
+      background: #F8FAFC;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      white-space: pre-wrap;
+    }
+
+    .conversation {
+      border-top: 1px solid var(--border);
+      padding-top: 18px;
+    }
+
+    .conversation h4 {
+      margin-top: 0;
+      color: var(--navy);
+    }
+
+    .message {
+      padding: 12px;
+      border-radius: 10px;
+      background: #F1F5F9;
+      margin-bottom: 10px;
+    }
+
+    .message.admin {
+      background: #E8F1FF;
+      border-left: 4px solid var(--blue);
+    }
+
+    .message-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .message-text {
+      white-space: pre-wrap;
+      font-size: 14px;
+    }
+
+    .reply-area {
+      margin-top: 18px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .btn-success {
+      background: var(--green);
+      color: white;
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: white;
+    }
+
+    .btn-warning {
+      background: var(--orange);
+      color: white;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: var(--navy);
+    }
+
+    .required {
+      color: var(--red);
+    }
+
+    .alert {
+      display: none;
+      padding: 12px 15px;
+      border-radius: 9px;
+      margin-bottom: 15px;
+      font-size: 13px;
+    }
+
+    .alert.show {
+      display: block;
+    }
+
+    .alert-error {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .alert-success {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    @media (max-width: 1000px) {
+      .stats {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 650px) {
+      .header-inner {
+        align-items: flex-start;
+      }
+
+      .brand h1 {
+        font-size: 17px;
+      }
+
+      .brand img {
+        width: 48px;
+        height: 48px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .form-grid,
+      .ticket-info {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        padding: 0 12px;
+      }
+
+      .page-title h2 {
+        font-size: 23px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+
+    <div class="brand">
+      <img
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
+      >
+
+      <div>
+        <h1>GAAWOW EMS</h1>
+        <p>Support & Help Desk</p>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn-back" onclick="goDashboard()">
+        ← Dashboard
+      </button>
+
+      <button class="btn-logout" onclick="logout()">
+        Logout
+      </button>
+    </div>
+
+  </div>
+</header>
+
+<main>
+
+  <div class="page-title">
+    <h2>Support Center</h2>
+    <p>Submit, track and manage your GAAWOW EMS support requests.</p>
+  </div>
+
+  <div id="alertBox" class="alert"></div>
+
+  <section class="stats">
+
+    <div class="stat">
+      <div class="stat-label">Total Tickets</div>
+      <div class="stat-value" id="totalTickets">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Open</div>
+      <div class="stat-value" id="openTickets">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">In Progress</div>
+      <div class="stat-value" id="progressTickets">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Resolved</div>
+      <div class="stat-value" id="resolvedTickets">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">Urgent</div>
+      <div class="stat-value" id="urgentTickets">0</div>
+    </div>
+
+  </section>
+
+  <section class="toolbar">
+
+    <input
+      id="searchInput"
+      type="search"
+      placeholder="Search ticket number, subject, description..."
+    >
+
+    <select id="statusFilter">
+      <option value="">All Status</option>
+      <option value="Open">Open</option>
+      <option value="In Progress">In Progress</option>
+      <option value="Resolved">Resolved</option>
+      <option value="Closed">Closed</option>
+    </select>
+
+    <select id="priorityFilter">
+      <option value="">All Priority</option>
+      <option value="Low">Low</option>
+      <option value="Medium">Medium</option>
+      <option value="High">High</option>
+      <option value="Urgent">Urgent</option>
+    </select>
+
+    <select id="categoryFilter">
+      <option value="">All Categories</option>
+      <option value="General">General</option>
+      <option value="Technical">Technical</option>
+      <option value="Account">Account</option>
+      <option value="Students">Students</option>
+      <option value="Teachers">Teachers</option>
+      <option value="Certificates">Certificates</option>
+      <option value="Parents">Parents</option>
+      <option value="Payments">Payments</option>
+      <option value="Other">Other</option>
+    </select>
+
+    <button class="btn-primary" onclick="openCreateTicket()">
+      + New Ticket
+    </button>
+
+  </section>
+
+  <section class="table-card">
+
+    <div class="table-head">
+      <h3>Support Tickets</h3>
+      <span id="resultCount">0 tickets</span>
+    </div>
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Ticket</th>
+            <th>Subject</th>
+            <th>Category</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody id="ticketsBody">
+          <tr>
+            <td colspan="7">
+              <div class="loading">Loading support tickets...</div>
+            </td>
+          </tr>
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <div class="pagination">
+
+      <button id="prevBtn" onclick="previousPage()">
+        ← Previous
+      </button>
+
+      <span id="pageInfo">Page 1</span>
+
+      <button id="nextBtn" onclick="nextPage()">
+        Next →
+      </button>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<!-- CREATE TICKET MODAL -->
+
+<div id="createModal" class="modal">
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+
+      <h3>Create Support Ticket</h3>
+
+      <button class="close" onclick="closeCreateTicket()">
+        ×
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <div class="form-grid">
+
+        <div class="form-group full">
+          <label>
+            Subject <span class="required">*</span>
+          </label>
+
+          <input
+            id="ticketSubject"
+            type="text"
+            placeholder="Enter your support issue"
+          >
+        </div>
+
+        <div class="form-group">
+
+          <label>Category</label>
+
+          <select id="ticketCategory">
+
+            <option value="General">General</option>
+            <option value="Technical">Technical</option>
+            <option value="Account">Account</option>
+            <option value="Students">Students</option>
+            <option value="Teachers">Teachers</option>
+            <option value="Certificates">Certificates</option>
+            <option value="Parents">Parents</option>
+            <option value="Payments">Payments</option>
+            <option value="Other">Other</option>
+
+          </select>
+
+        </div>
+
+        <div class="form-group">
+
+          <label>Priority</label>
+
+          <select id="ticketPriority">
+
+            <option value="Low">Low</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="High">High</option>
+            <option value="Urgent">Urgent</option>
+
+          </select>
+
+        </div>
+
+        <div class="form-group full">
+
+          <label>
+            Description <span class="required">*</span>
+          </label>
+
+          <textarea
+            id="ticketDescription"
+            rows="7"
+            placeholder="Describe your problem or request in detail..."
+          ></textarea>
+
+        </div>
+
+      </div>
+
+      <div class="modal-actions">
+
+        <button
+          class="btn-primary"
+          onclick="createTicket()"
+        >
+          Submit Ticket
+        </button>
+
+        <button
+          onclick="closeCreateTicket()"
+        >
+          Cancel
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- VIEW TICKET MODAL -->
+
+<div id="viewModal" class="modal">
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+
+      <h3 id="viewTicketTitle">Ticket Details</h3>
+
+      <button class="close" onclick="closeViewTicket()">
+        ×
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <div class="ticket-info">
+
+        <div class="info-box">
+          <small>Ticket Number</small>
+          <strong id="viewTicketNo">—</strong>
+        </div>
+
+        <div class="info-box">
+          <small>Status</small>
+          <strong id="viewStatus">—</strong>
+        </div>
+
+        <div class="info-box">
+          <small>Priority</small>
+          <strong id="viewPriority">—</strong>
+        </div>
+
+        <div class="info-box">
+          <small>Category</small>
+          <strong id="viewCategory">—</strong>
+        </div>
+
+        <div class="info-box">
+          <small>Created</small>
+          <strong id="viewCreated">—</strong>
+        </div>
+
+        <div class="info-box">
+          <small>Updated</small>
+          <strong id="viewUpdated">—</strong>
+        </div>
+
+      </div>
+
+      <div class="description-box">
+        <strong>Description</strong>
+        <div id="viewDescription" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="conversation">
+
+        <h4>Conversation</h4>
+
+        <div id="messagesList">
+          <div class="loading">Loading messages...</div>
+        </div>
+
+        <div id="replyArea" class="reply-area">
+
+          <textarea
+            id="replyMessage"
+            rows="4"
+            placeholder="Write a reply..."
+          ></textarea>
+
+          <div class="modal-actions">
+
+            <button
+              class="btn-primary"
+              onclick="sendReply()"
+            >
+              Send Reply
+            </button>
+
+            <button
+              class="btn-warning"
+              id="progressBtn"
+              onclick="changeTicketStatus('In Progress')"
+            >
+              Mark In Progress
+            </button>
+
+            <button
+              class="btn-success"
+              id="resolveBtn"
+              onclick="changeTicketStatus('Resolved')"
+            >
+              Resolve
+            </button>
+
+            <button
+              class="btn-danger"
+              id="closeBtn"
+              onclick="changeTicketStatus('Closed')"
+            >
+              Close
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="support.js"></script>
+
+</body>
+</html>
