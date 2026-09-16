@@ -1,540 +1,563 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>GAAWOW EMS — Audit Logs</title>
-
-<style>
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: Arial, sans-serif;
-  background: #F5F7FA;
-  color: #1F2937;
-}
-
-/* HEADER */
-
-header {
-  background: linear-gradient(135deg, #0B1E63, #0B4DA2);
-  color: white;
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.brand img {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  background: white;
-  border-radius: 10px;
-  padding: 4px;
-}
-
-.brand h1 {
-  font-size: 20px;
-}
-
-.brand p {
-  font-size: 12px;
-  opacity: .85;
-  margin-top: 3px;
-}
-
-.back-btn {
-  border: none;
-  background: #D4AF37;
-  color: #0B1E63;
-  font-weight: bold;
-  padding: 10px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-/* MAIN */
-
-main {
-  max-width: 1450px;
-  margin: 25px auto;
-  padding: 0 18px;
-}
-
-.title-area {
-  margin-bottom: 20px;
-}
-
-.title-area h2 {
-  color: #0B1E63;
-  font-size: 28px;
-}
-
-.title-area p {
-  color: #6B7280;
-  margin-top: 5px;
-}
-
-/* SUMMARY */
-
-.summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.summary-card {
-  background: white;
-  border-radius: 14px;
-  padding: 18px;
-  box-shadow: 0 3px 14px rgba(0,0,0,.07);
-}
-
-.summary-card small {
-  color: #6B7280;
-  font-size: 12px;
-}
-
-.summary-card strong {
-  display: block;
-  font-size: 25px;
-  color: #0B1E63;
-  margin-top: 7px;
-}
-
-/* FILTERS */
-
-.filters {
-  background: white;
-  padding: 18px;
-  border-radius: 14px;
-  box-shadow: 0 3px 14px rgba(0,0,0,.07);
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.filters input,
-.filters select {
-  width: 100%;
-  padding: 11px 12px;
-  border: 1px solid #D1D5DB;
-  border-radius: 8px;
-  outline: none;
-  background: white;
-}
-
-.filters input:focus,
-.filters select:focus {
-  border-color: #0B4DA2;
-}
-
-/* TABLE */
-
-.table-card {
-  background: white;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 3px 14px rgba(0,0,0,.07);
-}
-
-.table-wrapper {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 1150px;
-}
-
-th {
-  background: #0B1E63;
-  color: white;
-  text-align: left;
-  padding: 13px;
-  font-size: 12px;
-}
-
-td {
-  padding: 12px;
-  border-bottom: 1px solid #E5E7EB;
-  font-size: 13px;
-  vertical-align: middle;
-}
-
-tr:hover {
-  background: #F8FAFC;
-}
-
-/* BADGES */
-
-.badge {
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: bold;
-}
-
-.insert {
-  background: #DCFCE7;
-  color: #15803D;
-}
-
-.update {
-  background: #DBEAFE;
-  color: #1D4ED8;
-}
-
-.delete {
-  background: #FEE2E2;
-  color: #B91C1C;
-}
-
-.module {
-  color: #0B1E63;
-  font-weight: bold;
-}
-
-.user-name {
-  font-weight: bold;
-  color: #1F2937;
-}
-
-.institution {
-  font-size: 11px;
-  color: #6B7280;
-  margin-top: 3px;
-}
-
-.record-id {
-  font-family: monospace;
-  font-size: 10px;
-  color: #6B7280;
-  max-width: 160px;
-  word-break: break-all;
-}
-
-.date {
-  white-space: nowrap;
-  font-size: 12px;
-}
-
-.details {
-  max-width: 220px;
-}
-
-/* VIEW BUTTON */
-
-.view-btn {
-  border: none;
-  background: #0B4DA2;
-  color: white;
-  padding: 7px 11px;
-  border-radius: 7px;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: bold;
-}
-
-.view-btn:hover {
-  background: #0B1E63;
-}
-
-/* EMPTY */
-
-.loading,
-.empty,
-.error {
-  text-align: center;
-  padding: 35px;
-}
-
-.loading,
-.empty {
-  color: #6B7280;
-}
-
-.error {
-  color: #DC2626;
-}
-
-/* PAGINATION */
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-  padding: 18px;
-}
-
-.pagination button {
-  border: none;
-  background: #0B4DA2;
-  color: white;
-  padding: 9px 15px;
-  border-radius: 7px;
-  cursor: pointer;
-}
-
-.pagination button:disabled {
-  background: #CBD5E1;
-  cursor: not-allowed;
-}
-
-#pageInfo {
-  color: #0B1E63;
-  font-weight: bold;
-}
-
-/* MODAL */
-
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 1000;
-  inset: 0;
-  background: rgba(0,0,0,.55);
-  padding: 25px;
-  overflow-y: auto;
-}
-
-.modal-box {
-  max-width: 900px;
-  margin: 30px auto;
-  background: white;
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0,0,0,.25);
-}
-
-.modal-header {
-  background: linear-gradient(135deg, #0B1E63, #0B4DA2);
-  color: white;
-  padding: 17px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h3 {
-  font-size: 18px;
-}
-
-.close-btn {
-  border: none;
-  background: transparent;
-  color: white;
-  font-size: 25px;
-  cursor: pointer;
-}
-
-.modal-content {
-  padding: 20px;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.info-item {
-  background: #F8FAFC;
-  padding: 12px;
-  border-radius: 8px;
-}
-
-.info-item small {
-  display: block;
-  color: #6B7280;
-  margin-bottom: 4px;
-}
-
-.info-item strong {
-  word-break: break-word;
-}
-
-.data-title {
-  color: #0B1E63;
-  margin: 15px 0 8px;
-}
-
-pre {
-  background: #111827;
-  color: #E5E7EB;
-  padding: 15px;
-  border-radius: 9px;
-  overflow-x: auto;
-  max-height: 300px;
-  font-size: 11px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* RESPONSIVE */
-
-@media (max-width: 900px) {
-
-  .summary {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .filters {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 550px) {
-
-  header {
-    padding: 14px;
-  }
-
-  .summary {
-    grid-template-columns: 1fr;
-  }
-
-  .filters {
-    grid-template-columns: 1fr;
-  }
-
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-
-  main {
-    padding: 0 12px;
-  }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Audit Logs</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --blue: #0B4DA2;
+      --navy: #0B1E63;
+      --gold: #D4AF37;
+      --bg: #F5F7FA;
+      --text: #1F2937;
+      --green: #16A34A;
+      --red: #DC2626;
+      --orange: #EA580C;
+      --white: #ffffff;
+      --border: #E5E7EB;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: white;
+      padding: 18px 24px;
+      box-shadow: 0 3px 15px rgba(0,0,0,.15);
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .brand img {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      opacity: .85;
+    }
+
+    .back-btn {
+      border: 1px solid rgba(255,255,255,.35);
+      color: white;
+      text-decoration: none;
+      padding: 10px 15px;
+      border-radius: 9px;
+      font-weight: bold;
+      background: rgba(255,255,255,.1);
+    }
+
+    .back-btn:hover {
+      background: rgba(255,255,255,.2);
+    }
+
+    main {
+      max-width: 1400px;
+      margin: 25px auto;
+      padding: 0 18px;
+    }
+
+    .page-title {
+      margin-bottom: 20px;
+    }
+
+    .page-title h2 {
+      margin: 0;
+      color: var(--navy);
+      font-size: 28px;
+    }
+
+    .page-title p {
+      margin: 6px 0 0;
+      color: #6B7280;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.05);
+    }
+
+    .stat-label {
+      color: #6B7280;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 27px;
+      font-weight: 800;
+      color: var(--navy);
+    }
+
+    .filters {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.05);
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr auto;
+      gap: 10px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #D1D5DB;
+      border-radius: 9px;
+      background: white;
+      font-size: 14px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(11,77,162,.1);
+    }
+
+    .clear-btn {
+      border: none;
+      background: var(--navy);
+      color: white;
+      padding: 11px 15px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .table-card {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,.05);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1000px;
+    }
+
+    th {
+      background: #F8FAFC;
+      color: var(--navy);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      text-align: left;
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 14px;
+      border-bottom: 1px solid #EEF0F3;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    tr:hover td {
+      background: #FAFCFF;
+    }
+
+    .user-name {
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .sub {
+      color: #6B7280;
+      font-size: 11px;
+      margin-top: 3px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .insert {
+      background: #DCFCE7;
+      color: #166534;
+    }
+
+    .update {
+      background: #DBEAFE;
+      color: #1D4ED8;
+    }
+
+    .delete {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .other {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .view-btn {
+      border: 1px solid var(--blue);
+      color: var(--blue);
+      background: white;
+      padding: 7px 11px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .view-btn:hover {
+      background: var(--blue);
+      color: white;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 45px 20px;
+      color: #6B7280;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 45px;
+      color: var(--blue);
+      font-weight: bold;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 18px;
+      gap: 10px;
+    }
+
+    .page-buttons {
+      display: flex;
+      gap: 7px;
+    }
+
+    .page-buttons button {
+      border: 1px solid #D1D5DB;
+      background: white;
+      padding: 8px 12px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .page-buttons button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 1000;
+      padding: 25px;
+      overflow-y: auto;
+    }
+
+    .modal-box {
+      max-width: 900px;
+      margin: 20px auto;
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: white;
+      padding: 18px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+    }
+
+    .close {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 27px;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .detail {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 11px;
+    }
+
+    .detail strong {
+      display: block;
+      color: #6B7280;
+      font-size: 11px;
+      margin-bottom: 5px;
+    }
+
+    .detail span {
+      word-break: break-word;
+      font-size: 13px;
+    }
+
+    .json-title {
+      color: var(--navy);
+      margin: 15px 0 7px;
+      font-size: 14px;
+    }
+
+    pre {
+      background: #0F172A;
+      color: #E5E7EB;
+      padding: 15px;
+      border-radius: 9px;
+      overflow: auto;
+      max-height: 300px;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .notice {
+      display: none;
+      padding: 13px;
+      margin-bottom: 15px;
+      border-radius: 9px;
+      font-weight: bold;
+    }
+
+    .notice.error {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    @media (max-width: 900px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .filter-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .clear-btn {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .header-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .filter-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      main {
+        margin-top: 18px;
+      }
+
+      .page-title h2 {
+        font-size: 23px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
 <header>
+  <div class="header-inner">
 
-  <div class="brand">
+    <div class="brand">
+      <img
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
+      >
 
-    <img
-      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-      alt="GAAWOW Academy Logo"
-    >
-
-    <div>
-      <h1>GAAWOW EMS</h1>
-      <p>Audit Logs — Security & System Activity</p>
+      <div>
+        <h1>GAAWOW EMS</h1>
+        <p>Audit & Security Management</p>
+      </div>
     </div>
 
+    <a class="back-btn" href="dashboard.html">
+      ← Dashboard
+    </a>
+
   </div>
-
-  <button
-    class="back-btn"
-    onclick="goDashboard()"
-  >
-    ← Dashboard
-  </button>
-
 </header>
-
 
 <main>
 
-  <div class="title-area">
-
+  <div class="page-title">
     <h2>Audit Logs</h2>
-
-    <p>
-      Monitor and review all important system activities.
-    </p>
-
+    <p>Track system activities, changes and security events.</p>
   </div>
 
+  <div id="errorBox" class="notice error"></div>
 
-  <!-- SUMMARY -->
+  <section class="stats">
 
-  <div class="summary">
-
-    <div class="summary-card">
-      <small>Total Logs</small>
-      <strong id="totalCount">0</strong>
+    <div class="stat">
+      <div class="stat-label">TOTAL LOGS</div>
+      <div id="totalLogs" class="stat-value">0</div>
     </div>
 
-    <div class="summary-card">
-      <small>INSERT</small>
-      <strong id="insertCount">0</strong>
+    <div class="stat">
+      <div class="stat-label">INSERT</div>
+      <div id="insertLogs" class="stat-value">0</div>
     </div>
 
-    <div class="summary-card">
-      <small>UPDATE</small>
-      <strong id="updateCount">0</strong>
+    <div class="stat">
+      <div class="stat-label">UPDATE</div>
+      <div id="updateLogs" class="stat-value">0</div>
     </div>
 
-    <div class="summary-card">
-      <small>DELETE</small>
-      <strong id="deleteCount">0</strong>
+    <div class="stat">
+      <div class="stat-label">DELETE</div>
+      <div id="deleteLogs" class="stat-value">0</div>
     </div>
 
-  </div>
+  </section>
 
+  <section class="filters">
 
-  <!-- FILTERS -->
+    <div class="filter-grid">
 
-  <div class="filters">
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="Search description, module, user name..."
+      >
 
-    <input
-      type="text"
-      id="searchInput"
-      placeholder="Search user, action, module, description..."
-    >
+      <select id="actionFilter">
+        <option value="">All Actions</option>
+        <option value="INSERT">INSERT</option>
+        <option value="UPDATE">UPDATE</option>
+        <option value="DELETE">DELETE</option>
+      </select>
 
-    <select id="actionFilter">
-      <option value="">All Actions</option>
-      <option value="INSERT">INSERT</option>
-      <option value="UPDATE">UPDATE</option>
-      <option value="DELETE">DELETE</option>
-    </select>
+      <select id="moduleFilter">
+        <option value="">All Modules</option>
+      </select>
 
-    <select id="moduleFilter">
-      <option value="">All Modules</option>
-    </select>
+      <input
+        id="dateFilter"
+        type="date"
+      >
 
-    <input
-      type="date"
-      id="dateFilter"
-    >
+      <button id="clearBtn" class="clear-btn">
+        Clear
+      </button>
 
-  </div>
+    </div>
 
+  </section>
 
-  <!-- TABLE -->
+  <section class="table-card">
 
-  <div class="table-card">
+    <div id="loading" class="loading">
+      Loading audit logs...
+    </div>
 
-    <div class="table-wrapper">
-
-      <table>
-
+    <div class="table-wrap">
+      <table id="logsTable" style="display:none;">
         <thead>
-
           <tr>
             <th>Date & Time</th>
             <th>User</th>
@@ -545,92 +568,109 @@ pre {
             <th>Description</th>
             <th>Details</th>
           </tr>
-
         </thead>
 
-        <tbody id="logsBody">
-
-          <tr>
-            <td
-              colspan="8"
-              class="loading"
-            >
-              Loading audit logs...
-            </td>
-          </tr>
-
-        </tbody>
-
+        <tbody id="logsBody"></tbody>
       </table>
-
     </div>
 
+    <div id="empty" class="empty" style="display:none;">
+      No audit logs found.
+    </div>
 
     <div class="pagination">
 
-      <button
-        id="prevBtn"
-        onclick="previousPage()"
-      >
-        ← Previous
-      </button>
-
-      <span id="pageInfo">
+      <div id="pageInfo">
         Page 1
-      </span>
+      </div>
 
-      <button
-        id="nextBtn"
-        onclick="nextPage()"
-      >
-        Next →
-      </button>
+      <div class="page-buttons">
+        <button id="prevBtn">← Previous</button>
+        <button id="nextBtn">Next →</button>
+      </div>
 
     </div>
 
-  </div>
+  </section>
 
 </main>
 
-
 <!-- DETAILS MODAL -->
 
-<div
-  id="detailsModal"
-  class="modal"
-  onclick="closeModal(event)"
->
+<div id="detailsModal" class="modal">
 
-  <div
-    class="modal-box"
-    onclick="event.stopPropagation()"
-  >
+  <div class="modal-box">
 
     <div class="modal-header">
-
       <h3>Audit Log Details</h3>
 
-      <button
-        class="close-btn"
-        onclick="closeModal()"
-      >
+      <button id="closeModal" class="close">
         ×
       </button>
-
     </div>
 
+    <div class="modal-body">
 
-    <div
-      id="modalContent"
-      class="modal-content"
-    ></div>
+      <div class="detail-grid">
+
+        <div class="detail">
+          <strong>DATE & TIME</strong>
+          <span id="dDate"></span>
+        </div>
+
+        <div class="detail">
+          <strong>ACTION</strong>
+          <span id="dAction"></span>
+        </div>
+
+        <div class="detail">
+          <strong>MODULE</strong>
+          <span id="dModule"></span>
+        </div>
+
+        <div class="detail">
+          <strong>USER</strong>
+          <span id="dUser"></span>
+        </div>
+
+        <div class="detail">
+          <strong>INSTITUTION</strong>
+          <span id="dInstitution"></span>
+        </div>
+
+        <div class="detail">
+          <strong>RECORD ID</strong>
+          <span id="dRecord"></span>
+        </div>
+
+        <div class="detail">
+          <strong>IP ADDRESS</strong>
+          <span id="dIP"></span>
+        </div>
+
+        <div class="detail">
+          <strong>USER AGENT</strong>
+          <span id="dAgent"></span>
+        </div>
+
+      </div>
+
+      <div class="detail">
+        <strong>DESCRIPTION</strong>
+        <span id="dDescription"></span>
+      </div>
+
+      <h4 class="json-title">Old Data</h4>
+      <pre id="oldData">{}</pre>
+
+      <h4 class="json-title">New Data</h4>
+      <pre id="newData">{}</pre>
+
+    </div>
 
   </div>
 
 </div>
-
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script src="audit-logs.js"></script>
 
