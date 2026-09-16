@@ -1,564 +1,561 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>GAAWOW EMS — Attendance</title>
+<title>GAAWOW EMS — Audit Logs</title>
 
-  <link rel="icon" type="image/png"
-        href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+body {
+  font-family: Arial, sans-serif;
+  background: #F5F7FA;
+  color: #1F2937;
+}
 
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f5f7fa;
-      color: #1f2937;
-    }
+/* HEADER */
 
-    header {
-      background: linear-gradient(135deg, #0b1e63, #0b4da2);
-      color: white;
-      padding: 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,.12);
-    }
+header {
+  background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+  color: white;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
 
-    .header-inner {
-      max-width: 1250px;
-      margin: auto;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-    .logo {
-      width: 58px;
-      height: 58px;
-      object-fit: contain;
-      background: white;
-      border-radius: 12px;
-      padding: 5px;
-    }
+.brand img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  background: white;
+  border-radius: 10px;
+  padding: 4px;
+}
 
-    .brand h1 {
-      margin: 0;
-      font-size: 23px;
-    }
+.brand h1 {
+  font-size: 20px;
+}
 
-    .brand p {
-      margin: 4px 0 0;
-      color: #f0d98a;
-      font-size: 13px;
-    }
+.brand p {
+  font-size: 12px;
+  opacity: .85;
+  margin-top: 3px;
+}
 
-    main {
-      max-width: 1250px;
-      margin: 25px auto;
-      padding: 0 15px 50px;
-    }
+.back-btn {
+  border: none;
+  background: #D4AF37;
+  color: #0B1E63;
+  font-weight: bold;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
 
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 15px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
-    }
+/* MAIN */
 
-    .topbar h2 {
-      margin: 0;
-      color: #0b1e63;
-    }
+main {
+  max-width: 1450px;
+  margin: 25px auto;
+  padding: 0 18px;
+}
 
-    .topbar p {
-      margin: 5px 0 0;
-      color: #6b7280;
-    }
+.title-area {
+  margin-bottom: 20px;
+}
 
-    .panel {
-      background: white;
-      border-radius: 15px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 3px 14px rgba(0,0,0,.07);
-    }
+.title-area h2 {
+  color: #0B1E63;
+  font-size: 28px;
+}
 
-    .filters {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 13px;
-    }
+.title-area p {
+  color: #6B7280;
+  margin-top: 5px;
+}
 
-    .full {
-      grid-column: 1 / -1;
-    }
+/* SUMMARY */
 
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 13px;
-      font-weight: bold;
-      color: #374151;
-    }
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
 
-    input,
-    select,
-    textarea {
-      width: 100%;
-      padding: 11px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      background: white;
-      font-size: 14px;
-      outline: none;
-    }
+.summary-card {
+  background: white;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 3px 14px rgba(0,0,0,.07);
+}
 
-    input:focus,
-    select:focus,
-    textarea:focus {
-      border-color: #0b4da2;
-      box-shadow: 0 0 0 2px rgba(11,77,162,.1);
-    }
+.summary-card small {
+  color: #6B7280;
+  font-size: 12px;
+}
 
-    textarea {
-      min-height: 70px;
-      resize: vertical;
-    }
+.summary-card strong {
+  display: block;
+  font-size: 25px;
+  color: #0B1E63;
+  margin-top: 7px;
+}
 
-    button {
-      border: 0;
-      border-radius: 9px;
-      padding: 11px 16px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+/* FILTERS */
 
-    .btn-primary {
-      background: #0b4da2;
-      color: white;
-    }
+.filters {
+  background: white;
+  padding: 18px;
+  border-radius: 14px;
+  box-shadow: 0 3px 14px rgba(0,0,0,.07);
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
 
-    .btn-primary:hover {
-      background: #083b7d;
-    }
+.filters input,
+.filters select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  outline: none;
+  background: white;
+}
 
-    .btn-gold {
-      background: #d4af37;
-      color: #111827;
-    }
+.filters input:focus,
+.filters select:focus {
+  border-color: #0B4DA2;
+}
 
-    .btn-secondary {
-      background: #e5e7eb;
-      color: #1f2937;
-    }
+/* TABLE */
 
-    .btn-success {
-      background: #16a34a;
-      color: white;
-    }
+.table-card {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 14px rgba(0,0,0,.07);
+}
 
-    .lesson-info {
-      display: none;
-      background: linear-gradient(135deg, #0b1e63, #0b4da2);
-      color: white;
-      border-radius: 14px;
-      padding: 18px;
-      margin-top: 18px;
-    }
+.table-wrapper {
+  overflow-x: auto;
+}
 
-    .lesson-info h3 {
-      margin: 0 0 8px;
-    }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1150px;
+}
 
-    .lesson-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      font-size: 13px;
-      color: #e5e7eb;
-    }
+th {
+  background: #0B1E63;
+  color: white;
+  text-align: left;
+  padding: 13px;
+  font-size: 12px;
+}
 
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 13px;
-      margin-bottom: 20px;
-    }
+td {
+  padding: 12px;
+  border-bottom: 1px solid #E5E7EB;
+  font-size: 13px;
+  vertical-align: middle;
+}
 
-    .stat {
-      background: white;
-      border-radius: 13px;
-      padding: 17px;
-      box-shadow: 0 3px 12px rgba(0,0,0,.06);
-      border-left: 5px solid #0b4da2;
-    }
+tr:hover {
+  background: #F8FAFC;
+}
 
-    .stat.present {
-      border-left-color: #16a34a;
-    }
+/* BADGES */
 
-    .stat.absent {
-      border-left-color: #dc2626;
-    }
+.badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: bold;
+}
 
-    .stat.late {
-      border-left-color: #d4af37;
-    }
+.insert {
+  background: #DCFCE7;
+  color: #15803D;
+}
 
-    .stat.excused {
-      border-left-color: #7c3aed;
-    }
+.update {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
 
-    .stat small {
-      color: #6b7280;
-    }
+.delete {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
 
-    .stat strong {
-      display: block;
-      margin-top: 5px;
-      font-size: 25px;
-      color: #0b1e63;
-    }
+.module {
+  color: #0B1E63;
+  font-weight: bold;
+}
 
-    .attendance-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 15px;
-      flex-wrap: wrap;
-      margin-bottom: 15px;
-    }
+.user-name {
+  font-weight: bold;
+  color: #1F2937;
+}
 
-    .attendance-header h3 {
-      margin: 0;
-      color: #0b1e63;
-    }
+.institution {
+  font-size: 11px;
+  color: #6B7280;
+  margin-top: 3px;
+}
 
-    .quick-actions {
-      display: flex;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
+.record-id {
+  font-family: monospace;
+  font-size: 10px;
+  color: #6B7280;
+  max-width: 160px;
+  word-break: break-all;
+}
 
-    .table-wrap {
-      overflow-x: auto;
-    }
+.date {
+  white-space: nowrap;
+  font-size: 12px;
+}
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 900px;
-    }
+.details {
+  max-width: 220px;
+}
 
-    th {
-      background: #0b1e63;
-      color: white;
-      padding: 13px;
-      text-align: left;
-      font-size: 13px;
-    }
+/* VIEW BUTTON */
 
-    td {
-      padding: 12px;
-      border-bottom: 1px solid #e5e7eb;
-      font-size: 13px;
-      vertical-align: middle;
-    }
+.view-btn {
+  border: none;
+  background: #0B4DA2;
+  color: white;
+  padding: 7px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+}
 
-    tr:hover td {
-      background: #f8fafc;
-    }
+.view-btn:hover {
+  background: #0B1E63;
+}
 
-    .student-name {
-      font-weight: bold;
-      color: #0b1e63;
-    }
+/* EMPTY */
 
-    .student-id {
-      color: #6b7280;
-      font-size: 11px;
-      margin-top: 3px;
-    }
+.loading,
+.empty,
+.error {
+  text-align: center;
+  padding: 35px;
+}
 
-    .status-select {
-      min-width: 125px;
-      font-weight: bold;
-    }
+.loading,
+.empty {
+  color: #6B7280;
+}
 
-    .notes-input {
-      min-width: 180px;
-    }
+.error {
+  color: #DC2626;
+}
 
-    .message {
-      display: none;
-      padding: 12px;
-      border-radius: 9px;
-      margin-bottom: 15px;
-      font-size: 13px;
-    }
+/* PAGINATION */
 
-    .success-message {
-      background: #dcfce7;
-      color: #166534;
-    }
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  padding: 18px;
+}
 
-    .error-message {
-      background: #fee2e2;
-      color: #991b1b;
-    }
+.pagination button {
+  border: none;
+  background: #0B4DA2;
+  color: white;
+  padding: 9px 15px;
+  border-radius: 7px;
+  cursor: pointer;
+}
 
-    .info-message {
-      background: #dbeafe;
-      color: #1e40af;
-    }
+.pagination button:disabled {
+  background: #CBD5E1;
+  cursor: not-allowed;
+}
 
-    .empty {
-      text-align: center;
-      padding: 40px;
-      color: #6b7280;
-    }
+#pageInfo {
+  color: #0B1E63;
+  font-weight: bold;
+}
 
-    .loading {
-      text-align: center;
-      padding: 35px;
-      color: #6b7280;
-    }
+/* MODAL */
 
-    .save-bar {
-      display: none;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 18px;
-      padding-top: 18px;
-      border-top: 1px solid #e5e7eb;
-    }
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  padding: 25px;
+  overflow-y: auto;
+}
 
-    @media (max-width: 1000px) {
-      .stats {
-        grid-template-columns: repeat(3, 1fr);
-      }
+.modal-box {
+  max-width: 900px;
+  margin: 30px auto;
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,.25);
+}
 
-      .filters {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
+.modal-header {
+  background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+  color: white;
+  padding: 17px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-    @media (max-width: 600px) {
-      .stats,
-      .filters {
-        grid-template-columns: 1fr;
-      }
+.modal-header h3 {
+  font-size: 18px;
+}
 
-      .full {
-        grid-column: auto;
-      }
+.close-btn {
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 25px;
+  cursor: pointer;
+}
 
-      .brand h1 {
-        font-size: 19px;
-      }
+.modal-content {
+  padding: 20px;
+}
 
-      .logo {
-        width: 50px;
-        height: 50px;
-      }
-    }
-  </style>
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.info-item {
+  background: #F8FAFC;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.info-item small {
+  display: block;
+  color: #6B7280;
+  margin-bottom: 4px;
+}
+
+.info-item strong {
+  word-break: break-word;
+}
+
+.data-title {
+  color: #0B1E63;
+  margin: 15px 0 8px;
+}
+
+pre {
+  background: #111827;
+  color: #E5E7EB;
+  padding: 15px;
+  border-radius: 9px;
+  overflow-x: auto;
+  max-height: 300px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+
+  .summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 550px) {
+
+  header {
+    padding: 14px;
+  }
+
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  main {
+    padding: 0 12px;
+  }
+}
+</style>
 </head>
 
 <body>
 
 <header>
-  <div class="header-inner">
+
+  <div class="brand">
 
     <img
-      class="logo"
       src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
       alt="GAAWOW Academy Logo"
     >
 
-    <div class="brand">
+    <div>
       <h1>GAAWOW EMS</h1>
-      <p>Ilayska Aqoonta iyo Xirfadda</p>
+      <p>Audit Logs — Security & System Activity</p>
     </div>
 
   </div>
+
+  <button
+    class="back-btn"
+    onclick="goDashboard()"
+  >
+    ← Dashboard
+  </button>
+
 </header>
+
 
 <main>
 
-  <div class="topbar">
-    <div>
-      <h2>Attendance Management</h2>
-      <p>Record and manage student attendance by lesson</p>
-    </div>
+  <div class="title-area">
 
-    <button
-      class="btn-gold"
-      onclick="loadSelectedLesson()"
-    >
-      ↻ Refresh
-    </button>
+    <h2>Audit Logs</h2>
+
+    <p>
+      Monitor and review all important system activities.
+    </p>
+
   </div>
 
-  <div id="message" class="message"></div>
+
+  <!-- SUMMARY -->
+
+  <div class="summary">
+
+    <div class="summary-card">
+      <small>Total Logs</small>
+      <strong id="totalCount">0</strong>
+    </div>
+
+    <div class="summary-card">
+      <small>INSERT</small>
+      <strong id="insertCount">0</strong>
+    </div>
+
+    <div class="summary-card">
+      <small>UPDATE</small>
+      <strong id="updateCount">0</strong>
+    </div>
+
+    <div class="summary-card">
+      <small>DELETE</small>
+      <strong id="deleteCount">0</strong>
+    </div>
+
+  </div>
+
 
   <!-- FILTERS -->
 
-  <section class="panel">
+  <div class="filters">
 
-    <div class="filters">
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Search user, action, module, description..."
+    >
 
-      <div>
-        <label>Institution *</label>
-        <select id="institutionSelect">
-          <option value="">Select institution</option>
-        </select>
-      </div>
+    <select id="actionFilter">
+      <option value="">All Actions</option>
+      <option value="INSERT">INSERT</option>
+      <option value="UPDATE">UPDATE</option>
+      <option value="DELETE">DELETE</option>
+    </select>
 
-      <div>
-        <label>Course *</label>
-        <select id="courseSelect">
-          <option value="">Select course</option>
-        </select>
-      </div>
+    <select id="moduleFilter">
+      <option value="">All Modules</option>
+    </select>
 
-      <div>
-        <label>Class *</label>
-        <select id="classSelect">
-          <option value="">Select class</option>
-        </select>
-      </div>
+    <input
+      type="date"
+      id="dateFilter"
+    >
 
-      <div>
-        <label>Lesson *</label>
-        <select id="lessonSelect">
-          <option value="">Select lesson</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Search Student</label>
-        <input
-          id="studentSearch"
-          type="search"
-          placeholder="Search name or student ID..."
-        >
-      </div>
-
-      <div>
-        <label>Attendance Date</label>
-        <input
-          id="attendanceDate"
-          type="date"
-        >
-      </div>
-
-    </div>
-
-    <div id="lessonInfo" class="lesson-info">
-
-      <h3 id="lessonTitle">Lesson</h3>
-
-      <div class="lesson-meta">
-
-        <span id="lessonDate"></span>
-        <span id="lessonTime"></span>
-        <span id="lessonRoom"></span>
-        <span id="lessonTeacher"></span>
-
-      </div>
-
-    </div>
-
-  </section>
+  </div>
 
 
-  <!-- STATS -->
+  <!-- TABLE -->
 
-  <section class="stats">
+  <div class="table-card">
 
-    <div class="stat">
-      <small>Total Students</small>
-      <strong id="totalStudents">0</strong>
-    </div>
-
-    <div class="stat present">
-      <small>Present</small>
-      <strong id="presentCount">0</strong>
-    </div>
-
-    <div class="stat absent">
-      <small>Absent</small>
-      <strong id="absentCount">0</strong>
-    </div>
-
-    <div class="stat late">
-      <small>Late</small>
-      <strong id="lateCount">0</strong>
-    </div>
-
-    <div class="stat excused">
-      <small>Excused</small>
-      <strong id="excusedCount">0</strong>
-    </div>
-
-  </section>
-
-
-  <!-- ATTENDANCE -->
-
-  <section class="panel">
-
-    <div class="attendance-header">
-
-      <h3>Student Attendance</h3>
-
-      <div class="quick-actions">
-
-        <button
-          class="btn-success"
-          onclick="markAll('present')"
-        >
-          ✓ All Present
-        </button>
-
-        <button
-          class="btn-secondary"
-          onclick="markAll('absent')"
-        >
-          All Absent
-        </button>
-
-      </div>
-
-    </div>
-
-    <div class="table-wrap">
+    <div class="table-wrapper">
 
       <table>
 
         <thead>
+
           <tr>
-            <th>#</th>
-            <th>Student</th>
-            <th>Student ID</th>
-            <th>Status</th>
-            <th>Notes</th>
+            <th>Date & Time</th>
+            <th>User</th>
+            <th>Institution</th>
+            <th>Action</th>
+            <th>Module</th>
+            <th>Record ID</th>
+            <th>Description</th>
+            <th>Details</th>
           </tr>
+
         </thead>
 
-        <tbody id="attendanceBody">
+        <tbody id="logsBody">
 
           <tr>
-            <td colspan="5" class="empty">
-              Select Institution, Course, Class and Lesson
-              to load students.
+            <td
+              colspan="8"
+              class="loading"
+            >
+              Loading audit logs...
             </td>
           </tr>
 
@@ -568,35 +565,74 @@
 
     </div>
 
-    <div
-      id="saveBar"
-      class="save-bar"
-    >
+
+    <div class="pagination">
 
       <button
-        class="btn-secondary"
-        onclick="resetAttendance()"
+        id="prevBtn"
+        onclick="previousPage()"
       >
-        Reset
+        ← Previous
       </button>
 
+      <span id="pageInfo">
+        Page 1
+      </span>
+
       <button
-        class="btn-primary"
-        onclick="saveAttendance()"
+        id="nextBtn"
+        onclick="nextPage()"
       >
-        💾 Save Attendance
+        Next →
       </button>
 
     </div>
 
-  </section>
+  </div>
 
 </main>
 
+
+<!-- DETAILS MODAL -->
+
+<div
+  id="detailsModal"
+  class="modal"
+  onclick="closeModal(event)"
+>
+
+  <div
+    class="modal-box"
+    onclick="event.stopPropagation()"
+  >
+
+    <div class="modal-header">
+
+      <h3>Audit Log Details</h3>
+
+      <button
+        class="close-btn"
+        onclick="closeModal()"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div
+      id="modalContent"
+      class="modal-content"
+    ></div>
+
+  </div>
+
+</div>
+
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="attendance.js"></script>
+
+<script src="audit-logs.js"></script>
 
 </body>
 </html>
-
-2. "attendance.js"
