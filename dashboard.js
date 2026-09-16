@@ -10,340 +10,228 @@ const supabaseClient =
     SUPABASE_KEY
   );
 
-const welcomeText =
-  document.getElementById("welcomeText");
 
-const userName =
-  document.getElementById("userName");
-
-const userEmail =
-  document.getElementById("userEmail");
-
-const avatar =
-  document.getElementById("avatar");
-
-const logoutBtn =
-  document.getElementById("logoutBtn");
+function openPage(page) {
+  window.location.href = page;
+}
 
 
-async function loadDashboard() {
+async function checkSuperAdmin() {
 
-  try {
-
-    // =========================
-    // 1. CHECK LOGIN SESSION
-    // =========================
-
-    const {
-      data,
-      error
-    } = await supabaseClient.auth.getSession();
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.auth.getSession();
 
 
-    if (error) {
+  if (
+    error ||
+    !data.session
+  ) {
 
-      console.error(
-        "Session error:",
-        error
-      );
+    window.location.href =
+      "index.html";
 
-      window.location.href =
-        "index.html";
-
-      return;
-    }
+    return false;
+  }
 
 
-    const session =
-      data.session;
+  const user =
+    data.session.user;
 
 
-    if (!session) {
-
-      window.location.href =
-        "index.html";
-
-      return;
-    }
-
-
-    // =========================
-    // 2. GET LOGGED-IN USER
-    // =========================
-
-    const user =
-      session.user;
-
-
-    const email =
-      user.email || "User";
-
-
-    // =========================
-    // 3. GET PROFILE
-    // =========================
-
-    const {
-      data: profile,
-      error: profileError
-    } = await supabaseClient
+  const {
+    data: profile,
+    error: profileError
+  } =
+    await supabaseClient
       .from("profiles")
       .select(
         "full_name, role, institution_id, is_active"
       )
-      .eq("id", user.id)
+      .eq(
+        "id",
+        user.id
+      )
       .single();
 
 
-    if (profileError) {
-
-      console.error(
-        "Profile error:",
-        profileError
-      );
-
-      welcomeText.textContent =
-        "Signed in as " + email;
-
-    }
-
-
-    // =========================
-    // 4. USER NAME
-    // =========================
-
-    const name =
-      profile?.full_name ||
-      user.user_metadata?.full_name ||
-      user.user_metadata?.name ||
-      email.split("@")[0];
-
-
-    userName.textContent =
-      name;
-
-
-    userEmail.textContent =
-      email;
-
-
-    welcomeText.textContent =
-      "Signed in as " + email;
-
-
-    avatar.textContent =
-      name
-        .charAt(0)
-        .toUpperCase();
-
-
-    // =========================
-    // 5. GET ROLE
-    // =========================
-
-    const role =
-      profile?.role || "student";
-
-
-    console.log(
-      "Logged-in user:",
-      email
-    );
-
-    console.log(
-      "User role:",
-      role
-    );
-
-    console.log(
-      "Institution:",
-      profile?.institution_id
-    );
-
-
-    // =========================
-    // 6. SHOW ROLE ON DASHBOARD
-    // =========================
-
-    const roleElement =
-      document.getElementById("userRole");
-
-
-    if (roleElement) {
-
-      roleElement.textContent =
-        role
-          .replace("_", " ")
-          .toUpperCase();
-
-    }
-
-
-    // =========================
-    // 7. SUPER ADMIN
-    // =========================
-
-    if (role === "super_admin") {
-
-      console.log(
-        "SUPER ADMIN ACCESS"
-      );
-
-
-      // If a Super Admin dashboard
-      // exists, open it.
-      const superAdminPage =
-        "super-admin.html";
-
-
-      // Check if the page exists
-      // before redirecting.
-      fetch(superAdminPage, {
-        method: "HEAD"
-      })
-      .then(function(response) {
-
-        if (response.ok) {
-
-          window.location.href =
-            superAdminPage;
-
-        } else {
-
-          console.log(
-            "super-admin.html not found."
-          );
-
-        }
-
-      })
-      .catch(function(error) {
-
-        console.error(
-          "Super Admin page check error:",
-          error
-        );
-
-      });
-
-    }
-
-
-    // =========================
-    // 8. SCHOOL ADMIN
-    // =========================
-
-    if (role === "school_admin") {
-
-      console.log(
-        "SCHOOL ADMIN ACCESS"
-      );
-
-    }
-
-
-    // =========================
-    // 9. TEACHER
-    // =========================
-
-    if (role === "teacher") {
-
-      console.log(
-        "TEACHER ACCESS"
-      );
-
-    }
-
-
-    // =========================
-    // 10. PARENT
-    // =========================
-
-    if (role === "parent") {
-
-      console.log(
-        "PARENT ACCESS"
-      );
-
-    }
-
-
-    // =========================
-    // 11. STUDENT
-    // =========================
-
-    if (role === "student") {
-
-      console.log(
-        "STUDENT ACCESS"
-      );
-
-    }
-
-
-  } catch (error) {
+  if (
+    profileError ||
+    !profile
+  ) {
 
     console.error(
-      "Dashboard error:",
-      error
+      "Profile error:",
+      profileError
+    );
+
+    alert(
+      "Unable to load your profile."
+    );
+
+    return false;
+  }
+
+
+  if (
+    profile.role !==
+    "super_admin"
+  ) {
+
+    alert(
+      "Access denied. Super Admin only."
     );
 
     window.location.href =
       "index.html";
 
+    return false;
   }
 
+
+  if (
+    profile.is_active === false
+  ) {
+
+    alert(
+      "Your account is inactive."
+    );
+
+    await supabaseClient
+      .auth
+      .signOut();
+
+    window.location.href =
+      "index.html";
+
+    return false;
+  }
+
+
+  return true;
 }
 
 
-// =========================
-// LOGOUT
-// =========================
+async function loadCounts() {
 
-logoutBtn.addEventListener(
-  "click",
-  async function () {
-
-    logoutBtn.disabled = true;
-
-    logoutBtn.textContent =
-      "LOGGING OUT...";
-
-
-    const {
-      error
-    } =
-      await supabaseClient.auth.signOut();
-
-
-    if (error) {
-
-      console.error(
-        "Logout error:",
-        error
+  const institutions =
+    await supabaseClient
+      .from("institutions")
+      .select(
+        "id",
+        {
+          count: "exact",
+          head: true
+        }
       );
 
-      logoutBtn.disabled = false;
 
-      logoutBtn.textContent =
-        "LOGOUT";
+  const students =
+    await supabaseClient
+      .from("students")
+      .select(
+        "id",
+        {
+          count: "exact",
+          head: true
+        }
+      );
 
-      return;
+
+  const teachers =
+    await supabaseClient
+      .from("profiles")
+      .select(
+        "id",
+        {
+          count: "exact",
+          head: true
+        }
+      )
+      .eq(
+        "role",
+        "teacher"
+      );
+
+
+  const certificates =
+    await supabaseClient
+      .from("certificates")
+      .select(
+        "id",
+        {
+          count: "exact",
+          head: true
+        }
+      );
+
+
+  document.getElementById(
+    "institutionCount"
+  ).textContent =
+    institutions.count ?? "0";
+
+
+  document.getElementById(
+    "studentCount"
+  ).textContent =
+    students.count ?? "0";
+
+
+  document.getElementById(
+    "teacherCount"
+  ).textContent =
+    teachers.count ?? "0";
+
+
+  document.getElementById(
+    "certificateCount"
+  ).textContent =
+    certificates.count ?? "0";
+}
+
+
+document
+  .getElementById("logoutBtn")
+  .addEventListener(
+    "click",
+    async function () {
+
+      this.disabled = true;
+
+      this.textContent =
+        "LOGGING OUT...";
+
+
+      await supabaseClient
+        .auth
+        .signOut();
+
+
+      sessionStorage.clear();
+
+
+      window.location.href =
+        "index.html";
     }
+  );
 
 
-    sessionStorage.clear();
+async function startDashboard() {
+
+  const allowed =
+    await checkSuperAdmin();
 
 
-    window.location.href =
-      "index.html";
-
+  if (!allowed) {
+    return;
   }
-);
 
 
-// =========================
-// START DASHBOARD
-// =========================
+  await loadCounts();
+}
 
-loadDashboard();
+
+startDashboard();
