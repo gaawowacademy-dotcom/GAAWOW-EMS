@@ -4,7 +4,6 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-
 const supabaseClient =
   window.supabase.createClient(
     SUPABASE_URL,
@@ -12,157 +11,189 @@ const supabaseClient =
   );
 
 
-const PAGE_SIZE = 15;
+let allLogs = [];
+let filteredLogs = [];
 
 let currentPage = 1;
-let totalLogs = 0;
+const pageSize = 15;
+
+let usersMap = {};
+let institutionsMap = {};
 
 
-/* ELEMENTS */
-
-const searchInput =
-  document.getElementById("searchInput");
-
-const actionFilter =
-  document.getElementById("actionFilter");
-
-const moduleFilter =
-  document.getElementById("moduleFilter");
-
-const dateFilter =
-  document.getElementById("dateFilter");
-
-const logsBody =
-  document.getElementById("logsBody");
+document.addEventListener("DOMContentLoaded", init);
 
 
-/* DASHBOARD */
+async function init() {
 
-function goDashboard() {
+  try {
 
-  window.location.href =
-    "dashboard.html";
-}
+    showLoading(true);
 
+    const {
+      data: sessionData,
+      error: sessionError
+    } = await supabaseClient.auth.getSession();
 
-/* SUPER ADMIN */
+    if (sessionError) {
+      throw sessionError;
+    }
 
-async function checkSuperAdmin() {
+    const session = sessionData?.session;
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.auth.getSession();
+    if (!session) {
+      window.location.href = "index.html";
+      return;
+    }
 
+    const userId = session.user.id;
 
-  if (
-    error ||
-    !data.session
-  ) {
-
-    window.location.href =
-      "index.html";
-
-    return false;
-  }
-
-
-  const user =
-    data.session.user;
-
-
-  const {
-    data: profile,
-    error: profileError
-  } =
-    await supabaseClient
+    const {
+      data: profile,
+      error: profileError
+    } = await supabaseClient
       .from("profiles")
-      .select(
-        "full_name, role, institution_id, is_active"
-      )
-      .eq(
-        "id",
-        user.id
-      )
+      .select("full_name, role, institution_id, is_active")
+      .eq("id", userId)
       .single();
 
+    if (profileError) {
+      throw profileError;
+    }
 
-  if (
-    profileError ||
-    !profile
-  ) {
+    if (
+      profile.role !== "super_admin" ||
+      profile.is_active !== true
+    ) {
+      showError(
+        "Access denied. Audit Logs are available to Super Admin only."
+      );
 
-    console.error(
-      profileError
+      setTimeout(() => {
+        window.location.href = "dashboard.html";
+      }, 2500);
+
+      return;
+    }
+
+    await loadUsers();
+    await loadInstitutions();
+    await loadModules();
+    await loadLogs();
+
+  } catch (error) {
+
+    console.error(error);
+
+    showError(
+      error.message || "Unable to load Audit Logs."
     );
 
-    alert(
-      "Unable to load your profile."
-    );
+  } finally {
 
-    return false;
+    showLoading(false);
+
   }
-
-
-  if (
-    profile.role !==
-    "super_admin"
-  ) {
-
-    alert(
-      "Access denied. Super Admin only."
-    );
-
-    window.location.href =
-      "dashboard.html";
-
-    return false;
-  }
-
-
-  if (
-    profile.is_active === false
-  ) {
-
-    await supabaseClient
-      .auth
-      .signOut();
-
-    window.location.href =
-      "index.html";
-
-    return false;
-  }
-
-
-  return true;
 }
 
 
-/* LOAD MODULE FILTER */
+/* =========================
+   LOAD USERS
+========================= */
 
-async function loadModuleFilter() {
+async function loadUsers() {
 
   const {
     data,
     error
-  } =
-    await supabaseClient
-      .from("audit_logs")
-      .select("module");
-
+  } = await supabaseClient
+    .from("profiles")
+    .select("id, full_name, email, role");
 
   if (error) {
-
-    console.error(
-      "Module filter:",
-      error
-    );
-
+    console.warn("Users could not be loaded:", error);
     return;
   }
 
+  usersMap = {};
+
+  (data || []).forEach(user => {
+
+    usersMap[user.id] = {
+      name:
+        user.full_name ||
+        user.email ||
+        "Unknown User",
+
+      email:
+        user.email || "",
+
+      role:
+        user.role || ""
+    };
+
+  });
+
+}
+
+
+/* =========================
+   LOAD INSTITUTIONS
+========================= */
+
+async function loadInstitutions() {
+
+  const {
+    data,
+    error
+  } = await supabaseClient
+    .from("institutions")
+    .select("id, name, code");
+
+  if (error) {
+    console.warn(
+      "Institutions could not be loaded:",
+      error
+    );
+    return;
+  }
+
+  institutionsMap = {};
+
+  (data || []).forEach(inst => {
+
+    institutionsMap[inst.id] = {
+      name:
+        inst.name ||
+        "Unknown Institution",
+
+      code:
+        inst.code || ""
+    };
+
+  });
+
+}
+
+
+/* =========================
+   LOAD MODULES
+========================= */
+
+async function loadModules() {
+
+  const {
+    data,
+    error
+  } = await supabaseClient
+    .from("audit_logs")
+    .select("module")
+    .not("module", "is", null);
+
+  if (error) {
+    console.warn(error);
+    return;
+  }
 
   const modules = [
     ...new Set(
@@ -172,591 +203,682 @@ async function loadModuleFilter() {
     )
   ].sort();
 
+  const select =
+    document.getElementById("moduleFilter");
 
   modules.forEach(module => {
 
     const option =
-      document.createElement(
-        "option"
-      );
+      document.createElement("option");
 
-    option.value =
-      module;
+    option.value = module;
+    option.textContent = module;
 
-    option.textContent =
-      module;
-
-    moduleFilter.appendChild(
-      option
-    );
+    select.appendChild(option);
 
   });
+
 }
 
 
-/* SUMMARY */
+/* =========================
+   LOAD LOGS
+========================= */
 
-async function loadSummary() {
+async function loadLogs() {
 
   const {
     data,
     error
-  } =
-    await supabaseClient
-      .from("audit_logs")
-      .select("action");
-
+  } = await supabaseClient
+    .from("audit_logs")
+    .select("*")
+    .order("created_at", {
+      ascending: false
+    });
 
   if (error) {
-
-    console.error(
-      "Summary error:",
-      error
-    );
-
-    return;
+    throw error;
   }
 
+  allLogs = data || [];
 
-  const rows =
-    data || [];
+  updateSummary();
+
+  applyFilters();
+
+}
 
 
-  const insert =
-    rows.filter(
+/* =========================
+   SUMMARY
+========================= */
+
+function updateSummary() {
+
+  const total =
+    allLogs.length;
+
+  const inserts =
+    allLogs.filter(
       x => x.action === "INSERT"
     ).length;
 
-
-  const update =
-    rows.filter(
+  const updates =
+    allLogs.filter(
       x => x.action === "UPDATE"
     ).length;
 
-
-  const deleteCount =
-    rows.filter(
+  const deletes =
+    allLogs.filter(
       x => x.action === "DELETE"
     ).length;
 
+  document.getElementById("totalLogs")
+    .textContent = total;
 
-  document.getElementById(
-    "totalCount"
-  ).textContent =
-    rows.length;
+  document.getElementById("insertLogs")
+    .textContent = inserts;
 
+  document.getElementById("updateLogs")
+    .textContent = updates;
 
-  document.getElementById(
-    "insertCount"
-  ).textContent =
-    insert;
-
-
-  document.getElementById(
-    "updateCount"
-  ).textContent =
-    update;
-
-
-  document.getElementById(
-    "deleteCount"
-  ).textContent =
-    deleteCount;
+  document.getElementById("deleteLogs")
+    .textContent = deletes;
 }
 
 
-/* LOAD LOGS */
+/* =========================
+   FILTERS
+========================= */
 
-async function loadLogs() {
+function applyFilters() {
 
-  logsBody.innerHTML = `
-    <tr>
-      <td colspan="8" class="loading">
-        Loading audit logs...
-      </td>
-    </tr>
-  `;
+  const search =
+    document.getElementById(
+      "searchInput"
+    ).value
+      .trim()
+      .toLowerCase();
 
+  const action =
+    document.getElementById(
+      "actionFilter"
+    ).value;
 
-  try {
+  const module =
+    document.getElementById(
+      "moduleFilter"
+    ).value;
 
-    let query =
-      supabaseClient
-        .from("audit_logs")
-        .select(
-          "*",
-          {
-            count: "exact"
-          }
-        )
-        .order(
-          "created_at",
-          {
-            ascending: false
-          }
-        );
+  const date =
+    document.getElementById(
+      "dateFilter"
+    ).value;
 
 
-    const search =
-      searchInput.value.trim();
+  filteredLogs =
+    allLogs.filter(log => {
 
-    const action =
-      actionFilter.value;
+      const user =
+        usersMap[log.user_id];
 
-    const module =
-      moduleFilter.value;
-
-    const date =
-      dateFilter.value;
-
-
-    if (action) {
-
-      query =
-        query.eq(
-          "action",
-          action
-        );
-    }
+      const institution =
+        institutionsMap[
+          log.institution_id
+        ];
 
 
-    if (module) {
+      const userName =
+        user?.name?.toLowerCase() || "";
 
-      query =
-        query.eq(
-          "module",
-          module
-        );
-    }
+      const userEmail =
+        user?.email?.toLowerCase() || "";
 
-
-    if (date) {
-
-      query =
-        query
-          .gte(
-            "created_at",
-            `${date}T00:00:00`
-          )
-          .lt(
-            "created_at",
-            `${date}T23:59:59`
-          );
-    }
+      const institutionName =
+        institution?.name?.toLowerCase() || "";
 
 
-    if (search) {
+      const searchText = [
 
-      query =
-        query.or(
-          `action.ilike.%${search}%,module.ilike.%${search}%,description.ilike.%${search}%,user_id.eq.${search}`
-        );
-    }
+        log.action,
+        log.module,
+        log.description,
+        log.record_id,
+        userName,
+        userEmail,
+        institutionName
 
-
-    const from =
-      (currentPage - 1) *
-      PAGE_SIZE;
-
-    const to =
-      from +
-      PAGE_SIZE -
-      1;
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
 
 
-    query =
-      query.range(
-        from,
-        to
-      );
+      const searchMatch =
+        !search ||
+        searchText.includes(search);
 
 
-    const {
-      data,
-      error,
-      count
-    } =
-      await query;
+      const actionMatch =
+        !action ||
+        log.action === action;
 
 
-    if (error) {
-      throw error;
-    }
+      const moduleMatch =
+        !module ||
+        log.module === module;
 
 
-    totalLogs =
-      count || 0;
+      let dateMatch = true;
 
+      if (date) {
 
-    renderLogs(
-      data || []
-    );
+        dateMatch =
+          log.created_at &&
+          log.created_at.startsWith(date);
 
-
-    updatePagination();
-
-  } catch (error) {
-
-    console.error(
-      error
-    );
-
-
-    logsBody.innerHTML = `
-      <tr>
-        <td
-          colspan="8"
-          class="error"
-        >
-          Failed to load audit logs.
-          <br>
-          ${escapeHtml(
-            error.message
-          )}
-        </td>
-      </tr>
-    `;
-
-  }
-}
-
-
-/* RENDER */
-
-function renderLogs(logs) {
-
-  if (!logs.length) {
-
-    logsBody.innerHTML = `
-      <tr>
-        <td
-          colspan="8"
-          class="empty"
-        >
-          No audit logs found.
-        </td>
-      </tr>
-    `;
-
-    return;
-  }
-
-
-  logsBody.innerHTML =
-    logs.map(log => {
-
-      const date =
-        log.created_at
-          ? new Date(
-              log.created_at
-            ).toLocaleString()
-          : "—";
-
-
-      const action =
-        String(
-          log.action || ""
-        ).toUpperCase();
-
-
-      let badgeClass =
-        "badge";
-
-
-      if (
-        action === "INSERT"
-      ) {
-
-        badgeClass +=
-          " insert";
-
-      } else if (
-        action === "UPDATE"
-      ) {
-
-        badgeClass +=
-          " update";
-
-      } else if (
-        action === "DELETE"
-      ) {
-
-        badgeClass +=
-          " delete";
       }
 
 
-      return `
-        <tr>
+      return (
+        searchMatch &&
+        actionMatch &&
+        moduleMatch &&
+        dateMatch
+      );
 
-          <td class="date">
-            ${escapeHtml(date)}
-          </td>
-
-
-          <td>
-            <div class="user-name">
-              ${escapeHtml(
-                log.user_id ||
-                "System"
-              )}
-            </div>
-          </td>
+    });
 
 
-          <td>
-            <div class="institution">
-              ${escapeHtml(
-                log.institution_id ||
-                "Global"
-              )}
-            </div>
-          </td>
+  currentPage = 1;
 
+  renderLogs();
 
-          <td>
-            <span class="${badgeClass}">
-              ${escapeHtml(
-                action || "—"
-              )}
-            </span>
-          </td>
-
-
-          <td class="module">
-            ${escapeHtml(
-              log.module ||
-              "—"
-            )}
-          </td>
-
-
-          <td class="record-id">
-            ${escapeHtml(
-              log.record_id ||
-              "—"
-            )}
-          </td>
-
-
-          <td class="details">
-            ${escapeHtml(
-              log.description ||
-              "—"
-            )}
-          </td>
-
-
-          <td>
-
-            <button
-              class="view-btn"
-              onclick='viewDetails(${JSON.stringify(log)})'
-            >
-              View
-            </button>
-
-          </td>
-
-        </tr>
-      `;
-
-    }).join("");
 }
 
 
-/* DETAILS */
+/* =========================
+   RENDER
+========================= */
 
-function viewDetails(log) {
+function renderLogs() {
 
-  const modal =
+  const table =
     document.getElementById(
-      "detailsModal"
+      "logsTable"
     );
 
-  const content =
+  const tbody =
     document.getElementById(
-      "modalContent"
+      "logsBody"
+    );
+
+  const empty =
+    document.getElementById(
+      "empty"
     );
 
 
-  const date =
-    log.created_at
-      ? new Date(
-          log.created_at
-        ).toLocaleString()
-      : "—";
+  tbody.innerHTML = "";
 
 
-  const oldData =
-    log.old_data
-      ? JSON.stringify(
-          log.old_data,
-          null,
-          2
-        )
-      : "No previous data";
+  if (filteredLogs.length === 0) {
+
+    table.style.display = "none";
+    empty.style.display = "block";
+
+    updatePagination();
+
+    return;
+
+  }
 
 
-  const newData =
-    log.new_data
-      ? JSON.stringify(
-          log.new_data,
-          null,
-          2
-        )
-      : "No new data";
+  table.style.display = "table";
+  empty.style.display = "none";
 
 
-  content.innerHTML = `
+  const start =
+    (currentPage - 1) *
+    pageSize;
 
-    <div class="info-grid">
+  const end =
+    start + pageSize;
 
-      <div class="info-item">
-        <small>Date & Time</small>
+  const pageLogs =
+    filteredLogs.slice(
+      start,
+      end
+    );
+
+
+  pageLogs.forEach(log => {
+
+    const row =
+      document.createElement("tr");
+
+
+    const user =
+      usersMap[log.user_id];
+
+    const institution =
+      institutionsMap[
+        log.institution_id
+      ];
+
+
+    const userName =
+      user?.name ||
+      "System / Unknown";
+
+    const userRole =
+      user?.role ||
+      "";
+
+    const institutionName =
+      institution?.name ||
+      "—";
+
+
+    const date =
+      formatDate(log.created_at);
+
+
+    const badge =
+      getActionBadge(
+        log.action
+      );
+
+
+    const recordId =
+      log.record_id ||
+      "—";
+
+
+    row.innerHTML = `
+
+      <td>
+        <strong>${escapeHtml(date.date)}</strong>
+        <div class="sub">
+          ${escapeHtml(date.time)}
+        </div>
+      </td>
+
+      <td>
+        <div class="user-name">
+          ${escapeHtml(userName)}
+        </div>
+
+        ${
+          userRole
+            ? `<div class="sub">
+                ${escapeHtml(userRole)}
+              </div>`
+            : ""
+        }
+      </td>
+
+      <td>
         <strong>
-          ${escapeHtml(date)}
+          ${escapeHtml(institutionName)}
         </strong>
-      </div>
 
+        ${
+          institution?.code
+            ? `<div class="sub">
+                ${escapeHtml(institution.code)}
+              </div>`
+            : ""
+        }
+      </td>
 
-      <div class="info-item">
-        <small>Action</small>
+      <td>
+        ${badge}
+      </td>
+
+      <td>
         <strong>
           ${escapeHtml(
-            log.action ||
-            "—"
+            log.module || "—"
           )}
         </strong>
-      </div>
+      </td>
 
-
-      <div class="info-item">
-        <small>Module</small>
-        <strong>
+      <td>
+        <span
+          title="${escapeHtml(recordId)}"
+          style="
+            font-family:monospace;
+            font-size:11px;
+          "
+        >
           ${escapeHtml(
-            log.module ||
-            "—"
+            shortId(recordId)
           )}
-        </strong>
-      </div>
+        </span>
+      </td>
 
-
-      <div class="info-item">
-        <small>User ID</small>
-        <strong>
-          ${escapeHtml(
-            log.user_id ||
-            "System"
-          )}
-        </strong>
-      </div>
-
-
-      <div class="info-item">
-        <small>Institution ID</small>
-        <strong>
-          ${escapeHtml(
-            log.institution_id ||
-            "Global"
-          )}
-        </strong>
-      </div>
-
-
-      <div class="info-item">
-        <small>Record ID</small>
-        <strong>
-          ${escapeHtml(
-            log.record_id ||
-            "—"
-          )}
-        </strong>
-      </div>
-
-
-      <div class="info-item">
-        <small>IP Address</small>
-        <strong>
-          ${escapeHtml(
-            log.ip_address ||
-            "Not recorded"
-          )}
-        </strong>
-      </div>
-
-
-      <div class="info-item">
-        <small>User Agent</small>
-        <strong>
-          ${escapeHtml(
-            log.user_agent ||
-            "Not recorded"
-          )}
-        </strong>
-      </div>
-
-    </div>
-
-
-    <div class="info-item">
-      <small>Description</small>
-      <strong>
+      <td>
         ${escapeHtml(
-          log.description ||
-          "—"
+          log.description || "—"
         )}
-      </strong>
-    </div>
+      </td>
+
+      <td>
+        <button
+          class="view-btn"
+          onclick='openDetails(${JSON.stringify(
+            log
+          )})'
+        >
+          View
+        </button>
+      </td>
+
+    `;
+
+    tbody.appendChild(row);
+
+  });
 
 
-    <h4 class="data-title">
-      Old Data
-    </h4>
+  updatePagination();
 
-    <pre>${escapeHtml(
-      oldData
-    )}</pre>
+}
 
 
-    <h4 class="data-title">
-      New Data
-    </h4>
+/* =========================
+   ACTION BADGE
+========================= */
 
-    <pre>${escapeHtml(
-      newData
-    )}</pre>
+function getActionBadge(action) {
 
+  const safe =
+    action || "OTHER";
+
+  const cls =
+    safe === "INSERT"
+      ? "insert"
+      : safe === "UPDATE"
+      ? "update"
+      : safe === "DELETE"
+      ? "delete"
+      : "other";
+
+  return `
+    <span class="badge ${cls}">
+      ${escapeHtml(safe)}
+    </span>
   `;
 
-
-  modal.style.display =
-    "block";
 }
 
 
-/* CLOSE MODAL */
+/* =========================
+   DETAILS
+========================= */
 
-function closeModal(event) {
+function openDetails(log) {
 
-  if (
-    event &&
-    event.target &&
-    event.target.id !==
-      "detailsModal"
-  ) {
-    return;
-  }
+  const user =
+    usersMap[log.user_id];
+
+  const institution =
+    institutionsMap[
+      log.institution_id
+    ];
+
+
+  document.getElementById(
+    "dDate"
+  ).textContent =
+    formatFullDate(
+      log.created_at
+    );
+
+
+  document.getElementById(
+    "dAction"
+  ).innerHTML =
+    getActionBadge(
+      log.action
+    );
+
+
+  document.getElementById(
+    "dModule"
+  ).textContent =
+    log.module || "—";
+
+
+  document.getElementById(
+    "dUser"
+  ).textContent =
+    user
+      ? `${user.name}${user.role ? " (" + user.role + ")" : ""}`
+      : log.user_id || "—";
+
+
+  document.getElementById(
+    "dInstitution"
+  ).textContent =
+    institution
+      ? `${institution.name}${institution.code ? " (" + institution.code + ")" : ""}`
+      : log.institution_id || "—";
+
+
+  document.getElementById(
+    "dRecord"
+  ).textContent =
+    log.record_id || "—";
+
+
+  document.getElementById(
+    "dIP"
+  ).textContent =
+    log.ip_address || "Not recorded";
+
+
+  document.getElementById(
+    "dAgent"
+  ).textContent =
+    log.user_agent || "Not recorded";
+
+
+  document.getElementById(
+    "dDescription"
+  ).textContent =
+    log.description || "—";
+
+
+  document.getElementById(
+    "oldData"
+  ).textContent =
+    prettyJSON(
+      log.old_data
+    );
+
+
+  document.getElementById(
+    "newData"
+  ).textContent =
+    prettyJSON(
+      log.new_data
+    );
 
 
   document.getElementById(
     "detailsModal"
-  ).style.display =
-    "none";
+  ).style.display = "block";
+
 }
 
 
-/* PAGINATION */
+/* =========================
+   MODAL
+========================= */
+
+document.getElementById(
+  "closeModal"
+).addEventListener(
+  "click",
+  closeModal
+);
+
+
+document.getElementById(
+  "detailsModal"
+).addEventListener(
+  "click",
+  event => {
+
+    if (
+      event.target.id ===
+      "detailsModal"
+    ) {
+      closeModal();
+    }
+
+  }
+);
+
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key === "Escape"
+    ) {
+      closeModal();
+    }
+
+  }
+);
+
+
+function closeModal() {
+
+  document.getElementById(
+    "detailsModal"
+  ).style.display = "none";
+
+}
+
+
+/* =========================
+   FILTER EVENTS
+========================= */
+
+document.getElementById(
+  "searchInput"
+).addEventListener(
+  "input",
+  applyFilters
+);
+
+
+document.getElementById(
+  "actionFilter"
+).addEventListener(
+  "change",
+  applyFilters
+);
+
+
+document.getElementById(
+  "moduleFilter"
+).addEventListener(
+  "change",
+  applyFilters
+);
+
+
+document.getElementById(
+  "dateFilter"
+).addEventListener(
+  "change",
+  applyFilters
+);
+
+
+document.getElementById(
+  "clearBtn"
+).addEventListener(
+  "click",
+  () => {
+
+    document.getElementById(
+      "searchInput"
+    ).value = "";
+
+    document.getElementById(
+      "actionFilter"
+    ).value = "";
+
+    document.getElementById(
+      "moduleFilter"
+    ).value = "";
+
+    document.getElementById(
+      "dateFilter"
+    ).value = "";
+
+    applyFilters();
+
+  }
+);
+
+
+/* =========================
+   PAGINATION
+========================= */
+
+document.getElementById(
+  "prevBtn"
+).addEventListener(
+  "click",
+  () => {
+
+    if (currentPage > 1) {
+
+      currentPage--;
+
+      renderLogs();
+
+    }
+
+  }
+);
+
+
+document.getElementById(
+  "nextBtn"
+).addEventListener(
+  "click",
+  () => {
+
+    const totalPages =
+      Math.ceil(
+        filteredLogs.length /
+        pageSize
+      );
+
+    if (
+      currentPage <
+      totalPages
+    ) {
+
+      currentPage++;
+
+      renderLogs();
+
+    }
+
+  }
+);
+
 
 function updatePagination() {
 
@@ -764,8 +886,8 @@ function updatePagination() {
     Math.max(
       1,
       Math.ceil(
-        totalLogs /
-        PAGE_SIZE
+        filteredLogs.length /
+        pageSize
       )
     );
 
@@ -786,154 +908,169 @@ function updatePagination() {
     "nextBtn"
   ).disabled =
     currentPage >= totalPages;
+
 }
 
 
-function previousPage() {
+/* =========================
+   HELPERS
+========================= */
 
-  if (
-    currentPage > 1
-  ) {
+function formatDate(value) {
 
-    currentPage--;
+  if (!value) {
 
-    loadLogs();
+    return {
+      date: "—",
+      time: ""
+    };
+
   }
-}
 
 
-function nextPage() {
+  const d =
+    new Date(value);
 
-  const totalPages =
-    Math.max(
-      1,
-      Math.ceil(
-        totalLogs /
-        PAGE_SIZE
+
+  return {
+
+    date:
+      d.toLocaleDateString(
+        "en-GB",
+        {
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        }
+      ),
+
+    time:
+      d.toLocaleTimeString(
+        "en-GB",
+        {
+          hour: "2-digit",
+          minute: "2-digit"
+        }
       )
-    );
 
+  };
 
-  if (
-    currentPage <
-    totalPages
-  ) {
-
-    currentPage++;
-
-    loadLogs();
-  }
 }
 
 
-/* SEARCH */
+function formatFullDate(value) {
 
-let searchTimer;
+  if (!value) {
+    return "—";
+  }
 
-searchInput.addEventListener(
-  "input",
-  () => {
-
-    clearTimeout(
-      searchTimer
+  return new Date(value)
+    .toLocaleString(
+      "en-GB",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      }
     );
 
+}
 
-    searchTimer =
-      setTimeout(() => {
 
-        currentPage = 1;
+function shortId(id) {
 
-        loadLogs();
-
-      }, 400);
+  if (!id || id === "—") {
+    return "—";
   }
-);
 
-
-actionFilter.addEventListener(
-  "change",
-  () => {
-
-    currentPage = 1;
-
-    loadLogs();
-
+  if (id.length <= 16) {
+    return id;
   }
-);
+
+  return (
+    id.substring(0, 8) +
+    "..." +
+    id.substring(id.length - 6)
+  );
+
+}
 
 
-moduleFilter.addEventListener(
-  "change",
-  () => {
+function prettyJSON(value) {
 
-    currentPage = 1;
-
-    loadLogs();
-
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "{}";
   }
-);
 
+  try {
 
-dateFilter.addEventListener(
-  "change",
-  () => {
+    return JSON.stringify(
+      value,
+      null,
+      2
+    );
 
-    currentPage = 1;
+  } catch {
 
-    loadLogs();
+    return String(value);
 
   }
-);
 
+}
 
-/* SECURITY */
 
 function escapeHtml(value) {
 
-  return String(value)
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    );
-}
-
-
-/* START */
-
-async function startAuditLogs() {
-
-  const allowed =
-    await checkSuperAdmin();
-
-
-  if (!allowed) {
-    return;
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
   }
 
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
-  await loadModuleFilter();
-
-  await loadSummary();
-
-  await loadLogs();
 }
 
 
-startAuditLogs();
+/* =========================
+   UI
+========================= */
+
+function showLoading(show) {
+
+  document.getElementById(
+    "loading"
+  ).style.display =
+    show
+      ? "block"
+      : "none";
+
+}
+
+
+function showError(message) {
+
+  const box =
+    document.getElementById(
+      "errorBox"
+    );
+
+  box.textContent =
+    message;
+
+  box.style.display =
+    "block";
+
+}
