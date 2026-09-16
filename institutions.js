@@ -1,12 +1,8 @@
-// ==========================================
-// GAAWOW EMS — INSTITUTIONS MANAGEMENT
-// ==========================================
-
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
 const SUPABASE_KEY =
-  "sb_publishable_2AvWfupKf1b_s0RjIbAi5g_RqLCs145";
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
 const supabaseClient =
   window.supabase.createClient(
@@ -15,55 +11,38 @@ const supabaseClient =
   );
 
 
-// ==========================================
-// ELEMENTS
-// ==========================================
-
-const form =
-  document.getElementById("institutionForm");
-
-const saveBtn =
-  document.getElementById("saveBtn");
-
-const message =
-  document.getElementById("message");
-
-const body =
-  document.getElementById("institutionsBody");
-
-const searchInput =
-  document.getElementById("searchInput");
-
-
-// Store loaded institutions
-let institutions = [];
-
-
-// ==========================================
+// ===============================
 // DASHBOARD
-// ==========================================
+// ===============================
 
 function goDashboard() {
   window.location.href = "dashboard.html";
 }
 
 
-// ==========================================
-// SUPER ADMIN CHECK
-// ==========================================
+// ===============================
+// CHECK SUPER ADMIN
+// ===============================
 
 async function checkSuperAdmin() {
 
   const {
-    data,
-    error
+    data: sessionData,
+    error: sessionError
   } =
     await supabaseClient.auth.getSession();
 
+  console.log("SESSION:", sessionData);
+  console.log("SESSION ERROR:", sessionError);
+
   if (
-    error ||
-    !data.session
+    sessionError ||
+    !sessionData.session
   ) {
+
+    alert(
+      "Session not found. Please login again."
+    );
 
     window.location.href =
       "index.html";
@@ -73,7 +52,13 @@ async function checkSuperAdmin() {
 
 
   const user =
-    data.session.user;
+    sessionData.session.user;
+
+  console.log(
+    "LOGGED USER:",
+    user.id,
+    user.email
+  );
 
 
   const {
@@ -83,26 +68,41 @@ async function checkSuperAdmin() {
     await supabaseClient
       .from("profiles")
       .select(
-        "full_name, role, is_active"
+        "id, full_name, role, institution_id, is_active"
       )
       .eq(
         "id",
         user.id
       )
-      .single();
+      .maybeSingle();
 
 
-  if (
-    profileError ||
-    !profile
-  ) {
+  console.log(
+    "PROFILE:",
+    profile
+  );
 
-    console.error(
-      profileError
-    );
+  console.log(
+    "PROFILE ERROR:",
+    profileError
+  );
+
+
+  if (profileError) {
 
     alert(
-      "Unable to load your profile."
+      "Unable to load your profile.\n\n" +
+      profileError.message
+    );
+
+    return false;
+  }
+
+
+  if (!profile) {
+
+    alert(
+      "No profile found for this login account."
     );
 
     return false;
@@ -115,7 +115,9 @@ async function checkSuperAdmin() {
   ) {
 
     alert(
-      "Access denied. Super Admin only."
+      "Access denied.\n\n" +
+      "Your current role is: " +
+      profile.role
     );
 
     window.location.href =
@@ -130,7 +132,7 @@ async function checkSuperAdmin() {
   ) {
 
     alert(
-      "Your account is inactive."
+      "Your Super Admin account is inactive."
     );
 
     await supabaseClient
@@ -148,89 +150,137 @@ async function checkSuperAdmin() {
 }
 
 
-// ==========================================
+// ===============================
 // ADD INSTITUTION
-// ==========================================
+// ===============================
 
-form.addEventListener(
-  "submit",
-  async function(event) {
-
-    event.preventDefault();
-
-
-    saveBtn.disabled = true;
-
-    saveBtn.textContent =
-      "ADDING...";
+const institutionForm =
+  document.getElementById(
+    "institutionForm"
+  );
 
 
-    message.style.color =
-      "#0B4DA2";
+if (institutionForm) {
 
-    message.textContent =
-      "Adding institution...";
+  institutionForm.addEventListener(
+    "submit",
+    async function (event) {
 
-
-    const name =
-      document
-        .getElementById("name")
-        .value
-        .trim();
-
-    const code =
-      document
-        .getElementById("code")
-        .value
-        .trim()
-        .toUpperCase();
-
-    const email =
-      document
-        .getElementById("email")
-        .value
-        .trim();
-
-    const phone =
-      document
-        .getElementById("phone")
-        .value
-        .trim();
-
-    const address =
-      document
-        .getElementById("address")
-        .value
-        .trim();
-
-    const city =
-      document
-        .getElementById("city")
-        .value
-        .trim();
-
-    const country =
-      document
-        .getElementById("country")
-        .value
-        .trim();
-
-    const logo_url =
-      document
-        .getElementById("logo_url")
-        .value
-        .trim();
-
-    const website_url =
-      document
-        .getElementById("website_url")
-        .value
-        .trim();
+      event.preventDefault();
 
 
-    try {
+      const submitButton =
+        document.getElementById(
+          "addInstitutionBtn"
+        );
+
+
+      const message =
+        document.getElementById(
+          "formMessage"
+        );
+
+
+      const name =
+        document
+          .getElementById("name")
+          .value
+          .trim();
+
+
+      const code =
+        document
+          .getElementById("code")
+          .value
+          .trim()
+          .toUpperCase();
+
+
+      const email =
+        document
+          .getElementById("email")
+          .value
+          .trim();
+
+
+      const phone =
+        document
+          .getElementById("phone")
+          .value
+          .trim();
+
+
+      const address =
+        document
+          .getElementById("address")
+          .value
+          .trim();
+
+
+      const city =
+        document
+          .getElementById("city")
+          .value
+          .trim();
+
+
+      const country =
+        document
+          .getElementById("country")
+          .value
+          .trim();
+
+
+      const website_url =
+        document
+          .getElementById("website_url")
+          .value
+          .trim();
+
+
+      const logo_url =
+        document
+          .getElementById("logo_url")
+          .value
+          .trim();
+
+
+      if (!name) {
+
+        alert(
+          "Please enter institution name."
+        );
+
+        return;
+      }
+
+
+      if (!code) {
+
+        alert(
+          "Please enter institution code."
+        );
+
+        return;
+      }
+
+
+      submitButton.disabled =
+        true;
+
+      submitButton.textContent =
+        "ADDING...";
+
+
+      if (message) {
+
+        message.textContent =
+          "Checking institution...";
+      }
+
 
       // Check duplicate code
+
       const {
         data: existing,
         error: duplicateError
@@ -246,19 +296,57 @@ form.addEventListener(
 
 
       if (duplicateError) {
-        throw duplicateError;
+
+        console.error(
+          "Duplicate check error:",
+          duplicateError
+        );
+
+        if (message) {
+
+          message.textContent =
+            "Error checking institution: " +
+            duplicateError.message;
+        }
+
+        submitButton.disabled =
+          false;
+
+        submitButton.textContent =
+          "ADD INSTITUTION";
+
+        return;
       }
 
 
       if (existing) {
 
-        throw new Error(
-          `Institution code "${code}" already exists.`
-        );
+        if (message) {
+
+          message.textContent =
+            "Institution code already exists: " +
+            existing.code;
+        }
+
+        submitButton.disabled =
+          false;
+
+        submitButton.textContent =
+          "ADD INSTITUTION";
+
+        return;
       }
 
 
       // Insert institution
+
+      if (message) {
+
+        message.textContent =
+          "Creating institution...";
+      }
+
+
       const {
         data,
         error
@@ -269,14 +357,22 @@ form.addEventListener(
             {
               name: name,
               code: code,
-              email: email || null,
-              phone: phone || null,
-              address: address || null,
-              city: city || null,
-              country: country || "Somalia",
-              logo_url: logo_url || null,
-              website_url: website_url || null,
-              is_active: true
+              email:
+                email || null,
+              phone:
+                phone || null,
+              address:
+                address || null,
+              city:
+                city || null,
+              country:
+                country || "Somalia",
+              website_url:
+                website_url || null,
+              logo_url:
+                logo_url || null,
+              is_active:
+                true
             }
           ])
           .select()
@@ -284,73 +380,106 @@ form.addEventListener(
 
 
       if (error) {
-        throw error;
+
+        console.error(
+          "ADD INSTITUTION ERROR:",
+          error
+        );
+
+
+        if (message) {
+
+          message.textContent =
+            "Unable to add institution: " +
+            error.message;
+        }
+
+
+        submitButton.disabled =
+          false;
+
+        submitButton.textContent =
+          "ADD INSTITUTION";
+
+        return;
       }
 
 
       console.log(
-        "Institution added:",
+        "Institution created:",
         data
       );
 
 
-      message.style.color =
-        "#16A34A";
+      if (message) {
 
-      message.textContent =
-        `✓ Institution "${data.name}" added successfully.`;
+        message.textContent =
+          "✓ Institution \"" +
+          name +
+          "\" added successfully.";
+      }
 
 
-      resetForm();
+      alert(
+        "Institution added successfully!"
+      );
+
+
+      institutionForm.reset();
+
+
+      const countryInput =
+        document.getElementById(
+          "country"
+        );
+
+      if (countryInput) {
+        countryInput.value =
+          "Somalia";
+      }
+
+
+      submitButton.disabled =
+        false;
+
+      submitButton.textContent =
+        "ADD INSTITUTION";
 
 
       await loadInstitutions();
 
-
-    } catch (error) {
-
-      console.error(
-        "Add institution error:",
-        error
-      );
-
-
-      message.style.color =
-        "#DC2626";
-
-      message.textContent =
-        "✕ " +
-        (
-          error.message ||
-          "Failed to add institution."
-        );
-
-
-    } finally {
-
-      saveBtn.disabled = false;
-
-      saveBtn.textContent =
-        "ADD INSTITUTION";
     }
+  );
+}
 
-  }
-);
 
-
-// ==========================================
+// ===============================
 // LOAD INSTITUTIONS
-// ==========================================
+// ===============================
+
+let allInstitutions = [];
+
 
 async function loadInstitutions() {
 
-  body.innerHTML = `
-    <tr>
-      <td colspan="5" class="empty">
-        Loading institutions...
-      </td>
-    </tr>
-  `;
+  const tableBody =
+    document.getElementById(
+      "institutionsTableBody"
+    );
+
+
+  if (tableBody) {
+
+    tableBody.innerHTML =
+      `
+      <tr>
+        <td colspan="5"
+            style="text-align:center;padding:30px;">
+          Loading institutions...
+        </td>
+      </tr>
+      `;
+  }
 
 
   const {
@@ -360,7 +489,7 @@ async function loadInstitutions() {
     await supabaseClient
       .from("institutions")
       .select(
-        "id,name,code,email,phone,address,city,country,logo_url,website_url,is_active,created_at"
+        "id, name, code, email, phone, address, city, country, logo_url, website_url, is_active, created_at, updated_at"
       )
       .order(
         "created_at",
@@ -373,219 +502,318 @@ async function loadInstitutions() {
   if (error) {
 
     console.error(
+      "LOAD INSTITUTIONS ERROR:",
       error
     );
 
-    body.innerHTML = `
-      <tr>
-        <td colspan="5" class="empty">
-          Failed to load institutions.
-        </td>
-      </tr>
-    `;
+
+    if (tableBody) {
+
+      tableBody.innerHTML =
+        `
+        <tr>
+          <td colspan="5"
+              style="text-align:center;padding:30px;color:#dc2626;">
+            Unable to load institutions:<br>
+            ${escapeHTML(error.message)}
+          </td>
+        </tr>
+        `;
+    }
 
     return;
   }
 
 
-  institutions =
+  allInstitutions =
     data || [];
 
 
   renderInstitutions(
-    institutions
+    allInstitutions
   );
 }
 
 
-// ==========================================
-// RENDER
-// ==========================================
+// ===============================
+// RENDER INSTITUTIONS
+// ===============================
 
-function renderInstitutions(rows) {
+function renderInstitutions(
+  institutions
+) {
 
-  if (!rows.length) {
+  const tableBody =
+    document.getElementById(
+      "institutionsTableBody"
+    );
 
-    body.innerHTML = `
+
+  if (!tableBody) {
+    return;
+  }
+
+
+  if (
+    !institutions ||
+    institutions.length === 0
+  ) {
+
+    tableBody.innerHTML =
+      `
       <tr>
-        <td colspan="5" class="empty">
+        <td colspan="5"
+            style="text-align:center;padding:30px;">
           No institutions found.
         </td>
       </tr>
-    `;
+      `;
 
     return;
   }
 
 
-  body.innerHTML =
-    rows.map(
-      institution => {
+  tableBody.innerHTML =
+    institutions
+      .map(
+        function (institution) {
 
-        const statusClass =
-          institution.is_active
-            ? "active"
-            : "inactive";
-
-        const statusText =
-          institution.is_active
-            ? "ACTIVE"
-            : "INACTIVE";
+          const status =
+            institution.is_active
+              ? "ACTIVE"
+              : "INACTIVE";
 
 
-        return `
-          <tr>
+          const statusClass =
+            institution.is_active
+              ? "status-active"
+              : "status-inactive";
 
-            <td>
-              <strong>
-                ${escapeHtml(
-                  institution.name || ""
+
+          return `
+            <tr>
+
+              <td>
+                <strong>
+                  ${escapeHTML(
+                    institution.name
+                  )}
+                </strong>
+              </td>
+
+              <td>
+                ${escapeHTML(
+                  institution.code || "-"
                 )}
-              </strong>
-            </td>
+              </td>
 
-            <td>
-              ${escapeHtml(
-                institution.code || ""
-              )}
-            </td>
+              <td>
+                ${escapeHTML(
+                  institution.city || "-"
+                )}
+              </td>
 
-            <td>
-              ${escapeHtml(
-                institution.city || "-"
-              )}
-            </td>
+              <td>
+                ${escapeHTML(
+                  institution.phone || "-"
+                )}
+              </td>
 
-            <td>
-              ${escapeHtml(
-                institution.phone || "-"
-              )}
-            </td>
+              <td>
+                <span class="${statusClass}">
+                  ${status}
+                </span>
+              </td>
 
-            <td>
-              <span class="status ${statusClass}">
-                ${statusText}
-              </span>
-            </td>
-
-          </tr>
-        `;
-
-      }
-    ).join("");
+            </tr>
+          `;
+        }
+      )
+      .join("");
 }
 
 
-// ==========================================
+// ===============================
 // SEARCH
-// ==========================================
+// ===============================
 
-searchInput.addEventListener(
-  "input",
-  function() {
-
-    const query =
-      this.value
-        .trim()
-        .toLowerCase();
+const searchInput =
+  document.getElementById(
+    "searchInput"
+  );
 
 
-    if (!query) {
+if (searchInput) {
+
+  searchInput.addEventListener(
+    "input",
+    function () {
+
+      const search =
+        this.value
+          .trim()
+          .toLowerCase();
+
+
+      if (!search) {
+
+        renderInstitutions(
+          allInstitutions
+        );
+
+        return;
+      }
+
+
+      const filtered =
+        allInstitutions.filter(
+          function (institution) {
+
+            return (
+
+              (
+                institution.name ||
+                ""
+              )
+                .toLowerCase()
+                .includes(search)
+
+              ||
+
+              (
+                institution.code ||
+                ""
+              )
+                .toLowerCase()
+                .includes(search)
+
+              ||
+
+              (
+                institution.city ||
+                ""
+              )
+                .toLowerCase()
+                .includes(search)
+
+              ||
+
+              (
+                institution.phone ||
+                ""
+              )
+                .toLowerCase()
+                .includes(search)
+
+              ||
+
+              (
+                institution.email ||
+                ""
+              )
+                .toLowerCase()
+                .includes(search)
+
+            );
+
+          }
+        );
+
 
       renderInstitutions(
-        institutions
+        filtered
       );
 
-      return;
     }
-
-
-    const filtered =
-      institutions.filter(
-        institution => {
-
-          return [
-
-            institution.name,
-
-            institution.code,
-
-            institution.city,
-
-            institution.phone,
-
-            institution.email
-
-          ]
-            .filter(Boolean)
-            .some(
-              value =>
-                String(value)
-                  .toLowerCase()
-                  .includes(query)
-            );
-        }
-      );
-
-
-    renderInstitutions(
-      filtered
-    );
-  }
-);
-
-
-// ==========================================
-// RESET FORM
-// ==========================================
-
-function resetForm() {
-
-  form.reset();
-
-  document.getElementById(
-    "country"
-  ).value = "Somalia";
-
-  message.textContent = "";
+  );
 }
 
 
-// ==========================================
-// SAFE HTML
-// ==========================================
+// ===============================
+// ESCAPE HTML
+// ===============================
 
-function escapeHtml(value) {
+function escapeHTML(
+  value
+) {
 
-  return String(value)
-    .replaceAll(
-      "&",
+  return String(
+    value ?? ""
+  )
+    .replace(
+      /&/g,
       "&amp;"
     )
-    .replaceAll(
-      "<",
+    .replace(
+      /</g,
       "&lt;"
     )
-    .replaceAll(
-      ">",
+    .replace(
+      />/g,
       "&gt;"
     )
-    .replaceAll(
-      '"',
+    .replace(
+      /"/g,
       "&quot;"
     )
-    .replaceAll(
-      "'",
+    .replace(
+      /'/g,
       "&#039;"
     );
 }
 
 
-// ==========================================
-// START
-// ==========================================
+// ===============================
+// CLEAR FORM
+// ===============================
 
-async function startInstitutions() {
+const clearBtn =
+  document.getElementById(
+    "clearBtn"
+  );
+
+
+if (clearBtn) {
+
+  clearBtn.addEventListener(
+    "click",
+    function () {
+
+      if (institutionForm) {
+        institutionForm.reset();
+      }
+
+
+      const countryInput =
+        document.getElementById(
+          "country"
+        );
+
+      if (countryInput) {
+        countryInput.value =
+          "Somalia";
+      }
+
+
+      const message =
+        document.getElementById(
+          "formMessage"
+        );
+
+      if (message) {
+        message.textContent = "";
+      }
+
+    }
+  );
+}
+
+
+// ===============================
+// START
+// ===============================
+
+async function startInstitutionsPage() {
 
   const allowed =
     await checkSuperAdmin();
@@ -600,4 +828,4 @@ async function startInstitutions() {
 }
 
 
-startInstitutions();
+startInstitutionsPage();
