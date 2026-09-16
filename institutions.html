@@ -2,12 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>GAAWOW EMS — Institutions</title>
-
-  <meta name="theme-color" content="#0B1E63">
 
   <style>
     * {
@@ -17,7 +14,7 @@
     }
 
     body {
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: Arial, sans-serif;
       background: #F5F7FA;
       color: #1F2937;
     }
@@ -25,15 +22,12 @@
     .header {
       background: linear-gradient(135deg, #0B1E63, #0B4DA2);
       color: white;
-      padding: 16px 22px;
+      padding: 18px 25px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 15px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 4px 15px rgba(0,0,0,.15);
+      box-shadow: 0 4px 15px rgba(0,0,0,.12);
     }
 
     .brand {
@@ -52,65 +46,73 @@
     }
 
     .brand h1 {
-      font-size: 19px;
+      font-size: 20px;
     }
 
     .brand p {
-      font-size: 11px;
-      color: #E8A317;
+      font-size: 12px;
+      opacity: .85;
       margin-top: 3px;
     }
 
     .back-btn {
       border: none;
-      background: white;
+      background: #D4AF37;
       color: #0B1E63;
-      padding: 10px 15px;
+      font-weight: bold;
+      padding: 11px 17px;
       border-radius: 9px;
-      font-weight: 700;
       cursor: pointer;
     }
 
     .container {
-      max-width: 1400px;
-      margin: auto;
-      padding: 25px 18px 50px;
+      max-width: 1200px;
+      margin: 25px auto;
+      padding: 0 18px;
     }
 
-    .top-section {
-      background: white;
-      padding: 22px;
-      border-radius: 17px;
-      box-shadow: 0 5px 18px rgba(0,0,0,.06);
+    .page-title {
       margin-bottom: 20px;
     }
 
-    .title-row {
+    .page-title h2 {
+      color: #0B1E63;
+      font-size: 28px;
+    }
+
+    .page-title p {
+      color: #64748B;
+      margin-top: 6px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 22px;
+      box-shadow: 0 5px 20px rgba(15, 23, 42, .08);
+      border: 1px solid #E5E7EB;
+    }
+
+    .card-title {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 15px;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
     }
 
-    .title-row h2 {
+    .card-title h3 {
       color: #0B1E63;
-      font-size: 24px;
-    }
-
-    .title-row p {
-      color: #6B7280;
-      font-size: 13px;
-      margin-top: 5px;
+      font-size: 20px;
     }
 
     .add-btn {
-      border: none;
       background: #0B4DA2;
       color: white;
+      border: none;
       padding: 12px 18px;
-      border-radius: 10px;
-      font-weight: 700;
+      border-radius: 9px;
+      font-weight: bold;
       cursor: pointer;
     }
 
@@ -118,36 +120,83 @@
       background: #0B1E63;
     }
 
-    .tools {
+    .form-grid {
       display: grid;
-      grid-template-columns: 1fr 200px;
-      gap: 12px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
     }
 
-    .tools input,
-    .tools select,
-    .form-group input,
-    .form-group select {
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 7px;
+      color: #334155;
+    }
+
+    input,
+    select {
       width: 100%;
       padding: 12px;
-      border: 1px solid #D1D5DB;
+      border: 1px solid #CBD5E1;
       border-radius: 9px;
       outline: none;
+      font-size: 14px;
       background: white;
     }
 
-    .tools input:focus,
-    .tools select:focus,
-    .form-group input:focus,
-    .form-group select:focus {
+    input:focus,
+    select:focus {
       border-color: #0B4DA2;
+      box-shadow: 0 0 0 3px rgba(11,77,162,.10);
     }
 
-    .table-card {
-      background: white;
-      border-radius: 17px;
-      box-shadow: 0 5px 18px rgba(0,0,0,.06);
-      overflow: hidden;
+    .form-actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .save-btn {
+      background: #16A34A;
+      color: white;
+      border: none;
+      padding: 12px 22px;
+      border-radius: 9px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .cancel-btn {
+      background: #E5E7EB;
+      color: #1F2937;
+      border: none;
+      padding: 12px 22px;
+      border-radius: 9px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #message {
+      margin-top: 15px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .search {
+      margin-bottom: 16px;
     }
 
     .table-wrap {
@@ -157,35 +206,28 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 800px;
+      min-width: 700px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 13px;
+      border-bottom: 1px solid #E5E7EB;
+      font-size: 14px;
     }
 
     th {
-      background: #0B1E63;
-      color: white;
-      padding: 14px;
-      text-align: left;
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    td {
-      padding: 14px;
-      border-bottom: 1px solid #E5E7EB;
-      font-size: 13px;
-      vertical-align: middle;
-    }
-
-    tr:hover td {
       background: #F8FAFC;
+      color: #0B1E63;
     }
 
     .status {
       display: inline-block;
       padding: 5px 9px;
       border-radius: 20px;
-      font-size: 11px;
-      font-weight: 700;
+      font-size: 12px;
+      font-weight: bold;
     }
 
     .active {
@@ -198,197 +240,35 @@
       color: #991B1B;
     }
 
-    .actions {
-      display: flex;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
-
-    .action-btn {
-      border: none;
-      padding: 7px 10px;
-      border-radius: 7px;
-      cursor: pointer;
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    .view-btn {
-      background: #DBEAFE;
-      color: #1D4ED8;
-    }
-
-    .edit-btn {
-      background: #FEF3C7;
-      color: #92400E;
-    }
-
-    .toggle-btn {
-      background: #E5E7EB;
-      color: #374151;
-    }
-
     .empty {
       text-align: center;
-      padding: 45px 20px;
-      color: #6B7280;
-    }
-
-    .loading {
-      text-align: center;
-      padding: 45px;
-      color: #6B7280;
-    }
-
-    /* MODAL */
-
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.55);
-      z-index: 500;
-      align-items: center;
-      justify-content: center;
-      padding: 15px;
-    }
-
-    .modal.show {
-      display: flex;
-    }
-
-    .modal-box {
-      width: 100%;
-      max-width: 650px;
-      max-height: 92vh;
-      overflow-y: auto;
-      background: white;
-      border-radius: 18px;
-      box-shadow: 0 20px 50px rgba(0,0,0,.25);
-    }
-
-    .modal-header {
-      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
-      color: white;
-      padding: 18px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .modal-header h3 {
-      font-size: 18px;
-    }
-
-    .close-btn {
-      border: none;
-      background: transparent;
-      color: white;
-      font-size: 25px;
-      cursor: pointer;
-    }
-
-    .modal-body {
-      padding: 20px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .form-group.full {
-      grid-column: 1 / -1;
-    }
-
-    .form-group label {
-      font-size: 12px;
-      font-weight: 700;
-      color: #374151;
-    }
-
-    .modal-footer {
-      padding: 16px 20px;
-      border-top: 1px solid #E5E7EB;
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-
-    .cancel-btn,
-    .save-btn {
-      border: none;
-      padding: 11px 18px;
-      border-radius: 9px;
-      cursor: pointer;
-      font-weight: 700;
-    }
-
-    .cancel-btn {
-      background: #E5E7EB;
-      color: #374151;
-    }
-
-    .save-btn {
-      background: #0B4DA2;
-      color: white;
-    }
-
-    .message {
-      margin-bottom: 15px;
-      padding: 11px 14px;
-      border-radius: 9px;
-      display: none;
-      font-size: 13px;
-    }
-
-    .message.success {
-      display: block;
-      background: #DCFCE7;
-      color: #166534;
-    }
-
-    .message.error {
-      display: block;
-      background: #FEE2E2;
-      color: #991B1B;
+      padding: 30px;
+      color: #64748B;
     }
 
     @media (max-width: 700px) {
-      .title-row {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .add-btn {
-        width: 100%;
-      }
-
-      .tools {
-        grid-template-columns: 1fr;
-      }
-
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .form-group.full {
-        grid-column: auto;
+      .header {
+        padding: 15px;
       }
 
       .brand h1 {
         font-size: 16px;
       }
 
-      .brand p {
-        display: none;
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .full {
+        grid-column: auto;
+      }
+
+      .card {
+        padding: 18px;
+      }
+
+      .page-title h2 {
+        font-size: 23px;
       }
     }
   </style>
@@ -396,252 +276,221 @@
 
 <body>
 
-<header class="header">
+  <header class="header">
 
-  <div class="brand">
-
-    <img
-      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-      alt="GAAWOW Academy Logo"
-    >
-
-    <div>
-      <h1>GAAWOW EMS</h1>
-      <p>Education Management & Verification System</p>
-    </div>
-
-  </div>
-
-  <button
-    class="back-btn"
-    onclick="window.location.href='super-admin.html'"
-  >
-    ← Dashboard
-  </button>
-
-</header>
-
-
-<main class="container">
-
-  <section class="top-section">
-
-    <div class="title-row">
+    <div class="brand">
+      <img
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
+      >
 
       <div>
-        <h2>Institutions</h2>
+        <h1>GAAWOW EMS</h1>
+        <p>Education Management & Verification System</p>
+      </div>
+    </div>
 
-        <p>
-          Manage all institutions registered in GAAWOW EMS.
-        </p>
+    <button class="back-btn" onclick="goDashboard()">
+      ← Dashboard
+    </button>
+
+  </header>
+
+
+  <main class="container">
+
+    <div class="page-title">
+      <h2>Institutions Management</h2>
+      <p>Manage schools and educational institutions.</p>
+    </div>
+
+
+    <!-- ADD INSTITUTION -->
+
+    <section class="card">
+
+      <div class="card-title">
+
+        <h3>➕ Add Institution</h3>
+
       </div>
 
-      <button
-        class="add-btn"
-        id="addInstitutionBtn"
-      >
-        + Add Institution
-      </button>
-
-    </div>
-
-
-    <div id="message" class="message"></div>
-
-
-    <div class="tools">
-
-      <input
-        type="search"
-        id="searchInput"
-        placeholder="Search institution..."
-      >
-
-      <select id="statusFilter">
-
-        <option value="all">
-          All Status
-        </option>
-
-        <option value="active">
-          Active
-        </option>
-
-        <option value="inactive">
-          Inactive
-        </option>
-
-      </select>
-
-    </div>
-
-  </section>
-
-
-  <section class="table-card">
-
-    <div class="table-wrap">
-
-      <table>
-
-        <thead>
-
-          <tr>
-
-            <th>
-              #
-            </th>
-
-            <th>
-              Institution Name
-            </th>
-
-            <th>
-              Institution ID
-            </th>
-
-            <th>
-              Status
-            </th>
-
-            <th>
-              Created
-            </th>
-
-            <th>
-              Actions
-            </th>
-
-          </tr>
-
-        </thead>
-
-        <tbody id="institutionsTable">
-
-          <tr>
-            <td
-              colspan="6"
-              class="loading"
-            >
-              Loading institutions...
-            </td>
-          </tr>
-
-        </tbody>
-
-      </table>
-
-    </div>
-
-  </section>
-
-</main>
-
-
-<!-- ADD / EDIT MODAL -->
-
-<div
-  class="modal"
-  id="institutionModal"
->
-
-  <div class="modal-box">
-
-    <div class="modal-header">
-
-      <h3 id="modalTitle">
-        Add Institution
-      </h3>
-
-      <button
-        class="close-btn"
-        id="closeModalBtn"
-      >
-        ×
-      </button>
-
-    </div>
-
-
-    <form id="institutionForm">
-
-      <div class="modal-body">
+      <form id="institutionForm">
 
         <div class="form-grid">
 
-          <div class="form-group full">
-
-            <label>
-              Institution Name *
-            </label>
-
+          <div class="form-group">
+            <label for="name">Institution Name *</label>
             <input
+              id="name"
               type="text"
-              id="institutionName"
+              placeholder="Enter institution name"
               required
-              placeholder="e.g. GAAWOW Academy"
             >
-
           </div>
 
 
           <div class="form-group">
+            <label for="code">Institution Code *</label>
+            <input
+              id="code"
+              type="text"
+              placeholder="e.g. GAA-001"
+              required
+            >
+          </div>
 
-            <label>
-              Status
-            </label>
 
-            <select id="institutionStatus">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              placeholder="institution@email.com"
+            >
+          </div>
 
-              <option value="active">
-                Active
-              </option>
 
-              <option value="inactive">
-                Inactive
-              </option>
+          <div class="form-group">
+            <label for="phone">Phone</label>
+            <input
+              id="phone"
+              type="text"
+              placeholder="615xxxxxx"
+            >
+          </div>
 
-            </select>
 
+          <div class="form-group">
+            <label for="address">Address</label>
+            <input
+              id="address"
+              type="text"
+              placeholder="Street / Area"
+            >
+          </div>
+
+
+          <div class="form-group">
+            <label for="city">City</label>
+            <input
+              id="city"
+              type="text"
+              placeholder="Bur Hakaba"
+            >
+          </div>
+
+
+          <div class="form-group">
+            <label for="country">Country</label>
+            <input
+              id="country"
+              type="text"
+              value="Somalia"
+            >
+          </div>
+
+
+          <div class="form-group">
+            <label for="website_url">Website</label>
+            <input
+              id="website_url"
+              type="url"
+              placeholder="https://example.com"
+            >
+          </div>
+
+
+          <div class="form-group full">
+            <label for="logo_url">Logo URL</label>
+            <input
+              id="logo_url"
+              type="url"
+              placeholder="https://..."
+            >
           </div>
 
         </div>
 
+
+        <div class="form-actions">
+
+          <button
+            type="submit"
+            class="save-btn"
+            id="saveBtn"
+          >
+            ADD INSTITUTION
+          </button>
+
+          <button
+            type="button"
+            class="cancel-btn"
+            onclick="resetForm()"
+          >
+            CLEAR
+          </button>
+
+        </div>
+
+
+        <div id="message"></div>
+
+      </form>
+
+    </section>
+
+
+    <!-- INSTITUTIONS LIST -->
+
+    <section class="card">
+
+      <div class="card-title">
+        <h3>🏫 Institutions</h3>
       </div>
 
-
-      <div class="modal-footer">
-
-        <button
-          type="button"
-          class="cancel-btn"
-          id="cancelModalBtn"
+      <div class="search">
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Search institution name, code, city..."
         >
-          Cancel
-        </button>
+      </div>
 
-        <button
-          type="submit"
-          class="save-btn"
-          id="saveBtn"
-        >
-          Save Institution
-        </button>
+      <div class="table-wrap">
+
+        <table>
+
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Code</th>
+              <th>City</th>
+              <th>Phone</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody id="institutionsBody">
+            <tr>
+              <td colspan="5" class="empty">
+                Loading institutions...
+              </td>
+            </tr>
+          </tbody>
+
+        </table>
 
       </div>
 
-    </form>
+    </section>
 
-  </div>
-
-</div>
+  </main>
 
 
-<script
-  src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script src="institutions.js"></script>
+  <script src="./institutions.js"></script>
 
 </body>
 </html>
