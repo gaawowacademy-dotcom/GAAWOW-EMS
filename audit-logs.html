@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Audit Logs</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #F5F7FA;
+      color: #1F2937;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      font-size: 21px;
+    }
+
+    .brand p {
+      font-size: 12px;
+      opacity: .85;
+      margin-top: 3px;
+    }
+
+    .back-btn {
+      background: #D4AF37;
+      color: #0B1E63;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    main {
+      max-width: 1400px;
+      margin: 25px auto;
+      padding: 0 18px;
+    }
+
+    .page-title {
+      margin-bottom: 20px;
+    }
+
+    .page-title h2 {
+      color: #0B1E63;
+      font-size: 26px;
+    }
+
+    .page-title p {
+      color: #6B7280;
+      margin-top: 5px;
+    }
+
+    .filters {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 3px 15px rgba(0,0,0,.07);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .filters input,
+    .filters select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #D1D5DB;
+      border-radius: 8px;
+      outline: none;
+      background: white;
+    }
+
+    .filters input:focus,
+    .filters select:focus {
+      border-color: #0B4DA2;
+    }
+
+    .table-card {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 3px 15px rgba(0,0,0,.07);
+      overflow: hidden;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1050px;
+    }
+
+    th {
+      background: #0B1E63;
+      color: white;
+      padding: 13px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #E5E7EB;
+      font-size: 13px;
+      vertical-align: top;
+    }
+
+    tr:hover {
+      background: #F8FAFC;
+    }
+
+    .action {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #E8F1FF;
+      color: #0B4DA2;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .module {
+      font-weight: bold;
+      color: #0B1E63;
+    }
+
+    .details {
+      max-width: 280px;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .record-id {
+      font-family: monospace;
+      font-size: 11px;
+      color: #6B7280;
+    }
+
+    .date {
+      white-space: nowrap;
+      color: #374151;
+    }
+
+    .empty,
+    .loading,
+    .error {
+      text-align: center;
+      padding: 35px;
+      color: #6B7280;
+    }
+
+    .error {
+      color: #DC2626;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      padding: 18px;
+    }
+
+    .pagination button {
+      border: none;
+      background: #0B4DA2;
+      color: white;
+      padding: 9px 15px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .pagination button:disabled {
+      background: #CBD5E1;
+      cursor: not-allowed;
+    }
+
+    #pageInfo {
+      font-weight: bold;
+      color: #0B1E63;
+    }
+
+    @media (max-width: 850px) {
+      .filters {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 550px) {
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .brand h1 {
+        font-size: 17px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy Logo">
+
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <p>Audit Logs — System Activity</p>
+    </div>
+  </div>
+
+  <button class="back-btn" onclick="goDashboard()">
+    ← Dashboard
+  </button>
+</header>
+
+<main>
+
+  <div class="page-title">
+    <h2>Audit Logs</h2>
+    <p>Monitor system activities and administrative actions.</p>
+  </div>
+
+  <div class="filters">
+
+    <input
+      type="text"
+      id="searchInput"
+      placeholder="Search action, module, description..."
+    >
+
+    <select id="actionFilter">
+      <option value="">All Actions</option>
+    </select>
+
+    <select id="moduleFilter">
+      <option value="">All Modules</option>
+    </select>
+
+    <input
+      type="date"
+      id="dateFilter"
+    >
+
+  </div>
+
+  <div class="table-card">
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Date & Time</th>
+            <th>User</th>
+            <th>Action</th>
+            <th>Module</th>
+            <th>Record ID</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+
+        <tbody id="logsBody">
+          <tr>
+            <td colspan="6" class="loading">
+              Loading audit logs...
+            </td>
+          </tr>
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <div class="pagination">
+
+      <button id="prevBtn" onclick="previousPage()">
+        ← Previous
+      </button>
+
+      <span id="pageInfo">Page 1</span>
+
+      <button id="nextBtn" onclick="nextPage()">
+        Next →
+      </button>
+
+    </div>
+
+  </div>
+
+</main>
+
+<script src="audit-logs.js"></script>
+
+</body>
+</html>
