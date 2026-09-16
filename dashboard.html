@@ -116,19 +116,21 @@
       box-shadow: 0 5px 18px rgba(0,0,0,.05);
     }
 
-    /* STUDENTS CARD IS CLICKABLE */
-    .students-card {
+    .students-card,
+    .verification-card {
       cursor: pointer;
       transition: .2s ease;
     }
 
-    .students-card:hover {
+    .students-card:hover,
+    .verification-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 10px 25px rgba(11,77,162,.15);
       border-color: #D4AF37;
     }
 
-    .students-card:active {
+    .students-card:active,
+    .verification-card:active {
       transform: scale(.98);
     }
 
@@ -265,7 +267,7 @@
     <!-- STUDENTS MODULE -->
     <div
       class="card students-card"
-      onclick="window.location.href='students.html'"
+      onclick="window.location.href='./students.html'"
     >
       <div class="icon">🎓</div>
 
@@ -338,7 +340,11 @@
 
 
     <!-- VERIFICATION -->
-    <div class="card">
+    <div
+      class="card verification-card"
+      onclick="window.location.href='./verify.html'"
+    >
+
       <div class="icon">🔍</div>
 
       <h3>Verification</h3>
@@ -346,6 +352,7 @@
       <p>
         Verify GAAWOW Academy certificates.
       </p>
+
     </div>
 
 
