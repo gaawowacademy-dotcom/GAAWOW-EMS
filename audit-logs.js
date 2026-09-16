@@ -18,6 +18,8 @@ let currentPage = 1;
 let totalLogs = 0;
 
 
+/* ELEMENTS */
+
 const searchInput =
   document.getElementById("searchInput");
 
@@ -34,9 +36,7 @@ const logsBody =
   document.getElementById("logsBody");
 
 
-/* =========================
-   DASHBOARD
-========================= */
+/* DASHBOARD */
 
 function goDashboard() {
 
@@ -45,9 +45,7 @@ function goDashboard() {
 }
 
 
-/* =========================
-   SUPER ADMIN CHECK
-========================= */
+/* SUPER ADMIN */
 
 async function checkSuperAdmin() {
 
@@ -96,7 +94,6 @@ async function checkSuperAdmin() {
   ) {
 
     console.error(
-      "Profile error:",
       profileError
     );
 
@@ -128,10 +125,6 @@ async function checkSuperAdmin() {
     profile.is_active === false
   ) {
 
-    alert(
-      "Your account is inactive."
-    );
-
     await supabaseClient
       .auth
       .signOut();
@@ -147,111 +140,138 @@ async function checkSuperAdmin() {
 }
 
 
-/* =========================
-   LOAD FILTER OPTIONS
-========================= */
+/* LOAD MODULE FILTER */
 
-async function loadFilters() {
+async function loadModuleFilter() {
 
-  try {
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from("audit_logs")
-        .select(
-          "action, module"
-        );
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("audit_logs")
+      .select("module");
 
 
-    if (error) {
-      throw error;
-    }
-
-
-    const actions = [
-      ...new Set(
-        (data || [])
-          .map(row => row.action)
-          .filter(Boolean)
-      )
-    ].sort();
-
-
-    const modules = [
-      ...new Set(
-        (data || [])
-          .map(row => row.module)
-          .filter(Boolean)
-      )
-    ].sort();
-
-
-    actionFilter.innerHTML =
-      `<option value="">All Actions</option>`;
-
-
-    actions.forEach(action => {
-
-      const option =
-        document.createElement("option");
-
-      option.value =
-        action;
-
-      option.textContent =
-        action;
-
-      actionFilter.appendChild(
-        option
-      );
-
-    });
-
-
-    moduleFilter.innerHTML =
-      `<option value="">All Modules</option>`;
-
-
-    modules.forEach(module => {
-
-      const option =
-        document.createElement("option");
-
-      option.value =
-        module;
-
-      option.textContent =
-        module;
-
-      moduleFilter.appendChild(
-        option
-      );
-
-    });
-
-  } catch (error) {
+  if (error) {
 
     console.error(
-      "Filter error:",
+      "Module filter:",
       error
     );
 
+    return;
   }
+
+
+  const modules = [
+    ...new Set(
+      (data || [])
+        .map(row => row.module)
+        .filter(Boolean)
+    )
+  ].sort();
+
+
+  modules.forEach(module => {
+
+    const option =
+      document.createElement(
+        "option"
+      );
+
+    option.value =
+      module;
+
+    option.textContent =
+      module;
+
+    moduleFilter.appendChild(
+      option
+    );
+
+  });
 }
 
 
-/* =========================
-   LOAD AUDIT LOGS
-========================= */
+/* SUMMARY */
+
+async function loadSummary() {
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("audit_logs")
+      .select("action");
+
+
+  if (error) {
+
+    console.error(
+      "Summary error:",
+      error
+    );
+
+    return;
+  }
+
+
+  const rows =
+    data || [];
+
+
+  const insert =
+    rows.filter(
+      x => x.action === "INSERT"
+    ).length;
+
+
+  const update =
+    rows.filter(
+      x => x.action === "UPDATE"
+    ).length;
+
+
+  const deleteCount =
+    rows.filter(
+      x => x.action === "DELETE"
+    ).length;
+
+
+  document.getElementById(
+    "totalCount"
+  ).textContent =
+    rows.length;
+
+
+  document.getElementById(
+    "insertCount"
+  ).textContent =
+    insert;
+
+
+  document.getElementById(
+    "updateCount"
+  ).textContent =
+    update;
+
+
+  document.getElementById(
+    "deleteCount"
+  ).textContent =
+    deleteCount;
+}
+
+
+/* LOAD LOGS */
 
 async function loadLogs() {
 
   logsBody.innerHTML = `
     <tr>
-      <td colspan="6" class="loading">
+      <td colspan="8" class="loading">
         Loading audit logs...
       </td>
     </tr>
@@ -290,8 +310,6 @@ async function loadLogs() {
       dateFilter.value;
 
 
-    /* ACTION */
-
     if (action) {
 
       query =
@@ -301,8 +319,6 @@ async function loadLogs() {
         );
     }
 
-
-    /* MODULE */
 
     if (module) {
 
@@ -314,42 +330,29 @@ async function loadLogs() {
     }
 
 
-    /* DATE */
-
     if (date) {
-
-      const start =
-        `${date}T00:00:00`;
-
-      const end =
-        `${date}T23:59:59`;
-
 
       query =
         query
           .gte(
             "created_at",
-            start
+            `${date}T00:00:00`
           )
-          .lte(
+          .lt(
             "created_at",
-            end
+            `${date}T23:59:59`
           );
     }
 
-
-    /* SEARCH */
 
     if (search) {
 
       query =
         query.or(
-          `action.ilike.%${search}%,module.ilike.%${search}%,description.ilike.%${search}%`
+          `action.ilike.%${search}%,module.ilike.%${search}%,description.ilike.%${search}%,user_id.eq.${search}`
         );
     }
 
-
-    /* PAGINATION */
 
     const from =
       (currentPage - 1) *
@@ -395,19 +398,20 @@ async function loadLogs() {
   } catch (error) {
 
     console.error(
-      "Audit Logs error:",
       error
     );
 
 
     logsBody.innerHTML = `
       <tr>
-        <td colspan="6" class="error">
+        <td
+          colspan="8"
+          class="error"
+        >
           Failed to load audit logs.
           <br>
           ${escapeHtml(
-            error.message ||
-            "Unknown error"
+            error.message
           )}
         </td>
       </tr>
@@ -417,9 +421,7 @@ async function loadLogs() {
 }
 
 
-/* =========================
-   RENDER LOGS
-========================= */
+/* RENDER */
 
 function renderLogs(logs) {
 
@@ -427,7 +429,10 @@ function renderLogs(logs) {
 
     logsBody.innerHTML = `
       <tr>
-        <td colspan="6" class="empty">
+        <td
+          colspan="8"
+          class="empty"
+        >
           No audit logs found.
         </td>
       </tr>
@@ -448,6 +453,39 @@ function renderLogs(logs) {
           : "—";
 
 
+      const action =
+        String(
+          log.action || ""
+        ).toUpperCase();
+
+
+      let badgeClass =
+        "badge";
+
+
+      if (
+        action === "INSERT"
+      ) {
+
+        badgeClass +=
+          " insert";
+
+      } else if (
+        action === "UPDATE"
+      ) {
+
+        badgeClass +=
+          " update";
+
+      } else if (
+        action === "DELETE"
+      ) {
+
+        badgeClass +=
+          " delete";
+      }
+
+
       return `
         <tr>
 
@@ -455,21 +493,35 @@ function renderLogs(logs) {
             ${escapeHtml(date)}
           </td>
 
-          <td class="record-id">
-            ${escapeHtml(
-              log.user_id ||
-              "System"
-            )}
-          </td>
 
           <td>
-            <span class="action">
+            <div class="user-name">
               ${escapeHtml(
-                log.action ||
-                "—"
+                log.user_id ||
+                "System"
+              )}
+            </div>
+          </td>
+
+
+          <td>
+            <div class="institution">
+              ${escapeHtml(
+                log.institution_id ||
+                "Global"
+              )}
+            </div>
+          </td>
+
+
+          <td>
+            <span class="${badgeClass}">
+              ${escapeHtml(
+                action || "—"
               )}
             </span>
           </td>
+
 
           <td class="module">
             ${escapeHtml(
@@ -478,6 +530,7 @@ function renderLogs(logs) {
             )}
           </td>
 
+
           <td class="record-id">
             ${escapeHtml(
               log.record_id ||
@@ -485,11 +538,24 @@ function renderLogs(logs) {
             )}
           </td>
 
+
           <td class="details">
             ${escapeHtml(
               log.description ||
               "—"
             )}
+          </td>
+
+
+          <td>
+
+            <button
+              class="view-btn"
+              onclick='viewDetails(${JSON.stringify(log)})'
+            >
+              View
+            </button>
+
           </td>
 
         </tr>
@@ -499,9 +565,198 @@ function renderLogs(logs) {
 }
 
 
-/* =========================
-   PAGINATION
-========================= */
+/* DETAILS */
+
+function viewDetails(log) {
+
+  const modal =
+    document.getElementById(
+      "detailsModal"
+    );
+
+  const content =
+    document.getElementById(
+      "modalContent"
+    );
+
+
+  const date =
+    log.created_at
+      ? new Date(
+          log.created_at
+        ).toLocaleString()
+      : "—";
+
+
+  const oldData =
+    log.old_data
+      ? JSON.stringify(
+          log.old_data,
+          null,
+          2
+        )
+      : "No previous data";
+
+
+  const newData =
+    log.new_data
+      ? JSON.stringify(
+          log.new_data,
+          null,
+          2
+        )
+      : "No new data";
+
+
+  content.innerHTML = `
+
+    <div class="info-grid">
+
+      <div class="info-item">
+        <small>Date & Time</small>
+        <strong>
+          ${escapeHtml(date)}
+        </strong>
+      </div>
+
+
+      <div class="info-item">
+        <small>Action</small>
+        <strong>
+          ${escapeHtml(
+            log.action ||
+            "—"
+          )}
+        </strong>
+      </div>
+
+
+      <div class="info-item">
+        <small>Module</small>
+        <strong>
+          ${escapeHtml(
+            log.module ||
+            "—"
+          )}
+        </strong>
+      </div>
+
+
+      <div class="info-item">
+        <small>User ID</small>
+        <strong>
+          ${escapeHtml(
+            log.user_id ||
+            "System"
+          )}
+        </strong>
+      </div>
+
+
+      <div class="info-item">
+        <small>Institution ID</small>
+        <strong>
+          ${escapeHtml(
+            log.institution_id ||
+            "Global"
+          )}
+        </strong>
+      </div>
+
+
+      <div class="info-item">
+        <small>Record ID</small>
+        <strong>
+          ${escapeHtml(
+            log.record_id ||
+            "—"
+          )}
+        </strong>
+      </div>
+
+
+      <div class="info-item">
+        <small>IP Address</small>
+        <strong>
+          ${escapeHtml(
+            log.ip_address ||
+            "Not recorded"
+          )}
+        </strong>
+      </div>
+
+
+      <div class="info-item">
+        <small>User Agent</small>
+        <strong>
+          ${escapeHtml(
+            log.user_agent ||
+            "Not recorded"
+          )}
+        </strong>
+      </div>
+
+    </div>
+
+
+    <div class="info-item">
+      <small>Description</small>
+      <strong>
+        ${escapeHtml(
+          log.description ||
+          "—"
+        )}
+      </strong>
+    </div>
+
+
+    <h4 class="data-title">
+      Old Data
+    </h4>
+
+    <pre>${escapeHtml(
+      oldData
+    )}</pre>
+
+
+    <h4 class="data-title">
+      New Data
+    </h4>
+
+    <pre>${escapeHtml(
+      newData
+    )}</pre>
+
+  `;
+
+
+  modal.style.display =
+    "block";
+}
+
+
+/* CLOSE MODAL */
+
+function closeModal(event) {
+
+  if (
+    event &&
+    event.target &&
+    event.target.id !==
+      "detailsModal"
+  ) {
+    return;
+  }
+
+
+  document.getElementById(
+    "detailsModal"
+  ).style.display =
+    "none";
+}
+
+
+/* PAGINATION */
 
 function updatePagination() {
 
@@ -537,8 +792,7 @@ function updatePagination() {
 function previousPage() {
 
   if (
-    currentPage >
-    1
+    currentPage > 1
   ) {
 
     currentPage--;
@@ -572,39 +826,7 @@ function nextPage() {
 }
 
 
-/* =========================
-   HTML SECURITY
-========================= */
-
-function escapeHtml(value) {
-
-  return String(value)
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    );
-}
-
-
-/* =========================
-   SEARCH
-========================= */
+/* SEARCH */
 
 let searchTimer;
 
@@ -665,9 +887,35 @@ dateFilter.addEventListener(
 );
 
 
-/* =========================
-   START
-========================= */
+/* SECURITY */
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+}
+
+
+/* START */
 
 async function startAuditLogs() {
 
@@ -680,7 +928,9 @@ async function startAuditLogs() {
   }
 
 
-  await loadFilters();
+  await loadModuleFilter();
+
+  await loadSummary();
 
   await loadLogs();
 }
