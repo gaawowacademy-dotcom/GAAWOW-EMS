@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Dashboard</title>
+
+  <meta name="theme-color" content="#0B1E63">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #F5F7FA;
+      color: #1F2937;
+    }
+
+    .topbar {
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+      color: white;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 15px rgba(0,0,0,.15);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h2 {
+      font-size: 18px;
+    }
+
+    .brand small {
+      display: block;
+      color: #D4AF37;
+      margin-top: 3px;
+    }
+
+    #logoutBtn {
+      border: none;
+      background: #D4AF37;
+      color: #0B1E63;
+      font-weight: bold;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 25px 18px;
+    }
+
+    .welcome {
+      background: white;
+      border-radius: 18px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.07);
+      border-left: 5px solid #D4AF37;
+    }
+
+    .welcome h1 {
+      color: #0B1E63;
+      margin-bottom: 8px;
+    }
+
+    .welcome p {
+      color: #64748B;
+    }
+
+    .modules {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      min-height: 180px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.07);
+      transition: .2s;
+      position: relative;
+    }
+
+    .card.clickable {
+      cursor: pointer;
+    }
+
+    .card.clickable:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 28px rgba(0,0,0,.13);
+    }
+
+    .icon {
+      font-size: 35px;
+      margin-bottom: 14px;
+    }
+
+    .card h3 {
+      color: #0B1E63;
+      margin-bottom: 8px;
+    }
+
+    .card p {
+      color: #64748B;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .active-badge {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #DCFCE7;
+      color: #15803D;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .soon-badge {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #FEF3C7;
+      color: #92400E;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .account {
+      margin-top: 28px;
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.07);
+    }
+
+    .account h2 {
+      color: #0B1E63;
+      margin-bottom: 18px;
+    }
+
+    .account-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+    }
+
+    .info {
+      background: #F8FAFC;
+      padding: 15px;
+      border-radius: 12px;
+    }
+
+    .info span {
+      display: block;
+      font-size: 12px;
+      color: #64748B;
+      margin-bottom: 5px;
+    }
+
+    .info strong {
+      color: #0B1E63;
+      word-break: break-word;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0B1E63;
+      color: white;
+      padding: 13px 20px;
+      border-radius: 10px;
+      display: none;
+      z-index: 9999;
+    }
+
+    @media (max-width: 600px) {
+      .topbar {
+        padding: 12px 14px;
+      }
+
+      .brand h2 {
+        font-size: 15px;
+      }
+
+      .brand small {
+        font-size: 11px;
+      }
+
+      #logoutBtn {
+        padding: 8px 11px;
+        font-size: 12px;
+      }
+
+      .container {
+        padding: 18px 12px;
+      }
+
+      .welcome {
+        padding: 20px;
+      }
+
+      .welcome h1 {
+        font-size: 23px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <img
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
+      >
+
+      <div>
+        <h2>GAAWOW EMS</h2>
+        <small>Education Management System</small>
+      </div>
+    </div>
+
+    <button id="logoutBtn">
+      LOGOUT
+    </button>
+  </header>
+
+  <main class="container">
+
+    <section class="welcome">
+      <h1 id="welcomeText">
+        GAAWOW EMS Dashboard
+      </h1>
+
+      <p>
+        Manage education, students, certificates and verification.
+      </p>
+    </section>
+
+    <section class="modules">
+
+      <!-- STUDENTS -->
+      <div
+        class="card clickable"
+        onclick="window.location.href='./students.html'"
+      >
+        <div class="icon">👨‍🎓</div>
+
+        <h3>Students</h3>
+
+        <p>
+          Manage students, profiles and academic information.
+        </p>
+
+        <span class="active-badge">
+          AVAILABLE
+        </span>
+      </div>
+
+
+      <!-- VERIFICATION -->
+      <div
+        class="card clickable"
+        onclick="window.location.href='./verify.html'"
+      >
+        <div class="icon">🔍</div>
+
+        <h3>Verification</h3>
+
+        <p>
+          Verify GAAWOW Academy certificates online.
+        </p>
+
+        <span class="active-badge">
+          AVAILABLE
+        </span>
+      </div>
+
+
+      <!-- COURSES -->
+      <div
+        class="card clickable"
+        onclick="showComingSoon('Courses')"
+      >
+        <div class="icon">📚</div>
+
+        <h3>Courses</h3>
+
+        <p>
+          Manage courses and training programs.
+        </p>
+
+        <span class="soon-badge">
+          COMING SOON
+        </span>
+      </div>
+
+
+      <!-- EXAMS -->
+      <div
+        class="card clickable"
+        onclick="showComingSoon('Exams')"
+      >
+        <div class="icon">📝</div>
+
+        <h3>Exams</h3>
+
+        <p>
+          Manage examinations and assessments.
+        </p>
+
+        <span class="soon-badge">
+          COMING SOON
+        </span>
+      </div>
+
+
+      <!-- GRADES -->
+      <div
+        class="card clickable"
+        onclick="showComingSoon('Grades')"
+      >
+        <div class="icon">📊</div>
+
+        <h3>Grades</h3>
+
+        <p>
+          View and manage student results.
+        </p>
+
+        <span class="soon-badge">
+          COMING SOON
+        </span>
+      </div>
+
+
+      <!-- ATTENDANCE -->
+      <div
+        class="card clickable"
+        onclick="showComingSoon('Attendance')"
+      >
+        <div class="icon">📅</div>
+
+        <h3>Attendance</h3>
+
+        <p>
+          Track student attendance and participation.
+        </p>
+
+        <span class="soon-badge">
+          COMING SOON
+        </span>
+      </div>
+
+
+      <!-- CERTIFICATES -->
+      <div
+        class="card clickable"
+        onclick="showComingSoon('Certificates')"
+      >
+        <div class="icon">🏆</div>
+
+        <h3>Certificates</h3>
+
+        <p>
+          Manage issued certificates and records.
+        </p>
+
+        <span class="soon-badge">
+          COMING SOON
+        </span>
+      </div>
+
+
+      <!-- PROFILE -->
+      <div
+        class="card clickable"
+        onclick="showComingSoon('Profile')"
+      >
+        <div class="icon">👤</div>
+
+        <h3>Profile</h3>
+
+        <p>
+          View your GAAWOW EMS account information.
+        </p>
+
+        <span class="soon-badge">
+          COMING SOON
+        </span>
+      </div>
+
+    </section>
+
+
+    <!-- ACCOUNT -->
+    <section class="account">
+
+      <h2>Account Information</h2>
+
+      <div class="account-row">
+
+        <div class="info">
+          <span>Name</span>
+          <strong id="userName">Loading...</strong>
+        </div>
+
+        <div class="info">
+          <span>Email</span>
+          <strong id="userEmail">Loading...</strong>
+        </div>
+
+        <div class="info">
+          <span>Role</span>
+          <strong id="userRole">Loading...</strong>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <div id="toast" class="toast"></div>
+
+
+  <script>
+    function showComingSoon(moduleName) {
+      const toast =
+        document.getElementById("toast");
+
+      toast.textContent =
+        moduleName + " module is coming soon.";
+
+      toast.style.display = "block";
+
+      setTimeout(function () {
+        toast.style.display = "none";
+      }, 2500);
+    }
+  </script>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="./dashboard.js"></script>
+
+</body>
+</html>
