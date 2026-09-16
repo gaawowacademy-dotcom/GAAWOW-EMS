@@ -4,286 +4,219 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>GAAWOW Academy — Verify Certificate</title>
+  <title>GAAWOW Academy — Certificate Verification</title>
 
-  <link rel="icon"
+  <meta name="description" content="Verify a GAAWOW Academy certificate online.">
+  <meta name="theme-color" content="#0B1E63">
+
+  <link rel="icon" type="image/png"
         href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
 
   <style>
     * {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, Helvetica, sans-serif;
     }
 
     body {
+      margin: 0;
       min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
       background:
-        linear-gradient(135deg, #f5f7fa, #e8eef7);
-      color: #1f2937;
-    }
-
-    header {
-      background:
-        linear-gradient(135deg, #0b1e63, #0b4da2);
-      color: white;
-      text-align: center;
-      padding: 28px 15px;
-      box-shadow: 0 5px 20px rgba(0,0,0,.15);
-    }
-
-    header img {
-      width: 82px;
-      height: 82px;
-      object-fit: contain;
-      margin-bottom: 8px;
-    }
-
-    header h1 {
-      font-size: 25px;
-      margin-bottom: 5px;
-    }
-
-    header p {
-      font-size: 13px;
-      opacity: .9;
+        radial-gradient(circle at top, #164fa4 0%, #0B1E63 45%, #061337 100%);
+      color: #1F2937;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
     }
 
     .container {
-      width: min(720px, 94%);
-      margin: 35px auto;
+      width: 100%;
+      max-width: 520px;
     }
 
     .card {
-      background: white;
-      border-radius: 20px;
-      padding: 28px;
-      box-shadow: 0 12px 35px rgba(11,30,99,.12);
-      border: 1px solid #e5e7eb;
-    }
-
-    .title {
+      background: rgba(255,255,255,0.97);
+      border-radius: 24px;
+      padding: 32px 26px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.30);
       text-align: center;
-      margin-bottom: 25px;
     }
 
-    .title h2 {
-      color: #0b1e63;
-      font-size: 25px;
-      margin-bottom: 8px;
+    .logo {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      margin-bottom: 10px;
     }
 
-    .title p {
-      color: #6b7280;
+    h1 {
+      margin: 5px 0;
+      color: #0B1E63;
+      font-size: 27px;
+    }
+
+    .subtitle {
+      margin: 8px 0 25px;
+      color: #6B7280;
       font-size: 14px;
-      line-height: 1.6;
+    }
+
+    .form {
+      text-align: left;
     }
 
     label {
       display: block;
-      color: #0b1e63;
-      font-weight: bold;
       margin-bottom: 8px;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 10px;
+      font-weight: 700;
+      color: #0B1E63;
     }
 
     input {
-      flex: 1;
-      min-width: 0;
-      padding: 14px;
-      border: 1px solid #d1d5db;
-      border-radius: 11px;
+      width: 100%;
+      padding: 15px;
+      border: 2px solid #E5E7EB;
+      border-radius: 12px;
+      font-size: 16px;
       outline: none;
-      font-size: 15px;
     }
 
     input:focus {
-      border-color: #0b4da2;
-      box-shadow: 0 0 0 3px rgba(11,77,162,.10);
+      border-color: #0B4DA2;
+      box-shadow: 0 0 0 3px rgba(11,77,162,0.12);
     }
 
     button {
+      width: 100%;
+      margin-top: 14px;
+      padding: 15px;
       border: none;
-      border-radius: 11px;
-      padding: 14px 22px;
-      background:
-        linear-gradient(135deg, #0b4da2, #0b1e63);
+      border-radius: 12px;
+      background: linear-gradient(135deg,#0B4DA2,#0B1E63);
       color: white;
-      font-weight: bold;
+      font-size: 16px;
+      font-weight: 800;
       cursor: pointer;
-      min-width: 125px;
-    }
-
-    button:hover {
-      opacity: .92;
     }
 
     button:disabled {
-      opacity: .65;
+      opacity: 0.65;
       cursor: not-allowed;
     }
 
     .message {
       display: none;
-      margin-top: 20px;
-      padding: 14px;
+      margin-top: 18px;
+      padding: 13px;
       border-radius: 10px;
-      text-align: center;
-      font-weight: bold;
-      line-height: 1.5;
+      font-size: 14px;
+      font-weight: 600;
     }
 
-    .message.success {
-      display: block;
-      background: #ecfdf5;
+    .error {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .success {
+      background: #DCFCE7;
       color: #166534;
-      border: 1px solid #86efac;
     }
 
-    .message.error {
-      display: block;
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fca5a5;
-    }
-
-    .certificate {
+    .result {
       display: none;
-      margin-top: 25px;
-      border: 2px solid #d4af37;
-      border-radius: 17px;
+      margin-top: 22px;
+      text-align: left;
+      border: 1px solid #E5E7EB;
+      border-radius: 16px;
       overflow: hidden;
-      background: white;
     }
 
-    .certificate-header {
-      background:
-        linear-gradient(135deg, #0b1e63, #0b4da2);
+    .result-header {
+      background: linear-gradient(135deg,#0B1E63,#0B4DA2);
       color: white;
+      padding: 18px;
       text-align: center;
-      padding: 25px 15px;
     }
 
-    .certificate-header img {
-      width: 65px;
-      height: 65px;
-      object-fit: contain;
-      margin-bottom: 8px;
+    .result-header h2 {
+      margin: 0;
+      font-size: 20px;
     }
 
-    .certificate-header h2 {
-      color: #d4af37;
-      font-size: 22px;
-      margin-bottom: 10px;
-    }
-
-    .status-badge {
+    .status {
       display: inline-block;
-      padding: 8px 16px;
+      margin-top: 9px;
+      padding: 6px 14px;
       border-radius: 30px;
+      background: #16A34A;
       color: white;
       font-size: 12px;
-      font-weight: bold;
+      font-weight: 800;
+      text-transform: uppercase;
     }
 
-    .certificate-body {
-      padding: 22px;
+    .result-body {
+      padding: 18px;
     }
 
-    .info-row {
+    .row {
       display: flex;
       justify-content: space-between;
       gap: 15px;
-      padding: 13px 0;
-      border-bottom: 1px solid #e5e7eb;
+      padding: 11px 0;
+      border-bottom: 1px solid #F0F0F0;
     }
 
-    .info-row:last-child {
+    .row:last-child {
       border-bottom: none;
     }
 
-    .info-label {
-      color: #6b7280;
+    .label {
+      color: #6B7280;
       font-size: 13px;
     }
 
-    .info-value {
+    .value {
       text-align: right;
-      color: #0b1e63;
-      font-weight: bold;
+      font-weight: 700;
+      color: #1F2937;
       word-break: break-word;
-    }
-
-    .status-valid {
-      color: #16a34a !important;
-    }
-
-    .status-revoked {
-      color: #dc2626 !important;
-    }
-
-    .status-expired {
-      color: #b45309 !important;
     }
 
     .links {
       display: flex;
       gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 22px;
+      margin-top: 18px;
     }
 
     .links a {
-      display: none;
       flex: 1;
-      min-width: 150px;
       text-align: center;
-      text-decoration: none;
-      padding: 12px;
+      padding: 11px;
       border-radius: 10px;
-      background: #f3f4f6;
-      color: #0b4da2;
-      font-weight: bold;
-      border: 1px solid #e5e7eb;
+      background: #F1F5F9;
+      color: #0B4DA2;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13px;
     }
 
     footer {
+      margin-top: 22px;
+      color: rgba(255,255,255,0.75);
       text-align: center;
-      color: #6b7280;
-      font-size: 13px;
-      padding: 25px 15px 35px;
+      font-size: 12px;
     }
 
-    @media (max-width: 600px) {
-
+    @media (max-width: 480px) {
       .card {
-        padding: 20px;
+        padding: 25px 18px;
       }
 
-      .input-row {
-        flex-direction: column;
-      }
-
-      button {
-        width: 100%;
-      }
-
-      .info-row {
-        flex-direction: column;
-        gap: 5px;
-      }
-
-      .info-value {
-        text-align: left;
-      }
-
-      .title h2 {
-        font-size: 22px;
+      h1 {
+        font-size: 23px;
       }
     }
   </style>
@@ -291,230 +224,103 @@
 
 <body>
 
-<header>
+  <div class="container">
 
-  <img
-    src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-    alt="GAAWOW Academy Logo"
-  >
+    <div class="card">
 
-  <h1>GAAWOW ACADEMY</h1>
-
-  <p>
-    Ilayska Aqoonta iyo Xirfadda
-  </p>
-
-</header>
-
-
-<div class="container">
-
-  <div class="card">
-
-    <div class="title">
-
-      <h2>Certificate Verification</h2>
-
-      <p>
-        Verify the authenticity of a GAAWOW Academy certificate
-        using the Certificate ID, Certificate No, or Verify Code.
-      </p>
-
-    </div>
-
-
-    <label for="searchInput">
-      Certificate ID / Certificate No / Verify Code
-    </label>
-
-
-    <div class="input-row">
-
-      <input
-        type="text"
-        id="searchInput"
-        placeholder="Example: GAW-2026-001"
-        autocomplete="off"
+      <img
+        class="logo"
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
       >
 
-      <button id="verifyBtn">
-        VERIFY
-      </button>
+      <h1>Certificate Verification</h1>
 
-    </div>
+      <div class="subtitle">
+        GAAWOW Academy — Ilayska Aqoonta iyo Xirfadda
+      </div>
 
+      <div class="form">
 
-    <div
-      id="message"
-      class="message">
-    </div>
+        <label for="verifyCode">
+          Certificate Number / ID / Verification Code
+        </label>
 
-
-    <div
-      id="certificate"
-      class="certificate">
-
-
-      <div class="certificate-header">
-
-        <img
-          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-          alt="GAAWOW Academy Logo"
+        <input
+          id="verifyCode"
+          type="text"
+          placeholder="Enter certificate code"
+          autocomplete="off"
         >
 
-        <h2>
-          CERTIFICATE VERIFICATION
-        </h2>
-
-        <span
-          id="statusBadge"
-          class="status-badge">
-        </span>
+        <button id="verifyBtn" type="button">
+          VERIFY CERTIFICATE
+        </button>
 
       </div>
 
+      <div id="message" class="message"></div>
 
-      <div class="certificate-body">
+      <div id="result" class="result">
 
-
-        <div class="info-row">
-          <span class="info-label">
-            Student Name
-          </span>
-
-          <span
-            id="studentName"
-            class="info-value">
-          </span>
+        <div class="result-header">
+          <h2>Certificate Found</h2>
+          <span id="status" class="status">VALID</span>
         </div>
 
+        <div class="result-body">
 
-        <div class="info-row">
-          <span class="info-label">
-            Course
-          </span>
+          <div class="row">
+            <span class="label">Certificate No.</span>
+            <span id="certificateNo" class="value">—</span>
+          </div>
 
-          <span
-            id="courseName"
-            class="info-value">
-          </span>
-        </div>
+          <div class="row">
+            <span class="label">Certificate ID</span>
+            <span id="certificateId" class="value">—</span>
+          </div>
 
+          <div class="row">
+            <span class="label">Verification Code</span>
+            <span id="verificationCode" class="value">—</span>
+          </div>
 
-        <div class="info-row">
-          <span class="info-label">
-            Certificate No
-          </span>
+          <div class="row">
+            <span class="label">Student</span>
+            <span id="studentName" class="value">—</span>
+          </div>
 
-          <span
-            id="certificateNo"
-            class="info-value">
-          </span>
-        </div>
+          <div class="row">
+            <span class="label">Course</span>
+            <span id="courseName" class="value">—</span>
+          </div>
 
+          <div class="row">
+            <span class="label">Issue Date</span>
+            <span id="issueDate" class="value">—</span>
+          </div>
 
-        <div class="info-row">
-          <span class="info-label">
-            Certificate ID
-          </span>
+          <div class="row">
+            <span class="label">Expiry Date</span>
+            <span id="expiryDate" class="value">—</span>
+          </div>
 
-          <span
-            id="certificateId"
-            class="info-value">
-          </span>
-        </div>
-
-
-        <div class="info-row">
-          <span class="info-label">
-            Verify Code
-          </span>
-
-          <span
-            id="verifyCode"
-            class="info-value">
-          </span>
-        </div>
-
-
-        <div class="info-row">
-          <span class="info-label">
-            Issue Date
-          </span>
-
-          <span
-            id="issueDate"
-            class="info-value">
-          </span>
-        </div>
-
-
-        <div class="info-row">
-          <span class="info-label">
-            Expiry Date
-          </span>
-
-          <span
-            id="expiryDate"
-            class="info-value">
-          </span>
-        </div>
-
-
-        <div class="info-row">
-          <span class="info-label">
-            Status
-          </span>
-
-          <span
-            id="status"
-            class="info-value">
-          </span>
-        </div>
-
-
-        <div class="links">
-
-          <a
-            id="certificateLink"
-            href="#"
-            target="_blank">
-            View Certificate
-          </a>
-
-          <a
-            id="pdfLink"
-            href="#"
-            target="_blank">
-            View PDF
-          </a>
-
-          <a
-            id="qrLink"
-            href="#"
-            target="_blank">
-            QR Verification
-          </a>
+          <div id="links" class="links"></div>
 
         </div>
 
       </div>
 
     </div>
+
+    <footer>
+      © 2026 GAAWOW Academy — Bur Hakaba, Bay, Somalia
+    </footer>
 
   </div>
 
-</div>
-
-
-<footer>
-  © 2026 GAAWOW Academy — Ilayska Aqoonta iyo Xirfadda
-</footer>
-
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script src="verify.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./verify.js"></script>
 
 </body>
 </html>
