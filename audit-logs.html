@@ -1,275 +1,516 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>GAAWOW EMS — Audit Logs</title>
+<title>GAAWOW EMS — Audit Logs</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-    body {
-      font-family: Arial, sans-serif;
-      background: #F5F7FA;
-      color: #1F2937;
-    }
+body {
+  font-family: Arial, sans-serif;
+  background: #F5F7FA;
+  color: #1F2937;
+}
 
-    header {
-      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
-      color: white;
-      padding: 18px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 15px;
-      flex-wrap: wrap;
-    }
+/* HEADER */
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+header {
+  background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+  color: white;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
 
-    .brand img {
-      width: 48px;
-      height: 48px;
-      object-fit: contain;
-      background: white;
-      border-radius: 10px;
-      padding: 4px;
-    }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-    .brand h1 {
-      font-size: 21px;
-    }
+.brand img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  background: white;
+  border-radius: 10px;
+  padding: 4px;
+}
 
-    .brand p {
-      font-size: 12px;
-      opacity: .85;
-      margin-top: 3px;
-    }
+.brand h1 {
+  font-size: 20px;
+}
 
-    .back-btn {
-      background: #D4AF37;
-      color: #0B1E63;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+.brand p {
+  font-size: 12px;
+  opacity: .85;
+  margin-top: 3px;
+}
 
-    main {
-      max-width: 1400px;
-      margin: 25px auto;
-      padding: 0 18px;
-    }
+.back-btn {
+  border: none;
+  background: #D4AF37;
+  color: #0B1E63;
+  font-weight: bold;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
 
-    .page-title {
-      margin-bottom: 20px;
-    }
+/* MAIN */
 
-    .page-title h2 {
-      color: #0B1E63;
-      font-size: 26px;
-    }
+main {
+  max-width: 1450px;
+  margin: 25px auto;
+  padding: 0 18px;
+}
 
-    .page-title p {
-      color: #6B7280;
-      margin-top: 5px;
-    }
+.title-area {
+  margin-bottom: 20px;
+}
 
-    .filters {
-      background: white;
-      border-radius: 14px;
-      padding: 18px;
-      box-shadow: 0 3px 15px rgba(0,0,0,.07);
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 20px;
-    }
+.title-area h2 {
+  color: #0B1E63;
+  font-size: 28px;
+}
 
-    .filters input,
-    .filters select {
-      width: 100%;
-      padding: 11px 12px;
-      border: 1px solid #D1D5DB;
-      border-radius: 8px;
-      outline: none;
-      background: white;
-    }
+.title-area p {
+  color: #6B7280;
+  margin-top: 5px;
+}
 
-    .filters input:focus,
-    .filters select:focus {
-      border-color: #0B4DA2;
-    }
+/* SUMMARY */
 
-    .table-card {
-      background: white;
-      border-radius: 14px;
-      box-shadow: 0 3px 15px rgba(0,0,0,.07);
-      overflow: hidden;
-    }
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
 
-    .table-wrapper {
-      overflow-x: auto;
-    }
+.summary-card {
+  background: white;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 3px 14px rgba(0,0,0,.07);
+}
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 1050px;
-    }
+.summary-card small {
+  color: #6B7280;
+  font-size: 12px;
+}
 
-    th {
-      background: #0B1E63;
-      color: white;
-      padding: 13px;
-      text-align: left;
-      font-size: 13px;
-    }
+.summary-card strong {
+  display: block;
+  font-size: 25px;
+  color: #0B1E63;
+  margin-top: 7px;
+}
 
-    td {
-      padding: 12px;
-      border-bottom: 1px solid #E5E7EB;
-      font-size: 13px;
-      vertical-align: top;
-    }
+/* FILTERS */
 
-    tr:hover {
-      background: #F8FAFC;
-    }
+.filters {
+  background: white;
+  padding: 18px;
+  border-radius: 14px;
+  box-shadow: 0 3px 14px rgba(0,0,0,.07);
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
 
-    .action {
-      display: inline-block;
-      padding: 5px 9px;
-      border-radius: 20px;
-      background: #E8F1FF;
-      color: #0B4DA2;
-      font-weight: bold;
-      font-size: 11px;
-    }
+.filters input,
+.filters select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  outline: none;
+  background: white;
+}
 
-    .module {
-      font-weight: bold;
-      color: #0B1E63;
-    }
+.filters input:focus,
+.filters select:focus {
+  border-color: #0B4DA2;
+}
 
-    .details {
-      max-width: 280px;
-      white-space: normal;
-      word-break: break-word;
-    }
+/* TABLE */
 
-    .record-id {
-      font-family: monospace;
-      font-size: 11px;
-      color: #6B7280;
-    }
+.table-card {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 14px rgba(0,0,0,.07);
+}
 
-    .date {
-      white-space: nowrap;
-      color: #374151;
-    }
+.table-wrapper {
+  overflow-x: auto;
+}
 
-    .empty,
-    .loading,
-    .error {
-      text-align: center;
-      padding: 35px;
-      color: #6B7280;
-    }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1150px;
+}
 
-    .error {
-      color: #DC2626;
-    }
+th {
+  background: #0B1E63;
+  color: white;
+  text-align: left;
+  padding: 13px;
+  font-size: 12px;
+}
 
-    .pagination {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 12px;
-      padding: 18px;
-    }
+td {
+  padding: 12px;
+  border-bottom: 1px solid #E5E7EB;
+  font-size: 13px;
+  vertical-align: middle;
+}
 
-    .pagination button {
-      border: none;
-      background: #0B4DA2;
-      color: white;
-      padding: 9px 15px;
-      border-radius: 7px;
-      cursor: pointer;
-    }
+tr:hover {
+  background: #F8FAFC;
+}
 
-    .pagination button:disabled {
-      background: #CBD5E1;
-      cursor: not-allowed;
-    }
+/* BADGES */
 
-    #pageInfo {
-      font-weight: bold;
-      color: #0B1E63;
-    }
+.badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: bold;
+}
 
-    @media (max-width: 850px) {
-      .filters {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
+.insert {
+  background: #DCFCE7;
+  color: #15803D;
+}
 
-    @media (max-width: 550px) {
-      .filters {
-        grid-template-columns: 1fr;
-      }
+.update {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
 
-      .brand h1 {
-        font-size: 17px;
-      }
-    }
-  </style>
+.delete {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+.module {
+  color: #0B1E63;
+  font-weight: bold;
+}
+
+.user-name {
+  font-weight: bold;
+  color: #1F2937;
+}
+
+.institution {
+  font-size: 11px;
+  color: #6B7280;
+  margin-top: 3px;
+}
+
+.record-id {
+  font-family: monospace;
+  font-size: 10px;
+  color: #6B7280;
+  max-width: 160px;
+  word-break: break-all;
+}
+
+.date {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.details {
+  max-width: 220px;
+}
+
+/* VIEW BUTTON */
+
+.view-btn {
+  border: none;
+  background: #0B4DA2;
+  color: white;
+  padding: 7px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.view-btn:hover {
+  background: #0B1E63;
+}
+
+/* EMPTY */
+
+.loading,
+.empty,
+.error {
+  text-align: center;
+  padding: 35px;
+}
+
+.loading,
+.empty {
+  color: #6B7280;
+}
+
+.error {
+  color: #DC2626;
+}
+
+/* PAGINATION */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  padding: 18px;
+}
+
+.pagination button {
+  border: none;
+  background: #0B4DA2;
+  color: white;
+  padding: 9px 15px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  background: #CBD5E1;
+  cursor: not-allowed;
+}
+
+#pageInfo {
+  color: #0B1E63;
+  font-weight: bold;
+}
+
+/* MODAL */
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  padding: 25px;
+  overflow-y: auto;
+}
+
+.modal-box {
+  max-width: 900px;
+  margin: 30px auto;
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,.25);
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+  color: white;
+  padding: 17px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  font-size: 18px;
+}
+
+.close-btn {
+  border: none;
+  background: transparent;
+  color: white;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+.modal-content {
+  padding: 20px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.info-item {
+  background: #F8FAFC;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.info-item small {
+  display: block;
+  color: #6B7280;
+  margin-bottom: 4px;
+}
+
+.info-item strong {
+  word-break: break-word;
+}
+
+.data-title {
+  color: #0B1E63;
+  margin: 15px 0 8px;
+}
+
+pre {
+  background: #111827;
+  color: #E5E7EB;
+  padding: 15px;
+  border-radius: 9px;
+  overflow-x: auto;
+  max-height: 300px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+
+  .summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 550px) {
+
+  header {
+    padding: 14px;
+  }
+
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  main {
+    padding: 0 12px;
+  }
+}
+</style>
 </head>
 
 <body>
 
 <header>
+
   <div class="brand">
-    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy Logo">
+
+    <img
+      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+      alt="GAAWOW Academy Logo"
+    >
 
     <div>
       <h1>GAAWOW EMS</h1>
-      <p>Audit Logs — System Activity</p>
+      <p>Audit Logs — Security & System Activity</p>
     </div>
+
   </div>
 
-  <button class="back-btn" onclick="goDashboard()">
+  <button
+    class="back-btn"
+    onclick="goDashboard()"
+  >
     ← Dashboard
   </button>
+
 </header>
+
 
 <main>
 
-  <div class="page-title">
+  <div class="title-area">
+
     <h2>Audit Logs</h2>
-    <p>Monitor system activities and administrative actions.</p>
+
+    <p>
+      Monitor and review all important system activities.
+    </p>
+
   </div>
+
+
+  <!-- SUMMARY -->
+
+  <div class="summary">
+
+    <div class="summary-card">
+      <small>Total Logs</small>
+      <strong id="totalCount">0</strong>
+    </div>
+
+    <div class="summary-card">
+      <small>INSERT</small>
+      <strong id="insertCount">0</strong>
+    </div>
+
+    <div class="summary-card">
+      <small>UPDATE</small>
+      <strong id="updateCount">0</strong>
+    </div>
+
+    <div class="summary-card">
+      <small>DELETE</small>
+      <strong id="deleteCount">0</strong>
+    </div>
+
+  </div>
+
+
+  <!-- FILTERS -->
 
   <div class="filters">
 
     <input
       type="text"
       id="searchInput"
-      placeholder="Search action, module, description..."
+      placeholder="Search user, action, module, description..."
     >
 
     <select id="actionFilter">
       <option value="">All Actions</option>
+      <option value="INSERT">INSERT</option>
+      <option value="UPDATE">UPDATE</option>
+      <option value="DELETE">DELETE</option>
     </select>
 
     <select id="moduleFilter">
@@ -283,6 +524,9 @@
 
   </div>
 
+
+  <!-- TABLE -->
+
   <div class="table-card">
 
     <div class="table-wrapper">
@@ -290,37 +534,55 @@
       <table>
 
         <thead>
+
           <tr>
             <th>Date & Time</th>
             <th>User</th>
+            <th>Institution</th>
             <th>Action</th>
             <th>Module</th>
             <th>Record ID</th>
             <th>Description</th>
+            <th>Details</th>
           </tr>
+
         </thead>
 
         <tbody id="logsBody">
+
           <tr>
-            <td colspan="6" class="loading">
+            <td
+              colspan="8"
+              class="loading"
+            >
               Loading audit logs...
             </td>
           </tr>
+
         </tbody>
 
       </table>
 
     </div>
 
+
     <div class="pagination">
 
-      <button id="prevBtn" onclick="previousPage()">
+      <button
+        id="prevBtn"
+        onclick="previousPage()"
+      >
         ← Previous
       </button>
 
-      <span id="pageInfo">Page 1</span>
+      <span id="pageInfo">
+        Page 1
+      </span>
 
-      <button id="nextBtn" onclick="nextPage()">
+      <button
+        id="nextBtn"
+        onclick="nextPage()"
+      >
         Next →
       </button>
 
@@ -330,13 +592,47 @@
 
 </main>
 
-  </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="audit-logs.js"></script>
+<!-- DETAILS MODAL -->
 
-</body>
-</html>
+<div
+  id="detailsModal"
+  class="modal"
+  onclick="closeModal(event)"
+>
+
+  <div
+    class="modal-box"
+    onclick="event.stopPropagation()"
+  >
+
+    <div class="modal-header">
+
+      <h3>Audit Log Details</h3>
+
+      <button
+        class="close-btn"
+        onclick="closeModal()"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div
+      id="modalContent"
+      class="modal-content"
+    ></div>
+
+  </div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="audit-logs.js"></script>
 
 </body>
 </html>
