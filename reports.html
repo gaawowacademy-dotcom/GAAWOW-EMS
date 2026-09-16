@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>GAAWOW EMS — Reports</title>
+
+<meta name="theme-color" content="#0B1E63">
+
+<style>
+:root{
+  --blue:#0B4DA2;
+  --navy:#0B1E63;
+  --gold:#D4AF37;
+  --bg:#F5F7FA;
+  --text:#1F2937;
+  --muted:#64748B;
+  --white:#fff;
+  --green:#16A34A;
+  --red:#DC2626;
+  --orange:#F59E0B;
+  --border:#E2E8F0;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+header{
+  background:linear-gradient(135deg,var(--navy),var(--blue));
+  color:white;
+  padding:18px 22px;
+  box-shadow:0 4px 18px rgba(0,0,0,.15);
+}
+
+.header-inner{
+  max-width:1400px;
+  margin:auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:13px;
+}
+
+.brand img{
+  width:56px;
+  height:56px;
+  object-fit:contain;
+  background:#fff;
+  border-radius:12px;
+  padding:5px;
+}
+
+.brand h1{
+  margin:0;
+  font-size:22px;
+}
+
+.brand p{
+  margin:4px 0 0;
+  font-size:13px;
+  opacity:.85;
+}
+
+.actions{
+  display:flex;
+  gap:8px;
+}
+
+button{
+  border:0;
+  cursor:pointer;
+  border-radius:9px;
+  padding:10px 15px;
+  font-weight:700;
+}
+
+.back{
+  color:white;
+  background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.3);
+}
+
+.logout{
+  background:var(--gold);
+  color:var(--navy);
+}
+
+main{
+  max-width:1400px;
+  margin:25px auto;
+  padding:0 20px;
+}
+
+.title h2{
+  margin:0;
+  color:var(--navy);
+  font-size:28px;
+}
+
+.title p{
+  margin:7px 0 22px;
+  color:var(--muted);
+}
+
+.filters{
+  background:white;
+  padding:18px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  display:grid;
+  grid-template-columns:1.5fr 1fr 1fr auto;
+  gap:12px;
+  margin-bottom:20px;
+  box-shadow:0 3px 12px rgba(0,0,0,.05);
+}
+
+input,select{
+  width:100%;
+  padding:11px 12px;
+  border:1px solid #CBD5E1;
+  border-radius:9px;
+  outline:none;
+  background:white;
+}
+
+input:focus,select:focus{
+  border-color:var(--blue);
+}
+
+.primary{
+  background:var(--blue);
+  color:white;
+}
+
+.primary:hover{
+  background:var(--navy);
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:15px;
+  margin-bottom:22px;
+}
+
+.card{
+  background:white;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:18px;
+  box-shadow:0 3px 12px rgba(0,0,0,.05);
+}
+
+.card-label{
+  color:var(--muted);
+  font-size:13px;
+}
+
+.card-value{
+  font-size:30px;
+  font-weight:800;
+  color:var(--navy);
+  margin-top:8px;
+}
+
+.report-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
+}
+
+.report-card{
+  background:white;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px;
+  box-shadow:0 3px 14px rgba(0,0,0,.06);
+  transition:.2s;
+}
+
+.report-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 8px 25px rgba(0,0,0,.1);
+}
+
+.icon{
+  width:48px;
+  height:48px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+  background:#EEF4FF;
+  margin-bottom:14px;
+}
+
+.report-card h3{
+  margin:0 0 7px;
+  color:var(--navy);
+}
+
+.report-card p{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5;
+  min-height:40px;
+}
+
+.report-card button{
+  margin-top:10px;
+  width:100%;
+}
+
+.report-result{
+  display:none;
+  margin-top:22px;
+  background:white;
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+}
+
+.result-header{
+  padding:17px 20px;
+  background:linear-gradient(135deg,var(--navy),var(--blue));
+  color:white;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.result-header h3{
+  margin:0;
+}
+
+.table-wrap{
+  overflow:auto;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:700px;
+}
+
+th,td{
+  padding:12px 14px;
+  border-bottom:1px solid #EEF2F7;
+  text-align:left;
+  font-size:13px;
+}
+
+th{
+  background:#F8FAFC;
+  color:var(--navy);
+  text-transform:uppercase;
+  font-size:11px;
+}
+
+.empty{
+  padding:40px;
+  text-align:center;
+  color:var(--muted);
+}
+
+.loading{
+  padding:35px;
+  text-align:center;
+  color:var(--blue);
+  font-weight:bold;
+}
+
+.badge{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:bold;
+}
+
+.green{background:#DCFCE7;color:#166534}
+.blue{background:#DBEAFE;color:#1D4ED8}
+.orange{background:#FEF3C7;color:#92400E}
+.red{background:#FEE2E2;color:#991B1B}
+.gray{background:#E5E7EB;color:#374151}
+
+.alert{
+  display:none;
+  padding:12px 15px;
+  border-radius:9px;
+  margin-bottom:15px;
+}
+
+.alert.show{display:block}
+.alert.error{background:#FEE2E2;color:#991B1B}
+.alert.success{background:#DCFCE7;color:#166534}
+
+@media(max-width:1000px){
+  .cards{grid-template-columns:repeat(2,1fr)}
+  .report-grid{grid-template-columns:repeat(2,1fr)}
+  .filters{grid-template-columns:1fr 1fr}
+}
+
+@media(max-width:650px){
+  .header-inner{
+    align-items:flex-start;
+  }
+
+  .brand h1{font-size:17px}
+  .brand img{
+    width:48px;
+    height:48px;
+  }
+
+  main{padding:0 12px}
+
+  .cards,
+  .report-grid{
+    grid-template-columns:1fr;
+  }
+
+  .filters{
+    grid-template-columns:1fr;
+  }
+
+  .title h2{font-size:23px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+
+    <div class="brand">
+      <img
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy"
+      >
+
+      <div>
+        <h1>GAAWOW EMS</h1>
+        <p>Reports & Analytics</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="back" onclick="goDashboard()">
+        ← Dashboard
+      </button>
+
+      <button class="logout" onclick="logout()">
+        Logout
+      </button>
+    </div>
+
+  </div>
+</header>
+
+<main>
+
+  <div class="title">
+    <h2>Reports Center</h2>
+    <p>
+      View academic, financial and system reports.
+    </p>
+  </div>
+
+  <div id="alertBox" class="alert"></div>
+
+  <!-- FILTERS -->
+
+  <div class="filters">
+
+    <input
+      id="searchInput"
+      type="search"
+      placeholder="Search reports..."
+    >
+
+    <select id="yearFilter">
+      <option value="">All Years</option>
+      <option value="2026">2026</option>
+      <option value="2025">2025</option>
+      <option value="2024">2024</option>
+      <option value="2023">2023</option>
+    </select>
+
+    <select id="institutionFilter">
+      <option value="">All Institutions</option>
+    </select>
+
+    <button class="primary" onclick="loadDashboardStats()">
+      ↻ Refresh
+    </button>
+
+  </div>
+
+  <!-- SUMMARY -->
+
+  <section class="cards">
+
+    <div class="card">
+      <div class="card-label">Students</div>
+      <div class="card-value" id="studentsCount">—</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Teachers</div>
+      <div class="card-value" id="teachersCount">—</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Certificates</div>
+      <div class="card-value" id="certificatesCount">—</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Institutions</div>
+      <div class="card-value" id="institutionsCount">—</div>
+    </div>
+
+  </section>
+
+  <!-- REPORT TYPES -->
+
+  <section class="report-grid">
+
+    <div class="report-card">
+      <div class="icon">🎓</div>
+      <h3>Academic Reports</h3>
+      <p>
+        View student academic progress,
+        courses and performance.
+      </p>
+      <button class="primary"
+        onclick="runReport('academic')">
+        View Academic Report
+      </button>
+    </div>
+
+    <div class="report-card">
+      <div class="icon">👨‍🎓</div>
+      <h3>Student Reports</h3>
+      <p>
+        Student enrollment, status,
+        gender and institution data.
+      </p>
+      <button class="primary"
+        onclick="runReport('students')">
+        View Student Report
+      </button>
+    </div>
+
+    <div class="report-card">
+      <div class="icon">👨‍🏫</div>
+      <h3>Teacher Reports</h3>
+      <p>
+        Teacher accounts and
+        institution information.
+      </p>
+      <button class="primary"
+        onclick="runReport('teachers')">
+        View Teacher Report
+      </button>
+    </div>
+
+    <div class="report-card">
+      <div class="icon">📅</div>
+      <h3>Attendance Reports</h3>
+      <p>
+        View attendance and
+        academic progress statistics.
+      </p>
+      <button class="primary"
+        onclick="runReport('attendance')">
+        View Attendance Report
+      </button>
+    </div>
+
+    <div class="report-card">
+      <div class="icon">📝</div>
+      <h3>Exams & Grades</h3>
+      <p>
+        View exams, grades and
+        academic performance.
+      </p>
+      <button class="primary"
+        onclick="runReport('grades')">
+        View Exam Report
+      </button>
+    </div>
+
+    <div class="report-card">
+      <div class="icon">🎖️</div>
+      <h3>Certificates</h3>
+      <p>
+        View issued certificates,
+        verification and status.
+      </p>
+      <button class="primary"
+        onclick="runReport('certificates')">
+        View Certificate Report
+      </button>
+    </div>
+
+    <div class="report-card">
+      <div class="icon">💰</div>
+      <h3>Financial Reports</h3>
+      <p>
+        View invoices and payment
+        records.
+      </p>
+      <button class="primary"
+        onclick="runReport('financial')">
+        View Financial Report
+      </button>
+    </div>
+
+    <div class="report-card">
+      <div class="icon">🏫</div>
+      <h3>Institution Reports</h3>
+      <p>
+        View institution status and
+        registration information.
+      </p>
+      <button class="primary"
+        onclick="runReport('institutions')">
+        View Institution Report
+      </button>
+    </div>
+
+    <div class="report-card">
+      <div class="icon">🛡️</div>
+      <h3>System Reports</h3>
+      <p>
+        View system activity and
+        audit log information.
+      </p>
+      <button class="primary"
+        onclick="runReport('system')">
+        View System Report
+      </button>
+    </div>
+
+  </section>
+
+  <!-- RESULT -->
+
+  <section
+    id="reportResult"
+    class="report-result"
+  >
+
+    <div class="result-header">
+
+      <h3 id="resultTitle">
+        Report
+      </h3>
+
+      <button
+        onclick="printReport()"
+        style="background:#D4AF37;color:#0B1E63"
+      >
+        🖨 Print
+      </button>
+
+    </div>
+
+    <div id="resultContent">
+      <div class="loading">
+        Loading...
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="reports.js"></script>
+
+</body>
+</html>
