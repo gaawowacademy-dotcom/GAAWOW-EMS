@@ -4,166 +4,248 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+
 const PAGE_SIZE = 15;
 
 let currentPage = 1;
 let totalLogs = 0;
 
-let allActions = [];
-let allModules = [];
 
-const searchInput = document.getElementById("searchInput");
-const actionFilter = document.getElementById("actionFilter");
-const moduleFilter = document.getElementById("moduleFilter");
-const dateFilter = document.getElementById("dateFilter");
-const logsBody = document.getElementById("logsBody");
+const searchInput =
+  document.getElementById("searchInput");
 
-async function supabaseFetch(path, options = {}) {
+const actionFilter =
+  document.getElementById("actionFilter");
 
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/${path}`,
-    {
-      ...options,
-      headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`,
-        "Content-Type": "application/json",
-        ...(options.headers || {})
-      }
-    }
-  );
+const moduleFilter =
+  document.getElementById("moduleFilter");
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText);
-  }
+const dateFilter =
+  document.getElementById("dateFilter");
 
-  const count = response.headers.get("Content-Range");
+const logsBody =
+  document.getElementById("logsBody");
 
-  return {
-    data: await response.json(),
-    count
-  };
+
+/* =========================
+   DASHBOARD
+========================= */
+
+function goDashboard() {
+
+  window.location.href =
+    "dashboard.html";
 }
 
 
+/* =========================
+   SUPER ADMIN CHECK
+========================= */
+
 async function checkSuperAdmin() {
 
-  const sessionResponse = await fetch(
-    `${SUPABASE_URL}/auth/v1/user`,
-    {
-      headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization":
-          `Bearer ${localStorage.getItem("access_token") || ""}`
-      }
-    }
-  );
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.auth.getSession();
 
-  if (!sessionResponse.ok) {
-    window.location.href = "index.html";
-    return false;
-  }
-
-  const user = await sessionResponse.json();
-
-  if (!user || !user.id) {
-    window.location.href = "index.html";
-    return false;
-  }
-
-  const profileResponse = await fetch(
-    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}&select=id,role,is_active`,
-    {
-      headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization":
-          `Bearer ${localStorage.getItem("access_token") || SUPABASE_KEY}`
-      }
-    }
-  );
-
-  if (!profileResponse.ok) {
-    alert("Unable to verify administrator profile.");
-    window.location.href = "dashboard.html";
-    return false;
-  }
-
-  const profiles = await profileResponse.json();
 
   if (
-    !profiles.length ||
-    profiles[0].role !== "super_admin" ||
-    profiles[0].is_active === false
+    error ||
+    !data.session
   ) {
-    alert("Access denied. Super Admin only.");
-    window.location.href = "dashboard.html";
+
+    window.location.href =
+      "index.html";
+
     return false;
   }
+
+
+  const user =
+    data.session.user;
+
+
+  const {
+    data: profile,
+    error: profileError
+  } =
+    await supabaseClient
+      .from("profiles")
+      .select(
+        "full_name, role, institution_id, is_active"
+      )
+      .eq(
+        "id",
+        user.id
+      )
+      .single();
+
+
+  if (
+    profileError ||
+    !profile
+  ) {
+
+    console.error(
+      "Profile error:",
+      profileError
+    );
+
+    alert(
+      "Unable to load your profile."
+    );
+
+    return false;
+  }
+
+
+  if (
+    profile.role !==
+    "super_admin"
+  ) {
+
+    alert(
+      "Access denied. Super Admin only."
+    );
+
+    window.location.href =
+      "dashboard.html";
+
+    return false;
+  }
+
+
+  if (
+    profile.is_active === false
+  ) {
+
+    alert(
+      "Your account is inactive."
+    );
+
+    await supabaseClient
+      .auth
+      .signOut();
+
+    window.location.href =
+      "index.html";
+
+    return false;
+  }
+
 
   return true;
 }
 
 
+/* =========================
+   LOAD FILTER OPTIONS
+========================= */
+
 async function loadFilters() {
 
   try {
 
-    const result = await supabaseFetch(
-      "audit_logs?select=action,module"
-    );
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from("audit_logs")
+        .select(
+          "action, module"
+        );
 
-    allActions = [
+
+    if (error) {
+      throw error;
+    }
+
+
+    const actions = [
       ...new Set(
-        result.data
-          .map(x => x.action)
+        (data || [])
+          .map(row => row.action)
           .filter(Boolean)
       )
     ].sort();
 
-    allModules = [
+
+    const modules = [
       ...new Set(
-        result.data
-          .map(x => x.module)
+        (data || [])
+          .map(row => row.module)
           .filter(Boolean)
       )
     ].sort();
+
 
     actionFilter.innerHTML =
       `<option value="">All Actions</option>`;
 
-    allActions.forEach(action => {
 
-      const option = document.createElement("option");
+    actions.forEach(action => {
 
-      option.value = action;
-      option.textContent = action;
+      const option =
+        document.createElement("option");
 
-      actionFilter.appendChild(option);
+      option.value =
+        action;
+
+      option.textContent =
+        action;
+
+      actionFilter.appendChild(
+        option
+      );
 
     });
+
 
     moduleFilter.innerHTML =
       `<option value="">All Modules</option>`;
 
-    allModules.forEach(module => {
 
-      const option = document.createElement("option");
+    modules.forEach(module => {
 
-      option.value = module;
-      option.textContent = module;
+      const option =
+        document.createElement("option");
 
-      moduleFilter.appendChild(option);
+      option.value =
+        module;
+
+      option.textContent =
+        module;
+
+      moduleFilter.appendChild(
+        option
+      );
 
     });
 
   } catch (error) {
 
-    console.error("Filter error:", error);
+    console.error(
+      "Filter error:",
+      error
+    );
 
   }
 }
 
+
+/* =========================
+   LOAD AUDIT LOGS
+========================= */
 
 async function loadLogs() {
 
@@ -175,10 +257,25 @@ async function loadLogs() {
     </tr>
   `;
 
+
   try {
 
     let query =
-      "audit_logs?select=*&order=created_at.desc";
+      supabaseClient
+        .from("audit_logs")
+        .select(
+          "*",
+          {
+            count: "exact"
+          }
+        )
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
+
 
     const search =
       searchInput.value.trim();
@@ -193,101 +290,125 @@ async function loadLogs() {
       dateFilter.value;
 
 
+    /* ACTION */
+
     if (action) {
-      query += `&action=eq.${encodeURIComponent(action)}`;
+
+      query =
+        query.eq(
+          "action",
+          action
+        );
     }
 
+
+    /* MODULE */
+
     if (module) {
-      query += `&module=eq.${encodeURIComponent(module)}`;
+
+      query =
+        query.eq(
+          "module",
+          module
+        );
     }
+
+
+    /* DATE */
 
     if (date) {
 
-      query +=
-        `&created_at=gte.${date}T00:00:00` +
-        `&created_at=lt.${date}T23:59:59`;
+      const start =
+        `${date}T00:00:00`;
+
+      const end =
+        `${date}T23:59:59`;
+
+
+      query =
+        query
+          .gte(
+            "created_at",
+            start
+          )
+          .lte(
+            "created_at",
+            end
+          );
     }
 
+
+    /* SEARCH */
 
     if (search) {
 
-      const encoded =
-        encodeURIComponent(`*${search}*`);
-
-      query +=
-        `&or=(action.ilike.${encoded},module.ilike.${encoded},description.ilike.${encoded})`;
+      query =
+        query.or(
+          `action.ilike.%${search}%,module.ilike.%${search}%,description.ilike.%${search}%`
+        );
     }
 
+
+    /* PAGINATION */
 
     const from =
-      (currentPage - 1) * PAGE_SIZE;
+      (currentPage - 1) *
+      PAGE_SIZE;
 
     const to =
-      from + PAGE_SIZE - 1;
+      from +
+      PAGE_SIZE -
+      1;
 
 
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/${query}`,
-      {
-        headers: {
-          "apikey": SUPABASE_KEY,
-          "Authorization":
-            `Bearer ${localStorage.getItem("access_token") || SUPABASE_KEY}`,
-          "Range": `${from}-${to}`,
-          "Prefer": "count=exact"
-        }
-      }
+    query =
+      query.range(
+        from,
+        to
+      );
+
+
+    const {
+      data,
+      error,
+      count
+    } =
+      await query;
+
+
+    if (error) {
+      throw error;
+    }
+
+
+    totalLogs =
+      count || 0;
+
+
+    renderLogs(
+      data || []
     );
 
-
-    if (!response.ok) {
-
-      const error =
-        await response.text();
-
-      throw new Error(error);
-    }
-
-
-    const logs =
-      await response.json();
-
-
-    const contentRange =
-      response.headers.get("Content-Range");
-
-
-    if (contentRange) {
-
-      const match =
-        contentRange.match(/\/(\d+)$/);
-
-      if (match) {
-        totalLogs =
-          parseInt(match[1]);
-      }
-
-    } else {
-
-      totalLogs =
-        logs.length;
-    }
-
-
-    renderLogs(logs);
 
     updatePagination();
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "Audit Logs error:",
+      error
+    );
+
 
     logsBody.innerHTML = `
       <tr>
         <td colspan="6" class="error">
           Failed to load audit logs.
           <br>
-          ${escapeHtml(error.message)}
+          ${escapeHtml(
+            error.message ||
+            "Unknown error"
+          )}
         </td>
       </tr>
     `;
@@ -295,6 +416,10 @@ async function loadLogs() {
   }
 }
 
+
+/* =========================
+   RENDER LOGS
+========================= */
 
 function renderLogs(logs) {
 
@@ -312,72 +437,109 @@ function renderLogs(logs) {
   }
 
 
-  logsBody.innerHTML = logs.map(log => {
+  logsBody.innerHTML =
+    logs.map(log => {
 
-    const date =
-      log.created_at
-        ? new Date(log.created_at).toLocaleString()
-        : "—";
+      const date =
+        log.created_at
+          ? new Date(
+              log.created_at
+            ).toLocaleString()
+          : "—";
 
-    return `
-      <tr>
 
-        <td class="date">
-          ${escapeHtml(date)}
-        </td>
+      return `
+        <tr>
 
-        <td>
-          ${escapeHtml(log.user_id || "System")}
-        </td>
+          <td class="date">
+            ${escapeHtml(date)}
+          </td>
 
-        <td>
-          <span class="action">
-            ${escapeHtml(log.action || "—")}
-          </span>
-        </td>
+          <td class="record-id">
+            ${escapeHtml(
+              log.user_id ||
+              "System"
+            )}
+          </td>
 
-        <td class="module">
-          ${escapeHtml(log.module || "—")}
-        </td>
+          <td>
+            <span class="action">
+              ${escapeHtml(
+                log.action ||
+                "—"
+              )}
+            </span>
+          </td>
 
-        <td class="record-id">
-          ${escapeHtml(log.record_id || "—")}
-        </td>
+          <td class="module">
+            ${escapeHtml(
+              log.module ||
+              "—"
+            )}
+          </td>
 
-        <td class="details">
-          ${escapeHtml(log.description || "—")}
-        </td>
+          <td class="record-id">
+            ${escapeHtml(
+              log.record_id ||
+              "—"
+            )}
+          </td>
 
-      </tr>
-    `;
+          <td class="details">
+            ${escapeHtml(
+              log.description ||
+              "—"
+            )}
+          </td>
 
-  }).join("");
+        </tr>
+      `;
 
+    }).join("");
 }
 
+
+/* =========================
+   PAGINATION
+========================= */
 
 function updatePagination() {
 
   const totalPages =
     Math.max(
       1,
-      Math.ceil(totalLogs / PAGE_SIZE)
+      Math.ceil(
+        totalLogs /
+        PAGE_SIZE
+      )
     );
 
-  document.getElementById("pageInfo").textContent =
+
+  document.getElementById(
+    "pageInfo"
+  ).textContent =
     `Page ${currentPage} of ${totalPages}`;
 
-  document.getElementById("prevBtn").disabled =
+
+  document.getElementById(
+    "prevBtn"
+  ).disabled =
     currentPage <= 1;
 
-  document.getElementById("nextBtn").disabled =
+
+  document.getElementById(
+    "nextBtn"
+  ).disabled =
     currentPage >= totalPages;
 }
 
 
 function previousPage() {
 
-  if (currentPage > 1) {
+  if (
+    currentPage >
+    1
+  ) {
 
     currentPage--;
 
@@ -391,10 +553,17 @@ function nextPage() {
   const totalPages =
     Math.max(
       1,
-      Math.ceil(totalLogs / PAGE_SIZE)
+      Math.ceil(
+        totalLogs /
+        PAGE_SIZE
+      )
     );
 
-  if (currentPage < totalPages) {
+
+  if (
+    currentPage <
+    totalPages
+  ) {
 
     currentPage++;
 
@@ -403,23 +572,39 @@ function nextPage() {
 }
 
 
-function goDashboard() {
-
-  window.location.href =
-    "dashboard.html";
-}
-
+/* =========================
+   HTML SECURITY
+========================= */
 
 function escapeHtml(value) {
 
   return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
 }
 
+
+/* =========================
+   SEARCH
+========================= */
 
 let searchTimer;
 
@@ -427,7 +612,10 @@ searchInput.addEventListener(
   "input",
   () => {
 
-    clearTimeout(searchTimer);
+    clearTimeout(
+      searchTimer
+    );
+
 
     searchTimer =
       setTimeout(() => {
@@ -477,12 +665,20 @@ dateFilter.addEventListener(
 );
 
 
-async function init() {
+/* =========================
+   START
+========================= */
+
+async function startAuditLogs() {
 
   const allowed =
     await checkSuperAdmin();
 
-  if (!allowed) return;
+
+  if (!allowed) {
+    return;
+  }
+
 
   await loadFilters();
 
@@ -490,4 +686,4 @@ async function init() {
 }
 
 
-init();
+startAuditLogs();
