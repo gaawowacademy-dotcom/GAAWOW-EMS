@@ -1,8 +1,12 @@
+// ==========================================
+// GAAWOW EMS — INSTITUTIONS MANAGEMENT
+// ==========================================
+
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
 const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  "sb_publishable_2AvWfupKf1b_s0RjIbAi5g_RqLCs145";
 
 const supabaseClient =
   window.supabase.createClient(
@@ -11,65 +15,42 @@ const supabaseClient =
   );
 
 
-let institutions = [];
+// ==========================================
+// ELEMENTS
+// ==========================================
 
-let editingId = null;
-
-
-const tableBody =
-  document.getElementById(
-    "institutionsTable"
-  );
-
-const searchInput =
-  document.getElementById(
-    "searchInput"
-  );
-
-const statusFilter =
-  document.getElementById(
-    "statusFilter"
-  );
-
-const modal =
-  document.getElementById(
-    "institutionModal"
-  );
-
-const modalTitle =
-  document.getElementById(
-    "modalTitle"
-  );
-
-const institutionForm =
-  document.getElementById(
-    "institutionForm"
-  );
-
-const institutionName =
-  document.getElementById(
-    "institutionName"
-  );
-
-const institutionStatus =
-  document.getElementById(
-    "institutionStatus"
-  );
-
-const message =
-  document.getElementById(
-    "message"
-  );
+const form =
+  document.getElementById("institutionForm");
 
 const saveBtn =
-  document.getElementById(
-    "saveBtn"
-  );
+  document.getElementById("saveBtn");
+
+const message =
+  document.getElementById("message");
+
+const body =
+  document.getElementById("institutionsBody");
+
+const searchInput =
+  document.getElementById("searchInput");
 
 
-/* =========================
-   AUTH + SUPER ADMIN CHECK
-========================= */
+// Store loaded institutions
+let institutions = [];
+
+
+// ==========================================
+// DASHBOARD
+// ==========================================
+
+function goDashboard() {
+  window.location.href = "dashboard.html";
+}
+
+
+// ==========================================
+// SUPER ADMIN CHECK
+// ==========================================
 
 async function checkSuperAdmin() {
 
@@ -78,7 +59,6 @@ async function checkSuperAdmin() {
     error
   } =
     await supabaseClient.auth.getSession();
-
 
   if (
     error ||
@@ -103,7 +83,7 @@ async function checkSuperAdmin() {
     await supabaseClient
       .from("profiles")
       .select(
-        "role, is_active"
+        "full_name, role, is_active"
       )
       .eq(
         "id",
@@ -116,6 +96,10 @@ async function checkSuperAdmin() {
     profileError ||
     !profile
   ) {
+
+    console.error(
+      profileError
+    );
 
     alert(
       "Unable to load your profile."
@@ -135,21 +119,23 @@ async function checkSuperAdmin() {
     );
 
     window.location.href =
-      "dashboard.html";
+      "index.html";
 
     return false;
   }
 
 
   if (
-    profile.is_active !== true
+    profile.is_active === false
   ) {
 
     alert(
       "Your account is inactive."
     );
 
-    await supabaseClient.auth.signOut();
+    await supabaseClient
+      .auth
+      .signOut();
 
     window.location.href =
       "index.html";
@@ -162,15 +148,205 @@ async function checkSuperAdmin() {
 }
 
 
-/* =========================
-   LOAD INSTITUTIONS
-========================= */
+// ==========================================
+// ADD INSTITUTION
+// ==========================================
+
+form.addEventListener(
+  "submit",
+  async function(event) {
+
+    event.preventDefault();
+
+
+    saveBtn.disabled = true;
+
+    saveBtn.textContent =
+      "ADDING...";
+
+
+    message.style.color =
+      "#0B4DA2";
+
+    message.textContent =
+      "Adding institution...";
+
+
+    const name =
+      document
+        .getElementById("name")
+        .value
+        .trim();
+
+    const code =
+      document
+        .getElementById("code")
+        .value
+        .trim()
+        .toUpperCase();
+
+    const email =
+      document
+        .getElementById("email")
+        .value
+        .trim();
+
+    const phone =
+      document
+        .getElementById("phone")
+        .value
+        .trim();
+
+    const address =
+      document
+        .getElementById("address")
+        .value
+        .trim();
+
+    const city =
+      document
+        .getElementById("city")
+        .value
+        .trim();
+
+    const country =
+      document
+        .getElementById("country")
+        .value
+        .trim();
+
+    const logo_url =
+      document
+        .getElementById("logo_url")
+        .value
+        .trim();
+
+    const website_url =
+      document
+        .getElementById("website_url")
+        .value
+        .trim();
+
+
+    try {
+
+      // Check duplicate code
+      const {
+        data: existing,
+        error: duplicateError
+      } =
+        await supabaseClient
+          .from("institutions")
+          .select("id, name, code")
+          .eq(
+            "code",
+            code
+          )
+          .maybeSingle();
+
+
+      if (duplicateError) {
+        throw duplicateError;
+      }
+
+
+      if (existing) {
+
+        throw new Error(
+          `Institution code "${code}" already exists.`
+        );
+      }
+
+
+      // Insert institution
+      const {
+        data,
+        error
+      } =
+        await supabaseClient
+          .from("institutions")
+          .insert([
+            {
+              name: name,
+              code: code,
+              email: email || null,
+              phone: phone || null,
+              address: address || null,
+              city: city || null,
+              country: country || "Somalia",
+              logo_url: logo_url || null,
+              website_url: website_url || null,
+              is_active: true
+            }
+          ])
+          .select()
+          .single();
+
+
+      if (error) {
+        throw error;
+      }
+
+
+      console.log(
+        "Institution added:",
+        data
+      );
+
+
+      message.style.color =
+        "#16A34A";
+
+      message.textContent =
+        `✓ Institution "${data.name}" added successfully.`;
+
+
+      resetForm();
+
+
+      await loadInstitutions();
+
+
+    } catch (error) {
+
+      console.error(
+        "Add institution error:",
+        error
+      );
+
+
+      message.style.color =
+        "#DC2626";
+
+      message.textContent =
+        "✕ " +
+        (
+          error.message ||
+          "Failed to add institution."
+        );
+
+
+    } finally {
+
+      saveBtn.disabled = false;
+
+      saveBtn.textContent =
+        "ADD INSTITUTION";
+    }
+
+  }
+);
+
+
+// ==========================================
+// LOAD INSTITUTIONS
+// ==========================================
 
 async function loadInstitutions() {
 
-  tableBody.innerHTML = `
+  body.innerHTML = `
     <tr>
-      <td colspan="6" class="loading">
+      <td colspan="5" class="empty">
         Loading institutions...
       </td>
     </tr>
@@ -184,7 +360,7 @@ async function loadInstitutions() {
     await supabaseClient
       .from("institutions")
       .select(
-        "id, name, created_at"
+        "id,name,code,email,phone,address,city,country,logo_url,website_url,is_active,created_at"
       )
       .order(
         "created_at",
@@ -197,16 +373,13 @@ async function loadInstitutions() {
   if (error) {
 
     console.error(
-      "Institutions error:",
       error
     );
 
-    tableBody.innerHTML = `
+    body.innerHTML = `
       <tr>
-        <td colspan="6" class="empty">
-          Unable to load institutions.
-          <br>
-          ${escapeHtml(error.message)}
+        <td colspan="5" class="empty">
+          Failed to load institutions.
         </td>
       </tr>
     `;
@@ -219,71 +392,23 @@ async function loadInstitutions() {
     data || [];
 
 
-  renderInstitutions();
+  renderInstitutions(
+    institutions
+  );
 }
 
 
-/* =========================
-   RENDER
-========================= */
+// ==========================================
+// RENDER
+// ==========================================
 
-function renderInstitutions() {
+function renderInstitutions(rows) {
 
-  const search =
-    searchInput.value
-      .trim()
-      .toLowerCase();
+  if (!rows.length) {
 
-
-  const status =
-    statusFilter.value;
-
-
-  const filtered =
-    institutions.filter(
-      institution => {
-
-        const matchesSearch =
-          !search ||
-          institution.name
-            .toLowerCase()
-            .includes(search);
-
-
-        /*
-          The current institutions table
-          does not necessarily have a status
-          column.
-
-          Therefore existing institutions
-          are treated as active.
-        */
-
-        const institutionStatus =
-          "active";
-
-
-        const matchesStatus =
-          status === "all" ||
-          status === institutionStatus;
-
-
-        return (
-          matchesSearch &&
-          matchesStatus
-        );
-
-      }
-    );
-
-
-  if (
-    filtered.length === 0
-  ) {
-
-    tableBody.innerHTML = `
+    body.innerHTML = `
       <tr>
-        <td colspan="6" class="empty">
+        <td colspan="5" class="empty">
           No institutions found.
         </td>
       </tr>
@@ -293,514 +418,174 @@ function renderInstitutions() {
   }
 
 
-  tableBody.innerHTML =
-    filtered
-      .map(
-        (
-          institution,
-          index
-        ) => {
+  body.innerHTML =
+    rows.map(
+      institution => {
 
-          const created =
-            institution.created_at
-              ? new Date(
-                  institution.created_at
-                ).toLocaleDateString()
-              : "—";
+        const statusClass =
+          institution.is_active
+            ? "active"
+            : "inactive";
+
+        const statusText =
+          institution.is_active
+            ? "ACTIVE"
+            : "INACTIVE";
 
 
-          return `
+        return `
+          <tr>
 
-            <tr>
+            <td>
+              <strong>
+                ${escapeHtml(
+                  institution.name || ""
+                )}
+              </strong>
+            </td>
 
-              <td>
-                ${index + 1}
-              </td>
+            <td>
+              ${escapeHtml(
+                institution.code || ""
+              )}
+            </td>
 
-              <td>
-                <strong>
-                  ${escapeHtml(
-                    institution.name
-                  )}
-                </strong>
-              </td>
+            <td>
+              ${escapeHtml(
+                institution.city || "-"
+              )}
+            </td>
 
-              <td>
-                <small>
-                  ${escapeHtml(
-                    institution.id
-                  )}
-                </small>
-              </td>
+            <td>
+              ${escapeHtml(
+                institution.phone || "-"
+              )}
+            </td>
 
-              <td>
+            <td>
+              <span class="status ${statusClass}">
+                ${statusText}
+              </span>
+            </td>
 
-                <span
-                  class="status active"
-                >
-                  ACTIVE
-                </span>
+          </tr>
+        `;
 
-              </td>
-
-              <td>
-                ${created}
-              </td>
-
-              <td>
-
-                <div class="actions">
-
-                  <button
-                    class="action-btn view-btn"
-                    onclick="viewInstitution('${institution.id}')"
-                  >
-                    View
-                  </button>
-
-                  <button
-                    class="action-btn edit-btn"
-                    onclick="editInstitution('${institution.id}')"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    class="action-btn toggle-btn"
-                    onclick="toggleInstitution('${institution.id}')"
-                  >
-                    Disable
-                  </button>
-
-                </div>
-
-              </td>
-
-            </tr>
-
-          `;
-
-        }
-      )
-      .join("");
+      }
+    ).join("");
 }
 
 
-/* =========================
-   OPEN ADD MODAL
-========================= */
+// ==========================================
+// SEARCH
+// ==========================================
 
-function openAddModal() {
+searchInput.addEventListener(
+  "input",
+  function() {
 
-  editingId = null;
-
-  modalTitle.textContent =
-    "Add Institution";
-
-  institutionForm.reset();
-
-  institutionStatus.value =
-    "active";
-
-  saveBtn.textContent =
-    "Save Institution";
-
-  modal.classList.add(
-    "show"
-  );
-}
+    const query =
+      this.value
+        .trim()
+        .toLowerCase();
 
 
-/* =========================
-   CLOSE MODAL
-========================= */
+    if (!query) {
 
-function closeModal() {
-
-  modal.classList.remove(
-    "show"
-  );
-
-  institutionForm.reset();
-
-  editingId = null;
-}
-
-
-/* =========================
-   EDIT
-========================= */
-
-function editInstitution(id) {
-
-  const institution =
-    institutions.find(
-      item =>
-        item.id === id
-    );
-
-
-  if (!institution) {
-    return;
-  }
-
-
-  editingId =
-    institution.id;
-
-
-  modalTitle.textContent =
-    "Edit Institution";
-
-
-  institutionName.value =
-    institution.name || "";
-
-
-  institutionStatus.value =
-    "active";
-
-
-  saveBtn.textContent =
-    "Update Institution";
-
-
-  modal.classList.add(
-    "show"
-  );
-}
-
-
-/* =========================
-   VIEW
-========================= */
-
-function viewInstitution(id) {
-
-  const institution =
-    institutions.find(
-      item =>
-        item.id === id
-    );
-
-
-  if (!institution) {
-    return;
-  }
-
-
-  alert(
-    "Institution\n\n" +
-    "Name: " +
-    institution.name +
-    "\n\nID: " +
-    institution.id
-  );
-}
-
-
-/* =========================
-   SAVE
-========================= */
-
-institutionForm.addEventListener(
-  "submit",
-  async function(event) {
-
-    event.preventDefault();
-
-
-    const name =
-      institutionName.value
-        .trim();
-
-
-    if (!name) {
-
-      showMessage(
-        "Institution name is required.",
-        "error"
+      renderInstitutions(
+        institutions
       );
 
       return;
     }
 
 
-    saveBtn.disabled =
-      true;
+    const filtered =
+      institutions.filter(
+        institution => {
+
+          return [
+
+            institution.name,
+
+            institution.code,
+
+            institution.city,
+
+            institution.phone,
+
+            institution.email
+
+          ]
+            .filter(Boolean)
+            .some(
+              value =>
+                String(value)
+                  .toLowerCase()
+                  .includes(query)
+            );
+        }
+      );
 
 
-    saveBtn.textContent =
-      editingId
-        ? "Updating..."
-        : "Saving...";
-
-
-    if (!editingId) {
-
-      /*
-        Add new institution
-      */
-
-      const {
-        error
-      } =
-        await supabaseClient
-          .from("institutions")
-          .insert({
-            name: name
-          });
-
-
-      if (error) {
-
-        console.error(
-          "Insert error:",
-          error
-        );
-
-        showMessage(
-          error.message,
-          "error"
-        );
-
-      } else {
-
-        showMessage(
-          "Institution added successfully.",
-          "success"
-        );
-
-        closeModal();
-
-        await loadInstitutions();
-
-      }
-
-    } else {
-
-      /*
-        Update institution
-      */
-
-      const {
-        error
-      } =
-        await supabaseClient
-          .from("institutions")
-          .update({
-            name: name
-          })
-          .eq(
-            "id",
-            editingId
-          );
-
-
-      if (error) {
-
-        console.error(
-          "Update error:",
-          error
-        );
-
-        showMessage(
-          error.message,
-          "error"
-        );
-
-      } else {
-
-        showMessage(
-          "Institution updated successfully.",
-          "success"
-        );
-
-        closeModal();
-
-        await loadInstitutions();
-
-      }
-
-    }
-
-
-    saveBtn.disabled =
-      false;
-
-
-    saveBtn.textContent =
-      editingId
-        ? "Update Institution"
-        : "Save Institution";
-
-  }
-);
-
-
-/* =========================
-   TOGGLE
-========================= */
-
-async function toggleInstitution(id) {
-
-  const institution =
-    institutions.find(
-      item =>
-        item.id === id
+    renderInstitutions(
+      filtered
     );
-
-
-  if (!institution) {
-    return;
-  }
-
-
-  /*
-    NOTE:
-    The current institutions table
-    shown in the project does not
-    contain a status column.
-
-    Therefore we do not modify
-    the database here yet.
-  */
-
-  alert(
-    "Institution status management will be enabled after the institutions table gets an 'is_active' column."
-  );
-}
-
-
-/* =========================
-   SEARCH
-========================= */
-
-searchInput.addEventListener(
-  "input",
-  renderInstitutions
-);
-
-
-statusFilter.addEventListener(
-  "change",
-  renderInstitutions
-);
-
-
-/* =========================
-   BUTTONS
-========================= */
-
-document
-  .getElementById(
-    "addInstitutionBtn"
-  )
-  .addEventListener(
-    "click",
-    openAddModal
-  );
-
-
-document
-  .getElementById(
-    "closeModalBtn"
-  )
-  .addEventListener(
-    "click",
-    closeModal
-  );
-
-
-document
-  .getElementById(
-    "cancelModalBtn"
-  )
-  .addEventListener(
-    "click",
-    closeModal
-  );
-
-
-modal.addEventListener(
-  "click",
-  function(event) {
-
-    if (
-      event.target === modal
-    ) {
-
-      closeModal();
-
-    }
-
   }
 );
 
 
-/* =========================
-   MESSAGE
-========================= */
+// ==========================================
+// RESET FORM
+// ==========================================
 
-function showMessage(
-  text,
-  type
-) {
+function resetForm() {
 
-  message.textContent =
-    text;
+  form.reset();
 
-  message.className =
-    "message " + type;
+  document.getElementById(
+    "country"
+  ).value = "Somalia";
 
-
-  setTimeout(
-    function() {
-
-      message.className =
-        "message";
-
-    },
-    4000
-  );
+  message.textContent = "";
 }
 
 
-/* =========================
-   ESCAPE HTML
-========================= */
+// ==========================================
+// SAFE HTML
+// ==========================================
 
 function escapeHtml(value) {
 
-  return String(value ?? "")
-    .replace(
-      /&/g,
+  return String(value)
+    .replaceAll(
+      "&",
       "&amp;"
     )
-    .replace(
-      /</g,
+    .replaceAll(
+      "<",
       "&lt;"
     )
-    .replace(
-      />/g,
+    .replaceAll(
+      ">",
       "&gt;"
     )
-    .replace(
-      /"/g,
+    .replaceAll(
+      '"',
       "&quot;"
     )
-    .replace(
-      /'/g,
+    .replaceAll(
+      "'",
       "&#039;"
     );
 }
 
 
-/* =========================
-   START
-========================= */
+// ==========================================
+// START
+// ==========================================
 
-async function start() {
+async function startInstitutions() {
 
   const allowed =
     await checkSuperAdmin();
@@ -812,8 +597,7 @@ async function start() {
 
 
   await loadInstitutions();
-
 }
 
 
-start();
+startInstitutions();
