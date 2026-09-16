@@ -1,6 +1,6 @@
 // ============================================================
 // GAAWOW EMS — REPORTS CENTER
-// Complete reports.js
+// COMPLETE FIXED VERSION
 // ============================================================
 
 const SUPABASE_URL =
@@ -15,6 +15,7 @@ const supabaseClient =
     SUPABASE_KEY
   );
 
+
 // ============================================================
 // GLOBAL VARIABLES
 // ============================================================
@@ -22,30 +23,45 @@ const supabaseClient =
 let currentUser = null;
 let currentProfile = null;
 let institutions = [];
+
+let currentReport = "";
 let currentReportTitle = "";
-let currentReportData = [];
+let currentData = [];
 
 
 // ============================================================
 // PAGE LOAD
 // ============================================================
 
-document.addEventListener("DOMContentLoaded", async () => {
-  try {
-    await checkAuthentication();
-    await loadInstitutions();
-    await loadSummary();
+document.addEventListener(
+  "DOMContentLoaded",
+  async function () {
 
-    setupEvents();
+    try {
 
-  } catch (error) {
-    console.error(error);
-    showError(
-      "System Error",
-      error.message || "Something went wrong."
-    );
+      await checkAuthentication();
+
+      await loadInstitutions();
+
+      await loadDashboardStats();
+
+      setupFilters();
+
+    } catch (error) {
+
+      console.error(
+        "INITIALIZATION ERROR:",
+        error
+      );
+
+      showAlert(
+        "System Error: " +
+        error.message,
+        "error"
+      );
+    }
   }
-});
+);
 
 
 // ============================================================
@@ -55,54 +71,107 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function checkAuthentication() {
 
   const {
-    data: { session },
+    data,
     error
-  } = await supabaseClient.auth.getSession();
+  } =
+    await supabaseClient.auth.getSession();
 
   if (error) {
     throw error;
   }
 
+  const session =
+    data.session;
+
   if (!session) {
-    window.location.href = "index.html";
+
+    window.location.href =
+      "index.html";
+
     return;
   }
 
-  currentUser = session.user;
+  currentUser =
+    session.user;
 
-  // Load profile
+
+  // Get profile
   const {
     data: profile,
     error: profileError
-  } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", currentUser.id)
-    .maybeSingle();
+  } =
+    await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq(
+        "id",
+        currentUser.id
+      )
+      .maybeSingle();
+
 
   if (profileError) {
+
     throw profileError;
   }
 
+
   if (!profile) {
-    alert("Profile not found.");
-    window.location.href = "dashboard.html";
+
+    showAlert(
+      "Profile not found.",
+      "error"
+    );
+
+    setTimeout(
+      () => {
+        window.location.href =
+          "dashboard.html";
+      },
+      1500
+    );
+
     return;
   }
 
-  currentProfile = profile;
 
-  // Only Super Admin can access Reports
-  if (profile.role !== "super_admin") {
-    alert("Access denied. Super Admin only.");
-    window.location.href = "dashboard.html";
+  currentProfile =
+    profile;
+
+
+  // Super Admin only
+  if (
+    profile.role !==
+    "super_admin"
+  ) {
+
+    showAlert(
+      "Access denied. Super Admin only.",
+      "error"
+    );
+
+    setTimeout(
+      () => {
+        window.location.href =
+          "dashboard.html";
+      },
+      1500
+    );
+
     return;
   }
 
-  if (profile.is_active === false) {
-    alert("Your account is inactive.");
+
+  // Active check
+  if (
+    profile.is_active ===
+    false
+  ) {
+
     await supabaseClient.auth.signOut();
-    window.location.href = "index.html";
+
+    window.location.href =
+      "index.html";
   }
 }
 
@@ -116,68 +185,112 @@ async function loadInstitutions() {
   const {
     data,
     error
-  } = await supabaseClient
-    .from("institutions")
-    .select("*")
-    .order("name", { ascending: true });
+  } =
+    await supabaseClient
+      .from("institutions")
+      .select("*")
+      .order(
+        "name",
+        {
+          ascending: true
+        }
+      );
+
 
   if (error) {
-    console.error("Institutions:", error);
+
+    console.error(
+      "INSTITUTION ERROR:",
+      error
+    );
+
+    showAlert(
+      "Institution loading failed: " +
+      error.message,
+      "error"
+    );
+
     return;
   }
 
-  institutions = data || [];
+
+  institutions =
+    data || [];
+
 
   const select =
-    document.getElementById("institutionFilter");
+    document.getElementById(
+      "institutionFilter"
+    );
+
 
   if (!select) return;
 
+
   select.innerHTML =
-    `<option value="">All Institutions</option>`;
+    `
+      <option value="">
+        All Institutions
+      </option>
+    `;
 
-  institutions.forEach(inst => {
 
-    const option =
-      document.createElement("option");
+  institutions.forEach(
+    institution => {
 
-    option.value = inst.id;
-    option.textContent =
-      inst.name || inst.code || inst.id;
+      const option =
+        document.createElement(
+          "option"
+        );
 
-    select.appendChild(option);
-  });
+      option.value =
+        institution.id;
+
+      option.textContent =
+        institution.name ||
+        institution.code ||
+        "Institution";
+
+      select.appendChild(
+        option
+      );
+    }
+  );
 }
 
 
 // ============================================================
-// SUMMARY CARDS
+// DASHBOARD STATISTICS
 // ============================================================
 
-async function loadSummary() {
+async function loadDashboardStats() {
 
   await Promise.all([
-    loadCount(
+    getCount(
       "students",
-      "studentCount"
+      "studentsCount"
     ),
 
-    loadTeacherCount(),
+    getTeacherCount(),
 
-    loadCount(
+    getCount(
       "certificates",
-      "certificateCount"
+      "certificatesCount"
     ),
 
-    loadCount(
+    getCount(
       "institutions",
-      "institutionCount"
+      "institutionsCount"
     )
   ]);
 }
 
 
-async function loadCount(
+// ============================================================
+// GENERIC COUNT
+// ============================================================
+
+async function getCount(
   table,
   elementId
 ) {
@@ -185,174 +298,175 @@ async function loadCount(
   const {
     count,
     error
-  } = await supabaseClient
-    .from(table)
-    .select("*", {
-      count: "exact",
-      head: true
-    });
+  } =
+    await supabaseClient
+      .from(table)
+      .select(
+        "*",
+        {
+          count: "exact",
+          head: true
+        }
+      );
+
 
   if (error) {
 
     console.error(
-      `${table} count error:`,
+      table +
+      " COUNT ERROR:",
       error
     );
 
-    setText(elementId, "0");
-    return;
-  }
-
-  setText(
-    elementId,
-    count ?? 0
-  );
-}
-
-
-async function loadTeacherCount() {
-
-  const {
-    count,
-    error
-  } = await supabaseClient
-    .from("profiles")
-    .select("*", {
-      count: "exact",
-      head: true
-    })
-    .eq("role", "teacher");
-
-  if (error) {
-
-    console.error(
-      "Teacher count error:",
-      error
-    );
-
-    setText(
-      "teacherCount",
+    setElement(
+      elementId,
       "0"
     );
 
     return;
   }
 
-  setText(
-    "teacherCount",
+
+  setElement(
+    elementId,
     count ?? 0
   );
 }
 
 
 // ============================================================
-// EVENTS
+// TEACHER COUNT
 // ============================================================
 
-function setupEvents() {
+async function getTeacherCount() {
 
-  const search =
-    document.getElementById("searchInput");
-
-  if (search) {
-
-    search.addEventListener(
-      "input",
-      () => {
-
-        if (currentReportData.length > 0) {
-          filterCurrentReport();
+  const {
+    count,
+    error
+  } =
+    await supabaseClient
+      .from("profiles")
+      .select(
+        "*",
+        {
+          count: "exact",
+          head: true
         }
-      }
+      )
+      .eq(
+        "role",
+        "teacher"
+      );
+
+
+  if (error) {
+
+    console.error(
+      "TEACHER COUNT ERROR:",
+      error
     );
+
+    setElement(
+      "teachersCount",
+      "0"
+    );
+
+    return;
   }
 
 
-  const year =
-    document.getElementById("yearFilter");
-
-  if (year) {
-
-    year.addEventListener(
-      "change",
-      () => {
-
-        if (currentReportData.length > 0) {
-          filterCurrentReport();
-        }
-      }
-    );
-  }
-
-
-  const institution =
-    document.getElementById(
-      "institutionFilter"
-    );
-
-  if (institution) {
-
-    institution.addEventListener(
-      "change",
-      () => {
-
-        if (currentReportData.length > 0) {
-          filterCurrentReport();
-        }
-      }
-    );
-  }
+  setElement(
+    "teachersCount",
+    count ?? 0
+  );
 }
 
 
 // ============================================================
-// REPORT SELECTOR
+// IMPORTANT
+// HTML CALLS runReport()
 // ============================================================
 
-function openReport(reportName) {
+async function runReport(
+  reportName
+) {
 
-  switch (reportName) {
+  currentReport =
+    reportName;
+
+
+  switch (
+    reportName
+  ) {
 
     case "academic":
-      academicReport();
+
+      await academicReport();
+
       break;
+
 
     case "students":
-      studentsReport();
+
+      await studentsReport();
+
       break;
+
 
     case "teachers":
-      teachersReport();
+
+      await teachersReport();
+
       break;
+
 
     case "attendance":
-      attendanceReport();
+
+      await attendanceReport();
+
       break;
+
 
     case "grades":
-      gradesReport();
+
+      await gradesReport();
+
       break;
+
 
     case "certificates":
-      certificatesReport();
+
+      await certificatesReport();
+
       break;
+
 
     case "financial":
-      financialReport();
+
+      await financialReport();
+
       break;
+
 
     case "institutions":
-      institutionsReport();
+
+      await institutionsReport();
+
       break;
+
 
     case "system":
-      systemReport();
+
+      await systemReport();
+
       break;
 
+
     default:
-      console.warn(
-        "Unknown report:",
-        reportName
+
+      showAlert(
+        "Unknown report type.",
+        "error"
       );
   }
 }
@@ -360,179 +474,224 @@ function openReport(reportName) {
 
 // ============================================================
 // ACADEMIC REPORT
-// FIXED: No attendance column
+// NO attendance COLUMN
 // ============================================================
 
 async function academicReport() {
 
-  showLoading(
+  showResultLoading(
     "Loading Academic Report..."
   );
+
 
   const {
     data,
     error
-  } = await supabaseClient
-    .from("academic_progress")
-    .select("*")
-    .limit(500);
+  } =
+    await supabaseClient
+      .from(
+        "academic_progress"
+      )
+      .select("*")
+      .limit(500);
+
 
   if (error) {
 
-    showError(
+    showReportError(
       "Academic Report",
-      error.message
+      error
     );
 
     return;
   }
 
-  renderReportTable(
+
+  currentData =
+    data || [];
+
+
+  renderReport(
     "Academic Progress Report",
-    data || []
+    currentData
   );
 }
 
 
 // ============================================================
-// STUDENTS REPORT
+// STUDENT REPORT
 // ============================================================
 
 async function studentsReport() {
 
-  showLoading(
-    "Loading Students Report..."
+  showResultLoading(
+    "Loading Student Report..."
   );
+
 
   const {
     data,
     error
-  } = await supabaseClient
-    .from("students")
-    .select("*")
-    .limit(500);
+  } =
+    await supabaseClient
+      .from("students")
+      .select("*")
+      .limit(500);
+
 
   if (error) {
 
-    showError(
-      "Students Report",
-      error.message
+    showReportError(
+      "Student Report",
+      error
     );
 
     return;
   }
 
-  renderReportTable(
-    "Students Report",
-    data || []
+
+  currentData =
+    data || [];
+
+
+  renderReport(
+    "Student Report",
+    currentData
   );
 }
 
 
 // ============================================================
-// TEACHERS REPORT
-// FIXED: No profiles.email
+// TEACHER REPORT
+// NO profiles.email
 // ============================================================
 
 async function teachersReport() {
 
-  showLoading(
-    "Loading Teachers Report..."
+  showResultLoading(
+    "Loading Teacher Report..."
   );
+
 
   const {
     data,
     error
-  } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("role", "teacher")
-    .limit(500);
+  } =
+    await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq(
+        "role",
+        "teacher"
+      )
+      .limit(500);
+
 
   if (error) {
 
-    showError(
-      "Teachers Report",
-      error.message
+    showReportError(
+      "Teacher Report",
+      error
     );
 
     return;
   }
 
-  renderReportTable(
-    "Teachers Report",
-    data || []
+
+  currentData =
+    data || [];
+
+
+  renderReport(
+    "Teacher Report",
+    currentData
   );
 }
 
 
 // ============================================================
 // ATTENDANCE REPORT
-// FIXED: No attendance.created_at
+// NO created_at
 // ============================================================
 
 async function attendanceReport() {
 
-  showLoading(
+  showResultLoading(
     "Loading Attendance Report..."
   );
+
 
   const {
     data,
     error
-  } = await supabaseClient
-    .from("attendance")
-    .select("*")
-    .limit(500);
+  } =
+    await supabaseClient
+      .from("attendance")
+      .select("*")
+      .limit(500);
+
 
   if (error) {
 
-    showError(
+    showReportError(
       "Attendance Report",
-      error.message
+      error
     );
 
     return;
   }
 
-  renderReportTable(
+
+  currentData =
+    data || [];
+
+
+  renderReport(
     "Attendance Report",
-    data || []
+    currentData
   );
 }
 
 
 // ============================================================
-// GRADES / EXAMS REPORT
+// GRADES REPORT
 // ============================================================
 
 async function gradesReport() {
 
-  showLoading(
+  showResultLoading(
     "Loading Exams & Grades Report..."
   );
+
 
   const {
     data,
     error
-  } = await supabaseClient
-    .from("grades")
-    .select("*")
-    .limit(500);
+  } =
+    await supabaseClient
+      .from("grades")
+      .select("*")
+      .limit(500);
+
 
   if (error) {
 
-    showError(
-      "Grades Report",
-      error.message
+    showReportError(
+      "Exams & Grades Report",
+      error
     );
 
     return;
   }
 
-  renderReportTable(
+
+  currentData =
+    data || [];
+
+
+  renderReport(
     "Exams & Grades Report",
-    data || []
+    currentData
   );
 }
 
@@ -543,31 +702,39 @@ async function gradesReport() {
 
 async function certificatesReport() {
 
-  showLoading(
+  showResultLoading(
     "Loading Certificates Report..."
   );
+
 
   const {
     data,
     error
-  } = await supabaseClient
-    .from("certificates")
-    .select("*")
-    .limit(500);
+  } =
+    await supabaseClient
+      .from("certificates")
+      .select("*")
+      .limit(500);
+
 
   if (error) {
 
-    showError(
+    showReportError(
       "Certificates Report",
-      error.message
+      error
     );
 
     return;
   }
 
-  renderReportTable(
+
+  currentData =
+    data || [];
+
+
+  renderReport(
     "Certificates Report",
-    data || []
+    currentData
   );
 }
 
@@ -578,105 +745,131 @@ async function certificatesReport() {
 
 async function financialReport() {
 
-  showLoading(
+  showResultLoading(
     "Loading Financial Report..."
   );
+
 
   const {
     data,
     error
-  } = await supabaseClient
-    .from("payments")
-    .select("*")
-    .limit(500);
+  } =
+    await supabaseClient
+      .from("payments")
+      .select("*")
+      .limit(500);
+
 
   if (error) {
 
-    showError(
+    showReportError(
       "Financial Report",
-      error.message
+      error
     );
 
     return;
   }
 
-  renderReportTable(
+
+  currentData =
+    data || [];
+
+
+  renderReport(
     "Financial Report",
-    data || []
+    currentData
   );
 }
 
 
 // ============================================================
-// INSTITUTIONS REPORT
+// INSTITUTION REPORT
 // ============================================================
 
 async function institutionsReport() {
 
-  showLoading(
-    "Loading Institutions Report..."
+  showResultLoading(
+    "Loading Institution Report..."
   );
+
 
   const {
     data,
     error
-  } = await supabaseClient
-    .from("institutions")
-    .select("*")
-    .limit(500);
+  } =
+    await supabaseClient
+      .from("institutions")
+      .select("*")
+      .limit(500);
+
 
   if (error) {
 
-    showError(
-      "Institutions Report",
-      error.message
+    showReportError(
+      "Institution Report",
+      error
     );
 
     return;
   }
 
-  renderReportTable(
-    "Institutions Report",
-    data || []
+
+  currentData =
+    data || [];
+
+
+  renderReport(
+    "Institution Report",
+    currentData
   );
 }
 
 
 // ============================================================
-// SYSTEM / AUDIT REPORT
+// SYSTEM REPORT
 // ============================================================
 
 async function systemReport() {
 
-  showLoading(
+  showResultLoading(
     "Loading System Report..."
   );
+
 
   const {
     data,
     error
-  } = await supabaseClient
-    .from("audit_logs")
-    .select("*")
-    .order(
-      "created_at",
-      { ascending: false }
-    )
-    .limit(500);
+  } =
+    await supabaseClient
+      .from("audit_logs")
+      .select("*")
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      )
+      .limit(500);
+
 
   if (error) {
 
-    showError(
+    showReportError(
       "System Report",
-      error.message
+      error
     );
 
     return;
   }
 
-  renderReportTable(
+
+  currentData =
+    data || [];
+
+
+  renderReport(
     "System Audit Report",
-    data || []
+    currentData
   );
 }
 
@@ -685,265 +878,222 @@ async function systemReport() {
 // RENDER REPORT
 // ============================================================
 
-function renderReportTable(
+function renderReport(
   title,
   data
 ) {
 
-  currentReportTitle = title;
-  currentReportData = data || [];
+  currentReportTitle =
+    title;
+
 
   const result =
     document.getElementById(
       "reportResult"
     );
 
-  if (!result) return;
+  const content =
+    document.getElementById(
+      "resultContent"
+    );
 
-  if (!data || data.length === 0) {
+  const resultTitle =
+    document.getElementById(
+      "resultTitle"
+    );
 
-    result.innerHTML = `
-      <div class="empty-report">
-        <div style="font-size:42px;">📊</div>
 
-        <h3>No Data Found</h3>
+  if (!result || !content) {
+
+    console.error(
+      "Report result elements not found."
+    );
+
+    return;
+  }
+
+
+  // SHOW RESULT
+  result.style.display =
+    "block";
+
+
+  if (resultTitle) {
+
+    resultTitle.textContent =
+      title;
+  }
+
+
+  if (
+    !data ||
+    data.length === 0
+  ) {
+
+    content.innerHTML = `
+
+      <div class="empty">
+
+        <div
+          style="
+            font-size:45px;
+            margin-bottom:10px;
+          "
+        >
+          📊
+        </div>
+
+        <strong>
+          No records found
+        </strong>
 
         <p>
-          There are no records available
-          for this report.
+          This report has no data.
         </p>
+
       </div>
+
     `;
 
     return;
   }
 
-  const filtered =
-    applyFilters(data);
-
-  result.innerHTML = buildTable(
-    title,
-    filtered
-  );
-
-  result.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
-}
-
-
-// ============================================================
-// FILTER REPORT
-// ============================================================
-
-function filterCurrentReport() {
-
-  if (!currentReportData) return;
 
   const filtered =
     applyFilters(
-      currentReportData
+      data
     );
 
-  const result =
-    document.getElementById(
-      "reportResult"
-    );
-
-  if (!result) return;
-
-  result.innerHTML =
-    buildTable(
-      currentReportTitle,
-      filtered
-    );
-}
-
-
-function applyFilters(data) {
-
-  let result =
-    [...data];
-
-  // Search
-  const search =
-    (
-      document.getElementById(
-        "searchInput"
-      )?.value || ""
-    )
-      .trim()
-      .toLowerCase();
-
-  if (search) {
-
-    result =
-      result.filter(row => {
-
-        return Object.values(row)
-          .some(value =>
-            String(
-              value ?? ""
-            )
-              .toLowerCase()
-              .includes(search)
-          );
-      });
-  }
-
-
-  // Institution filter
-  const institutionId =
-    document.getElementById(
-      "institutionFilter"
-    )?.value || "";
 
   if (
-    institutionId &&
-    result.length
+    filtered.length === 0
   ) {
 
-    result =
-      result.filter(row => {
+    content.innerHTML = `
 
-        return (
-          row.institution_id ===
-          institutionId
-        );
-      });
+      <div class="empty">
+
+        <div
+          style="
+            font-size:40px;
+          "
+        >
+          🔎
+        </div>
+
+        <strong>
+          No matching records
+        </strong>
+
+        <p>
+          Try changing the filters.
+        </p>
+
+      </div>
+
+    `;
+
+    return;
   }
 
 
-  // Year filter
-  const year =
-    document.getElementById(
-      "yearFilter"
-    )?.value || "";
+  content.innerHTML =
+    createTable(
+      filtered
+    );
 
-  if (year) {
 
-    result =
-      result.filter(row => {
+  // Scroll to report
+  setTimeout(
+    () => {
 
-        const values =
-          Object.values(row);
-
-        return values.some(value => {
-
-          if (!value) return false;
-
-          const text =
-            String(value);
-
-          return (
-            text.includes(year)
-          );
-        });
+      result.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
       });
-  }
 
-  return result;
+    },
+    100
+  );
 }
 
 
 // ============================================================
-// BUILD TABLE
+// CREATE TABLE
 // ============================================================
 
-function buildTable(
-  title,
+function createTable(
   data
 ) {
 
-  if (!data.length) {
-
-    return `
-      <div class="empty-report">
-        <div style="font-size:42px;">🔎</div>
-
-        <h3>No Matching Records</h3>
-
-        <p>
-          Try changing the search or filters.
-        </p>
-      </div>
-    `;
-  }
-
-
   const columns =
-    getColumns(data);
+    collectColumns(
+      data
+    );
 
 
   let html = `
 
-    <div class="report-header">
+    <div class="table-wrap">
 
-      <div>
-        <h2>${escapeHTML(title)}</h2>
-
-        <p>
-          ${data.length} record(s)
-        </p>
-      </div>
-
-      <button
-        class="print-btn"
-        onclick="printReport()"
-      >
-        🖨️ Print
-      </button>
-
-    </div>
-
-    <div class="table-wrapper">
-
-      <table class="report-table">
+      <table>
 
         <thead>
+
           <tr>
   `;
 
 
-  columns.forEach(column => {
+  columns.forEach(
+    column => {
 
-    html += `
-      <th>
-        ${escapeHTML(
-          formatColumnName(column)
-        )}
-      </th>
-    `;
-  });
+      html += `
+        <th>
+          ${escapeHTML(
+            formatColumn(
+              column
+            )
+          )}
+        </th>
+      `;
+    }
+  );
 
 
   html += `
+
           </tr>
+
         </thead>
 
         <tbody>
   `;
 
 
-  data.forEach(row => {
+  data.forEach(
+    row => {
 
-    html += "<tr>";
+      html += "<tr>";
 
-    columns.forEach(column => {
 
-      html += `
-        <td>
-          ${formatCell(
-            row[column],
-            column
-          )}
-        </td>
-      `;
-    });
+      columns.forEach(
+        column => {
 
-    html += "</tr>";
-  });
+          html += `
+            <td>
+              ${formatValue(
+                row[column],
+                column
+              )}
+            </td>
+          `;
+        }
+      );
+
+
+      html += "</tr>";
+    }
+  );
 
 
   html += `
@@ -961,50 +1111,63 @@ function buildTable(
 
 
 // ============================================================
-// DETERMINE TABLE COLUMNS
+// COLLECT COLUMNS
 // ============================================================
 
-function getColumns(data) {
+function collectColumns(
+  data
+) {
 
-  const set =
+  const columns =
     new Set();
 
-  data.forEach(row => {
 
-    Object.keys(row)
-      .forEach(key =>
-        set.add(key)
-      );
-  });
+  data.forEach(
+    row => {
+
+      Object.keys(row)
+        .forEach(
+          key =>
+            columns.add(
+              key
+            )
+        );
+    }
+  );
 
 
-  return Array.from(set);
+  return Array.from(
+    columns
+  );
 }
 
 
 // ============================================================
-// FORMAT COLUMN NAME
+// FORMAT COLUMN
 // ============================================================
 
-function formatColumnName(
+function formatColumn(
   column
 ) {
 
   return column
-    .replace(/_/g, " ")
+    .replace(
+      /_/g,
+      " "
+    )
     .replace(
       /\b\w/g,
-      char =>
-        char.toUpperCase()
+      letter =>
+        letter.toUpperCase()
     );
 }
 
 
 // ============================================================
-// FORMAT CELL
+// FORMAT VALUE
 // ============================================================
 
-function formatCell(
+function formatValue(
   value,
   column
 ) {
@@ -1015,11 +1178,7 @@ function formatCell(
     value === ""
   ) {
 
-    return `
-      <span class="muted">
-        —
-      </span>
-    `;
+    return "—";
   }
 
 
@@ -1030,27 +1189,31 @@ function formatCell(
   ) {
 
     return value
-      ? `<span class="badge success">Yes</span>`
-      : `<span class="badge danger">No</span>`;
+      ? `<span class="badge green">Yes</span>`
+      : `<span class="badge red">No</span>`;
   }
 
 
-  // JSON / Object
+  // Object / JSON
   if (
     typeof value ===
-      "object"
+    "object"
   ) {
 
     return `
-      <pre class="json-cell">${
-        escapeHTML(
-          JSON.stringify(
-            value,
-            null,
-            2
-          )
-        )
-      }</pre>
+      <pre style="
+        white-space:pre-wrap;
+        font-size:11px;
+        margin:0;
+      ">
+${escapeHTML(
+  JSON.stringify(
+    value,
+    null,
+    2
+  )
+)}
+      </pre>
     `;
   }
 
@@ -1059,7 +1222,7 @@ function formatCell(
     String(value);
 
 
-  // Status
+  // STATUS BADGES
   if (
     column
       .toLowerCase()
@@ -1069,64 +1232,423 @@ function formatCell(
     const status =
       text.toLowerCase();
 
-    let className =
-      "info";
 
     if (
       [
         "active",
         "valid",
         "paid",
-        "completed",
-        "success"
-      ].includes(status)
+        "completed"
+      ].includes(
+        status
+      )
     ) {
 
-      className =
-        "success";
+      return `
+        <span class="badge green">
+          ${escapeHTML(text)}
+        </span>
+      `;
     }
+
 
     if (
       [
         "inactive",
         "invalid",
         "failed",
-        "cancelled",
-        "suspended"
-      ].includes(status)
+        "suspended",
+        "cancelled"
+      ].includes(
+        status
+      )
     ) {
 
-      className =
-        "danger";
+      return `
+        <span class="badge red">
+          ${escapeHTML(text)}
+        </span>
+      `;
     }
 
+
     return `
-      <span class="badge ${className}">
+      <span class="badge blue">
         ${escapeHTML(text)}
       </span>
     `;
   }
 
 
-  // Long text
-  if (text.length > 120) {
+  return escapeHTML(
+    text
+  );
+}
 
-    return `
-      <span
-        title="${escapeHTML(text)}"
-      >
-        ${escapeHTML(
-          text.substring(
-            0,
-            120
-          )
-        )}...
-      </span>
-    `;
+
+// ============================================================
+// FILTERS
+// ============================================================
+
+function setupFilters() {
+
+  const search =
+    document.getElementById(
+      "searchInput"
+    );
+
+  const year =
+    document.getElementById(
+      "yearFilter"
+    );
+
+  const institution =
+    document.getElementById(
+      "institutionFilter"
+    );
+
+
+  if (search) {
+
+    search.addEventListener(
+      "input",
+      applyCurrentFilters
+    );
   }
 
 
-  return escapeHTML(text);
+  if (year) {
+
+    year.addEventListener(
+      "change",
+      applyCurrentFilters
+    );
+  }
+
+
+  if (institution) {
+
+    institution.addEventListener(
+      "change",
+      applyCurrentFilters
+    );
+  }
+}
+
+
+// ============================================================
+// APPLY CURRENT FILTERS
+// ============================================================
+
+function applyCurrentFilters() {
+
+  if (
+    !currentData ||
+    currentData.length === 0
+  ) {
+
+    return;
+  }
+
+
+  renderReport(
+    currentReportTitle,
+    currentData
+  );
+}
+
+
+// ============================================================
+// FILTER DATA
+// ============================================================
+
+function applyFilters(
+  data
+) {
+
+  let result =
+    [...data];
+
+
+  // SEARCH
+  const search =
+    (
+      document.getElementById(
+        "searchInput"
+      )?.value || ""
+    )
+      .trim()
+      .toLowerCase();
+
+
+  if (search) {
+
+    result =
+      result.filter(
+        row => {
+
+          return Object.values(
+            row
+          ).some(
+            value =>
+              String(
+                value ?? ""
+              )
+                .toLowerCase()
+                .includes(
+                  search
+                )
+          );
+        }
+      );
+  }
+
+
+  // INSTITUTION
+  const institutionId =
+    document.getElementById(
+      "institutionFilter"
+    )?.value || "";
+
+
+  if (institutionId) {
+
+    result =
+      result.filter(
+        row =>
+          String(
+            row.institution_id ||
+            ""
+          ) ===
+          institutionId
+      );
+  }
+
+
+  // YEAR
+  const year =
+    document.getElementById(
+      "yearFilter"
+    )?.value || "";
+
+
+  if (year) {
+
+    result =
+      result.filter(
+        row => {
+
+          return Object.values(
+            row
+          ).some(
+            value => {
+
+              if (
+                value ===
+                null ||
+                value ===
+                undefined
+              ) {
+
+                return false;
+              }
+
+
+              return String(
+                value
+              ).includes(
+                year
+              );
+            }
+          );
+        }
+      );
+  }
+
+
+  return result;
+}
+
+
+// ============================================================
+// LOADING
+// ============================================================
+
+function showResultLoading(
+  message
+) {
+
+  const result =
+    document.getElementById(
+      "reportResult"
+    );
+
+  const content =
+    document.getElementById(
+      "resultContent"
+    );
+
+
+  if (!result || !content)
+    return;
+
+
+  result.style.display =
+    "block";
+
+
+  content.innerHTML = `
+
+    <div class="loading">
+
+      ⏳ ${escapeHTML(
+        message
+      )}
+
+    </div>
+
+  `;
+
+
+  result.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+
+// ============================================================
+// REPORT ERROR
+// ============================================================
+
+function showReportError(
+  title,
+  error
+) {
+
+  console.error(
+    title,
+    error
+  );
+
+
+  const result =
+    document.getElementById(
+      "reportResult"
+    );
+
+  const content =
+    document.getElementById(
+      "resultContent"
+    );
+
+  const resultTitle =
+    document.getElementById(
+      "resultTitle"
+    );
+
+
+  if (!result || !content)
+    return;
+
+
+  result.style.display =
+    "block";
+
+
+  if (resultTitle) {
+
+    resultTitle.textContent =
+      title;
+  }
+
+
+  content.innerHTML = `
+
+    <div
+      class="empty"
+      style="
+        color:#991B1B;
+        background:#FEF2F2;
+      "
+    >
+
+      <div
+        style="
+          font-size:42px;
+          margin-bottom:10px;
+        "
+      >
+        ⚠️
+      </div>
+
+      <strong>
+        ${escapeHTML(
+          title
+        )}
+      </strong>
+
+      <p>
+        ${escapeHTML(
+          error?.message ||
+          "Unknown database error."
+        )}
+      </p>
+
+    </div>
+
+  `;
+}
+
+
+// ============================================================
+// ALERT
+// ============================================================
+
+function showAlert(
+  message,
+  type = "success"
+) {
+
+  const box =
+    document.getElementById(
+      "alertBox"
+    );
+
+
+  if (!box) {
+
+    console.log(
+      message
+    );
+
+    return;
+  }
+
+
+  box.textContent =
+    message;
+
+
+  box.className =
+    "alert show " +
+    (
+      type === "error"
+        ? "error"
+        : "success"
+    );
+
+
+  setTimeout(
+    () => {
+
+      box.classList.remove(
+        "show"
+      );
+
+    },
+    5000
+  );
 }
 
 
@@ -1137,12 +1659,12 @@ function formatCell(
 function printReport() {
 
   if (
-    !currentReportData ||
-    currentReportData.length === 0
+    !currentData ||
+    currentData.length === 0
   ) {
 
     alert(
-      "There is no report to print."
+      "No report data available."
     );
 
     return;
@@ -1151,19 +1673,26 @@ function printReport() {
 
   const filtered =
     applyFilters(
-      currentReportData
+      currentData
     );
+
+
+  if (
+    filtered.length === 0
+  ) {
+
+    alert(
+      "No records available to print."
+    );
+
+    return;
+  }
 
 
   const table =
-    buildTable(
-      currentReportTitle,
+    createTable(
       filtered
     );
-
-
-  const logo =
-    "https://i.ibb.co/4ZCRpm30/gaawow-logo.png";
 
 
   const printWindow =
@@ -1176,7 +1705,7 @@ function printReport() {
   if (!printWindow) {
 
     alert(
-      "Please allow pop-ups to print the report."
+      "Please allow pop-ups to print."
     );
 
     return;
@@ -1201,126 +1730,71 @@ function printReport() {
 
       <style>
 
-        body {
-          font-family:
-            Arial,
-            sans-serif;
-
-          margin: 30px;
-
-          color: #1F2937;
+        body{
+          font-family:Arial,Helvetica,sans-serif;
+          margin:25px;
+          color:#1F2937;
         }
 
-        .print-brand {
-          text-align: center;
-
-          margin-bottom: 25px;
+        .brand{
+          text-align:center;
+          margin-bottom:25px;
         }
 
-        .print-brand img {
-          width: 90px;
-
-          height: 90px;
-
-          object-fit: contain;
+        .brand img{
+          width:85px;
+          height:85px;
+          object-fit:contain;
         }
 
-        .print-brand h1 {
-          margin: 8px 0 3px;
-
-          color: #0B1E63;
+        .brand h1{
+          color:#0B1E63;
+          margin:8px 0 3px;
         }
 
-        .print-brand p {
-          margin: 0;
-
-          color: #555;
+        .brand p{
+          margin:3px;
+          color:#64748B;
         }
 
-        .report-header {
-          display: flex;
-
-          justify-content:
-            space-between;
-
-          align-items: center;
-
-          border-bottom:
-            2px solid #D4AF37;
-
-          padding-bottom: 10px;
-
-          margin-bottom: 15px;
+        h2{
+          color:#0B4DA2;
+          border-bottom:2px solid #D4AF37;
+          padding-bottom:8px;
         }
 
-        .report-header h2 {
-          color: #0B4DA2;
+        table{
+          width:100%;
+          border-collapse:collapse;
+          font-size:10px;
         }
 
-        .print-btn {
-          display: none;
+        th{
+          background:#0B1E63;
+          color:white;
+          padding:7px;
+          border:1px solid #ddd;
+          text-align:left;
         }
 
-        .table-wrapper {
-          overflow: visible;
+        td{
+          padding:6px;
+          border:1px solid #ddd;
+          vertical-align:top;
         }
 
-        table {
-          width: 100%;
-
-          border-collapse:
-            collapse;
-
-          font-size: 10px;
+        tr:nth-child(even){
+          background:#F8FAFC;
         }
 
-        th {
-          background:
-            #0B1E63;
-
-          color: white;
-
-          padding: 8px;
-
-          border: 1px solid #ddd;
-
-          text-align: left;
+        .badge{
+          padding:3px 7px;
+          border-radius:12px;
         }
 
-        td {
-          padding: 7px;
-
-          border: 1px solid #ddd;
-
-          vertical-align: top;
-        }
-
-        tr:nth-child(even) {
-          background:
-            #f7f7f7;
-        }
-
-        .badge {
-          padding:
-            3px 7px;
-
-          border-radius:
-            10px;
-        }
-
-        .json-cell {
-          white-space:
-            pre-wrap;
-        }
-
-        .muted {
-          color: #999;
-        }
-
-        @page {
-          size: landscape;
-
-          margin: 12mm;
+        @page{
+          size:landscape;
+          margin:10mm;
         }
 
       </style>
@@ -1329,11 +1803,10 @@ function printReport() {
 
     <body>
 
-      <div class="print-brand">
+      <div class="brand">
 
         <img
-          src="${logo}"
-          alt="GAAWOW Academy"
+          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
         >
 
         <h1>
@@ -1350,6 +1823,12 @@ function printReport() {
 
       </div>
 
+      <h2>
+        ${escapeHTML(
+          currentReportTitle
+        )}
+      </h2>
+
       ${table}
 
     </body>
@@ -1361,198 +1840,72 @@ function printReport() {
 
   printWindow.document.close();
 
-  setTimeout(() => {
 
-    printWindow.focus();
+  setTimeout(
+    () => {
 
-    printWindow.print();
+      printWindow.focus();
 
-  }, 500);
+      printWindow.print();
+
+    },
+    500
+  );
 }
 
 
 // ============================================================
-// REFRESH
+// NAVIGATION
 // ============================================================
 
-async function refreshReports() {
+function goDashboard() {
 
-  const button =
-    document.getElementById(
-      "refreshBtn"
-    );
+  window.location.href =
+    "dashboard.html";
+}
 
-  if (button) {
 
-    button.disabled = true;
+// ============================================================
+// LOGOUT
+// ============================================================
 
-    button.innerHTML =
-      "⏳ Refreshing...";
-  }
-
+async function logout() {
 
   try {
 
-    await loadInstitutions();
-    await loadSummary();
-
-    currentReportData = [];
-
-    const result =
-      document.getElementById(
-        "reportResult"
-      );
-
-    if (result) {
-
-      result.innerHTML = `
-        <div class="empty-report">
-          <div style="font-size:42px;">
-            📊
-          </div>
-
-          <h3>
-            Reports Center
-          </h3>
-
-          <p>
-            Select a report above to view data.
-          </p>
-        </div>
-      `;
-    }
+    await supabaseClient.auth.signOut();
 
   } catch (error) {
 
-    console.error(error);
-
-    showError(
-      "Refresh Error",
-      error.message
+    console.error(
+      "LOGOUT ERROR:",
+      error
     );
 
   } finally {
 
-    if (button) {
+    sessionStorage.clear();
 
-      button.disabled = false;
-
-      button.innerHTML =
-        "🔄 Refresh";
-    }
+    window.location.href =
+      "index.html";
   }
 }
 
 
 // ============================================================
-// LOADING
+// HELPER
 // ============================================================
 
-function showLoading(
-  message
-) {
-
-  const result =
-    document.getElementById(
-      "reportResult"
-    );
-
-  if (!result) return;
-
-  result.innerHTML = `
-
-    <div class="empty-report">
-
-      <div
-        style="
-          font-size:42px;
-          animation:
-            spin 1s linear infinite;
-        "
-      >
-        ⏳
-      </div>
-
-      <h3>
-        ${escapeHTML(message)}
-      </h3>
-
-      <p>
-        Please wait...
-      </p>
-
-    </div>
-
-  `;
-}
-
-
-// ============================================================
-// ERROR
-// ============================================================
-
-function showError(
-  title,
-  message
-) {
-
-  const result =
-    document.getElementById(
-      "reportResult"
-    );
-
-  if (!result) {
-
-    alert(
-      `${title}: ${message}`
-    );
-
-    return;
-  }
-
-
-  result.innerHTML = `
-
-    <div class="empty-report error-report">
-
-      <div style="font-size:42px;">
-        ⚠️
-      </div>
-
-      <h3>
-        ${escapeHTML(title)}
-      </h3>
-
-      <p>
-        ${escapeHTML(message)}
-      </p>
-
-      <button
-        onclick="refreshReports()"
-        class="print-btn"
-      >
-        🔄 Try Again
-      </button>
-
-    </div>
-
-  `;
-}
-
-
-// ============================================================
-// HELPER — SET TEXT
-// ============================================================
-
-function setText(
-  elementId,
+function setElement(
+  id,
   value
 ) {
 
   const element =
     document.getElementById(
-      elementId
+      id
     );
+
 
   if (element) {
 
@@ -1570,7 +1923,9 @@ function escapeHTML(
   value
 ) {
 
-  return String(value)
+  return String(
+    value
+  )
     .replace(
       /&/g,
       "&amp;"
@@ -1595,94 +1950,25 @@ function escapeHTML(
 
 
 // ============================================================
-// LOGOUT
-// ============================================================
-
-async function logout() {
-
-  try {
-
-    await supabaseClient.auth.signOut();
-
-  } catch (error) {
-
-    console.error(
-      "Logout error:",
-      error
-    );
-
-  } finally {
-
-    sessionStorage.clear();
-
-    localStorage.removeItem(
-      "supabase.auth.token"
-    );
-
-    window.location.href =
-      "index.html";
-  }
-}
-
-
-// ============================================================
-// DASHBOARD
-// ============================================================
-
-function goDashboard() {
-
-  window.location.href =
-    "dashboard.html";
-}
-
-
-// ============================================================
 // GLOBAL FUNCTIONS
 // ============================================================
 
-window.openReport =
-  openReport;
+window.runReport =
+  runReport;
 
-window.academicReport =
-  academicReport;
-
-window.studentsReport =
-  studentsReport;
-
-window.teachersReport =
-  teachersReport;
-
-window.attendanceReport =
-  attendanceReport;
-
-window.gradesReport =
-  gradesReport;
-
-window.certificatesReport =
-  certificatesReport;
-
-window.financialReport =
-  financialReport;
-
-window.institutionsReport =
-  institutionsReport;
-
-window.systemReport =
-  systemReport;
+window.loadDashboardStats =
+  loadDashboardStats;
 
 window.printReport =
   printReport;
 
-window.refreshReports =
-  refreshReports;
+window.goDashboard =
+  goDashboard;
 
 window.logout =
   logout;
 
-window.goDashboard =
-  goDashboard;
-
 
 // ============================================================
-// END
+// END GAAWOW EMS REPORTS
 // ============================================================
