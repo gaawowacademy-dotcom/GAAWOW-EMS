@@ -1,8 +1,17 @@
+// ==========================================
+// GAAWOW EMS — INSTITUTIONS MANAGEMENT
+// ==========================================
+
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
 const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+
+// ==========================================
+// SUPABASE CLIENT
+// ==========================================
 
 const supabaseClient =
   window.supabase.createClient(
@@ -11,148 +20,204 @@ const supabaseClient =
   );
 
 
-// ===============================
+// ==========================================
 // DASHBOARD
-// ===============================
+// ==========================================
 
 function goDashboard() {
-  window.location.href = "dashboard.html";
+  window.location.href =
+    "dashboard.html";
 }
 
 
-// ===============================
+// ==========================================
 // CHECK SUPER ADMIN
-// ===============================
+// ==========================================
 
 async function checkSuperAdmin() {
 
-  const {
-    data: sessionData,
-    error: sessionError
-  } =
-    await supabaseClient.auth.getSession();
+  try {
 
-  console.log("SESSION:", sessionData);
-  console.log("SESSION ERROR:", sessionError);
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth.getSession();
 
-  if (
-    sessionError ||
-    !sessionData.session
-  ) {
 
-    alert(
-      "Session not found. Please login again."
+    console.log(
+      "SESSION RESULT:",
+      data
     );
 
-    window.location.href =
-      "index.html";
+
+    if (error) {
+
+      console.error(
+        "SESSION ERROR:",
+        error
+      );
+
+      alert(
+        "Supabase Session Error:\n\n" +
+        error.message
+      );
+
+      return false;
+    }
+
+
+    if (!data.session) {
+
+      alert(
+        "No active session.\n\nPlease login again."
+      );
+
+      window.location.href =
+        "index.html";
+
+      return false;
+    }
+
+
+    const user =
+      data.session.user;
+
+
+    console.log(
+      "LOGGED USER:",
+      user.email
+    );
+
+
+    // ======================================
+    // LOAD PROFILE
+    // ======================================
+
+    const {
+      data: profile,
+      error: profileError
+    } =
+      await supabaseClient
+        .from("profiles")
+        .select(
+          "id, full_name, role, institution_id, is_active"
+        )
+        .eq(
+          "id",
+          user.id
+        )
+        .maybeSingle();
+
+
+    console.log(
+      "PROFILE:",
+      profile
+    );
+
+
+    if (profileError) {
+
+      console.error(
+        "PROFILE ERROR:",
+        profileError
+      );
+
+
+      alert(
+        "Unable to load your profile.\n\n" +
+        "Error: " +
+        profileError.message
+      );
+
+      return false;
+    }
+
+
+    if (!profile) {
+
+      alert(
+        "No profile found for this login account."
+      );
+
+      return false;
+    }
+
+
+    // ======================================
+    // CHECK ROLE
+    // ======================================
+
+    if (
+      profile.role !==
+      "super_admin"
+    ) {
+
+      alert(
+        "Access denied.\n\n" +
+        "Current role: " +
+        profile.role
+      );
+
+      window.location.href =
+        "index.html";
+
+      return false;
+    }
+
+
+    // ======================================
+    // CHECK ACTIVE
+    // ======================================
+
+    if (
+      profile.is_active === false
+    ) {
+
+      alert(
+        "Your Super Admin account is inactive."
+      );
+
+      await supabaseClient
+        .auth
+        .signOut();
+
+      window.location.href =
+        "index.html";
+
+      return false;
+    }
+
+
+    console.log(
+      "SUPER ADMIN ACCESS GRANTED"
+    );
+
+
+    return true;
+
+  } catch (error) {
+
+    console.error(
+      "CHECK SUPER ADMIN FAILED:",
+      error
+    );
+
+
+    alert(
+      "Unexpected error:\n\n" +
+      error.message
+    );
+
 
     return false;
   }
-
-
-  const user =
-    sessionData.session.user;
-
-  console.log(
-    "LOGGED USER:",
-    user.id,
-    user.email
-  );
-
-
-  const {
-    data: profile,
-    error: profileError
-  } =
-    await supabaseClient
-      .from("profiles")
-      .select(
-        "id, full_name, role, institution_id, is_active"
-      )
-      .eq(
-        "id",
-        user.id
-      )
-      .maybeSingle();
-
-
-  console.log(
-    "PROFILE:",
-    profile
-  );
-
-  console.log(
-    "PROFILE ERROR:",
-    profileError
-  );
-
-
-  if (profileError) {
-
-    alert(
-      "Unable to load your profile.\n\n" +
-      profileError.message
-    );
-
-    return false;
-  }
-
-
-  if (!profile) {
-
-    alert(
-      "No profile found for this login account."
-    );
-
-    return false;
-  }
-
-
-  if (
-    profile.role !==
-    "super_admin"
-  ) {
-
-    alert(
-      "Access denied.\n\n" +
-      "Your current role is: " +
-      profile.role
-    );
-
-    window.location.href =
-      "index.html";
-
-    return false;
-  }
-
-
-  if (
-    profile.is_active === false
-  ) {
-
-    alert(
-      "Your Super Admin account is inactive."
-    );
-
-    await supabaseClient
-      .auth
-      .signOut();
-
-    window.location.href =
-      "index.html";
-
-    return false;
-  }
-
-
-  return true;
 }
 
 
-// ===============================
+// ==========================================
 // ADD INSTITUTION
-// ===============================
+// ==========================================
 
 const institutionForm =
   document.getElementById(
@@ -169,7 +234,7 @@ if (institutionForm) {
       event.preventDefault();
 
 
-      const submitButton =
+      const button =
         document.getElementById(
           "addInstitutionBtn"
         );
@@ -245,6 +310,10 @@ if (institutionForm) {
           .trim();
 
 
+      // ======================================
+      // VALIDATION
+      // ======================================
+
       if (!name) {
 
         alert(
@@ -265,10 +334,10 @@ if (institutionForm) {
       }
 
 
-      submitButton.disabled =
+      button.disabled =
         true;
 
-      submitButton.textContent =
+      button.textContent =
         "ADDING...";
 
 
@@ -279,7 +348,9 @@ if (institutionForm) {
       }
 
 
-      // Check duplicate code
+      // ======================================
+      // DUPLICATE CODE CHECK
+      // ======================================
 
       const {
         data: existing,
@@ -287,7 +358,9 @@ if (institutionForm) {
       } =
         await supabaseClient
           .from("institutions")
-          .select("id, name, code")
+          .select(
+            "id, name, code"
+          )
           .eq(
             "code",
             code
@@ -298,21 +371,23 @@ if (institutionForm) {
       if (duplicateError) {
 
         console.error(
-          "Duplicate check error:",
+          "DUPLICATE CHECK ERROR:",
           duplicateError
         );
+
 
         if (message) {
 
           message.textContent =
-            "Error checking institution: " +
+            "Unable to check institution:\n" +
             duplicateError.message;
         }
 
-        submitButton.disabled =
+
+        button.disabled =
           false;
 
-        submitButton.textContent =
+        button.textContent =
           "ADD INSTITUTION";
 
         return;
@@ -328,17 +403,20 @@ if (institutionForm) {
             existing.code;
         }
 
-        submitButton.disabled =
+
+        button.disabled =
           false;
 
-        submitButton.textContent =
+        button.textContent =
           "ADD INSTITUTION";
 
         return;
       }
 
 
-      // Insert institution
+      // ======================================
+      // INSERT
+      // ======================================
 
       if (message) {
 
@@ -355,22 +433,33 @@ if (institutionForm) {
           .from("institutions")
           .insert([
             {
-              name: name,
-              code: code,
+              name:
+                name,
+
+              code:
+                code,
+
               email:
                 email || null,
+
               phone:
                 phone || null,
+
               address:
                 address || null,
+
               city:
                 city || null,
+
               country:
                 country || "Somalia",
-              website_url:
-                website_url || null,
+
               logo_url:
                 logo_url || null,
+
+              website_url:
+                website_url || null,
+
               is_active:
                 true
             }
@@ -382,7 +471,7 @@ if (institutionForm) {
       if (error) {
 
         console.error(
-          "ADD INSTITUTION ERROR:",
+          "INSERT ERROR:",
           error
         );
 
@@ -390,15 +479,15 @@ if (institutionForm) {
         if (message) {
 
           message.textContent =
-            "Unable to add institution: " +
+            "Unable to add institution:\n" +
             error.message;
         }
 
 
-        submitButton.disabled =
+        button.disabled =
           false;
 
-        submitButton.textContent =
+        button.textContent =
           "ADD INSTITUTION";
 
         return;
@@ -406,7 +495,7 @@ if (institutionForm) {
 
 
       console.log(
-        "Institution created:",
+        "INSTITUTION CREATED:",
         data
       );
 
@@ -414,14 +503,14 @@ if (institutionForm) {
       if (message) {
 
         message.textContent =
-          "✓ Institution \"" +
-          name +
-          "\" added successfully.";
+          "✓ Institution added successfully.";
       }
 
 
       alert(
-        "Institution added successfully!"
+        "✓ Institution \"" +
+        name +
+        "\" added successfully!"
       );
 
 
@@ -433,16 +522,18 @@ if (institutionForm) {
           "country"
         );
 
+
       if (countryInput) {
+
         countryInput.value =
           "Somalia";
       }
 
 
-      submitButton.disabled =
+      button.disabled =
         false;
 
-      submitButton.textContent =
+      button.textContent =
         "ADD INSTITUTION";
 
 
@@ -453,9 +544,9 @@ if (institutionForm) {
 }
 
 
-// ===============================
+// ==========================================
 // LOAD INSTITUTIONS
-// ===============================
+// ==========================================
 
 let allInstitutions = [];
 
@@ -514,7 +605,7 @@ async function loadInstitutions() {
         <tr>
           <td colspan="5"
               style="text-align:center;padding:30px;color:#dc2626;">
-            Unable to load institutions:<br>
+            Unable to load institutions:<br><br>
             ${escapeHTML(error.message)}
           </td>
         </tr>
@@ -535,9 +626,9 @@ async function loadInstitutions() {
 }
 
 
-// ===============================
-// RENDER INSTITUTIONS
-// ===============================
+// ==========================================
+// RENDER
+// ==========================================
 
 function renderInstitutions(
   institutions
@@ -627,15 +718,16 @@ function renderInstitutions(
 
             </tr>
           `;
+
         }
       )
       .join("");
 }
 
 
-// ===============================
+// ==========================================
 // SEARCH
-// ===============================
+// ==========================================
 
 const searchInput =
   document.getElementById(
@@ -729,43 +821,9 @@ if (searchInput) {
 }
 
 
-// ===============================
-// ESCAPE HTML
-// ===============================
-
-function escapeHTML(
-  value
-) {
-
-  return String(
-    value ?? ""
-  )
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    );
-}
-
-
-// ===============================
+// ==========================================
 // CLEAR FORM
-// ===============================
+// ==========================================
 
 const clearBtn =
   document.getElementById(
@@ -780,6 +838,7 @@ if (clearBtn) {
     function () {
 
       if (institutionForm) {
+
         institutionForm.reset();
       }
 
@@ -789,7 +848,9 @@ if (clearBtn) {
           "country"
         );
 
+
       if (countryInput) {
+
         countryInput.value =
           "Somalia";
       }
@@ -800,8 +861,11 @@ if (clearBtn) {
           "formMessage"
         );
 
+
       if (message) {
-        message.textContent = "";
+
+        message.textContent =
+          "";
       }
 
     }
@@ -809,11 +873,22 @@ if (clearBtn) {
 }
 
 
-// ===============================
-// START
-// ===============================
+// ==========================================
+// START PAGE
+// ==========================================
 
 async function startInstitutionsPage() {
+
+  console.log(
+    "GAAWOW EMS Institutions Page Starting..."
+  );
+
+
+  console.log(
+    "SUPABASE URL:",
+    SUPABASE_URL
+  );
+
 
   const allowed =
     await checkSuperAdmin();
@@ -825,6 +900,7 @@ async function startInstitutionsPage() {
 
 
   await loadInstitutions();
+
 }
 
 
