@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GAAWOW EMS — Dashboard</title>
+
+  <title>GAAWOW EMS — Super Admin</title>
+  <meta name="theme-color" content="#0B1E63">
 
   <style>
     * {
@@ -13,202 +15,325 @@
     }
 
     body {
-      font-family: Arial, sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
       background: #F5F7FA;
       color: #1F2937;
     }
 
-    .topbar {
-      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
+    .header {
+      background: linear-gradient(135deg,#0B1E63,#0B4DA2);
       color: white;
-      padding: 14px 20px;
+      padding: 18px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,.15);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
 
     .brand img {
-      width: 48px;
-      height: 48px;
+      width: 52px;
+      height: 52px;
       object-fit: contain;
       background: white;
-      border-radius: 10px;
-      padding: 4px;
+      border-radius: 12px;
+      padding: 5px;
     }
 
-    .brand h2 {
-      font-size: 18px;
+    .brand h1 {
+      font-size: 20px;
+      font-weight: 800;
     }
 
-    .brand small {
-      color: #D4AF37;
+    .brand p {
+      color: #E8A317;
+      font-size: 12px;
+      margin-top: 3px;
     }
 
-    #logoutBtn {
-      border: 0;
+    .admin-badge {
       background: #D4AF37;
       color: #0B1E63;
-      font-weight: bold;
-      padding: 10px 15px;
-      border-radius: 8px;
-      cursor: pointer;
+      padding: 8px 14px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: auto;
-      padding: 25px 16px;
+      padding: 28px 20px 50px;
     }
 
     .welcome {
       background: white;
-      padding: 25px;
       border-radius: 18px;
+      padding: 24px;
       margin-bottom: 25px;
       border-left: 5px solid #D4AF37;
-      box-shadow: 0 5px 20px rgba(0,0,0,.07);
+      box-shadow: 0 6px 20px rgba(0,0,0,.06);
     }
 
-    .welcome h1 {
+    .welcome h2 {
       color: #0B1E63;
-      margin-bottom: 8px;
+      font-size: 25px;
+      margin-bottom: 7px;
     }
 
-    .modules {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 18px;
-    }
-
-    .card {
-      background: white;
-      padding: 22px;
-      min-height: 175px;
-      border-radius: 18px;
-      box-shadow: 0 5px 20px rgba(0,0,0,.07);
-      transition: .2s;
-    }
-
-    .clickable {
-      cursor: pointer;
-    }
-
-    .clickable:hover {
-      transform: translateY(-4px);
-    }
-
-    .icon {
-      font-size: 35px;
-      margin-bottom: 12px;
-    }
-
-    .card h3 {
-      color: #0B1E63;
-      margin-bottom: 8px;
-    }
-
-    .card p {
-      color: #64748B;
+    .welcome p {
+      color: #6B7280;
       font-size: 14px;
-      line-height: 1.5;
     }
 
-    .badge {
-      display: inline-block;
-      margin-top: 14px;
-      padding: 5px 9px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: bold;
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 18px;
+      margin-bottom: 30px;
     }
 
-    .available {
-      background: #DCFCE7;
-      color: #15803D;
-    }
-
-    .soon {
-      background: #FEF3C7;
-      color: #92400E;
-    }
-
-    .account {
-      margin-top: 25px;
+    .stat-card {
       background: white;
-      padding: 22px;
-      border-radius: 18px;
-      box-shadow: 0 5px 20px rgba(0,0,0,.07);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 5px 18px rgba(0,0,0,.06);
+      border-top: 4px solid #0B4DA2;
     }
 
-    .account h2 {
+    .stat-card:nth-child(2) {
+      border-top-color: #D4AF37;
+    }
+
+    .stat-card:nth-child(3) {
+      border-top-color: #16A34A;
+    }
+
+    .stat-card:nth-child(4) {
+      border-top-color: #7C3AED;
+    }
+
+    .stat-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .stat-title {
+      color: #6B7280;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .stat-number {
       color: #0B1E63;
+      font-size: 26px;
+      font-weight: 800;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 15px;
     }
 
-    .account-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 15px;
-    }
-
-    .info {
-      background: #F8FAFC;
-      padding: 15px;
-      border-radius: 10px;
-    }
-
-    .info span {
-      display: block;
-      color: #64748B;
-      font-size: 12px;
-      margin-bottom: 5px;
-    }
-
-    .info strong {
+    .section-title h3 {
       color: #0B1E63;
+      font-size: 20px;
     }
 
-    .toast {
-      display: none;
-      position: fixed;
-      bottom: 25px;
-      left: 50%;
-      transform: translateX(-50%);
+    .section-title span {
+      font-size: 12px;
+      color: #6B7280;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 18px;
+    }
+
+    .menu-card {
+      background: white;
+      min-height: 145px;
+      border-radius: 18px;
+      padding: 22px;
+      cursor: pointer;
+      box-shadow: 0 5px 18px rgba(0,0,0,.06);
+      border: 1px solid #E5E7EB;
+      transition: transform .2s,box-shadow .2s,border .2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .menu-card:hover {
+      transform: translateY(-4px);
+      border-color: #D4AF37;
+      box-shadow: 0 10px 25px rgba(11,77,162,.15);
+    }
+
+    .menu-icon {
+      font-size: 34px;
+      margin-bottom: 12px;
+    }
+
+    .menu-card h4 {
+      color: #0B1E63;
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .menu-card p {
+      color: #6B7280;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .finance-card {
+      border-top: 4px solid #16A34A;
+    }
+
+    .mobile-money-card {
+      border-top: 4px solid #D4AF37;
+    }
+
+    .reports-card {
+      border-top: 4px solid #0B4DA2;
+    }
+
+    .footer {
+      margin-top: 35px;
       background: #0B1E63;
       color: white;
-      padding: 13px 20px;
+      border-radius: 18px;
+      padding: 22px;
+      text-align: center;
+    }
+
+    .footer strong {
+      color: #D4AF37;
+    }
+
+    .footer p {
+      font-size: 12px;
+      color: #CBD5E1;
+      margin-top: 6px;
+    }
+
+    .logout-btn {
+      margin-top: 18px;
+      border: none;
+      background: #DC2626;
+      color: white;
+      padding: 11px 22px;
       border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    @media (max-width:1000px) {
+      .stats {
+        grid-template-columns: repeat(2,1fr);
+      }
+
+      .menu-grid {
+        grid-template-columns: repeat(2,1fr);
+      }
+    }
+
+    @media (max-width:600px) {
+      .header {
+        padding: 14px;
+      }
+
+      .brand h1 {
+        font-size: 16px;
+      }
+
+      .brand p {
+        font-size: 10px;
+      }
+
+      .brand img {
+        width: 45px;
+        height: 45px;
+      }
+
+      .admin-badge {
+        font-size: 10px;
+        padding: 7px 10px;
+      }
+
+      .container {
+        padding: 20px 14px 40px;
+      }
+
+      .welcome h2 {
+        font-size: 21px;
+      }
+
+      .stats,
+      .menu-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .stat-card {
+        padding: 16px;
+      }
+
+      .stat-number {
+        font-size: 22px;
+      }
+
+      .menu-card {
+        min-height: 135px;
+        padding: 17px;
+      }
+
+      .menu-icon {
+        font-size: 28px;
+      }
+
+      .menu-card h4 {
+        font-size: 14px;
+      }
     }
   </style>
 </head>
 
 <body>
 
-<header class="topbar">
+<header class="header">
 
   <div class="brand">
 
     <img
       src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-      alt="GAAWOW Academy"
+      alt="GAAWOW Academy Logo"
     >
 
     <div>
-      <h2>GAAWOW EMS</h2>
-      <small>Education Management System</small>
+      <h1>GAAWOW EMS</h1>
+      <p>Education Management & Verification System</p>
     </div>
 
   </div>
 
-  <button id="logoutBtn">
-    LOGOUT
-  </button>
+  <div class="admin-badge">
+    SUPER ADMIN
+  </div>
 
 </header>
 
@@ -217,236 +342,175 @@
 
   <section class="welcome">
 
-    <h1 id="welcomeText">
-      GAAWOW EMS Dashboard
-    </h1>
+    <h2>Welcome, GAAWOW Academy</h2>
 
     <p>
-      Manage students, education and certificates.
+      You are signed in as
+      <strong>Super Administrator</strong>.
+      You have system-wide management access.
     </p>
 
   </section>
 
 
-  <section class="modules">
+  <div class="stats">
 
-    <!-- STUDENTS -->
-    <div
-      class="card clickable"
-      onclick="window.location.href='./students.html'"
-    >
-
-      <div class="icon">👨‍🎓</div>
-
-      <h3>Students</h3>
-
-      <p>
-        Manage students and academic information.
-      </p>
-
-      <span class="badge available">
-        AVAILABLE
-      </span>
-
+    <div class="stat-card">
+      <div class="stat-icon">🏫</div>
+      <div class="stat-title">Institutions</div>
+      <div class="stat-number" id="institutionCount">—</div>
     </div>
 
-
-    <!-- VERIFICATION -->
-    <div
-      class="card clickable"
-      onclick="window.location.href='./verify.html'"
-    >
-
-      <div class="icon">🔍</div>
-
-      <h3>Verification</h3>
-
-      <p>
-        Verify GAAWOW Academy certificates online.
-      </p>
-
-      <span class="badge available">
-        AVAILABLE
-      </span>
-
+    <div class="stat-card">
+      <div class="stat-icon">👨‍🎓</div>
+      <div class="stat-title">Students</div>
+      <div class="stat-number" id="studentCount">—</div>
     </div>
 
-
-    <!-- COURSES -->
-    <div
-      class="card clickable"
-      onclick="showComingSoon('Courses')"
-    >
-
-      <div class="icon">📚</div>
-
-      <h3>Courses</h3>
-
-      <p>
-        Manage courses and training programs.
-      </p>
-
-      <span class="badge soon">
-        COMING SOON
-      </span>
-
+    <div class="stat-card">
+      <div class="stat-icon">👨‍🏫</div>
+      <div class="stat-title">Teachers</div>
+      <div class="stat-number" id="teacherCount">—</div>
     </div>
 
-
-    <!-- EXAMS -->
-    <div
-      class="card clickable"
-      onclick="showComingSoon('Exams')"
-    >
-
-      <div class="icon">📝</div>
-
-      <h3>Exams</h3>
-
-      <p>
-        Manage examinations and assessments.
-      </p>
-
-      <span class="badge soon">
-        COMING SOON
-      </span>
-
+    <div class="stat-card">
+      <div class="stat-icon">🎓</div>
+      <div class="stat-title">Certificates</div>
+      <div class="stat-number" id="certificateCount">—</div>
     </div>
 
+  </div>
 
-    <!-- GRADES -->
-    <div
-      class="card clickable"
-      onclick="showComingSoon('Grades')"
-    >
 
-      <div class="icon">📊</div>
+  <div class="section-title">
 
-      <h3>Grades</h3>
+    <h3>System Management</h3>
 
-      <p>
-        Manage student results and grades.
-      </p>
+    <span>17 Core EMS Modules</span>
 
-      <span class="badge soon">
-        COMING SOON
-      </span>
+  </div>
 
+
+  <div class="menu-grid">
+
+    <div class="menu-card" onclick="openPage('institutions.html')">
+      <div class="menu-icon">🏫</div>
+      <h4>Institutions</h4>
+      <p>Manage schools and academy institutions.</p>
     </div>
 
-
-    <!-- ATTENDANCE -->
-    <div
-      class="card clickable"
-      onclick="showComingSoon('Attendance')"
-    >
-
-      <div class="icon">📅</div>
-
-      <h3>Attendance</h3>
-
-      <p>
-        Track student attendance.
-      </p>
-
-      <span class="badge soon">
-        COMING SOON
-      </span>
-
+    <div class="menu-card" onclick="openPage('students.html')">
+      <div class="menu-icon">👨‍🎓</div>
+      <h4>Students</h4>
+      <p>View and manage students.</p>
     </div>
 
-
-    <!-- CERTIFICATES -->
-    <div
-      class="card clickable"
-      onclick="showComingSoon('Certificates')"
-    >
-
-      <div class="icon">🏆</div>
-
-      <h3>Certificates</h3>
-
-      <p>
-        Manage certificates.
-      </p>
-
-      <span class="badge soon">
-        COMING SOON
-      </span>
-
+    <div class="menu-card" onclick="openPage('parents.html')">
+      <div class="menu-icon">👨‍👩‍👧</div>
+      <h4>Parents</h4>
+      <p>Manage parent accounts and relationships.</p>
     </div>
 
-
-    <!-- PROFILE -->
-    <div
-      class="card clickable"
-      onclick="showComingSoon('Profile')"
-    >
-
-      <div class="icon">👤</div>
-
-      <h3>Profile</h3>
-
-      <p>
-        View account information.
-      </p>
-
-      <span class="badge soon">
-        COMING SOON
-      </span>
-
+    <div class="menu-card" onclick="openPage('teachers.html')">
+      <div class="menu-icon">👨‍🏫</div>
+      <h4>Teachers</h4>
+      <p>Manage instructors and teachers.</p>
     </div>
 
-  </section>
-
-
-  <section class="account">
-
-    <h2>Account Information</h2>
-
-    <div class="account-grid">
-
-      <div class="info">
-        <span>Name</span>
-        <strong id="userName">Loading...</strong>
-      </div>
-
-      <div class="info">
-        <span>Email</span>
-        <strong id="userEmail">Loading...</strong>
-      </div>
-
-      <div class="info">
-        <span>Role</span>
-        <strong id="userRole">Loading...</strong>
-      </div>
-
+    <div class="menu-card" onclick="openPage('departments.html')">
+      <div class="menu-icon">🏛️</div>
+      <h4>Departments</h4>
+      <p>Manage academy departments.</p>
     </div>
 
-  </section>
+    <div class="menu-card" onclick="openPage('courses.html')">
+      <div class="menu-icon">📚</div>
+      <h4>Courses</h4>
+      <p>Manage courses and academic programs.</p>
+    </div>
+
+    <div class="menu-card" onclick="openPage('classes.html')">
+      <div class="menu-icon">📅</div>
+      <h4>Classes</h4>
+      <p>Manage classes and student enrollment.</p>
+    </div>
+
+    <div class="menu-card" onclick="openPage('exams.html')">
+      <div class="menu-icon">📝</div>
+      <h4>Exams</h4>
+      <p>Manage examinations and assessments.</p>
+    </div>
+
+    <div class="menu-card" onclick="openPage('grades.html')">
+      <div class="menu-icon">📊</div>
+      <h4>Grades</h4>
+      <p>Manage student grades and academic performance.</p>
+    </div>
+
+    <div class="menu-card" onclick="openPage('certificates.html')">
+      <div class="menu-icon">🎓</div>
+      <h4>Certificates</h4>
+      <p>Issue and manage student certificates.</p>
+    </div>
+
+    <div class="menu-card" onclick="openPage('verify.html')">
+      <div class="menu-icon">🔍</div>
+      <h4>Verify</h4>
+      <p>Verify GAAWOW certificates.</p>
+    </div>
+
+    <div class="menu-card" onclick="openPage('audit-logs.html')">
+      <div class="menu-icon">🛡️</div>
+      <h4>Audit Logs</h4>
+      <p>Monitor important system activities.</p>
+    </div>
+
+    <div class="menu-card" onclick="openPage('subjects.html')">
+      <div class="menu-icon">📖</div>
+      <h4>Subjects</h4>
+      <p>Manage subjects and academic units.</p>
+    </div>
+
+    <div class="menu-card finance-card" onclick="openPage('payments.html')">
+      <div class="menu-icon">💰</div>
+      <h4>Payments</h4>
+      <p>Manage student and institutional payments.</p>
+    </div>
+
+    <div class="menu-card mobile-money-card" onclick="openPage('mobile-money.html')">
+      <div class="menu-icon">📱</div>
+      <h4>Mobile Money</h4>
+      <p>Manage mobile money payment transactions.</p>
+    </div>
+
+    <div class="menu-card finance-card" onclick="openPage('invoices.html')">
+      <div class="menu-icon">🧾</div>
+      <h4>Invoices</h4>
+      <p>Create and manage payment invoices.</p>
+    </div>
+
+    <div class="menu-card reports-card" onclick="openPage('reports.html')">
+      <div class="menu-icon">📈</div>
+      <h4>Reports</h4>
+      <p>View academic, financial and system reports.</p>
+    </div>
+
+  </div>
+
+
+  <footer class="footer">
+
+    <strong>GAAWOW ACADEMY</strong>
+
+    <p>Ilayska Aqoonta iyo Xirfadda</p>
+
+    <button class="logout-btn" id="logoutBtn">
+      LOGOUT
+    </button>
+
+  </footer>
 
 </main>
-
-
-<div id="toast" class="toast"></div>
-
-
-<script>
-  function showComingSoon(moduleName) {
-
-    const toast =
-      document.getElementById("toast");
-
-    toast.textContent =
-      moduleName + " module is coming soon.";
-
-    toast.style.display = "block";
-
-    setTimeout(function () {
-      toast.style.display = "none";
-    }, 2500);
-  }
-</script>
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
