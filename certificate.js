@@ -1,0 +1,5 @@
+const GAAWOW_CONFIG={SUPABASE_URL:"https://mytyvqwrxnxpxnxpiicj.supabase.co",SUPABASE_KEY:"sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145",LOGO_URL:"https://i.ibb.co/4ZCRpm30/gaawow-logo.png",VERIFY_URL:"https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify.html"};
+function gaawowEscape(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]);}
+function gaawowDate(v){if(!v)return "—";return new Date(v+"T00:00:00").toLocaleDateString("en-GB").replaceAll("/"," / ");}
+function gaawowQR(v){return "https://api.qrserver.com/v1/create-qr-code/?size=400x400&data="+encodeURIComponent(v);}
+async function gaawowSaveCertificate(p){const r=await fetch(GAAWOW_CONFIG.SUPABASE_URL+"/rest/v1/certificates",{method:"POST",headers:{apikey:GAAWOW_CONFIG.SUPABASE_KEY,Authorization:"Bearer "+GAAWOW_CONFIG.SUPABASE_KEY,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify(p)});if(!r.ok)throw new Error(await r.text());return true;}
