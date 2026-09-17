@@ -1,49 +1,840 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GAAWOW EMS — Certificate V6</title>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<style>
-*{box-sizing:border-box}body{margin:0;background:#eef3f9;font-family:Arial;color:#1F2937}
-.page{max-width:1450px;margin:auto;padding:25px}.head{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:22px;border-radius:18px;display:flex;gap:15px;align-items:center}.head img{width:65px;height:65px;object-fit:contain;background:#fff;border-radius:12px;padding:5px}.head h1{margin:0}.panel{background:#fff;padding:24px;margin-top:20px;border-radius:18px;box-shadow:0 10px 35px #0001}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-weight:bold;color:#0B1E63}.field input,.field select{padding:12px;border:1px solid #d8dee8;border-radius:9px}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}button{border:0;padding:12px 17px;border-radius:9px;font-weight:bold;cursor:pointer}.gen{background:#D4AF37;color:#0B1E63}.pre{background:#0B4DA2;color:white}.save{background:#16A34A;color:white}.down{background:#D4AF37}.print{background:#0B1E63;color:white}.new{background:#eee}.msg{margin-top:15px;padding:12px;border-radius:8px}.ok{background:#ecfdf3;color:#166534}.err{background:#fef2f2;color:#991b1b}#sheet{width:1200px;height:820px;max-width:100%;margin:25px auto;background:white;border:15px solid #0B1E63;overflow:hidden;position:relative}.cert{height:100%;margin:15px;border:5px solid #D4AF37;position:relative;overflow:hidden}.wm{position:absolute;font:900 570px Georgia;color:#0B1E6308;left:430px;top:80px}.corner{position:absolute;width:130px;height:130px;border:10px solid transparent}.tl{top:-5px;left:-5px;border-top-color:#D4AF37;border-left-color:#0B4DA2}.tr{top:-5px;right:-5px;border-top-color:#0B4DA2;border-right-color:#D4AF37}.bl{bottom:-5px;left:-5px;border-bottom-color:#0B4DA2;border-left-color:#D4AF37}.br{bottom:-5px;right:-5px;border-bottom-color:#D4AF37;border-right-color:#0B4DA2}.left{position:absolute;left:45px;top:65px;width:205px}.photo{width:175px;height:215px;border:4px solid #D4AF37;padding:5px;margin:auto}.photo img{width:100%;height:100%;object-fit:cover}.meta{margin-top:12px;font-size:11px;color:#0B1E63}.meta b{display:block;color:#D4AF37;font-size:8px}.center{position:absolute;left:270px;right:215px;top:35px;text-align:center}.logo{width:88px;height:88px;object-fit:contain}.academy{font:900 25px Georgia;color:#0B1E63;letter-spacing:2px}.motto{color:#D4AF37;font-weight:bold;font-size:12px}.title{font:900 43px Georgia;color:#0B1E63;letter-spacing:5px;margin-top:32px}.sub{color:#D4AF37;font-weight:bold;letter-spacing:4px}.present{margin-top:25px;color:#777;font-size:12px}.student{font:900 34px Georgia;color:#0B1E63;border-bottom:2px solid #D4AF37;padding:10px}.text{margin:14px auto 7px;max-width:500px;font-size:12px;line-height:1.5}.course{font:900 23px Georgia;color:#0B4DA2}.location{margin-top:14px;font-size:11px;color:#777}.id{font-size:9px;color:#777;margin-top:9px}.right{position:absolute;right:38px;top:100px;width:150px;text-align:center;color:#0B1E63}.verify{font-size:17px;letter-spacing:2px}.qr{width:125px;height:125px;display:block;margin:12px auto;border:3px solid #D4AF37;padding:5px}.right small{display:block;color:#777;font-size:9px;margin-top:7px}.signatures{position:absolute;bottom:65px;left:55px;right:55px;display:grid;grid-template-columns:1fr 110px 1fr;gap:30px;text-align:center;align-items:end;color:#0B1E63;font-size:9px}.line{height:1px;background:#0B1E63;margin-bottom:7px}.signatures small{display:block;color:#777}.seal{width:88px;height:88px;border:4px double #D4AF37;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold}.footer{position:absolute;bottom:18px;left:55px;right:55px;border-top:1px solid #0B1E6333;padding-top:5px;text-align:center;font-size:7px;color:#777}
-@media(max-width:800px){.grid{grid-template-columns:1fr}#sheet{transform-origin:top left}.actions{gap:6px}}
-@media print{body{background:#fff}.head,.panel,.page>h2{display:none!important}#sheet{margin:0;max-width:none;box-shadow:none}@page{size:landscape;margin:0}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Certificate Generator</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <style>
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      background:#eef2f7;
+      color:#1f2937;
+      font-family:Arial,Helvetica,sans-serif;
+    }
+
+    .topbar{
+      min-height:70px;
+      padding:12px 24px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:15px;
+      background:linear-gradient(135deg,#0B1E63,#0B4DA2);
+      color:white;
+      box-shadow:0 5px 18px rgba(11,30,99,.25);
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .brand img{
+      width:52px;
+      height:52px;
+      object-fit:contain;
+      background:white;
+      border-radius:8px;
+      padding:3px;
+    }
+
+    .brand h1{
+      margin:0;
+      font-size:20px;
+    }
+
+    .brand small{
+      display:block;
+      color:#f7df8b;
+      margin-top:3px;
+    }
+
+    .back-btn{
+      border:1px solid rgba(255,255,255,.3);
+      background:rgba(255,255,255,.1);
+      color:white;
+      padding:10px 15px;
+      border-radius:9px;
+      cursor:pointer;
+      text-decoration:none;
+    }
+
+    .layout{
+      width:min(1450px,96%);
+      margin:24px auto;
+      display:grid;
+      grid-template-columns:360px minmax(0,1fr);
+      gap:24px;
+      align-items:start;
+    }
+
+    .panel{
+      background:white;
+      border-radius:16px;
+      padding:20px;
+      box-shadow:0 8px 30px rgba(15,23,42,.08);
+    }
+
+    .panel h2{
+      margin:0 0 18px;
+      color:#0B1E63;
+      font-size:20px;
+    }
+
+    .field{
+      margin-bottom:13px;
+    }
+
+    label{
+      display:block;
+      margin-bottom:6px;
+      font-size:12px;
+      font-weight:700;
+      color:#475569;
+      text-transform:uppercase;
+      letter-spacing:.35px;
+    }
+
+    input,
+    select{
+      width:100%;
+      height:42px;
+      border:1px solid #d5dce7;
+      border-radius:8px;
+      padding:0 11px;
+      font-size:14px;
+      outline:none;
+      background:white;
+    }
+
+    input:focus,
+    select:focus{
+      border-color:#0B4DA2;
+      box-shadow:0 0 0 3px rgba(11,77,162,.1);
+    }
+
+    input[readonly]{
+      background:#f3f6fa;
+      color:#475569;
+      font-weight:600;
+    }
+
+    .auto-note{
+      font-size:11px;
+      color:#64748b;
+      margin-top:4px;
+    }
+
+    .button-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:9px;
+      margin-top:17px;
+    }
+
+    button{
+      border:0;
+      min-height:42px;
+      border-radius:9px;
+      cursor:pointer;
+      font-weight:700;
+      font-size:13px;
+      transition:.2s;
+    }
+
+    button:hover{
+      transform:translateY(-1px);
+    }
+
+    .primary{
+      background:#0B1E63;
+      color:white;
+    }
+
+    .gold{
+      background:#D4AF37;
+      color:#111827;
+    }
+
+    .green{
+      background:#16A34A;
+      color:white;
+    }
+
+    .dark{
+      background:#1F2937;
+      color:white;
+    }
+
+    .light{
+      background:#e9eef5;
+      color:#0B1E63;
+    }
+
+    #message{
+      margin-top:13px;
+      padding:10px;
+      border-radius:8px;
+      font-size:12px;
+      display:none;
+    }
+
+    .stage{
+      min-width:0;
+      background:#dfe5ec;
+      border-radius:18px;
+      padding:25px;
+      overflow:auto;
+    }
+
+    .preview-title{
+      text-align:center;
+      color:#0B1E63;
+      font-weight:800;
+      margin:0 0 16px;
+    }
+
+    /*
+      IMPORTANT:
+      Certificate itself is ALWAYS A4 LANDSCAPE.
+      297mm x 210mm
+    */
+
+    #certificate{
+      width:297mm;
+      height:210mm;
+      min-width:297mm;
+      min-height:210mm;
+      position:relative;
+      overflow:hidden;
+      background:#fff;
+      margin:0 auto;
+      box-shadow:0 15px 50px rgba(0,0,0,.22);
+      color:#0B1E63;
+    }
+
+    .cert-outer{
+      position:absolute;
+      inset:7mm;
+      border:1.8mm solid #0B1E63;
+      padding:2.5mm;
+    }
+
+    .cert-inner{
+      position:relative;
+      width:100%;
+      height:100%;
+      border:.65mm solid #D4AF37;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 50% 45%,
+          rgba(212,175,55,.07),
+          transparent 38%),
+        linear-gradient(135deg,
+          rgba(11,30,99,.015),
+          rgba(212,175,55,.035));
+    }
+
+    .corner{
+      position:absolute;
+      width:30mm;
+      height:30mm;
+      border-color:#D4AF37;
+      border-style:solid;
+      z-index:3;
+    }
+
+    .corner.tl{
+      top:3mm;
+      left:3mm;
+      border-width:1mm 0 0 1mm;
+    }
+
+    .corner.tr{
+      top:3mm;
+      right:3mm;
+      border-width:1mm 1mm 0 0;
+    }
+
+    .corner.bl{
+      bottom:3mm;
+      left:3mm;
+      border-width:0 0 1mm 1mm;
+    }
+
+    .corner.br{
+      bottom:3mm;
+      right:3mm;
+      border-width:0 1mm 1mm 0;
+    }
+
+    .watermark{
+      position:absolute;
+      width:115mm;
+      height:115mm;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      object-fit:contain;
+      opacity:.035;
+      z-index:0;
+      pointer-events:none;
+    }
+
+    .certificate-content{
+      position:absolute;
+      inset:7mm 12mm 6mm;
+      z-index:2;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
+    }
+
+    .logo{
+      width:30mm;
+      height:30mm;
+      object-fit:contain;
+      margin-top:1mm;
+      margin-bottom:1mm;
+    }
+
+    .academy{
+      font-size:8mm;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:1.2px;
+      color:#0B1E63;
+    }
+
+    .motto{
+      margin-top:1.5mm;
+      font-size:3.2mm;
+      color:#D4AF37;
+      font-weight:700;
+      letter-spacing:.7px;
+    }
+
+    .location{
+      margin-top:1mm;
+      font-size:2.7mm;
+      color:#64748b;
+    }
+
+    .gold-line{
+      width:75mm;
+      height:.8mm;
+      background:#D4AF37;
+      margin:3mm 0 2.5mm;
+      border-radius:10px;
+    }
+
+    .title{
+      font-family:Georgia,serif;
+      font-size:10mm;
+      letter-spacing:2px;
+      color:#0B1E63;
+      font-weight:900;
+      text-transform:uppercase;
+    }
+
+    .subtitle{
+      margin-top:1mm;
+      font-size:3mm;
+      letter-spacing:1px;
+      color:#64748b;
+      font-weight:700;
+      text-transform:uppercase;
+    }
+
+    .presented{
+      margin-top:4mm;
+      font-size:3.1mm;
+      color:#64748b;
+    }
+
+    .student-name{
+      margin-top:1.5mm;
+      font-family:Georgia,serif;
+      font-size:11mm;
+      line-height:1.05;
+      color:#0B1E63;
+      font-weight:900;
+      max-width:220mm;
+      border-bottom:.6mm solid #D4AF37;
+      padding:0 8mm 2mm;
+    }
+
+    .student-id{
+      margin-top:1.5mm;
+      font-size:2.7mm;
+      color:#64748b;
+      font-weight:700;
+    }
+
+    .completion{
+      margin-top:3mm;
+      font-size:3.2mm;
+      color:#334155;
+    }
+
+    .course-name{
+      margin-top:1mm;
+      font-size:6mm;
+      font-weight:900;
+      color:#0B4DA2;
+      max-width:220mm;
+    }
+
+    .course-line{
+      width:95mm;
+      height:.5mm;
+      background:#D4AF37;
+      margin-top:2mm;
+    }
+
+    .footer-area{
+      width:100%;
+      margin-top:auto;
+      margin-bottom:1mm;
+    }
+
+    .meta-row{
+      display:flex;
+      justify-content:center;
+      gap:4mm;
+      margin-bottom:4mm;
+      flex-wrap:nowrap;
+    }
+
+    .meta-box{
+      min-width:39mm;
+      padding:2mm 4mm;
+      border:1px solid rgba(11,30,99,.15);
+      border-radius:2mm;
+      background:rgba(255,255,255,.82);
+    }
+
+    .meta-label{
+      font-size:2mm;
+      color:#64748b;
+      font-weight:800;
+      text-transform:uppercase;
+    }
+
+    .meta-value{
+      margin-top:.8mm;
+      font-size:2.45mm;
+      color:#0B1E63;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .signatures{
+      width:100%;
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:12mm;
+      align-items:end;
+      margin-top:2mm;
+    }
+
+    .signature{
+      text-align:center;
+      min-width:0;
+    }
+
+    .signature-line{
+      width:100%;
+      height:10mm;
+      border-bottom:.45mm solid #0B1E63;
+      margin-bottom:1.5mm;
+    }
+
+    .signature-name{
+      font-size:2.8mm;
+      font-weight:900;
+      color:#0B1E63;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .signature-role{
+      margin-top:.8mm;
+      font-size:2.2mm;
+      color:#64748b;
+      font-weight:700;
+    }
+
+    .qr{
+      position:absolute;
+      right:9mm;
+      bottom:7mm;
+      width:21mm;
+      height:21mm;
+      background:white;
+      padding:1mm;
+      border:.4mm solid #D4AF37;
+      z-index:5;
+    }
+
+    .verify-text{
+      position:absolute;
+      right:9mm;
+      bottom:4mm;
+      font-size:1.7mm;
+      color:#64748b;
+      z-index:5;
+    }
+
+    .seal{
+      position:absolute;
+      left:9mm;
+      bottom:7mm;
+      width:22mm;
+      height:22mm;
+      border:1mm solid #D4AF37;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color:#D4AF37;
+      font-size:2mm;
+      font-weight:900;
+      line-height:1.15;
+      z-index:4;
+      background:rgba(255,255,255,.75);
+    }
+
+    .seal::before{
+      content:"";
+      position:absolute;
+      inset:2mm;
+      border:.35mm solid #D4AF37;
+      border-radius:50%;
+    }
+
+    @media(max-width:900px){
+      .layout{
+        grid-template-columns:1fr;
+      }
+
+      .stage{
+        padding:10px;
+      }
+
+      .preview-title{
+        font-size:14px;
+      }
+    }
+
+    @media print{
+      @page{
+        size:A4 landscape;
+        margin:0;
+      }
+
+      html,
+      body{
+        width:297mm;
+        height:210mm;
+        margin:0;
+        padding:0;
+        background:white;
+      }
+
+      .topbar,
+      .panel,
+      .preview-title,
+      .stage{
+        display:none !important;
+      }
+
+      #certificate{
+        display:block !important;
+        width:297mm !important;
+        height:210mm !important;
+        min-width:297mm !important;
+        min-height:210mm !important;
+        margin:0 !important;
+        box-shadow:none !important;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<div class="page">
-<div class="head"><img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"><div><h1>GAAWOW EMS — Certificate Generator V6</h1><div>Education Management & Verification System</div></div></div>
-<div class="panel">
-<div class="grid">
-<div class="field"><label>Select Registered Student</label><select id="student_select"><option>Loading students...</option></select></div>
-<div class="field"><label>Student Name</label><input id="student_name"></div>
-<div class="field"><label>Student ID</label><input id="student_id"></div>
-<div class="field"><label>Course</label><input id="course_name" placeholder="Course name"></div>
-<div class="field"><label>Certificate ID</label><input id="certificate_id" readonly></div>
-<div class="field"><label>Certificate No.</label><input id="certificate_no" readonly></div>
-<div class="field"><label>Verify Code</label><input id="verify_code" readonly></div>
-<div class="field"><label>Date Started</label><input id="start_date" type="date"></div>
-<div class="field"><label>Date Completed</label><input id="completion_date" type="date"></div>
-<div class="field"><label>Date Issued</label><input id="issue_date" type="date"></div>
-<div class="field"><label>Status</label><select id="status"><option>GRADUATED</option><option selected>COMPLETED</option><option>VALID</option></select></div>
-<div class="field"><label>Student Photo URL</label><input id="photo_url"></div>
-<div class="field"><label>Director Name</label><input id="director_name" placeholder="Enter director name"></div>
-<div class="field"><label>Authorized Signatory Name</label><input id="signatory_name" placeholder="Enter signatory name"></div>
-</div>
-<div class="actions">
-<button class="gen" id="generateBtn">🎓 Generate Certificate</button>
-<button class="pre" id="previewBtn">👁 Preview</button>
-<button class="save" id="saveBtn">💾 Save Supabase</button>
-<button class="down" id="downloadBtn">⬇ Download HD PNG</button>
-<button class="print" id="printBtn">🖨 Print / PDF</button>
-<button class="new" id="newBtn">＋ New</button>
-</div>
-<div id="msg"></div>
-</div>
-<h2>Certificate Preview</h2><div id="sheet"></div>
-</div>
-<script src="./certificate.js"></script>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <small>Certificate Generator — V7</small>
+    </div>
+  </div>
+
+  <a class="back-btn" href="dashboard.html">← Dashboard</a>
+</header>
+
+<main class="layout">
+
+  <section class="panel">
+
+    <h2>Certificate Information</h2>
+
+    <div class="field">
+      <label>Student</label>
+      <select id="student_select">
+        <option value="">Loading students...</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Student Name</label>
+      <input id="full_name" readonly>
+    </div>
+
+    <div class="field">
+      <label>Student ID</label>
+      <input id="student_id" readonly>
+    </div>
+
+    <div class="field">
+      <label>Course Name</label>
+      <input id="course_name" placeholder="e.g. First Aid & Basic Clinical Skills">
+    </div>
+
+    <div class="field">
+      <label>Certificate No.</label>
+      <input id="certificate_no" readonly>
+      <div class="auto-note">Automatically generated</div>
+    </div>
+
+    <div class="field">
+      <label>Certificate ID</label>
+      <input id="certificate_id" readonly>
+    </div>
+
+    <div class="field">
+      <label>Verify Code</label>
+      <input id="verify_code" readonly>
+    </div>
+
+    <div class="field">
+      <label>Issue Date</label>
+      <input id="issue_date" type="date">
+    </div>
+
+    <div class="field">
+      <label>Expiry Date</label>
+      <input id="expiry_date" type="date">
+    </div>
+
+    <div class="field">
+      <label>Director Name</label>
+      <input id="director_name" value="GAAWOW Academy">
+    </div>
+
+    <div class="field">
+      <label>Authorized Signatory</label>
+      <input id="signatory_name" value="Authorized Signatory">
+    </div>
+
+    <div class="button-grid">
+      <button class="primary" onclick="generateCertificate()">Generate</button>
+      <button class="gold" onclick="previewCertificate()">Preview</button>
+      <button class="green" onclick="saveCertificate()">Save Certificate</button>
+      <button class="dark" onclick="downloadCertificate()">HD Download</button>
+      <button class="light" onclick="window.print()">Print A4</button>
+      <button class="light" onclick="newCertificate()">New</button>
+    </div>
+
+    <div id="message"></div>
+
+  </section>
+
+  <section class="stage">
+
+    <h3 class="preview-title">
+      A4 LANDSCAPE — 297 × 210 mm
+    </h3>
+
+    <div id="certificate">
+
+      <div class="cert-outer">
+
+        <div class="cert-inner">
+
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+
+          <img
+            class="watermark"
+            src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+            crossorigin="anonymous"
+            alt=""
+          >
+
+          <div class="seal">
+            GAAWOW<br>
+            ACADEMY<br>
+            VERIFIED
+          </div>
+
+          <img
+            id="qr_code"
+            class="qr"
+            crossorigin="anonymous"
+            alt="Verification QR"
+          >
+
+          <div class="verify-text">
+            Scan to verify certificate
+          </div>
+
+          <div class="certificate-content">
+
+            <img
+              class="logo"
+              src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+              crossorigin="anonymous"
+              alt="GAAWOW Academy Logo"
+            >
+
+            <div class="academy">GAAWOW ACADEMY</div>
+
+            <div class="motto">
+              ILAYSKA AQOONTA IYO XIRFADDA
+            </div>
+
+            <div class="location">
+              Bur Hakaba Bay, Somalia
+            </div>
+
+            <div class="gold-line"></div>
+
+            <div class="title">
+              Certificate of Completion
+            </div>
+
+            <div class="subtitle">
+              Emergency • Clinical • Professional Skills
+            </div>
+
+            <div class="presented">
+              This certificate is proudly presented to
+            </div>
+
+            <div id="preview_name" class="student-name">
+              STUDENT NAME
+            </div>
+
+            <div id="preview_student_id" class="student-id">
+              Student ID: —
+            </div>
+
+            <div class="completion">
+              for successfully completing the required training in
+            </div>
+
+            <div id="preview_course" class="course-name">
+              COURSE NAME
+            </div>
+
+            <div class="course-line"></div>
+
+            <div class="footer-area">
+
+              <div class="meta-row">
+
+                <div class="meta-box">
+                  <div class="meta-label">Certificate No.</div>
+                  <div id="preview_cert_no" class="meta-value">CERT-2026-0001</div>
+                </div>
+
+                <div class="meta-box">
+                  <div class="meta-label">Certificate ID</div>
+                  <div id="preview_cert_id" class="meta-value">GA-CERT-0001</div>
+                </div>
+
+                <div class="meta-box">
+                  <div class="meta-label">Verify Code</div>
+                  <div id="preview_verify" class="meta-value">GAW-XXXX-XXXX</div>
+                </div>
+
+                <div class="meta-box">
+                  <div class="meta-label">Issue Date</div>
+                  <div id="preview_issue" class="meta-value">—</div>
+                </div>
+
+                <div class="meta-box">
+                  <div class="meta-label">Status</div>
+                  <div class="meta-value">VALID</div>
+                </div>
+
+              </div>
+
+              <div class="signatures">
+
+                <div class="signature">
+                  <div class="signature-line"></div>
+                  <div id="preview_director" class="signature-name">
+                    GAAWOW Academy
+                  </div>
+                  <div class="signature-role">
+                    Director
+                  </div>
+                </div>
+
+                <div class="signature">
+                  <div class="signature-line"></div>
+                  <div class="signature-name">
+                    Academic Affairs
+                  </div>
+                  <div class="signature-role">
+                    Academic Department
+                  </div>
+                </div>
+
+                <div class="signature">
+                  <div class="signature-line"></div>
+                  <div id="preview_signatory" class="signature-name">
+                    Authorized Signatory
+                  </div>
+                  <div class="signature-role">
+                    Authorized Signatory
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<script src="certificate.js"></script>
+
 </body>
 </html>
