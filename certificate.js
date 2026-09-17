@@ -1,592 +1,167 @@
-/* =========================================================
-   GAAWOW EMS — Certificate Generator V5
-   Backend + Generate Logic
-   ========================================================= */
-
-const GAAWOW_CONFIG = {
-  SUPABASE_URL: "https://mytyvqwrxnxpxnxpiicj.supabase.co",
-  SUPABASE_KEY: "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145",
-  LOGO_URL: "https://i.ibb.co/4ZCRpm30/gaawow-logo.png",
-  VERIFY_URL: "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify.html"
+const CONFIG={
+ SUPABASE_URL:"https://mytyvqwrxnxpxnxpiicj.supabase.co",
+ SUPABASE_KEY:"sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145",
+ LOGO:"https://i.ibb.co/4ZCRpm30/gaawow-logo.png",
+ VERIFY:"https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify.html"
 };
 
-/* ---------- Helpers ---------- */
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+const date=v=>v?new Date(v+"T00:00:00").toLocaleDateString("en-GB"):"—";
 
-function gaawowEscape(value) {
-  return String(value ?? "").replace(/[&<>"']/g, function (m) {
-    return {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    }[m];
+function rand(n=8){
+ const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+ return Array.from({length:n},()=>c[Math.floor(Math.random()*c.length)]).join("");
+}
+
+function ids(){
+ const y=new Date().getFullYear();
+ $("certificate_no").value=`GA-C-${y}-${Math.floor(1000+Math.random()*9000)}-${rand(6)}`;
+ $("certificate_id").value=`CERT_GA_${y}_${rand(8)}`;
+ $("verify_code").value=rand(8);
+}
+
+async function students(){
+ const r=await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/students?select=*&order=full_name.asc`,{
+  headers:{apikey:CONFIG.SUPABASE_KEY,Authorization:"Bearer "+CONFIG.SUPABASE_KEY}
+ });
+ if(!r.ok)throw Error(await r.text());
+ return r.json();
+}
+
+async function loadStudents(){
+ try{
+  const list=await students(), s=$("student_select");
+  s.innerHTML='<option value="">— Select registered student —</option>';
+  list.forEach(x=>{
+   const o=document.createElement("option");
+   o.value=x.student_id||x.id;
+   o.textContent=`${x.full_name||"Unnamed"} — ${x.student_id||""}`;
+   o.dataset.data=JSON.stringify(x);
+   s.appendChild(o);
   });
+ }catch(e){msg("Unable to load students: "+e.message,"err")}
 }
 
-function gaawowDate(value) {
-  if (!value) return "—";
-
-  const d = new Date(value + "T00:00:00");
-
-  if (Number.isNaN(d.getTime())) return value;
-
-  return d.toLocaleDateString("en-GB").replaceAll("/", " / ");
+function chooseStudent(){
+ const o=$("student_select").selectedOptions[0];
+ if(!o||!o.dataset.data)return;
+ const x=JSON.parse(o.dataset.data);
+ $("student_name").value=x.full_name||"";
+ $("student_id").value=x.student_id||"";
+ $("photo_url").value=x.photo_url||"";
 }
 
-function gaawowRandom(length = 8) {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let result = "";
+function generate(){
+ if(!$("student_name").value.trim()||!$("course_name").value.trim())
+  return msg("Select a student and enter/select the course first.","err");
 
-  for (let i = 0; i < length; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-
-  return result;
+ ids();
+ const today=new Date().toISOString().slice(0,10);
+ if(!$("issue_date").value)$("issue_date").value=today;
+ if(!$("completion_date").value)$("completion_date").value=today;
+ render();
+ msg("Certificate generated successfully.","ok");
 }
 
-function gaawowYear() {
-  return new Date().getFullYear();
+function render(){
+ const x=Object.fromEntries([
+  "student_name","student_id","certificate_id","certificate_no",
+  "verify_code","course_name","start_date","completion_date",
+  "issue_date","status","photo_url","director_name","signatory_name"
+ ].map(k=>[k,$(k)?.value||""]));
+
+ const verify=CONFIG.VERIFY+"?certificate="+encodeURIComponent(x.verify_code);
+ $("sheet").innerHTML=`
+ <div class="cert">
+  <div class="wm">G</div>
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+
+  <aside class="left">
+   <div class="photo"><img src="${esc(x.photo_url||"https://via.placeholder.com/250x310?text=STUDENT")}"></div>
+   <div class="meta"><b>STUDENT ID</b>${esc(x.student_id||"—")}</div>
+   <div class="meta"><b>CERTIFICATE NO.</b>${esc(x.certificate_no||"—")}</div>
+   <div class="meta"><b>COMPLETED</b>${date(x.completion_date)}</div>
+   <div class="meta"><b>ISSUED</b>${date(x.issue_date)}</div>
+  </aside>
+
+  <main class="center">
+   <img class="logo" src="${CONFIG.LOGO}">
+   <div class="academy">GAAWOW ACADEMY</div>
+   <div class="motto">Ilayska Aqoonta iyo Xirfadda</div>
+   <div class="title">CERTIFICATE</div>
+   <div class="sub">OF COMPLETION</div>
+   <div class="present">This certificate is proudly presented to</div>
+   <div class="student">${esc(x.student_name||"STUDENT NAME")}</div>
+   <div class="text">for successfully completing the required training and demonstrating satisfactory achievement in</div>
+   <div class="course">${esc(x.course_name||"COURSE NAME")}</div>
+   <div class="location">Bur Hakaba Bay, Somalia</div>
+   <div class="id">Certificate ID: <b>${esc(x.certificate_id||"—")}</b></div>
+  </main>
+
+  <aside class="right">
+   <b class="verify">VERIFY</b>
+   <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(verify)}">
+   <b>${esc(x.verify_code||"—")}</b>
+   <small>Scan QR code to verify</small>
+  </aside>
+
+  <div class="signatures">
+   <div><div class="line"></div><b>${esc(x.director_name||"ACADEMY DIRECTOR")}</b><small>Academy Director</small></div>
+   <div class="seal">GAAWOW<br>ACADEMY</div>
+   <div><div class="line"></div><b>${esc(x.signatory_name||"AUTHORIZED SIGNATORY")}</b><small>Authorized Signature</small></div>
+  </div>
+  <div class="footer">Bur Hakaba Bay, Somalia • 615228824 / 625228824 • GAAWOW Academy</div>
+ </div>`;
 }
 
-function gaawowQR(value) {
-  return (
-    "https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=" +
-    encodeURIComponent(value)
-  );
-}
+async function save(){
+ const p={
+  certificate_no:$("certificate_no").value,
+  certificate_id:$("certificate_id").value,
+  verify_code:$("verify_code").value,
+  student_name:$("student_name").value,
+  course_name:$("course_name").value,
+  issue_date:$("issue_date").value||null,
+  expiry_date:null,
+  status:($("status").value||"completed").toLowerCase()
+ };
+ if(!p.student_name||!p.course_name||!p.certificate_no)
+  return msg("Generate the certificate first.","err");
 
-/* ---------- Generate IDs ---------- */
-
-function generateCertificateNumber() {
-  const year = gaawowYear();
-  const random = Math.floor(1000 + Math.random() * 9000);
-  const code = gaawowRandom(6);
-
-  return `GA-C-${year}-${random}-${code}`;
-}
-
-function generateCertificateId() {
-  return `CERT_GA_${gaawowYear()}_${gaawowRandom(8)}`;
-}
-
-function generateVerifyCode() {
-  return gaawowRandom(8);
-}
-
-/* ---------- Form ---------- */
-
-function getCertificateData() {
-  const fields = [
-    "student_name",
-    "student_id",
-    "certificate_id",
-    "certificate_no",
-    "verify_code",
-    "course_name",
-    "start_date",
-    "completion_date",
-    "issue_date",
-    "status",
-    "photo_url"
-  ];
-
-  const data = {};
-
-  fields.forEach(function (field) {
-    const element = document.getElementById(field);
-
-    data[field] = element
-      ? element.value.trim()
-      : "";
+ try{
+  const r=await fetch(CONFIG.SUPABASE_URL+"/rest/v1/certificates",{
+   method:"POST",
+   headers:{apikey:CONFIG.SUPABASE_KEY,Authorization:"Bearer "+CONFIG.SUPABASE_KEY,
+    "Content-Type":"application/json",Prefer:"return=minimal"},
+   body:JSON.stringify(p)
   });
-
-  return data;
+  if(!r.ok)throw Error(await r.text());
+  msg("Certificate saved successfully to Supabase.","ok");
+ }catch(e){msg("Certificate was NOT saved.<br>"+esc(e.message),"err")}
 }
 
-/* ---------- Generate Certificate ---------- */
-
-function generateCertificate() {
-  try {
-    const studentName = document.getElementById("student_name").value.trim();
-    const courseName = document.getElementById("course_name").value.trim();
-
-    if (!studentName) {
-      showMessage("Please enter Student Name first.", "err");
-      document.getElementById("student_name").focus();
-      return;
-    }
-
-    if (!courseName) {
-      showMessage("Please enter Course Name first.", "err");
-      document.getElementById("course_name").focus();
-      return;
-    }
-
-    const today = new Date().toISOString().split("T")[0];
-
-    document.getElementById("certificate_no").value =
-      generateCertificateNumber();
-
-    document.getElementById("certificate_id").value =
-      generateCertificateId();
-
-    document.getElementById("verify_code").value =
-      generateVerifyCode();
-
-    if (!document.getElementById("issue_date").value) {
-      document.getElementById("issue_date").value = today;
-    }
-
-    if (!document.getElementById("completion_date").value) {
-      document.getElementById("completion_date").value = today;
-    }
-
-    if (!document.getElementById("status").value) {
-      document.getElementById("status").value = "COMPLETED";
-    }
-
-    renderCertificate();
-
-    showMessage(
-      "Certificate generated successfully. You can now Preview or Save to Supabase.",
-      "ok"
-    );
-
-    document.getElementById("sheet").scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-
-  } catch (error) {
-    console.error("Generate Certificate Error:", error);
-
-    showMessage(
-      "Certificate generation failed: " + error.message,
-      "err"
-    );
-  }
+async function download(){
+ if(!$("certificate_no").value)generate();
+ if(typeof html2canvas==="undefined")
+  return msg("HD download library is loading. Please try again.","err");
+ const canvas=await html2canvas($("sheet"),{scale:3,useCORS:true,backgroundColor:"#fff"});
+ const a=document.createElement("a");
+ a.download=($("certificate_no").value||"GAAWOW-Certificate")+".png";
+ a.href=canvas.toDataURL("image/png");
+ a.click();
 }
 
-/* ---------- Render ---------- */
-
-function renderCertificate() {
-  const x = getCertificateData();
-
-  const verifyUrl =
-    GAAWOW_CONFIG.VERIFY_URL +
-    "?certificate=" +
-    encodeURIComponent(
-      x.verify_code || x.certificate_no || x.certificate_id
-    );
-
-  const photo =
-    x.photo_url ||
-    "https://via.placeholder.com/280x350?text=STUDENT+PHOTO";
-
-  const sheet = document.getElementById("sheet");
-
-  if (!sheet) return;
-
-  sheet.innerHTML = `
-    <div class="certificate-frame">
-
-      <div class="gold-inner"></div>
-
-      <div class="corner corner-tl"></div>
-      <div class="corner corner-tr"></div>
-      <div class="corner corner-bl"></div>
-      <div class="corner corner-br"></div>
-
-      <div class="watermark">G</div>
-
-      <div class="certificate-content">
-
-        <div class="left-column">
-
-          <div class="photo-box">
-            <img
-              src="${gaawowEscape(photo)}"
-              alt="Student Photo"
-              onerror="this.src='https://via.placeholder.com/280x350?text=STUDENT+PHOTO'"
-            >
-          </div>
-
-          <div class="student-meta">
-
-            <div class="meta">
-              <b>STUDENT ID</b>
-              <span>${gaawowEscape(x.student_id || "—")}</span>
-            </div>
-
-            <div class="meta">
-              <b>CERTIFICATE NO.</b>
-              <span>${gaawowEscape(x.certificate_no || "—")}</span>
-            </div>
-
-            <div class="meta">
-              <b>DATE STARTED</b>
-              <span>${gaawowDate(x.start_date)}</span>
-            </div>
-
-            <div class="meta">
-              <b>DATE COMPLETED</b>
-              <span>${gaawowDate(x.completion_date)}</span>
-            </div>
-
-            <div class="meta">
-              <b>DATE ISSUED</b>
-              <span>${gaawowDate(x.issue_date)}</span>
-            </div>
-
-          </div>
-
-        </div>
-
-        <div class="center-column">
-
-          <img
-            class="academy-logo"
-            src="${GAAWOW_CONFIG.LOGO_URL}"
-            alt="GAAWOW Academy"
-          >
-
-          <div class="academy-name">
-            GAAWOW ACADEMY
-          </div>
-
-          <div class="motto">
-            Ilayska Aqoonta iyo Xirfadda
-          </div>
-
-          <div class="certificate-title">
-            CERTIFICATE
-          </div>
-
-          <div class="certificate-subtitle">
-            OF COMPLETION
-          </div>
-
-          <div class="presented">
-            This certificate is proudly presented to
-          </div>
-
-          <div class="student-name">
-            ${gaawowEscape(x.student_name || "STUDENT NAME")}
-          </div>
-
-          <div class="completion-text">
-            for successfully completing the required training
-            and demonstrating satisfactory achievement in
-          </div>
-
-          <div class="course-name">
-            ${gaawowEscape(x.course_name || "COURSE NAME")}
-          </div>
-
-          <div class="location">
-            Bur Hakaba Bay, Somalia
-          </div>
-
-          <div class="verification-line">
-            Certificate ID:
-            <strong>${gaawowEscape(x.certificate_id || "—")}</strong>
-          </div>
-
-        </div>
-
-        <div class="right-column">
-
-          <div class="verify-title">
-            VERIFY
-          </div>
-
-          <div class="qr-box">
-            <img
-              src="${gaawowQR(verifyUrl)}"
-              alt="Verification QR Code"
-            >
-          </div>
-
-          <div class="verify-code">
-            ${gaawowEscape(x.verify_code || "—")}
-          </div>
-
-          <div class="scan-text">
-            Scan QR code to verify
-            certificate authenticity
-          </div>
-
-          <div class="verify-url">
-            ${GAAWOW_CONFIG.VERIFY_URL}
-          </div>
-
-        </div>
-
-      </div>
-
-      <div class="signature-area">
-
-        <div class="signature">
-          <div class="signature-line"></div>
-          <strong>ACADEMY DIRECTOR</strong>
-          <span>GAAWOW Academy</span>
-        </div>
-
-        <div class="seal">
-          <div class="seal-circle">
-            GAAWOW<br>
-            ACADEMY
-          </div>
-        </div>
-
-        <div class="signature">
-          <div class="signature-line"></div>
-          <strong>AUTHORIZED SIGNATURE</strong>
-          <span>Academic Affairs</span>
-        </div>
-
-      </div>
-
-      <div class="certificate-footer">
-        <span>Bur Hakaba Bay, Somalia</span>
-        <span>615228824 / 625228824</span>
-        <span>GAAWOW Academy</span>
-      </div>
-
-    </div>
-  `;
-}
-
-/* Alias used by older HTML buttons */
-function render() {
-  renderCertificate();
-}
-
-/* ---------- Supabase Save ---------- */
-
-async function gaawowSaveCertificate(payload) {
-
-  const response = await fetch(
-    GAAWOW_CONFIG.SUPABASE_URL + "/rest/v1/certificates",
-    {
-      method: "POST",
-
-      headers: {
-        apikey: GAAWOW_CONFIG.SUPABASE_KEY,
-        Authorization: "Bearer " + GAAWOW_CONFIG.SUPABASE_KEY,
-        "Content-Type": "application/json",
-        Prefer: "return=representation"
-      },
-
-      body: JSON.stringify(payload)
-    }
-  );
-
-  const text = await response.text();
-
-  if (!response.ok) {
-    let message = text;
-
-    try {
-      const json = JSON.parse(text);
-      message =
-        json.message ||
-        json.error_description ||
-        json.hint ||
-        json.details ||
-        text;
-    } catch (_) {}
-
-    throw new Error(message);
-  }
-
-  if (!text) {
-    return true;
-  }
-
-  try {
-    return JSON.parse(text);
-  } catch (_) {
-    return true;
-  }
-}
-
-/* ---------- Save Certificate ---------- */
-
-async function saveCertificate() {
-
-  const x = getCertificateData();
-
-  if (!x.student_name) {
-    showMessage("Please enter Student Name.", "err");
-    return;
-  }
-
-  if (!x.course_name) {
-    showMessage("Please enter Course Name.", "err");
-    return;
-  }
-
-  if (!x.certificate_no) {
-    generateCertificate();
-  }
-
-  const current = getCertificateData();
-
-  const payload = {
-    certificate_no: current.certificate_no,
-    certificate_id: current.certificate_id,
-    verify_code: current.verify_code,
-    student_name: current.student_name,
-    course_name: current.course_name,
-    issue_date: current.issue_date || null,
-    expiry_date: null,
-    status: (current.status || "completed").toLowerCase()
-  };
-
-  try {
-
-    showMessage("Saving certificate to Supabase...", "ok");
-
-    await gaawowSaveCertificate(payload);
-
-    showMessage(
-      "Certificate saved successfully to Supabase.",
-      "ok"
-    );
-
-  } catch (error) {
-
-    console.error("Supabase Certificate Error:", error);
-
-    showMessage(
-      "Certificate was NOT saved.<br><br>" +
-      "<strong>Supabase error:</strong><br>" +
-      gaawowEscape(error.message),
-      "err"
-    );
-  }
-}
-
-/* ---------- Messages ---------- */
-
-function showMessage(message, type) {
-
-  const box = document.getElementById("msg");
-
-  if (!box) return;
-
-  box.innerHTML =
-    `<div class="msg ${type}">${message}</div>`;
-}
-
-/* ---------- Print ---------- */
-
-function printCertificate() {
-
-  const x = getCertificateData();
-
-  if (!x.student_name || !x.certificate_no) {
-    generateCertificate();
-    return;
-  }
-
-  window.print();
-}
-
-/* ---------- Clear / New Certificate ---------- */
-
-function newCertificate() {
-
-  const fields = [
-    "student_name",
-    "student_id",
-    "certificate_id",
-    "certificate_no",
-    "verify_code",
-    "course_name",
-    "start_date",
-    "completion_date",
-    "issue_date",
-    "photo_url"
-  ];
-
-  fields.forEach(function (id) {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
-
-  const status = document.getElementById("status");
-
-  if (status) {
-    status.value = "COMPLETED";
-  }
-
-  const sheet = document.getElementById("sheet");
-
-  if (sheet) {
-    sheet.innerHTML = "";
-  }
-
-  showMessage(
-    "Ready for a new certificate.",
-    "ok"
-  );
-}
-
-/* ---------- Page Ready ---------- */
-
-document.addEventListener("DOMContentLoaded", function () {
-
-  const generateButton =
-    document.getElementById("generateBtn");
-
-  if (generateButton) {
-    generateButton.addEventListener(
-      "click",
-      generateCertificate
-    );
-  }
-
-  const previewButton =
-    document.getElementById("previewBtn");
-
-  if (previewButton) {
-    previewButton.addEventListener(
-      "click",
-      renderCertificate
-    );
-  }
-
-  const saveButton =
-    document.getElementById("saveBtn");
-
-  if (saveButton) {
-    saveButton.addEventListener(
-      "click",
-      saveCertificate
-    );
-  }
-
-  const printButton =
-    document.getElementById("printBtn");
-
-  if (printButton) {
-    printButton.addEventListener(
-      "click",
-      printCertificate
-    );
-  }
-
-  const newButton =
-    document.getElementById("newBtn");
-
-  if (newButton) {
-    newButton.addEventListener(
-      "click",
-      newCertificate
-    );
-  }
-
+function msg(t,c){$("msg").innerHTML=`<div class="msg ${c}">${t}</div>`}
+
+document.addEventListener("DOMContentLoaded",()=>{
+ loadStudents();
+ $("student_select").onchange=chooseStudent;
+ $("generateBtn").onclick=generate;
+ $("previewBtn").onclick=render;
+ $("saveBtn").onclick=save;
+ $("downloadBtn").onclick=download;
+ $("printBtn").onclick=()=>window.print();
+ $("newBtn").onclick=()=>location.reload();
 });
