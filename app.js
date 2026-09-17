@@ -1,37 +1,51 @@
 // ==========================================
-// GAAWOW EMS — FAST LOGIN V2
+// GAAWOW EMS — FAST LOGIN
 // ==========================================
 
-// Supabase Configuration
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
+// PUT THE CURRENT SUPABASE PUBLISHABLE KEY HERE
 const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1_b0RjIbAi5g_RqLCs145";
+  "PASTE_CURRENT_PUBLISHABLE_KEY_HERE";
 
-// Create Supabase Client
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
+
+// ==========================================
+// SUPABASE
+// ==========================================
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
     }
-  }
-);
+  );
 
 
 // ==========================================
-// DOM ELEMENTS
+// DOM
 // ==========================================
 
-const loginForm = document.getElementById("loginForm");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const loginButton = document.getElementById("loginButton");
-const message = document.getElementById("message");
+const loginForm =
+  document.getElementById("loginForm");
+
+const emailInput =
+  document.getElementById("email");
+
+const passwordInput =
+  document.getElementById("password");
+
+const loginButton =
+  document.getElementById("loginButton");
+
+const message =
+  document.getElementById("message");
 
 
 // ==========================================
@@ -46,20 +60,50 @@ function showMessage(text, type = "info") {
 
   if (type === "success") {
     message.style.color = "#16A34A";
-  } else if (type === "error") {
+  }
+
+  else if (type === "error") {
     message.style.color = "#DC2626";
-  } else {
+  }
+
+  else {
     message.style.color = "#64748B";
   }
 }
 
 
 // ==========================================
-// FAST REDIRECT
+// LOGIN BUTTON
 // ==========================================
 
-function goToDashboard() {
-  window.location.replace("dashboard.html");
+function setLoading(isLoading) {
+
+  if (!loginButton) return;
+
+  loginButton.disabled = isLoading;
+
+  loginButton.textContent =
+    isLoading ? "LOGGING IN..." : "LOGIN";
+}
+
+
+// ==========================================
+// SAVE SESSION
+// ==========================================
+
+function saveUser(user) {
+
+  if (!user) return;
+
+  sessionStorage.setItem(
+    "gaawow_user_id",
+    user.id
+  );
+
+  sessionStorage.setItem(
+    "gaawow_user_email",
+    user.email || ""
+  );
 }
 
 
@@ -69,108 +113,123 @@ function goToDashboard() {
 
 if (loginForm) {
 
-  loginForm.addEventListener("submit", async function (event) {
+  loginForm.addEventListener(
+    "submit",
+    async function (event) {
 
-    event.preventDefault();
+      event.preventDefault();
 
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
+      const email =
+        emailInput.value.trim();
 
-    if (!email || !password) {
+      const password =
+        passwordInput.value;
 
-      showMessage(
-        "Please enter your email and password.",
-        "error"
-      );
 
-      return;
-    }
-
-    // Prevent double-click login
-    loginButton.disabled = true;
-    loginButton.textContent = "LOGGING IN...";
-
-    showMessage(
-      "Checking your account...",
-      "info"
-    );
-
-    try {
-
-      const { data, error } =
-        await supabaseClient.auth.signInWithPassword({
-          email,
-          password
-        });
-
-      if (error) {
-
-        console.error(
-          "Supabase Login Error:",
-          error
-        );
+      if (!email || !password) {
 
         showMessage(
-          error.message || "Login failed.",
+          "Please enter your email and password.",
           "error"
         );
-
-        loginButton.disabled = false;
-        loginButton.textContent = "LOGIN";
 
         return;
       }
 
 
-      // ====================================
-      // SUCCESS
-      // ====================================
+      setLoading(true);
 
-      if (data?.user) {
+      showMessage(
+        "Checking your account...",
+        "info"
+      );
 
-        sessionStorage.setItem(
-          "gaawow_user_id",
-          data.user.id
-        );
 
-        sessionStorage.setItem(
-          "gaawow_user_email",
-          data.user.email || email
-        );
+      try {
+
+        const {
+          data,
+          error
+        } =
+          await supabaseClient.auth
+            .signInWithPassword({
+              email,
+              password
+            });
+
+
+        if (error) {
+
+          console.error(
+            "LOGIN ERROR:",
+            error
+          );
+
+          showMessage(
+            error.message ||
+            "Login failed.",
+            "error"
+          );
+
+          setLoading(false);
+
+          return;
+        }
+
+
+        if (!data?.user) {
+
+          showMessage(
+            "Login failed. User account was not returned.",
+            "error"
+          );
+
+          setLoading(false);
+
+          return;
+        }
+
+
+        // Save user
+        saveUser(data.user);
+
 
         showMessage(
-          "Login successful! Welcome to GAAWOW EMS.",
+          "Login successful!",
           "success"
         );
 
+
         console.log(
-          "GAAWOW EMS User:",
+          "GAAWOW EMS USER:",
           data.user.id
         );
 
-        // No artificial 1-second delay
-        goToDashboard();
+
+        // Immediate redirect
+        window.location.replace(
+          "dashboard.html"
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(
+          "UNEXPECTED LOGIN ERROR:",
+          error
+        );
+
+        showMessage(
+          "Connection error. Please try again.",
+          "error"
+        );
+
+        setLoading(false);
       }
 
     }
-
-    catch (err) {
-
-      console.error(
-        "Unexpected Login Error:",
-        err
-      );
-
-      showMessage(
-        "Something went wrong. Please try again.",
-        "error"
-      );
-
-      loginButton.disabled = false;
-      loginButton.textContent = "LOGIN";
-    }
-
-  });
+  );
 
 }
 
@@ -179,45 +238,40 @@ if (loginForm) {
 // EXISTING SESSION
 // ==========================================
 
-async function checkExistingSession() {
+async function checkSession() {
 
   try {
 
-    const { data, error } =
-      await supabaseClient.auth.getSession();
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth
+        .getSession();
+
 
     if (error) {
 
       console.error(
-        "Session Error:",
+        "SESSION ERROR:",
         error
       );
 
       return;
     }
 
+
     if (data?.session?.user) {
 
-      const user = data.session.user;
-
-      sessionStorage.setItem(
-        "gaawow_user_id",
-        user.id
-      );
-
-      sessionStorage.setItem(
-        "gaawow_user_email",
-        user.email || ""
+      saveUser(
+        data.session.user
       );
 
       console.log(
-        "Existing GAAWOW EMS session:",
-        user.email
+        "Existing session:",
+        data.session.user.email
       );
 
-      // Waxaan hadda ka dhigaynaa inuu login page-ka
-      // ku sii jiro haddii user-ku horey u login yahay.
-      // Dashboard redirect waxaa maamuli kara index.html.
     }
 
   }
@@ -225,7 +279,7 @@ async function checkExistingSession() {
   catch (error) {
 
     console.error(
-      "Session Check Error:",
+      "SESSION CHECK ERROR:",
       error
     );
 
@@ -235,7 +289,29 @@ async function checkExistingSession() {
 
 
 // ==========================================
+// AUTH STATE
+// ==========================================
+
+supabaseClient.auth.onAuthStateChange(
+  function (event, session) {
+
+    if (
+      event === "SIGNED_IN" &&
+      session?.user
+    ) {
+
+      saveUser(
+        session.user
+      );
+
+    }
+
+  }
+);
+
+
+// ==========================================
 // START
 // ==========================================
 
-checkExistingSession();
+checkSession();
