@@ -1,799 +1,815 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>GAAWOW EMS — Certificate Generator</title>
-
-  <meta name="theme-color" content="#0B1E63">
-
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f5f7fa;
-      color: #1f2937;
-    }
-
-    .topbar {
-      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
-      color: white;
-      padding: 18px 25px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .topbar img {
-      width: 58px;
-      height: 58px;
-      object-fit: contain;
-      background: white;
-      border-radius: 10px;
-      padding: 5px;
-    }
-
-    .topbar h1 {
-      margin: 0;
-      font-size: 22px;
-    }
-
-    .topbar p {
-      margin: 5px 0 0;
-      opacity: .85;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 25px auto;
-      padding: 0 16px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 18px;
-      padding: 24px;
-      margin-bottom: 22px;
-      box-shadow: 0 8px 30px rgba(0,0,0,.08);
-    }
-
-    .card h2 {
-      color: #0B1E63;
-      margin-top: 0;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 18px;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
-
-    .full {
-      grid-column: 1 / -1;
-    }
-
-    label {
-      font-weight: 700;
-      color: #374151;
-    }
-
-    select,
-    input {
-      width: 100%;
-      padding: 13px;
-      border: 1px solid #d1d5db;
-      border-radius: 10px;
-      font-size: 15px;
-      background: white;
-    }
-
-    select:focus,
-    input:focus {
-      outline: none;
-      border-color: #0B4DA2;
-    }
-
-    .template-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-    }
-
-    .template {
-      border: 2px solid #e5e7eb;
-      border-radius: 14px;
-      padding: 18px;
-      cursor: pointer;
-      text-align: center;
-      transition: .2s;
-      background: white;
-    }
-
-    .template:hover {
-      border-color: #D4AF37;
-      transform: translateY(-2px);
-    }
-
-    .template.active {
-      border-color: #D4AF37;
-      background: #fffdf5;
-      box-shadow: 0 5px 18px rgba(212,175,55,.18);
-    }
-
-    .template-icon {
-      font-size: 32px;
-      margin-bottom: 8px;
-    }
-
-    .template strong {
-      display: block;
-      color: #0B1E63;
-    }
-
-    .template small {
-      color: #6b7280;
-    }
-
-    .photo-box {
-      border: 2px dashed #D4AF37;
-      padding: 18px;
-      border-radius: 14px;
-      background: #fffdf5;
-    }
-
-    #studentPhotoPreview {
-      display: none;
-      width: 110px;
-      height: 135px;
-      object-fit: cover;
-      border: 3px solid #D4AF37;
-      border-radius: 7px;
-      margin: 12px auto 0;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 22px;
-    }
-
-    button {
-      border: 0;
-      border-radius: 10px;
-      padding: 13px 20px;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 15px;
-    }
-
-    .primary {
-      background: #0B4DA2;
-      color: white;
-    }
-
-    .gold {
-      background: #D4AF37;
-      color: #111827;
-    }
-
-    .dark {
-      background: #0B1E63;
-      color: white;
-    }
-
-    .secondary {
-      background: #e5e7eb;
-      color: #111827;
-    }
-
-    button:disabled {
-      opacity: .55;
-      cursor: not-allowed;
-    }
-
-    .message {
-      display: none;
-      margin-top: 18px;
-      padding: 13px;
-      border-radius: 10px;
-      font-weight: 600;
-    }
-
-    .message.success {
-      display: block;
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    .message.error {
-      display: block;
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .preview-card {
-      display: none;
-    }
-
-    .preview-wrapper {
-      overflow-x: auto;
-      padding: 10px;
-      background: #eef1f5;
-      border-radius: 14px;
-    }
-
-    /* =====================================
-       CERTIFICATE CANVAS
-       ===================================== */
-
-    #certificateCanvas {
-      width: 1000px;
-      min-height: 700px;
-      margin: auto;
-      position: relative;
-      background: white;
-      overflow: hidden;
-      text-align: center;
-      padding: 60px;
-    }
-
-    #certificateCanvas::before {
-      content: "";
-      position: absolute;
-      inset: 20px;
-      border: 3px solid #D4AF37;
-      pointer-events: none;
-    }
-
-    #certificateCanvas::after {
-      content: "";
-      position: absolute;
-      inset: 30px;
-      border: 1px solid #0B4DA2;
-      pointer-events: none;
-    }
-
-    .cert-logo {
-      width: 95px;
-      height: 95px;
-      object-fit: contain;
-      position: relative;
-      z-index: 2;
-    }
-
-    .academy-name {
-      margin-top: 8px;
-      font-size: 30px;
-      font-weight: 800;
-      letter-spacing: 2px;
-      color: #0B1E63;
-      position: relative;
-      z-index: 2;
-    }
-
-    .academy-motto {
-      color: #D4AF37;
-      font-weight: 600;
-      position: relative;
-      z-index: 2;
-    }
-
-    .document-title {
-      margin-top: 32px;
-      font-size: 31px;
-      font-weight: 800;
-      color: #0B1E63;
-      position: relative;
-      z-index: 2;
-    }
-
-    .document-subtitle {
-      color: #D4AF37;
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      position: relative;
-      z-index: 2;
-    }
-
-    .presented {
-      margin-top: 25px;
-      position: relative;
-      z-index: 2;
-    }
-
-    .photo-area {
-      display: none;
-      position: relative;
-      z-index: 2;
-    }
-
-    .preview-photo {
-      width: 110px;
-      height: 135px;
-      object-fit: cover;
-      border: 3px solid #D4AF37;
-      border-radius: 5px;
-      margin: 12px auto;
-    }
-
-    .student-name {
-      font-size: 34px;
-      font-weight: 800;
-      color: #111827;
-      margin: 15px 0;
-      position: relative;
-      z-index: 2;
-    }
-
-    .course-line {
-      font-size: 20px;
-      font-weight: 700;
-      color: #0B4DA2;
-      margin: 15px 0;
-      position: relative;
-      z-index: 2;
-    }
-
-    .certificate-details {
-      margin-top: 22px;
-      font-size: 13px;
-      color: #374151;
-      position: relative;
-      z-index: 2;
-    }
-
-    .qr-area {
-      position: absolute;
-      right: 70px;
-      bottom: 60px;
-      z-index: 3;
-      text-align: center;
-    }
-
-    #qrImage {
-      width: 85px;
-      height: 85px;
-    }
-
-    .qr-label {
-      font-size: 9px;
-      color: #4b5563;
-      margin-top: 3px;
-    }
-
-    .footer-line {
-      position: absolute;
-      bottom: 65px;
-      left: 90px;
-      right: 220px;
-      border-top: 1px solid #9ca3af;
-      text-align: left;
-      padding-top: 7px;
-      font-size: 11px;
-      color: #4b5563;
-      z-index: 2;
-    }
-
-    /* Diploma */
-    .diploma #certificateCanvas {
-      border: 12px solid #0B1E63;
-    }
-
-    .diploma .document-title {
-      font-size: 42px;
-    }
-
-    /* Authentication Letter */
-    .authentication #certificateCanvas {
-      width: 850px;
-      min-height: 1100px;
-      text-align: left;
-      padding: 75px;
-    }
-
-    .authentication .academy-name {
-      text-align: center;
-    }
-
-    .authentication .document-title {
-      text-align: center;
-      font-size: 28px;
-      text-decoration: underline;
-    }
-
-    .authentication .presented {
-      margin-top: 50px;
-      line-height: 1.9;
-    }
-
-    .authentication .student-name {
-      font-size: 27px;
-    }
-
-    @media(max-width: 800px) {
-      .grid,
-      .template-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .full {
-        grid-column: auto;
-      }
-    }
-
-    @media print {
-      body * {
-        visibility: hidden !important;
-      }
-
-      #certificateCanvas,
-      #certificateCanvas * {
-        visibility: visible !important;
-      }
-
-      #certificateCanvas {
-        position: absolute;
-        left: 0;
-        top: 0;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>GAAWOW EMS — Certificate Generator V3</title>
+
+<meta name="theme-color" content="#0B1E63">
+
+<style>
+:root{
+  --navy:#0B1E63;
+  --blue:#0B4DA2;
+  --gold:#D4AF37;
+  --white:#FFFFFF;
+  --bg:#F4F6FA;
+  --green:#16A34A;
+  --red:#DC2626;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:#1F2937;
+}
+
+/* HEADER */
+header{
+  background:linear-gradient(135deg,var(--navy),var(--blue));
+  color:white;
+  padding:18px 22px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+header img{
+  width:58px;
+  height:58px;
+  object-fit:contain;
+  background:white;
+  border-radius:10px;
+  padding:4px;
+}
+
+header h1{
+  font-size:20px;
+  margin:0;
+}
+
+header p{
+  margin:4px 0 0;
+  font-size:12px;
+  opacity:.9;
+}
+
+/* MAIN */
+.wrap{
+  max-width:1450px;
+  margin:auto;
+  padding:20px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:360px 1fr;
+  gap:20px;
+}
+
+.panel,
+.preview-panel{
+  background:white;
+  border-radius:16px;
+  box-shadow:0 8px 30px rgba(11,30,99,.10);
+  padding:18px;
+}
+
+h2{
+  color:var(--navy);
+  font-size:18px;
+  margin:0 0 15px;
+}
+
+label{
+  display:block;
+  font-weight:700;
+  font-size:12px;
+  margin:12px 0 6px;
+  color:#374151;
+}
+
+input,
+select{
+  width:100%;
+  padding:11px;
+  border:1px solid #D1D5DB;
+  border-radius:9px;
+  background:#fff;
+  font-size:14px;
+}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+/* BUTTONS */
+.actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin-top:16px;
+}
+
+button{
+  border:0;
+  border-radius:9px;
+  padding:11px 12px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.primary{
+  background:var(--blue);
+  color:white;
+}
+
+.gold{
+  background:var(--gold);
+  color:#111;
+}
+
+.dark{
+  background:var(--navy);
+  color:white;
+}
+
+.light{
+  background:#EEF2F7;
+  color:var(--navy);
+}
+
+.green{
+  background:var(--green);
+  color:white;
+}
+
+/* STATUS */
+.status{
+  margin-top:12px;
+  padding:10px;
+  border-radius:8px;
+  background:#F3F4F6;
+  font-size:12px;
+  min-height:36px;
+}
+
+/* PREVIEW */
+.preview-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+  gap:10px;
+}
+
+.badge{
+  font-size:11px;
+  padding:6px 9px;
+  border-radius:99px;
+  background:#FFF4CF;
+  color:#725900;
+  font-weight:800;
+}
+
+#stage{
+  width:100%;
+  min-height:500px;
+  background:#E9EDF3;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:auto;
+  padding:18px;
+}
+
+/*
+  HD certificate canvas
+*/
+#certificateCanvas{
+  position:relative;
+  width:1100px;
+  height:778px;
+  flex:none;
+  background:#fff;
+  box-shadow:0 12px 35px rgba(0,0,0,.18);
+  overflow:hidden;
+}
+
+#templateBg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:fill;
+}
+
+/* STUDENT PHOTO */
+#studentPhoto{
+  position:absolute;
+  left:8.4%;
+  top:24.8%;
+  width:15.2%;
+  height:21.5%;
+  object-fit:cover;
+  border-radius:50%;
+  border:5px solid var(--gold);
+  display:none;
+}
+
+/* MAIN TEXT */
+#studentName{
+  position:absolute;
+  left:34%;
+  top:39%;
+  width:42%;
+  text-align:center;
+  font-size:31px;
+  font-weight:800;
+  color:var(--navy);
+}
+
+#courseName{
+  position:absolute;
+  left:34%;
+  top:47%;
+  width:42%;
+  text-align:center;
+  font-size:20px;
+  font-weight:700;
+  color:var(--blue);
+}
+
+/* META */
+.meta{
+  position:absolute;
+  font-size:11px;
+  font-weight:700;
+}
+
+#metaStudentId{
+  left:7.8%;
+  top:49%;
+}
+
+.meta2{
+  left:7.8%;
+  top:53%;
+}
+
+.meta3{
+  left:7.8%;
+  top:57%;
+}
+
+.meta4{
+  left:7.8%;
+  top:61%;
+}
+
+.meta5{
+  left:7.8%;
+  top:65%;
+}
+
+.meta6{
+  left:7.8%;
+  top:69%;
+}
+
+/* QR */
+#qrBox{
+  position:absolute;
+  right:7.2%;
+  bottom:10.5%;
+  width:125px;
+  height:125px;
+  background:white;
+  border:4px solid var(--gold);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#qrBox img,
+#qrBox canvas{
+  max-width:112px!important;
+  max-height:112px!important;
+}
+
+#verifyText{
+  position:absolute;
+  right:6.2%;
+  bottom:7%;
+  width:150px;
+  text-align:center;
+  font-size:9px;
+  font-weight:700;
+  color:var(--navy);
+  word-break:break-all;
+}
+
+/* SIGNATURES */
+.sig{
+  position:absolute;
+  bottom:7.5%;
+  width:190px;
+  text-align:center;
+  font-size:9px;
+  color:#111;
+}
+
+.sig .line{
+  border-top:1px solid #222;
+  margin-bottom:4px;
+}
+
+.sig b{
+  display:block;
+  color:var(--navy);
+}
+
+#sig1{
+  left:30%;
+}
+
+#sig2{
+  left:49%;
+}
+
+/* OFFICIAL SEAL */
+.seal{
+  position:absolute;
+  right:30%;
+  bottom:7%;
+  width:75px;
+  height:75px;
+  border:3px solid var(--gold);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-size:8px;
+  font-weight:800;
+  color:var(--gold);
+  background:rgba(255,255,255,.82);
+}
+
+/* AUTHENTICATION LETTER MODE */
+body.letter #certificateCanvas{
+  height:778px;
+}
+
+body.letter #studentName{
+  left:40%;
+  top:28%;
+  font-size:24px;
+  width:43%;
+}
+
+body.letter #courseName{
+  left:40%;
+  top:36%;
+  font-size:17px;
+}
+
+body.letter #studentPhoto{
+  display:none;
+}
+
+body.letter .meta{
+  left:40%;
+  font-size:12px;
+}
+
+body.letter .meta2{
+  top:47%;
+}
+
+body.letter .meta3{
+  top:52%;
+}
+
+body.letter .meta4{
+  top:57%;
+}
+
+body.letter .meta5{
+  top:62%;
+}
+
+body.letter .meta6{
+  top:67%;
+}
+
+body.letter #qrBox{
+  right:7%;
+  bottom:15%;
+}
+
+body.letter #verifyText{
+  right:5.5%;
+  bottom:10%;
+}
+
+body.letter #sig1{
+  left:43%;
+  bottom:5%;
+}
+
+body.letter #sig2{
+  display:none;
+}
+
+body.letter .seal{
+  right:26%;
+  bottom:5%;
+}
+
+/* MOBILE */
+@media(max-width:900px){
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+  .panel{
+    order:1;
+  }
+
+  .preview-panel{
+    order:2;
+  }
+
+  #stage{
+    justify-content:flex-start;
+  }
+
+  .wrap{
+    padding:10px;
+  }
+}
+</style>
 </head>
 
 <body>
 
-<header class="topbar">
+<header>
 
-  <img
-    src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-    alt="GAAWOW Academy"
-  >
+<img
+src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+alt="GAAWOW Academy"
+>
 
-  <div>
-    <h1>GAAWOW EMS</h1>
-    <p>Certificate Generator — Super Admin</p>
-  </div>
+<div>
+
+<h1>
+GAAWOW EMS — Certificate Generator V3
+</h1>
+
+<p>
+Ilayska Aqoonta iyo Xirfadda • Bur Hakaba, Bay, Somalia
+</p>
+
+</div>
 
 </header>
 
 
-<main class="container">
+<div class="wrap">
 
-  <!-- =========================================
-       FORM
-       ========================================= -->
+<div class="grid">
 
-  <section class="card">
+<!-- ================= FORM ================= -->
 
-    <h2>🎓 Certificate Generator</h2>
+<section class="panel">
 
-    <div class="grid">
+<h2>Certificate Information</h2>
 
-      <div class="field">
-        <label>Institution</label>
 
-        <select id="institutionSelect">
-          <option value="">Select Institution</option>
-        </select>
-      </div>
+<label>Institution</label>
 
+<select id="institution">
 
-      <div class="field">
-        <label>Student</label>
+<option value="">
+Select institution
+</option>
 
-        <select
-          id="studentSelect"
-          disabled
-        >
-          <option value="">Select Student</option>
-        </select>
-      </div>
+</select>
 
 
-      <div class="field">
-        <label>Course</label>
+<label>Student</label>
 
-        <select
-          id="courseSelect"
-          disabled
-        >
-          <option value="">Select Course</option>
-        </select>
-      </div>
+<select id="student">
 
+<option value="">
+Select student
+</option>
 
-      <div class="field">
+</select>
 
-        <label>Issue Date</label>
 
-        <input
-          type="date"
-          id="issueDate"
-        >
+<label>Course</label>
 
-      </div>
+<select id="course">
 
+<option value="">
+Select course
+</option>
 
-      <div class="field">
+</select>
 
-        <label>Expiry Date</label>
 
-        <input
-          type="date"
-          id="expiryDate"
-        >
+<div class="row">
 
-      </div>
+<div>
 
+<label>Issue Date</label>
 
-      <div class="field">
+<input
+id="issueDate"
+type="date"
+>
 
-        <label>Student Photo URL</label>
+</div>
 
-        <div class="photo-box">
 
-          <input
-            type="url"
-            id="studentPhotoUrl"
-            placeholder="Student photo URL"
-          >
+<div>
 
-          <img
-            id="studentPhotoPreview"
-            alt="Student photo"
-          >
+<label>Expiry Date</label>
 
-        </div>
+<input
+id="expiryDate"
+type="date"
+>
 
-      </div>
+</div>
 
-    </div>
+</div>
 
 
-    <!-- =========================================
-         TEMPLATE SELECTOR
-         ========================================= -->
+<label>
+Student Photo URL
+</label>
 
-    <h2 style="margin-top:30px;">
-      🖼️ Select Template
-    </h2>
+<input
+id="photoUrl"
+placeholder="Auto-filled from student profile"
+>
 
-    <div class="template-grid">
 
-      <div
-        class="template active"
-        data-type="certificate"
-      >
-        <div class="template-icon">📜</div>
-        <strong>Certificate</strong>
-        <small>Professional Certificate</small>
-      </div>
+<label>
+Document Type
+</label>
 
+<select id="template">
 
-      <div
-        class="template"
-        data-type="diploma"
-      >
-        <div class="template-icon">🎓</div>
-        <strong>Diploma</strong>
-        <small>Academic Diploma</small>
-      </div>
+<option value="certificate">
+Certificate
+</option>
 
+<option value="diploma">
+Diploma
+</option>
 
-      <div
-        class="template"
-        data-type="authentication_letter"
-      >
-        <div class="template-icon">📄</div>
-        <strong>Authentication Letter</strong>
-        <small>Official verification letter</small>
-      </div>
+<option value="authentication_letter">
+Authentication Letter
+</option>
 
-    </div>
-
+</select>
 
-    <div class="actions">
 
-      <button
-        class="primary"
-        id="generateBtn"
-      >
-        🎓 Generate Certificate
-      </button>
+<label>
+Director Signature
+</label>
 
-      <button
-        class="secondary"
-        id="clearBtn"
-      >
-        Clear
-      </button>
+<input
+id="director"
+value="Abdirahman H. Mohamed"
+>
 
-    </div>
 
+<label>
+Academic Head Signature
+</label>
 
-    <div
-      id="message"
-      class="message"
-    ></div>
-
-  </section>
+<input
+id="academicHead"
+value="Hodan Yusuf"
+>
 
 
-  <!-- =========================================
-       PREVIEW
-       ========================================= -->
+<div class="actions">
 
-  <section
-    class="card preview-card"
-    id="previewSection"
-  >
+<button
+class="primary"
+id="generate"
+>
+Generate & Save
+</button>
 
-    <h2>👁️ Certificate Preview</h2>
 
-    <div class="preview-wrapper">
+<button
+class="light"
+id="clear"
+>
+Clear
+</button>
 
-      <div id="certificateCanvas">
 
-        <img
-          class="cert-logo"
-          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-          alt="GAAWOW Academy"
-        >
+<button
+class="gold"
+id="pdf"
+>
+Download HD PDF
+</button>
 
-        <div class="academy-name">
-          GAAWOW ACADEMY
-        </div>
 
-        <div class="academy-motto">
-          Ilayska Aqoonta iyo Xirfadda
-        </div>
+<button
+class="dark"
+id="print"
+>
+Print
+</button>
 
 
-        <div
-          class="document-title"
-          id="previewTitle"
-        >
-          CERTIFICATE
-        </div>
+<button
+class="green"
+id="verify"
+>
+Open Verification
+</button>
 
-        <div
-          class="document-subtitle"
-          id="previewSubtitle"
-        >
-          OF COMPLETION
-        </div>
+</div>
 
 
-        <div
-          class="presented"
-          id="previewPresented"
-        >
-          This certificate is proudly presented to
-        </div>
+<div
+class="status"
+id="status"
+>
+Loading Supabase data…
+</div>
 
+</section>
 
-        <div
-          class="photo-area"
-          id="previewPhotoArea"
-        >
-          <img
-            class="preview-photo"
-            id="previewPhoto"
-            alt="Student"
-          >
-        </div>
 
+<!-- ================= PREVIEW ================= -->
 
-        <div
-          class="student-name"
-          id="previewStudentName"
-        >
-          Student Name
-        </div>
+<section class="preview-panel">
 
+<div class="preview-head">
 
-        <div id="previewBody">
-          For successfully completing the course
-        </div>
+<h2>
+HD Preview
+</h2>
 
+<span class="badge">
+LIBRARY TEMPLATE • V3
+</span>
 
-        <div
-          class="course-line"
-          id="previewCourse"
-        >
-          Course Name
-        </div>
+</div>
 
 
-        <div
-          class="certificate-details"
-          id="previewDetails"
-        >
-          Issue Date: —
-          &nbsp; | &nbsp;
-          Certificate No: —
-          <br>
-          Verification Code: —
-        </div>
+<div id="stage">
 
+<div id="certificateCanvas">
 
-        <div class="footer-line">
-          GAAWOW ACADEMY — Bur Hakaba Bay, Somalia
-        </div>
 
+<img
+id="templateBg"
+alt="GAAWOW template background"
+>
 
-        <div class="qr-area">
 
-          <img
-            id="qrImage"
-            alt="Verification QR"
-          >
+<img
+id="studentPhoto"
+alt="Student"
+>
 
-          <div class="qr-label">
-            Scan to Verify
-          </div>
 
-        </div>
+<div id="studentName">
+STUDENT NAME
+</div>
 
-      </div>
 
-    </div>
+<div id="courseName">
+COURSE NAME
+</div>
 
 
-    <div class="actions">
+<div
+id="metaStudentId"
+class="meta"
+>
+Student ID: —
+</div>
 
-      <button
-        class="gold"
-        id="downloadBtn"
-      >
-        📥 Download PDF
-      </button>
 
-      <button
-        class="dark"
-        id="printBtn"
-      >
-        🖨 Print
-      </button>
+<div class="meta meta2">
+Certificate ID:
+<span id="certIdText">—</span>
+</div>
 
-      <button
-        class="primary"
-        id="verificationBtn"
-      >
-        🔎 Verify Certificate
-      </button>
 
-    </div>
+<div class="meta meta3">
+Certificate No:
+<span id="certNoText">—</span>
+</div>
 
-  </section>
 
-</main>
+<div class="meta meta4">
+Issue Date:
+<span id="issueText">—</span>
+</div>
 
 
-<!-- Supabase -->
+<div class="meta meta5">
+Expiry Date:
+<span id="expiryText">—</span>
+</div>
+
+
+<div class="meta meta6">
+Status: VALID
+</div>
+
+
+<div id="qrBox"></div>
+
+
+<div id="verifyText">
+SCAN TO VERIFY
+</div>
+
+
+<div id="sig1" class="sig">
+
+<div class="line"></div>
+
+<b id="directorText">
+Abdirahman H. Mohamed
+</b>
+
+DIRECTOR — GAAWOW ACADEMY
+
+</div>
+
+
+<div id="sig2" class="sig">
+
+<div class="line"></div>
+
+<b id="academicText">
+Hodan Yusuf
+</b>
+
+ACADEMIC HEAD — GAAWOW ACADEMY
+
+</div>
+
+
+<div class="seal">
+
+GAAWOW<br>
+OFFICIAL<br>
+SEAL
+
+</div>
+
+
+</div>
+
+</div>
+
+</section>
+
+</div>
+
+</div>
+
+
+<!-- LIBRARIES -->
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- QR -->
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
-<!-- PDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-<script src="certificate-generator.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+
+<script src="./certificate-generator-v3.js"></script>
 
 </body>
 </html>
