@@ -1,18 +1,30 @@
 /* =========================================================
    GAAWOW EMS
-   Certificate Generator V7.4
-   DATABASE-SAFE / TEMPLATE-BASED VERSION
+   Certificate Generator V7.5
+   ---------------------------------------------------------
+   FLOW:
 
-   HTML:
-   certificate.html V7.4
+   Logged User
+      ↓
+   profiles
+      ↓
+   role / institution
+      ↓
+   institutions
+      ↓
+   students
+      ↓
+   enrollments
+      ↓
+   courses
+      ↓
+   certificate
 
-   TEMPLATE:
-   certificate-template.png
-   Location:
-   Same folder as certificate.html
-
-   SUPABASE:
-   https://mytyvqwrxnxpxnxpiicj.supabase.co
+   IMPORTANT:
+   - Super Admin can select Institution A/B
+   - School Admin / Teacher gets own Institution
+   - Students are filtered by Institution
+   - No hard-coded institution
 ========================================================= */
 
 "use strict";
@@ -24,43 +36,38 @@
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
+/*
+   IMPORTANT:
+   Geli ANON / PUBLIC KEY-gaaga saxda ah halkan.
+
+   HA GELIN service_role key.
+*/
 const SUPABASE_KEY =
-  "YOUR_SUPABASE_ANON_KEY";
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
 
 let supabaseClient = null;
-
-try {
-  if (
-    typeof window.supabase !== "undefined" &&
-    typeof window.supabase.createClient === "function"
-  ) {
-    supabaseClient = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY
-    );
-  } else {
-    console.error("Supabase library was not loaded.");
-  }
-} catch (error) {
-  console.error("Supabase initialization error:", error);
-}
 
 
 /* =========================================================
    2. GLOBAL STATE
 ========================================================= */
 
+let currentUser = null;
+let currentProfile = null;
+
+let institutionsCache = [];
 let studentsCache = [];
 let enrollmentsCache = [];
 let coursesCache = [];
 
+let selectedInstitution = null;
 let selectedStudent = null;
 let selectedEnrollment = null;
 let selectedCourse = null;
 
 let templateImage = null;
 let studentImage = null;
-
 let generatedCertificate = null;
 
 const TEMPLATE_PATH = "certificate-template.png";
@@ -70,7 +77,41 @@ const CANVAS_HEIGHT = 1024;
 
 
 /* =========================================================
-   3. DOM HELPERS
+   3. SUPABASE INITIALIZATION
+========================================================= */
+
+function initializeSupabase() {
+
+  if (
+    !window.supabase ||
+    typeof window.supabase.createClient !== "function"
+  ) {
+    throw new Error(
+      "Supabase JavaScript library lama load-gareyn."
+    );
+  }
+
+  if (
+    !SUPABASE_KEY ||
+    SUPABASE_KEY === "YOUR_SUPABASE_ANON_KEY"
+  ) {
+    throw new Error(
+      "SUPABASE_KEY wali lama gelin. Geli anon/public key-gaaga saxda ah."
+    );
+  }
+
+  supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+  return supabaseClient;
+}
+
+
+/* =========================================================
+   4. DOM HELPERS
 ========================================================= */
 
 function $(id) {
@@ -78,239 +119,586 @@ function $(id) {
 }
 
 function getValue(id) {
-  const el = $(id);
-  return el ? String(el.value || "").trim() : "";
+
+  const element = $(id);
+
+  if (!element) {
+    return "";
+  }
+
+  return String(
+    element.value || ""
+  ).trim();
 }
 
 function setValue(id, value) {
-  const el = $(id);
-  if (el) {
-    el.value = value ?? "";
+
+  const element = $(id);
+
+  if (element) {
+    element.value = value ?? "";
   }
-}
-
-function setSelectOptions(selectId, options, placeholder) {
-  const select = $(selectId);
-
-  if (!select) return;
-
-  select.innerHTML = "";
-
-  const first = document.createElement("option");
-  first.value = "";
-  first.textContent = placeholder || "Select";
-  select.appendChild(first);
-
-  options.forEach(option => {
-    const opt = document.createElement("option");
-
-    opt.value = option.value;
-    opt.textContent = option.label;
-
-    select.appendChild(opt);
-  });
 }
 
 
 /* =========================================================
-   4. MESSAGE SYSTEM
+   5. MESSAGE
 ========================================================= */
 
-function showMessage(message, type = "info") {
+function showMessage(
+  message,
+  type = "info"
+) {
+
   const box = $("message");
 
-  if (!box) return;
+  if (!box) {
+    console.log(message);
+    return;
+  }
 
-  box.className = "message " + type;
-  box.textContent = message;
-  box.style.display = "block";
+  box.className =
+    "message " + type;
+
+  box.textContent =
+    message;
+
+  box.style.display =
+    "block";
 }
 
 function hideMessage() {
-  const box = $("message");
+
+  const box =
+    $("message");
 
   if (!box) return;
 
-  box.style.display = "none";
-  box.textContent = "";
-  box.className = "message";
+  box.style.display =
+    "none";
+
+  box.textContent =
+    "";
+
+  box.className =
+    "message";
 }
 
 
 /* =========================================================
-   5. DATE HELPERS
+   6. SESSION / PROFILE
 ========================================================= */
 
-function todayISO() {
-  const date = new Date();
+async function loadCurrentUser() {
 
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.auth.getSession();
 
-  return `${year}-${month}-${day}`;
-}
-
-function formatDate(dateString) {
-  if (!dateString) return "";
-
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return dateString;
+  if (error) {
+    throw error;
   }
 
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  });
-}
+  currentUser =
+    data?.session?.user || null;
 
+  if (!currentUser) {
 
-/* =========================================================
-   6. RANDOM / ID GENERATORS
-========================================================= */
-
-function randomUpper(length = 6) {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-  let result = "";
-
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(
-      Math.floor(Math.random() * chars.length)
-    );
-  }
-
-  return result;
-}
-
-function generateCertificateNo() {
-  const year = new Date().getFullYear();
-
-  return `GA-CERT-${year}-${randomUpper(6)}`;
-}
-
-function generateCertificateId() {
-  return `GA-${Date.now()}-${randomUpper(4)}`;
-}
-
-function generateVerifyCode() {
-  return `GA-V-${randomUpper(10)}`;
-}
-
-
-/* =========================================================
-   7. SUPABASE CHECK
-========================================================= */
-
-function ensureSupabase() {
-  if (!supabaseClient) {
     throw new Error(
-      "Supabase lama bilaabin. Hubi Supabase CDN iyo SUPABASE_KEY."
+      "Login session lama helin. Fadlan marka hore login samee."
     );
   }
 
-  return true;
+  return currentUser;
 }
 
 
 /* =========================================================
-   8. LOAD TEMPLATE
+   7. LOAD PROFILE
 ========================================================= */
 
-function loadTemplate() {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
+async function loadCurrentProfile() {
 
-    img.onload = () => {
-      templateImage = img;
-      resolve(img);
-    };
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("profiles")
+      .select(`
+        id,
+        full_name,
+        role,
+        institution_id
+      `)
+      .eq(
+        "id",
+        currentUser.id
+      )
+      .maybeSingle();
 
-    img.onerror = () => {
-      reject(
-        new Error(
-          `Certificate template lama helin: ${TEMPLATE_PATH}`
-        )
-      );
-    };
+  if (error) {
 
-    img.src = TEMPLATE_PATH;
+    console.error(
+      "Profile query error:",
+      error
+    );
+
+    throw error;
+  }
+
+  if (!data) {
+
+    throw new Error(
+      "Profile-ka user-kan lama helin."
+    );
+  }
+
+  currentProfile =
+    data;
+
+  console.log(
+    "Current profile:",
+    currentProfile
+  );
+
+  return currentProfile;
+}
+
+
+/* =========================================================
+   8. CREATE INSTITUTION SELECTOR
+========================================================= */
+
+function createInstitutionSelector() {
+
+  const existing =
+    $("institution_select");
+
+  if (existing) {
+    return existing;
+  }
+
+  const studentSelect =
+    $("student_select");
+
+  if (!studentSelect) {
+    return null;
+  }
+
+  const field =
+    document.createElement("div");
+
+  field.className =
+    "field";
+
+  field.innerHTML = `
+    <label for="institution_select">
+      Institution
+    </label>
+
+    <select id="institution_select">
+      <option value="">
+        Loading institutions...
+      </option>
+    </select>
+  `;
+
+  /*
+    Insert before Student field.
+  */
+
+  const studentField =
+    studentSelect.closest(".field");
+
+  if (studentField) {
+
+    studentField.parentNode.insertBefore(
+      field,
+      studentField
+    );
+
+  } else {
+
+    studentSelect.parentNode.insertBefore(
+      field,
+      studentSelect
+    );
+  }
+
+  return $("institution_select");
+}
+
+
+/* =========================================================
+   9. POPULATE SELECT
+========================================================= */
+
+function populateSelect(
+  selectId,
+  items,
+  placeholder
+) {
+
+  const select =
+    $(selectId);
+
+  if (!select) {
+    return;
+  }
+
+  select.innerHTML = "";
+
+  const first =
+    document.createElement("option");
+
+  first.value =
+    "";
+
+  first.textContent =
+    placeholder || "Select";
+
+  select.appendChild(
+    first
+  );
+
+  items.forEach(item => {
+
+    const option =
+      document.createElement("option");
+
+    option.value =
+      item.value;
+
+    option.textContent =
+      item.label;
+
+    select.appendChild(
+      option
+    );
   });
 }
 
 
 /* =========================================================
-   9. LOAD STUDENTS
+   10. LOAD INSTITUTIONS
+========================================================= */
+
+async function loadInstitutions() {
+
+  const select =
+    createInstitutionSelector();
+
+  if (!select) {
+    throw new Error(
+      "Institution selector lama abuuri karin."
+    );
+  }
+
+  select.innerHTML =
+    `<option value="">
+       Loading institutions...
+     </option>`;
+
+  let query =
+    supabaseClient
+      .from("institutions")
+      .select(`
+        id,
+        name
+      `)
+      .order(
+        "name",
+        {
+          ascending: true
+        }
+      );
+
+
+  /*
+    Super Admin:
+    sees all institutions.
+  */
+
+  if (
+    currentProfile.role !==
+    "super_admin"
+  ) {
+
+    if (
+      !currentProfile.institution_id
+    ) {
+
+      throw new Error(
+        "User-kan institution_id ma laha."
+      );
+    }
+
+    query =
+      query.eq(
+        "id",
+        currentProfile.institution_id
+      );
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await query;
+
+
+  if (error) {
+
+    console.error(
+      "Institutions error:",
+      error
+    );
+
+    throw error;
+  }
+
+
+  institutionsCache =
+    data || [];
+
+
+  populateSelect(
+    "institution_select",
+
+    institutionsCache.map(
+      institution => ({
+        value:
+          institution.id,
+
+        label:
+          institution.name
+      })
+    ),
+
+    "Select Institution"
+  );
+
+
+  /*
+    Non-super-admin:
+    automatically select own institution.
+  */
+
+  if (
+    currentProfile.role !==
+    "super_admin"
+  ) {
+
+    const select =
+      $("institution_select");
+
+    select.value =
+      currentProfile.institution_id;
+
+    selectedInstitution =
+      institutionsCache.find(
+        institution =>
+          institution.id ===
+          currentProfile.institution_id
+      );
+
+    await loadStudents();
+  }
+
+
+  /*
+    Super Admin:
+    waits for manual institution selection.
+  */
+
+  if (
+    currentProfile.role ===
+    "super_admin"
+  ) {
+
+    showMessage(
+      "Super Admin: marka hore dooro Institution.",
+      "info"
+    );
+  }
+}
+
+
+/* =========================================================
+   11. LOAD STUDENTS
 ========================================================= */
 
 async function loadStudents() {
-  ensureSupabase();
 
-  const select = $("student_select");
+  const institutionId =
+    getValue(
+      "institution_select"
+    );
 
-  if (select) {
-    select.innerHTML =
-      `<option value="">Loading students...</option>`;
+
+  if (!institutionId) {
+
+    studentsCache = [];
+
+    populateSelect(
+      "student_select",
+      [],
+      "Select Institution first"
+    );
+
+    return;
   }
 
+
+  selectedInstitution =
+    institutionsCache.find(
+      institution =>
+        String(institution.id) ===
+        String(institutionId)
+    );
+
+
+  const studentSelect =
+    $("student_select");
+
+  if (studentSelect) {
+
+    studentSelect.innerHTML =
+      `<option value="">
+        Loading students...
+       </option>`;
+  }
+
+
   try {
-    const { data, error } = await supabaseClient
-      .from("students")
-      .select(`
-        id,
-        institution_id,
-        profile_id,
-        student_id,
-        full_name,
-        gender,
-        date_of_birth,
-        phone,
-        email,
-        address,
-        photo_url,
-        admission_date,
-        status
-      `)
-      .order("full_name", { ascending: true });
+
+    /*
+      IMPORTANT:
+      Filter institution directly.
+      This prevents Student A/B mixing.
+    */
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from("students")
+        .select(`
+          id,
+          institution_id,
+          profile_id,
+          student_id,
+          full_name,
+          gender,
+          date_of_birth,
+          phone,
+          email,
+          address,
+          photo_url,
+          admission_date,
+          status
+        `)
+        .eq(
+          "institution_id",
+          institutionId
+        )
+        .order(
+          "full_name",
+          {
+            ascending: true
+          }
+        );
+
 
     if (error) {
+
+      console.error(
+        "Students Supabase error:",
+        error
+      );
+
       throw error;
     }
 
-    studentsCache = data || [];
 
-    const options = studentsCache.map(student => ({
-      value: student.id,
-      label:
-        `${student.full_name || "Unnamed Student"}`
-        + ` — ${student.student_id || student.id}`
-    }));
+    studentsCache =
+      data || [];
 
-    setSelectOptions(
+
+    populateSelect(
+
       "student_select",
-      options,
-      "Select Student"
+
+      studentsCache.map(
+        student => ({
+
+          value:
+            student.id,
+
+          label:
+            `${student.full_name || "Unnamed Student"} — ${
+              student.student_id || ""
+            }`
+
+        })
+      ),
+
+      studentsCache.length
+        ? "Select Student"
+        : "No students found"
     );
 
-    showMessage(
-      `${studentsCache.length} student(s) loaded successfully.`,
-      "success"
+
+    console.log(
+      "Students loaded:",
+      studentsCache
     );
+
+
+    if (
+      studentsCache.length === 0
+    ) {
+
+      showMessage(
+        `Institution-kan "${selectedInstitution?.name || ""}" students kuma jiraan.`,
+        "info"
+      );
+
+    } else {
+
+      showMessage(
+        `${studentsCache.length} student(s) loaded — ${selectedInstitution?.name || ""}`,
+        "success"
+      );
+    }
+
 
   } catch (error) {
-    console.error("loadStudents error:", error);
 
-    setSelectOptions(
-      "student_select",
-      [],
-      "Unable to load students"
+    console.error(
+      "loadStudents error:",
+      error
     );
 
+
+    populateSelect(
+      "student_select",
+      [],
+      "Students unavailable"
+    );
+
+
     showMessage(
-      "Students lama soo dejin. Hubi Supabase/RLS.",
+      "Students lama soo dejin. " +
+      (
+        error.message ||
+        "Hubi Supabase/RLS."
+      ),
       "error"
     );
   }
@@ -318,236 +706,339 @@ async function loadStudents() {
 
 
 /* =========================================================
-   10. STUDENT SELECTION
+   12. INSTITUTION CHANGE
 ========================================================= */
 
-async function handleStudentChange() {
-  const studentId = getValue("student_select");
+async function handleInstitutionChange() {
 
-  selectedStudent = null;
-  selectedEnrollment = null;
-  selectedCourse = null;
-
-  setValue("full_name", "");
-  setValue("student_id", "");
-  setValue("date_started", "");
-  setValue("date_completed", "");
-
-  setSelectOptions(
-    "course_select",
-    [],
-    "Loading courses..."
-  );
-
-  const photo = $("student_photo");
-
-  if (photo) {
-    photo.style.display = "none";
-    photo.removeAttribute("src");
-  }
-
-  if (!studentId) {
-    setSelectOptions(
-      "course_select",
-      [],
-      "Select student first"
+  const institutionId =
+    getValue(
+      "institution_select"
     );
 
-    drawCertificate();
-    return;
-  }
+  selectedInstitution =
+    institutionsCache.find(
+      institution =>
+        String(institution.id) ===
+        String(institutionId)
+    ) || null;
 
-  selectedStudent = studentsCache.find(
-    student => String(student.id) === String(studentId)
-  );
 
-  if (!selectedStudent) {
-    showMessage(
-      "Student-ka la doortay lama helin.",
-      "error"
-    );
-    return;
-  }
+  /*
+    Reset student/course
+  */
+
+  selectedStudent =
+    null;
+
+  selectedEnrollment =
+    null;
+
+  selectedCourse =
+    null;
+
+  studentsCache =
+    [];
+
+  enrollmentsCache =
+    [];
+
+  coursesCache =
+    [];
+
 
   setValue(
     "full_name",
-    selectedStudent.full_name || ""
+    ""
   );
 
   setValue(
     "student_id",
-    selectedStudent.student_id || ""
+    ""
   );
 
-  loadStudentPhoto(selectedStudent.photo_url);
+  setValue(
+    "date_started",
+    ""
+  );
 
-  await loadStudentEnrollments(selectedStudent);
+  setValue(
+    "date_completed",
+    ""
+  );
 
-  generateCertificateIdentifiers();
+
+  const photo =
+    $("student_photo");
+
+  if (photo) {
+
+    photo.style.display =
+      "none";
+
+    photo.removeAttribute(
+      "src"
+    );
+  }
+
+
+  populateSelect(
+    "course_select",
+    [],
+    "Select student first"
+  );
+
+
+  if (!institutionId) {
+
+    populateSelect(
+      "student_select",
+      [],
+      "Select Institution first"
+    );
+
+    drawCertificate();
+
+    return;
+  }
+
+
+  await loadStudents();
 
   drawCertificate();
 }
 
 
 /* =========================================================
-   11. LOAD STUDENT PHOTO
+   13. STUDENT CHANGE
 ========================================================= */
 
-function loadStudentPhoto(url) {
-  const preview = $("student_photo");
+async function handleStudentChange() {
 
-  studentImage = null;
+  const studentId =
+    getValue(
+      "student_select"
+    );
 
-  if (!url || !preview) {
-    if (preview) {
-      preview.style.display = "none";
-    }
+
+  selectedStudent =
+    null;
+
+  selectedEnrollment =
+    null;
+
+  selectedCourse =
+    null;
+
+
+  setValue(
+    "full_name",
+    ""
+  );
+
+  setValue(
+    "student_id",
+    ""
+  );
+
+  setValue(
+    "date_started",
+    ""
+  );
+
+  setValue(
+    "date_completed",
+    ""
+  );
+
+
+  populateSelect(
+    "course_select",
+    [],
+    "Loading courses..."
+  );
+
+
+  if (!studentId) {
+
+    drawCertificate();
+
     return;
   }
 
-  const img = new Image();
 
-  img.crossOrigin = "anonymous";
-
-  img.onload = () => {
-    studentImage = img;
-
-    preview.src = url;
-    preview.style.display = "block";
-
-    drawCertificate();
-  };
-
-  img.onerror = () => {
-    console.warn(
-      "Student photo lama load gareyn:",
-      url
+  selectedStudent =
+    studentsCache.find(
+      student =>
+        String(student.id) ===
+        String(studentId)
     );
 
-    if (preview) {
-      preview.style.display = "none";
-    }
 
-    studentImage = null;
-  };
+  if (!selectedStudent) {
 
-  img.src = url;
+    showMessage(
+      "Student-ka lama helin.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  setValue(
+    "full_name",
+    selectedStudent.full_name
+  );
+
+  setValue(
+    "student_id",
+    selectedStudent.student_id
+  );
+
+
+  loadStudentPhoto(
+    selectedStudent.photo_url
+  );
+
+
+  generateCertificateIdentifiers();
+
+
+  await loadStudentEnrollments(
+    selectedStudent
+  );
+
+
+  drawCertificate();
 }
 
 
 /* =========================================================
-   12. LOAD ENROLLMENTS
+   14. LOAD ENROLLMENTS
 ========================================================= */
 
-async function loadStudentEnrollments(student) {
-  ensureSupabase();
+async function loadStudentEnrollments(
+  student
+) {
+
+  enrollmentsCache =
+    [];
+
 
   try {
-    /*
-      parent/child structure:
-      enrollments.student_id
-      enrollments.course_id
 
-      Haddii schema-gaaga uu isticmaalo profile_id
-      fallback ayaa hoose lagu sameeyay.
+    /*
+      Primary:
+      students.id UUID
     */
 
-    let data = null;
-    let error = null;
+    let result =
+      await supabaseClient
+        .from("enrollments")
+        .select(`
+          id,
+          student_id,
+          course_id,
+          institution_id,
+          status,
+          enrollment_date,
+          start_date,
+          completed_date,
+          completion_date
+        `)
+        .eq(
+          "student_id",
+          student.id
+        );
 
-    const firstQuery = await supabaseClient
-      .from("enrollments")
-      .select(`
-        id,
-        student_id,
-        course_id,
-        institution_id,
-        status,
-        enrollment_date,
-        start_date,
-        completed_date,
-        completion_date
-      `)
-      .eq("student_id", student.id);
-
-    data = firstQuery.data;
-    error = firstQuery.error;
 
     /*
-      Haddii student.id uusan ahayn enrollments.student_id,
-      isku day student_id-ka public-ka ah.
+      Fallback:
+      public student_id
+      e.g. TEST-STUDENT-A
     */
 
     if (
-      error ||
-      !data ||
-      data.length === 0
+      result.error ||
+      !result.data ||
+      result.data.length === 0
     ) {
-      if (student.student_id) {
-        const fallbackQuery = await supabaseClient
-          .from("enrollments")
-          .select(`
-            id,
-            student_id,
-            course_id,
-            institution_id,
-            status,
-            enrollment_date,
-            start_date,
-            completed_date,
-            completion_date
-          `)
-          .eq(
-            "student_id",
-            student.student_id
-          );
 
-        if (!fallbackQuery.error) {
-          data = fallbackQuery.data;
-          error = null;
-        }
+      if (
+        student.student_id
+      ) {
+
+        result =
+          await supabaseClient
+            .from("enrollments")
+            .select(`
+              id,
+              student_id,
+              course_id,
+              institution_id,
+              status,
+              enrollment_date,
+              start_date,
+              completed_date,
+              completion_date
+            `)
+            .eq(
+              "student_id",
+              student.student_id
+            );
       }
     }
 
-    if (error) {
-      throw error;
+
+    if (result.error) {
+
+      throw result.error;
     }
 
-    enrollmentsCache = data || [];
 
-    if (enrollmentsCache.length === 0) {
-      setSelectOptions(
+    enrollmentsCache =
+      result.data || [];
+
+
+    if (
+      enrollmentsCache.length === 0
+    ) {
+
+      populateSelect(
         "course_select",
         [],
         "No enrollment found"
       );
 
       showMessage(
-        "Student-kan enrollment/course looma helin.",
+        "Student-kan enrollment looma helin.",
         "info"
       );
 
       return;
     }
 
-    await loadCoursesForEnrollments(
-      enrollmentsCache
-    );
 
-  } catch (error) {
+    await loadCourses();
+  }
+
+  catch (error) {
+
     console.error(
-      "loadStudentEnrollments error:",
+      "Enrollment error:",
       error
     );
 
-    setSelectOptions(
+    populateSelect(
       "course_select",
       [],
-      "Unable to load courses"
+      "Enrollment unavailable"
     );
 
     showMessage(
-      "Enrollments lama soo dejin.",
+      "Enrollment lama soo dejin: " +
+      error.message,
       "error"
     );
   }
@@ -555,22 +1046,29 @@ async function loadStudentEnrollments(student) {
 
 
 /* =========================================================
-   13. LOAD COURSES
+   15. LOAD COURSES
 ========================================================= */
 
-async function loadCoursesForEnrollments(enrollments) {
-  ensureSupabase();
+async function loadCourses() {
 
-  const courseIds = [
-    ...new Set(
-      enrollments
-        .map(row => row.course_id)
-        .filter(Boolean)
-    )
-  ];
+  const courseIds =
+    [
+      ...new Set(
+        enrollmentsCache
+          .map(
+            enrollment =>
+              enrollment.course_id
+          )
+          .filter(Boolean)
+      )
+    ];
 
-  if (courseIds.length === 0) {
-    setSelectOptions(
+
+  if (
+    courseIds.length === 0
+  ) {
+
+    populateSelect(
       "course_select",
       [],
       "No course linked"
@@ -579,8 +1077,12 @@ async function loadCoursesForEnrollments(enrollments) {
     return;
   }
 
-  try {
-    const { data, error } = await supabaseClient
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
       .from("courses")
       .select(`
         id,
@@ -590,188 +1092,454 @@ async function loadCoursesForEnrollments(enrollments) {
         description,
         is_active
       `)
-      .in("id", courseIds)
-      .order("name", {
-        ascending: true
-      });
+      .in(
+        "id",
+        courseIds
+      )
+      .order(
+        "name",
+        {
+          ascending: true
+        }
+      );
 
-    if (error) {
-      throw error;
-    }
 
-    coursesCache = data || [];
+  if (error) {
 
-    const options = coursesCache.map(course => ({
-      value: course.id,
-      label:
-        `${course.name || "Unnamed Course"}`
-        + (course.code
-          ? ` — ${course.code}`
-          : "")
-    }));
-
-    setSelectOptions(
-      "course_select",
-      options,
-      "Select Course"
-    );
-
-    if (options.length === 1) {
-      $("course_select").value =
-        options[0].value;
-
-      await handleCourseChange();
-    }
-
-  } catch (error) {
     console.error(
-      "loadCoursesForEnrollments error:",
+      "Courses error:",
       error
     );
 
-    setSelectOptions(
-      "course_select",
-      [],
-      "Unable to load courses"
-    );
+    throw error;
+  }
 
-    showMessage(
-      "Courses lama soo dejin.",
-      "error"
-    );
+
+  coursesCache =
+    data || [];
+
+
+  populateSelect(
+
+    "course_select",
+
+    coursesCache.map(
+      course => ({
+
+        value:
+          course.id,
+
+        label:
+          `${course.name || "Unnamed Course"}${
+            course.code
+              ? " — " + course.code
+              : ""
+          }`
+
+      })
+    ),
+
+    coursesCache.length
+      ? "Select Course"
+      : "No courses found"
+  );
+
+
+  if (
+    coursesCache.length === 1
+  ) {
+
+    const select =
+      $("course_select");
+
+    select.value =
+      coursesCache[0].id;
+
+    await handleCourseChange();
   }
 }
 
 
 /* =========================================================
-   14. COURSE SELECTION
+   16. COURSE CHANGE
 ========================================================= */
 
 async function handleCourseChange() {
-  const courseId = getValue("course_select");
 
-  selectedEnrollment = null;
-  selectedCourse = null;
-
-  setValue("date_started", "");
-  setValue("date_completed", "");
-
-  if (!courseId) {
-    drawCertificate();
-    return;
-  }
-
-  selectedCourse = coursesCache.find(
-    course => String(course.id) === String(courseId)
-  );
-
-  selectedEnrollment = enrollmentsCache.find(
-    enrollment =>
-      String(enrollment.course_id) === String(courseId)
-  );
-
-  if (!selectedEnrollment) {
-    showMessage(
-      "Enrollment-ka course-kan lama helin.",
-      "error"
+  const courseId =
+    getValue(
+      "course_select"
     );
 
-    return;
-  }
 
-  const started =
-    selectedEnrollment.start_date ||
-    selectedEnrollment.enrollment_date ||
-    "";
+  selectedCourse =
+    coursesCache.find(
+      course =>
+        String(course.id) ===
+        String(courseId)
+    ) || null;
 
-  const completed =
-    selectedEnrollment.completed_date ||
-    selectedEnrollment.completion_date ||
-    "";
 
-  setValue(
-    "date_started",
-    normalizeDateInput(started)
-  );
+  selectedEnrollment =
+    enrollmentsCache.find(
+      enrollment =>
+        String(enrollment.course_id) ===
+        String(courseId)
+    ) || null;
 
-  setValue(
-    "date_completed",
-    normalizeDateInput(completed)
-  );
 
-  if (!getValue("issue_date")) {
+  if (!selectedCourse) {
+
     setValue(
-      "issue_date",
-      normalizeDateInput(completed) ||
-      todayISO()
+      "date_started",
+      ""
     );
+
+    setValue(
+      "date_completed",
+      ""
+    );
+
+    drawCertificate();
+
+    return;
   }
+
+
+  if (selectedEnrollment) {
+
+    const started =
+      selectedEnrollment.start_date ||
+      selectedEnrollment.enrollment_date ||
+      "";
+
+    const completed =
+      selectedEnrollment.completed_date ||
+      selectedEnrollment.completion_date ||
+      "";
+
+
+    setValue(
+      "date_started",
+      normalizeDateInput(
+        started
+      )
+    );
+
+    setValue(
+      "date_completed",
+      normalizeDateInput(
+        completed
+      ) || ""
+    );
+
+
+    if (
+      !getValue("issue_date")
+    ) {
+
+      setValue(
+        "issue_date",
+        normalizeDateInput(
+          completed
+        ) || todayISO()
+      );
+    }
+  }
+
 
   generateCertificateIdentifiers();
 
   drawCertificate();
 
+
   showMessage(
-    "Course iyo enrollment waa la doortay.",
+    `Course selected: ${selectedCourse.name}`,
     "success"
   );
 }
 
 
 /* =========================================================
-   15. DATE NORMALIZER
+   17. STUDENT PHOTO
 ========================================================= */
 
-function normalizeDateInput(value) {
-  if (!value) return "";
+function loadStudentPhoto(
+  url
+) {
 
-  const stringValue = String(value);
+  studentImage =
+    null;
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) {
-    return stringValue;
+  const preview =
+    $("student_photo");
+
+
+  if (!url) {
+
+    if (preview) {
+      preview.style.display =
+        "none";
+    }
+
+    return;
   }
 
-  const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
+  const img =
+    new Image();
 
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0")
-  ].join("-");
+  img.crossOrigin =
+    "anonymous";
+
+
+  img.onload = () => {
+
+    studentImage =
+      img;
+
+    if (preview) {
+
+      preview.src =
+        url;
+
+      preview.style.display =
+        "block";
+    }
+
+    drawCertificate();
+  };
+
+
+  img.onerror = () => {
+
+    console.warn(
+      "Student photo could not be loaded."
+    );
+
+    studentImage =
+      null;
+
+    if (preview) {
+      preview.style.display =
+        "none";
+    }
+
+    drawCertificate();
+  };
+
+
+  img.src =
+    url;
 }
 
 
 /* =========================================================
-   16. CERTIFICATE IDENTIFIERS
+   18. DATE HELPERS
 ========================================================= */
 
+function todayISO() {
+
+  const date =
+    new Date();
+
+  return [
+    date.getFullYear(),
+
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0"),
+
+    String(
+      date.getDate()
+    ).padStart(2, "0")
+
+  ].join("-");
+}
+
+
+function normalizeDateInput(
+  value
+) {
+
+  if (!value) {
+    return "";
+  }
+
+  const stringValue =
+    String(value);
+
+
+  if (
+    /^\d{4}-\d{2}-\d{2}$/.test(
+      stringValue
+    )
+  ) {
+
+    return stringValue;
+  }
+
+
+  const date =
+    new Date(value);
+
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+
+    return "";
+  }
+
+
+  return [
+    date.getFullYear(),
+
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0"),
+
+    String(
+      date.getDate()
+    ).padStart(2, "0")
+
+  ].join("-");
+}
+
+
+function formatDate(
+  value
+) {
+
+  if (!value) {
+    return "";
+  }
+
+  const date =
+    new Date(value);
+
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+
+    return value;
+  }
+
+
+  return date.toLocaleDateString(
+    "en-GB",
+    {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    }
+  );
+}
+
+
+/* =========================================================
+   19. CERTIFICATE IDS
+========================================================= */
+
+function randomCode(
+  length = 6
+) {
+
+  const chars =
+    "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+  let output =
+    "";
+
+  for (
+    let i = 0;
+    i < length;
+    i++
+  ) {
+
+    output +=
+      chars.charAt(
+        Math.floor(
+          Math.random() *
+          chars.length
+        )
+      );
+  }
+
+  return output;
+}
+
+
+function generateCertificateNo() {
+
+  return `GA-CERT-${new Date().getFullYear()}-${randomCode(6)}`;
+}
+
+
+function generateCertificateId() {
+
+  return `GA-${Date.now()}-${randomCode(4)}`;
+}
+
+
+function generateVerifyCode() {
+
+  return `GA-V-${randomCode(10)}`;
+}
+
+
 function generateCertificateIdentifiers() {
-  if (!getValue("certificate_no")) {
+
+  if (
+    !getValue(
+      "certificate_no"
+    )
+  ) {
+
     setValue(
       "certificate_no",
       generateCertificateNo()
     );
   }
 
-  if (!getValue("certificate_id")) {
+
+  if (
+    !getValue(
+      "certificate_id"
+    )
+  ) {
+
     setValue(
       "certificate_id",
       generateCertificateId()
     );
   }
 
-  if (!getValue("verify_code")) {
+
+  if (
+    !getValue(
+      "verify_code"
+    )
+  ) {
+
     setValue(
       "verify_code",
       generateVerifyCode()
     );
   }
 
-  if (!getValue("issue_date")) {
+
+  if (
+    !getValue(
+      "issue_date"
+    )
+  ) {
+
     setValue(
       "issue_date",
       todayISO()
@@ -781,29 +1549,54 @@ function generateCertificateIdentifiers() {
 
 
 /* =========================================================
-   17. CANVAS HELPERS
+   20. TEMPLATE
+========================================================= */
+
+function loadTemplate() {
+
+  return new Promise(
+    (resolve, reject) => {
+
+      const image =
+        new Image();
+
+      image.onload =
+        () => {
+
+          templateImage =
+            image;
+
+          resolve(image);
+        };
+
+
+      image.onerror =
+        () => {
+
+          reject(
+            new Error(
+              `Template lama helin: ${TEMPLATE_PATH}`
+            )
+          );
+        };
+
+
+      image.src =
+        TEMPLATE_PATH;
+    }
+  );
+}
+
+
+/* =========================================================
+   21. CANVAS
 ========================================================= */
 
 function getCanvas() {
+
   return $("certificateCanvas");
 }
 
-function clearCanvas() {
-  const canvas = getCanvas();
-
-  if (!canvas) return null;
-
-  const ctx = canvas.getContext("2d");
-
-  ctx.clearRect(
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-  return ctx;
-}
 
 function drawImageCover(
   ctx,
@@ -813,190 +1606,65 @@ function drawImageCover(
   width,
   height
 ) {
+
   if (!image) return;
 
-  const iw = image.naturalWidth || image.width;
-  const ih = image.naturalHeight || image.height;
+  const iw =
+    image.naturalWidth ||
+    image.width;
 
-  const scale = Math.max(
-    width / iw,
-    height / ih
-  );
+  const ih =
+    image.naturalHeight ||
+    image.height;
 
-  const sw = iw * scale;
-  const sh = ih * scale;
 
-  const dx =
-    x + (width - sw) / 2;
+  const scale =
+    Math.max(
+      width / iw,
+      height / ih
+    );
 
-  const dy =
-    y + (height - sh) / 2;
+
+  const w =
+    iw * scale;
+
+  const h =
+    ih * scale;
+
 
   ctx.drawImage(
     image,
-    dx,
-    dy,
-    sw,
-    sh
-  );
-}
 
-function drawImageContain(
-  ctx,
-  image,
-  x,
-  y,
-  width,
-  height
-) {
-  if (!image) return;
+    x +
+      (width - w) / 2,
 
-  const iw = image.naturalWidth || image.width;
-  const ih = image.naturalHeight || image.height;
+    y +
+      (height - h) / 2,
 
-  const scale = Math.min(
-    width / iw,
-    height / ih
-  );
-
-  const sw = iw * scale;
-  const sh = ih * scale;
-
-  const dx =
-    x + (width - sw) / 2;
-
-  const dy =
-    y + (height - sh) / 2;
-
-  ctx.drawImage(
-    image,
-    dx,
-    dy,
-    sw,
-    sh
+    w,
+    h
   );
 }
 
 
-/* =========================================================
-   18. TEXT HELPERS
-========================================================= */
-
-function fitText(
-  ctx,
-  text,
-  maxWidth,
-  startingSize,
-  fontFamily = "Arial"
+function drawStudentPhoto(
+  ctx
 ) {
-  let size = startingSize;
 
-  while (
-    size > 16 &&
-    ctx.measureText(text).width > maxWidth
-  ) {
-    size -= 1;
-
-    ctx.font =
-      `700 ${size}px ${fontFamily}`;
+  if (!studentImage) {
+    return;
   }
 
-  return size;
-}
 
-function drawCenteredText(
-  ctx,
-  text,
-  x,
-  y,
-  maxWidth,
-  fontSize,
-  weight = 700,
-  family = "Arial"
-) {
-  if (!text) return;
+  const x =
+    112;
 
-  let size = fontSize;
+  const y =
+    290;
 
-  ctx.font =
-    `${weight} ${size}px ${family}`;
+  const size =
+    190;
 
-  size = fitText(
-    ctx,
-    text,
-    maxWidth,
-    size,
-    family
-  );
-
-  ctx.font =
-    `${weight} ${size}px ${family}`;
-
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
-  ctx.fillText(
-    text,
-    x,
-    y
-  );
-}
-
-function drawLeftText(
-  ctx,
-  text,
-  x,
-  y,
-  maxWidth,
-  fontSize,
-  weight = 400,
-  family = "Arial"
-) {
-  if (!text) return;
-
-  let size = fontSize;
-
-  ctx.font =
-    `${weight} ${size}px ${family}`;
-
-  size = fitText(
-    ctx,
-    text,
-    maxWidth,
-    size,
-    family
-  );
-
-  ctx.font =
-    `${weight} ${size}px ${family}`;
-
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-
-  ctx.fillText(
-    text,
-    x,
-    y
-  );
-}
-
-
-/* =========================================================
-   19. STUDENT PHOTO DRAWING
-========================================================= */
-
-function drawStudentPhoto(ctx) {
-  if (!studentImage) return;
-
-  /*
-    Default photo position.
-    Waxaa si fudud looga beddeli karaa halkan
-    haddii template-ka booska sawirku ka duwan yahay.
-  */
-
-  const x = 112;
-  const y = 290;
-  const size = 190;
 
   ctx.save();
 
@@ -1010,8 +1678,8 @@ function drawStudentPhoto(ctx) {
     Math.PI * 2
   );
 
-  ctx.closePath();
   ctx.clip();
+
 
   drawImageCover(
     ctx,
@@ -1022,12 +1690,17 @@ function drawStudentPhoto(ctx) {
     size
   );
 
+
   ctx.restore();
+
 
   ctx.save();
 
-  ctx.strokeStyle = "#D4AF37";
-  ctx.lineWidth = 5;
+  ctx.strokeStyle =
+    "#D4AF37";
+
+  ctx.lineWidth =
+    5;
 
   ctx.beginPath();
 
@@ -1046,26 +1719,121 @@ function drawStudentPhoto(ctx) {
 
 
 /* =========================================================
-   20. CERTIFICATE DRAW
+   22. TEXT
+========================================================= */
+
+function fitText(
+  ctx,
+  text,
+  maxWidth,
+  fontSize,
+  weight = 700
+) {
+
+  let size =
+    fontSize;
+
+
+  while (
+    size > 14
+  ) {
+
+    ctx.font =
+      `${weight} ${size}px Arial`;
+
+    if (
+      ctx.measureText(text).width <=
+      maxWidth
+    ) {
+
+      break;
+    }
+
+    size--;
+  }
+
+
+  return size;
+}
+
+
+function drawCenteredText(
+  ctx,
+  text,
+  x,
+  y,
+  maxWidth,
+  fontSize,
+  weight = 700
+) {
+
+  if (!text) return;
+
+
+  const size =
+    fitText(
+      ctx,
+      text,
+      maxWidth,
+      fontSize,
+      weight
+    );
+
+
+  ctx.font =
+    `${weight} ${size}px Arial`;
+
+  ctx.textAlign =
+    "center";
+
+  ctx.textBaseline =
+    "middle";
+
+  ctx.fillStyle =
+    "#111827";
+
+
+  ctx.fillText(
+    text,
+    x,
+    y
+  );
+}
+
+
+/* =========================================================
+   23. DRAW CERTIFICATE
 ========================================================= */
 
 function drawCertificate() {
-  const canvas = getCanvas();
 
-  if (!canvas) return;
+  const canvas =
+    getCanvas();
 
-  canvas.width = CANVAS_WIDTH;
-  canvas.height = CANVAS_HEIGHT;
+  if (!canvas) {
+    return;
+  }
 
-  const ctx = clearCanvas();
 
-  if (!ctx) return;
+  canvas.width =
+    CANVAS_WIDTH;
+
+  canvas.height =
+    CANVAS_HEIGHT;
+
+
+  const ctx =
+    canvas.getContext(
+      "2d"
+    );
+
 
   /*
-    BACKGROUND TEMPLATE
+    Background
   */
 
   if (templateImage) {
+
     drawImageCover(
       ctx,
       templateImage,
@@ -1074,8 +1842,11 @@ function drawCertificate() {
       CANVAS_WIDTH,
       CANVAS_HEIGHT
     );
+
   } else {
-    ctx.fillStyle = "#ffffff";
+
+    ctx.fillStyle =
+      "#ffffff";
 
     ctx.fillRect(
       0,
@@ -1085,63 +1856,80 @@ function drawCertificate() {
     );
   }
 
+
   /*
-    STUDENT PHOTO
+    Student photo
   */
 
-  drawStudentPhoto(ctx);
+  drawStudentPhoto(
+    ctx
+  );
+
 
   /*
-    DATA
+    Certificate data
   */
 
   const studentName =
-    getValue("full_name") ||
+    getValue(
+      "full_name"
+    ) ||
     "STUDENT NAME";
+
 
   const courseName =
     selectedCourse?.name ||
     "COURSE NAME";
 
+
   const studentId =
-    getValue("student_id");
+    getValue(
+      "student_id"
+    );
+
 
   const certificateNo =
-    getValue("certificate_no");
+    getValue(
+      "certificate_no"
+    );
 
-  const certificateId =
-    getValue("certificate_id");
 
   const verifyCode =
-    getValue("verify_code");
+    getValue(
+      "verify_code"
+    );
+
 
   const issueDate =
-    getValue("issue_date");
+    getValue(
+      "issue_date"
+    );
+
 
   const completedDate =
-    getValue("date_completed");
+    getValue(
+      "date_completed"
+    );
+
 
   const director =
-    getValue("director_name");
+    getValue(
+      "director_name"
+    );
+
 
   const academicHead =
-    getValue("academic_head_name");
+    getValue(
+      "academic_head_name"
+    );
+
 
   /*
-    ---------------------------------------------------------
-    IMPORTANT
-    ---------------------------------------------------------
-    These coordinates are intentionally separated so the
-    certificate design can be adjusted without changing
-    the database logic.
-
-    If your PNG has different text spaces, only change
-    these coordinates.
+    NOTE:
+    Coordinates-kaan waxaa lagu hagaajin karaa
+    template-kaaga haddii loo baahdo.
   */
 
-  /*
-    STUDENT NAME
-  */
 
   drawCenteredText(
     ctx,
@@ -1150,13 +1938,9 @@ function drawCertificate() {
     455,
     1120,
     54,
-    700,
-    "Arial"
+    700
   );
 
-  /*
-    COURSE
-  */
 
   drawCenteredText(
     ctx,
@@ -1165,15 +1949,12 @@ function drawCertificate() {
     545,
     1050,
     38,
-    700,
-    "Arial"
+    700
   );
 
-  /*
-    STUDENT ID
-  */
 
   if (studentId) {
+
     drawCenteredText(
       ctx,
       `Student ID: ${studentId}`,
@@ -1181,16 +1962,13 @@ function drawCertificate() {
       610,
       800,
       24,
-      600,
-      "Arial"
+      600
     );
   }
 
-  /*
-    COMPLETION DATE
-  */
 
   if (completedDate) {
+
     drawCenteredText(
       ctx,
       `Completed: ${formatDate(completedDate)}`,
@@ -1198,16 +1976,13 @@ function drawCertificate() {
       655,
       800,
       22,
-      500,
-      "Arial"
+      500
     );
   }
 
-  /*
-    ISSUE DATE
-  */
 
   if (issueDate) {
+
     drawCenteredText(
       ctx,
       `Issued: ${formatDate(issueDate)}`,
@@ -1215,33 +1990,27 @@ function drawCertificate() {
       700,
       800,
       22,
-      500,
-      "Arial"
+      500
     );
   }
 
-  /*
-    CERTIFICATE NUMBER
-  */
 
   if (certificateNo) {
-    drawLeftText(
+
+    drawCenteredText(
       ctx,
       `Certificate No: ${certificateNo}`,
-      90,
+      250,
       900,
-      500,
+      430,
       20,
-      600,
-      "Arial"
+      600
     );
   }
 
-  /*
-    VERIFY CODE
-  */
 
   if (verifyCode) {
+
     drawCenteredText(
       ctx,
       `Verify Code: ${verifyCode}`,
@@ -1249,16 +2018,13 @@ function drawCertificate() {
       900,
       500,
       20,
-      600,
-      "Arial"
+      600
     );
   }
 
-  /*
-    SIGNATORIES
-  */
 
   if (director) {
+
     drawCenteredText(
       ctx,
       director,
@@ -1266,12 +2032,13 @@ function drawCertificate() {
       835,
       350,
       22,
-      700,
-      "Arial"
+      700
     );
   }
 
+
   if (academicHead) {
+
     drawCenteredText(
       ctx,
       academicHead,
@@ -1279,372 +2046,76 @@ function drawCertificate() {
       835,
       350,
       22,
-      700,
-      "Arial"
+      700
     );
   }
-
-  /*
-    STATUS
-  */
-
-  const status =
-    getValue("status");
-
-  if (status) {
-    drawCenteredText(
-      ctx,
-      status.toUpperCase(),
-      768,
-      950,
-      400,
-      18,
-      700,
-      "Arial"
-    );
-  }
-
-  generatedCertificate = {
-    student_id: selectedStudent?.id || null,
-    course_id: selectedCourse?.id || null,
-    enrollment_id:
-      selectedEnrollment?.id || null,
-    certificate_no: certificateNo,
-    certificate_id: certificateId,
-    verify_code: verifyCode
-  };
-
-  return canvas;
 }
 
 
 /* =========================================================
-   21. GENERATE CERTIFICATE
+   24. GENERATE
 ========================================================= */
 
 function generateCertificate() {
+
   hideMessage();
 
+
   try {
-    if (!selectedStudent) {
+
+    if (!selectedInstitution) {
+
       showMessage(
-        "Fadlan marka hore dooro Student.",
+        "Fadlan dooro Institution.",
         "error"
       );
+
       return;
     }
 
+
+    if (!selectedStudent) {
+
+      showMessage(
+        "Fadlan dooro Student.",
+        "error"
+      );
+
+      return;
+    }
+
+
     if (!selectedCourse) {
+
       showMessage(
         "Fadlan dooro Course.",
         "error"
       );
+
       return;
     }
+
 
     generateCertificateIdentifiers();
 
     drawCertificate();
 
+
     showMessage(
-      "Certificate-ka si guul leh ayaa loo generate gareeyay.",
+      "Certificate-ka waa la generate gareeyay.",
       "success"
     );
 
-  } catch (error) {
-    console.error(
-      "generateCertificate error:",
-      error
-    );
-
-    showMessage(
-      "Generate error: " + error.message,
-      "error"
-    );
   }
-}
 
+  catch (error) {
 
-/* =========================================================
-   22. PREVIEW
-========================================================= */
-
-function previewCertificate() {
-  try {
-    generateCertificate();
-
-    const stage =
-      document.querySelector(".stage");
-
-    if (stage) {
-      stage.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }
-
-  } catch (error) {
     console.error(
-      "previewCertificate error:",
-      error
-    );
-  }
-}
-
-
-/* =========================================================
-   23. SAVE CERTIFICATE
-========================================================= */
-
-async function saveCertificate() {
-  hideMessage();
-
-  try {
-    ensureSupabase();
-
-    if (!selectedStudent) {
-      showMessage(
-        "Student lama dooran.",
-        "error"
-      );
-      return;
-    }
-
-    if (!selectedCourse) {
-      showMessage(
-        "Course lama dooran.",
-        "error"
-      );
-      return;
-    }
-
-    generateCertificateIdentifiers();
-    drawCertificate();
-
-    const certificateNo =
-      getValue("certificate_no");
-
-    const certificateId =
-      getValue("certificate_id");
-
-    const verifyCode =
-      getValue("verify_code");
-
-    const issueDate =
-      getValue("issue_date") ||
-      todayISO();
-
-    const status =
-      getValue("status") ||
-      "valid";
-
-    const expiryDate = null;
-
-    /*
-      DATABASE-SAFE certificate payload.
-
-      Fields that exist in the known certificates
-      schema are used here.
-    */
-
-    const payload = {
-      institution_id:
-        selectedStudent.institution_id || null,
-
-      student_id:
-        selectedStudent.id || null,
-
-      course_id:
-        selectedCourse.id || null,
-
-      certificate_no:
-        certificateNo,
-
-      certificate_id:
-        certificateId,
-
-      verify_code:
-        verifyCode,
-
-      student_name:
-        selectedStudent.full_name || null,
-
-      course_name:
-        selectedCourse.name || null,
-
-      issue_date:
-        issueDate,
-
-      expiry_date:
-        expiryDate,
-
-      status:
-        status
-    };
-
-    /*
-      Prevent duplicate certificate number.
-    */
-
-    const duplicateCheck =
-      await supabaseClient
-        .from("certificates")
-        .select("id,certificate_no")
-        .eq(
-          "certificate_no",
-          certificateNo
-        )
-        .limit(1);
-
-    if (duplicateCheck.error) {
-      console.warn(
-        "Duplicate check warning:",
-        duplicateCheck.error
-      );
-    }
-
-    if (
-      duplicateCheck.data &&
-      duplicateCheck.data.length > 0
-    ) {
-      showMessage(
-        "Certificate No-kan horey ayuu database-ka ugu jiraa. Samee New Certificate.",
-        "error"
-      );
-
-      return;
-    }
-
-    const { data, error } =
-      await supabaseClient
-        .from("certificates")
-        .insert(payload)
-        .select()
-        .single();
-
-    if (error) {
-      console.error(
-        "Supabase certificate insert error:",
-        error
-      );
-
-      throw error;
-    }
-
-    showMessage(
-      `Certificate waa la keydiyay. Certificate No: ${certificateNo}`,
-      "success"
-    );
-
-    generatedCertificate = data;
-
-  } catch (error) {
-    console.error(
-      "saveCertificate error:",
+      "Generate error:",
       error
     );
 
     showMessage(
-      "Save error: " +
-      (error.message || "Unknown error"),
-      "error"
-    );
-  }
-}
-
-
-/* =========================================================
-   24. HD DOWNLOAD
-========================================================= */
-
-function downloadCertificate() {
-  hideMessage();
-
-  try {
-    const canvas = drawCertificate();
-
-    if (!canvas) {
-      throw new Error(
-        "Certificate canvas lama helin."
-      );
-    }
-
-    if (
-      !getValue("full_name") ||
-      !selectedStudent
-    ) {
-      showMessage(
-        "Marka hore dooro Student.",
-        "error"
-      );
-      return;
-    }
-
-    if (!selectedCourse) {
-      showMessage(
-        "Marka hore dooro Course.",
-        "error"
-      );
-      return;
-    }
-
-    const studentName =
-      getValue("full_name")
-        .replace(/[^a-zA-Z0-9_-]/g, "_");
-
-    const certificateNo =
-      getValue("certificate_no")
-        .replace(/[^a-zA-Z0-9_-]/g, "_");
-
-    const filename =
-      `GAAWOW-Certificate-${studentName}-${certificateNo}.png`;
-
-    canvas.toBlob(
-      blob => {
-        if (!blob) {
-          showMessage(
-            "PNG generation failed.",
-            "error"
-          );
-          return;
-        }
-
-        const url =
-          URL.createObjectURL(blob);
-
-        const link =
-          document.createElement("a");
-
-        link.href = url;
-        link.download = filename;
-
-        document.body.appendChild(link);
-
-        link.click();
-
-        link.remove();
-
-        setTimeout(() => {
-          URL.revokeObjectURL(url);
-        }, 1000);
-
-        showMessage(
-          "HD Certificate PNG waa la diyaariyay.",
-          "success"
-        );
-      },
-      "image/png",
-      1.0
-    );
-
-  } catch (error) {
-    console.error(
-      "downloadCertificate error:",
-      error
-    );
-
-    showMessage(
-      "Download error: " +
       error.message,
       "error"
     );
@@ -1653,33 +2124,453 @@ function downloadCertificate() {
 
 
 /* =========================================================
-   25. NEW CERTIFICATE
+   25. PREVIEW
+========================================================= */
+
+function previewCertificate() {
+
+  generateCertificate();
+
+
+  const stage =
+    document.querySelector(
+      ".stage"
+    );
+
+
+  if (stage) {
+
+    stage.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+}
+
+
+/* =========================================================
+   26. SAVE
+========================================================= */
+
+async function saveCertificate() {
+
+  hideMessage();
+
+
+  try {
+
+    if (!selectedInstitution) {
+
+      showMessage(
+        "Institution lama dooran.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    if (!selectedStudent) {
+
+      showMessage(
+        "Student lama dooran.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    if (!selectedCourse) {
+
+      showMessage(
+        "Course lama dooran.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    generateCertificateIdentifiers();
+
+    drawCertificate();
+
+
+    const certificateNo =
+      getValue(
+        "certificate_no"
+      );
+
+
+    /*
+      Check duplicate
+    */
+
+    const duplicate =
+      await supabaseClient
+        .from("certificates")
+        .select(
+          "id,certificate_no"
+        )
+        .eq(
+          "certificate_no",
+          certificateNo
+        )
+        .limit(1);
+
+
+    if (
+      duplicate.error
+    ) {
+
+      console.warn(
+        "Duplicate check:",
+        duplicate.error
+      );
+    }
+
+
+    if (
+      duplicate.data &&
+      duplicate.data.length
+    ) {
+
+      showMessage(
+        "Certificate No-kan horey ayuu u jiraa. Riix New.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    /*
+      Known certificates fields
+    */
+
+    const payload = {
+
+      institution_id:
+        selectedInstitution.id,
+
+      student_id:
+        selectedStudent.id,
+
+      course_id:
+        selectedCourse.id,
+
+      certificate_no:
+        certificateNo,
+
+      certificate_id:
+        getValue(
+          "certificate_id"
+        ),
+
+      verify_code:
+        getValue(
+          "verify_code"
+        ),
+
+      student_name:
+        selectedStudent.full_name,
+
+      course_name:
+        selectedCourse.name,
+
+      issue_date:
+        getValue(
+          "issue_date"
+        ) || todayISO(),
+
+      expiry_date:
+        null,
+
+      status:
+        getValue(
+          "status"
+        ) || "valid"
+    };
+
+
+    console.log(
+      "Certificate payload:",
+      payload
+    );
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from("certificates")
+        .insert(
+          payload
+        )
+        .select()
+        .single();
+
+
+    if (error) {
+
+      console.error(
+        "Certificate insert error:",
+        error
+      );
+
+      throw error;
+    }
+
+
+    generatedCertificate =
+      data;
+
+
+    showMessage(
+      `Certificate waa la keydiyay — ${certificateNo}`,
+      "success"
+    );
+
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "Save certificate error:",
+      error
+    );
+
+    showMessage(
+      "Save error: " +
+      (
+        error.message ||
+        "Unknown error"
+      ),
+      "error"
+    );
+  }
+}
+
+
+/* =========================================================
+   27. HD DOWNLOAD
+========================================================= */
+
+function downloadCertificate() {
+
+  try {
+
+    if (!selectedStudent) {
+
+      showMessage(
+        "Marka hore dooro Student.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    if (!selectedCourse) {
+
+      showMessage(
+        "Marka hore dooro Course.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    generateCertificateIdentifiers();
+
+    drawCertificate();
+
+
+    const canvas =
+      getCanvas();
+
+
+    const studentName =
+      getValue(
+        "full_name"
+      )
+      .replace(
+        /[^a-zA-Z0-9_-]/g,
+        "_"
+      );
+
+
+    const certificateNo =
+      getValue(
+        "certificate_no"
+      )
+      .replace(
+        /[^a-zA-Z0-9_-]/g,
+        "_"
+      );
+
+
+    const filename =
+      `GAAWOW-Certificate-${studentName}-${certificateNo}.png`;
+
+
+    canvas.toBlob(
+      blob => {
+
+        if (!blob) {
+
+          showMessage(
+            "HD PNG lama abuuri karin.",
+            "error"
+          );
+
+          return;
+        }
+
+
+        const url =
+          URL.createObjectURL(
+            blob
+          );
+
+
+        const link =
+          document.createElement(
+            "a"
+          );
+
+
+        link.href =
+          url;
+
+        link.download =
+          filename;
+
+
+        document.body.appendChild(
+          link
+        );
+
+
+        link.click();
+
+        link.remove();
+
+
+        setTimeout(
+          () => {
+            URL.revokeObjectURL(
+              url
+            );
+          },
+          1000
+        );
+
+
+        showMessage(
+          "HD Certificate waa la download-gareeyay.",
+          "success"
+        );
+
+      },
+
+      "image/png",
+
+      1.0
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "Download error:",
+      error
+    );
+
+    showMessage(
+      error.message,
+      "error"
+    );
+  }
+}
+
+
+/* =========================================================
+   28. NEW
 ========================================================= */
 
 function newCertificate() {
-  selectedStudent = null;
-  selectedEnrollment = null;
-  selectedCourse = null;
 
-  studentImage = null;
+  selectedStudent =
+    null;
 
-  generatedCertificate = null;
+  selectedEnrollment =
+    null;
+
+  selectedCourse =
+    null;
+
+  selectedInstitution =
+    null;
+
+  studentImage =
+    null;
+
+
+  studentsCache =
+    [];
+
+  enrollmentsCache =
+    [];
+
+  coursesCache =
+    [];
+
 
   setValue(
-    "student_select",
+    "institution_select",
     ""
   );
 
-  setSelectOptions(
+
+  populateSelect(
+    "student_select",
+    [],
+    "Select Institution first"
+  );
+
+
+  populateSelect(
     "course_select",
     [],
     "Select student first"
   );
 
-  setValue("full_name", "");
-  setValue("student_id", "");
-  setValue("date_started", "");
-  setValue("date_completed", "");
+
+  setValue(
+    "full_name",
+    ""
+  );
+
+  setValue(
+    "student_id",
+    ""
+  );
+
+  setValue(
+    "date_started",
+    ""
+  );
+
+  setValue(
+    "date_completed",
+    ""
+  );
 
   setValue(
     "certificate_no",
@@ -1701,83 +2592,113 @@ function newCertificate() {
     todayISO()
   );
 
+
   setValue(
     "status",
     "graduated"
   );
 
+
   const photo =
     $("student_photo");
 
+
   if (photo) {
-    photo.style.display = "none";
-    photo.removeAttribute("src");
+
+    photo.style.display =
+      "none";
+
+    photo.removeAttribute(
+      "src"
+    );
   }
+
 
   hideMessage();
 
   drawCertificate();
-
-  showMessage(
-    "Certificate cusub ayaa diyaar ah.",
-    "info"
-  );
 }
 
 
 /* =========================================================
-   26. EVENT LISTENERS
+   29. EVENTS
 ========================================================= */
 
 function bindEvents() {
 
+  const institutionSelect =
+    $("institution_select");
+
+
+  if (institutionSelect) {
+
+    institutionSelect.addEventListener(
+      "change",
+      handleInstitutionChange
+    );
+  }
+
+
   const studentSelect =
     $("student_select");
 
+
   if (studentSelect) {
+
     studentSelect.addEventListener(
       "change",
       handleStudentChange
     );
   }
 
+
   const courseSelect =
     $("course_select");
 
+
   if (courseSelect) {
+
     courseSelect.addEventListener(
       "change",
       handleCourseChange
     );
   }
 
+
   [
     "issue_date",
     "status",
     "director_name",
     "academic_head_name"
-  ].forEach(id => {
+  ].forEach(
+    id => {
 
-    const element = $(id);
+      const element =
+        $(id);
 
-    if (element) {
+
+      if (!element) {
+        return;
+      }
+
+
       element.addEventListener(
         "input",
-        () => drawCertificate()
+        drawCertificate
       );
+
 
       element.addEventListener(
         "change",
-        () => drawCertificate()
+        drawCertificate
       );
     }
-
-  });
+  );
 }
 
 
 /* =========================================================
-   27. INITIALIZATION
+   30. INITIALIZATION
 ========================================================= */
 
 async function initCertificateGenerator() {
@@ -1785,22 +2706,63 @@ async function initCertificateGenerator() {
   try {
 
     console.log(
-      "GAAWOW EMS Certificate Generator V7.4 starting..."
+      "===================================="
     );
 
+    console.log(
+      "GAAWOW EMS Certificate V7.5"
+    );
+
+    console.log(
+      "Initializing..."
+    );
+
+    console.log(
+      "===================================="
+    );
+
+
     /*
-      Default issue date
+      Supabase
     */
 
-    if (!getValue("issue_date")) {
-      setValue(
-        "issue_date",
-        todayISO()
-      );
-    }
+    initializeSupabase();
+
 
     /*
-      Load template first
+      Session
+    */
+
+    await loadCurrentUser();
+
+
+    console.log(
+      "Logged user:",
+      currentUser.email
+    );
+
+
+    /*
+      Profile
+    */
+
+    await loadCurrentProfile();
+
+
+    console.log(
+      "Role:",
+      currentProfile.role
+    );
+
+
+    console.log(
+      "Institution:",
+      currentProfile.institution_id
+    );
+
+
+    /*
+      Template
     */
 
     try {
@@ -1808,54 +2770,97 @@ async function initCertificateGenerator() {
       await loadTemplate();
 
       console.log(
-        "Certificate template loaded:",
-        TEMPLATE_PATH
+        "Certificate template loaded."
       );
 
-    } catch (templateError) {
+    }
+
+    catch (error) {
 
       console.error(
-        templateError
+        "Template error:",
+        error
       );
 
       showMessage(
-        "Fiiro gaar ah: certificate-template.png lama helin. Hubi inuu ku jiro isla folder-ka certificate.html.",
+        "certificate-template.png lama helin. Hubi inuu isla folder-ka ku jiro.",
         "error"
       );
     }
 
+
     /*
-      Bind UI
+      Events
     */
+
+    createInstitutionSelector();
 
     bindEvents();
 
+
     /*
-      Initial canvas
+      Date
+    */
+
+    if (
+      !getValue(
+        "issue_date"
+      )
+    ) {
+
+      setValue(
+        "issue_date",
+        todayISO()
+      );
+    }
+
+
+    /*
+      Canvas
     */
 
     drawCertificate();
 
+
     /*
-      Load database
+      Institutions
     */
 
-    await loadStudents();
+    await loadInstitutions();
+
 
     console.log(
-      "GAAWOW EMS Certificate Generator V7.4 ready."
+      "GAAWOW EMS Certificate V7.5 READY"
     );
 
-  } catch (error) {
+
+  }
+
+  catch (error) {
 
     console.error(
-      "Certificate Generator initialization error:",
+      "===================================="
+    );
+
+    console.error(
+      "CERTIFICATE INITIALIZATION ERROR"
+    );
+
+    console.error(
       error
     );
 
+    console.error(
+      "===================================="
+    );
+
+
     showMessage(
-      "System initialization error: " +
-      error.message,
+      "System error: " +
+      (
+        error.message ||
+        "Unknown error"
+      ),
       "error"
     );
   }
@@ -1863,8 +2868,7 @@ async function initCertificateGenerator() {
 
 
 /* =========================================================
-   28. GLOBAL FUNCTIONS
-   HTML onclick="" NEEDS THESE
+   31. GLOBAL FUNCTIONS
 ========================================================= */
 
 window.generateCertificate =
@@ -1884,11 +2888,12 @@ window.newCertificate =
 
 
 /* =========================================================
-   29. START
+   32. START
 ========================================================= */
 
 if (
-  document.readyState === "loading"
+  document.readyState ===
+  "loading"
 ) {
 
   document.addEventListener(
@@ -1899,5 +2904,4 @@ if (
 } else {
 
   initCertificateGenerator();
-
 }
