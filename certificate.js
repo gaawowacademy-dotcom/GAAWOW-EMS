@@ -1,35 +1,59 @@
 /* =========================================================
    GAAWOW EMS
    Certificate Generator V7.3
-   DATABASE-SAFE COURSE + ENROLLMENT VERSION
+   DATABASE-SAFE
+   =========================================================
 
-   A4 Landscape 297 × 210 mm
+   Flow:
 
-   DATA SOURCES:
-   students       → student information + photo_url
-   courses        → course information
-   enrollments    → enrollment + started/completed dates
-   certificates   → certificate records
+   Student
+      ↓
+   Institution
+      ↓
+   Course
+      ↓
+   Enrollment
+      ↓
+   Date Started
+   Date Completed
+      ↓
+   Certificate
+      ↓
+   QR Verification
 
-   DESIGN:
-   Existing certificate.html/template is preserved.
+   Database:
+   - students
+   - courses
+   - enrollments
+   - certificates
+   - profiles
+
+   Design:
+   - Existing certificate.html preserved
+   - A4 Landscape
+   - GAAWOW Academy Royal Blue + Gold
    ========================================================= */
-
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-
-const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
-
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
 
 
 /* =========================================================
-   GLOBAL STATE
+   SUPABASE
+   ========================================================= */
+
+const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
+const SUPABASE_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+    );
+
+
+/* =========================================================
+   GLOBAL DATA
    ========================================================= */
 
 let students = [];
@@ -46,201 +70,176 @@ let selectedEnrollment = null;
    ========================================================= */
 
 function $(id) {
-  return document.getElementById(id);
-}
-
-
-function elementExists(id) {
-  return !!$(id);
+    return document.getElementById(id);
 }
 
 
 function todayISO() {
 
-  const d = new Date();
+    const d = new Date();
 
-  return d.toISOString().split("T")[0];
+    const year =
+        d.getFullYear();
+
+    const month =
+        String(d.getMonth() + 1)
+            .padStart(2, "0");
+
+    const day =
+        String(d.getDate())
+            .padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
 }
 
 
-function addYears(dateString, years) {
+function formatDate(value) {
 
-  if (!dateString) {
-    return todayISO();
-  }
+    if (!value) return "—";
 
-  const d =
-    new Date(dateString + "T00:00:00");
+    try {
 
-  d.setFullYear(
-    d.getFullYear() + years
-  );
+        const d =
+            new Date(value);
 
-  return d.toISOString().split("T")[0];
+        if (Number.isNaN(d.getTime())) {
+            return value;
+        }
+
+        return d.toLocaleDateString(
+            "en-GB",
+            {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            }
+        );
+
+    } catch {
+
+        return value;
+
+    }
 }
 
 
-function formatDate(dateValue) {
+function randomChars(length = 8) {
 
-  if (!dateValue) {
-    return "";
-  }
+    const chars =
+        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-  try {
+    let result = "";
 
-    const d =
-      new Date(dateValue + "T00:00:00");
+    for (let i = 0; i < length; i++) {
 
-    if (Number.isNaN(d.getTime())) {
-      return dateValue;
+        result +=
+            chars.charAt(
+                Math.floor(
+                    Math.random() * chars.length
+                )
+            );
+
     }
 
-    return d.toISOString().split("T")[0];
-
-  } catch {
-
-    return dateValue;
-  }
-}
-
-
-function randomChars(length) {
-
-  const chars =
-    "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-  let result = "";
-
-  for (let i = 0; i < length; i++) {
-
-    result +=
-      chars[
-        Math.floor(
-          Math.random() * chars.length
-        )
-      ];
-  }
-
-  return result;
+    return result;
 }
 
 
 function showMessage(
-  text,
-  type = "success"
+    message,
+    type = "info"
 ) {
 
-  const box = $("message");
+    const box = $("message");
 
-  if (!box) {
-    console.log(text);
-    return;
-  }
+    if (!box) return;
 
-  box.style.display = "block";
-  box.textContent = text;
+    box.className =
+        `message ${type}`;
 
-  if (type === "error") {
+    box.textContent =
+        message;
 
-    box.style.background = "#fee2e2";
-    box.style.color = "#991b1b";
+}
 
-  } else {
 
-    box.style.background = "#dcfce7";
-    box.style.color = "#166534";
-  }
+function clearMessage() {
+
+    const box = $("message");
+
+    if (!box) return;
+
+    box.className =
+        "message";
+
+    box.textContent =
+        "";
+
 }
 
 
 /* =========================================================
-   FIND ELEMENTS SAFELY
-   ========================================================= */
-
-function findFirstElement(ids) {
-
-  for (const id of ids) {
-
-    const element = $(id);
-
-    if (element) {
-      return element;
-    }
-  }
-
-  return null;
-}
-
-
-/* =========================================================
-   AUTOMATIC CERTIFICATE IDS
+   CERTIFICATE IDENTIFIERS
    ========================================================= */
 
 function generateCertificateNo() {
 
-  const year =
-    new Date().getFullYear();
+    const year =
+        new Date().getFullYear();
 
-  const random =
-    Math.floor(
-      1000 + Math.random() * 9000
-    );
-
-  return `CERT-${year}-${random}`;
+    return `CERT-${year}-${randomChars(6)}`;
 }
 
 
 function generateCertificateId() {
 
-  const random =
-    Math.floor(
-      1000 + Math.random() * 9000
-    );
+    const year =
+        new Date().getFullYear();
 
-  return `GA-CERT-${random}`;
+    return `GA-CERT-${year}-${randomChars(6)}`;
 }
 
 
 function generateVerifyCode() {
 
-  return (
-    `GAW-${randomChars(4)}-${randomChars(4)}`
-  );
+    return `GAW-${new Date().getFullYear()}-${randomChars(8)}`;
 }
 
 
 function generateHashCode() {
 
-  const timestamp =
-    Date.now()
-      .toString(36)
-      .toUpperCase();
-
-  return (
-    `GA-${timestamp}-${randomChars(8)}`
-  );
+    return (
+        "GAH-" +
+        Date.now().toString(36).toUpperCase() +
+        "-" +
+        randomChars(8)
+    );
 }
 
 
 function generateAllIds() {
 
-  if ($("certificate_no")) {
+    if ($("certificate_no")) {
 
-    $("certificate_no").value =
-      generateCertificateNo();
-  }
+        $("certificate_no").value =
+            generateCertificateNo();
 
-  if ($("certificate_id")) {
+    }
 
-    $("certificate_id").value =
-      generateCertificateId();
-  }
+    if ($("certificate_id")) {
 
-  if ($("verify_code")) {
+        $("certificate_id").value =
+            generateCertificateId();
 
-    $("verify_code").value =
-      generateVerifyCode();
-  }
+    }
+
+    if ($("verify_code")) {
+
+        $("verify_code").value =
+            generateVerifyCode();
+
+    }
+
 }
 
 
@@ -250,117 +249,107 @@ function generateAllIds() {
 
 async function loadStudents() {
 
-  const select =
-    $("student_select");
+    const select =
+        $("student_select");
 
-  if (!select) {
+    if (!select) return;
 
-    console.error(
-      "student_select element not found."
-    );
+    select.innerHTML =
+        `<option value="">
+            Loading students...
+        </option>`;
 
-    return;
-  }
+    try {
 
-  select.innerHTML =
-    `<option value="">Loading students...</option>`;
+        const {
+            data,
+            error
+        } = await supabaseClient
+            .from("students")
+            .select(`
+                id,
+                institution_id,
+                profile_id,
+                student_id,
+                full_name,
+                gender,
+                date_of_birth,
+                phone,
+                email,
+                address,
+                photo_url,
+                admission_date,
+                status
+            `)
+            .order(
+                "full_name",
+                {
+                    ascending: true
+                }
+            );
 
-  try {
 
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from("students")
-        .select(`
-          id,
-          institution_id,
-          profile_id,
-          student_id,
-          full_name,
-          gender,
-          date_of_birth,
-          phone,
-          email,
-          address,
-          photo_url,
-          admission_date,
-          status
-        `)
-        .order(
-          "full_name",
-          {
-            ascending: true
-          }
+        if (error) {
+
+            console.error(
+                "Students error:",
+                error
+            );
+
+            throw error;
+
+        }
+
+
+        students =
+            data || [];
+
+
+        select.innerHTML =
+            `<option value="">
+                Select Student
+            </option>`;
+
+
+        students.forEach(student => {
+
+            const option =
+                document.createElement("option");
+
+            option.value =
+                student.id;
+
+            option.textContent =
+                `${student.student_id || "NO-ID"} — ${student.full_name || "Unnamed Student"}`;
+
+            select.appendChild(option);
+
+        });
+
+
+        showMessage(
+            `${students.length} student(s) loaded successfully.`,
+            "success"
         );
 
 
-    if (error) {
-      throw error;
-    }
+    } catch (error) {
 
+        console.error(error);
 
-    students =
-      data || [];
+        select.innerHTML =
+            `<option value="">
+                Unable to load students
+            </option>`;
 
-
-    select.innerHTML =
-      `<option value="">Select Student</option>`;
-
-
-    students.forEach(
-      student => {
-
-        const option =
-          document.createElement(
-            "option"
-          );
-
-        option.value =
-          student.id ||
-          student.student_id;
-
-        option.textContent =
-          `${student.full_name || "Unnamed"} — ${student.student_id || ""}`;
-
-        select.appendChild(
-          option
+        showMessage(
+            "Failed to load students: " +
+            (error.message || error),
+            "error"
         );
-      }
-    );
 
-
-    if (!students.length) {
-
-      select.innerHTML =
-        `<option value="">No students found</option>`;
-
-      showMessage(
-        "No students were found in Student Registration.",
-        "error"
-      );
-
-      return;
     }
 
-
-  } catch (error) {
-
-    console.error(
-      "Student loading error:",
-      error
-    );
-
-    select.innerHTML =
-      `<option value="">Unable to load students</option>`;
-
-    showMessage(
-      "Unable to load students: " +
-      (error.message || error),
-      "error"
-    );
-  }
 }
 
 
@@ -369,154 +358,143 @@ async function loadStudents() {
    ========================================================= */
 
 async function loadCourses(
-  institutionId = null
+    institutionId = null
 ) {
 
-  const courseSelect =
-    findFirstElement([
-      "course_select",
-      "course_name_select"
-    ]);
+    const select =
+        $("course_select");
+
+    if (!select) return;
 
 
-  if (!courseSelect) {
-
-    console.warn(
-      "No course select found. " +
-      "Course input will remain available."
-    );
-
-    return;
-  }
+    select.innerHTML =
+        `<option value="">
+            Loading courses...
+        </option>`;
 
 
-  courseSelect.innerHTML =
-    `<option value="">Loading courses...</option>`;
+    try {
+
+        let query =
+            supabaseClient
+                .from("courses")
+                .select(`
+                    id,
+                    institution_id,
+                    name,
+                    code,
+                    description,
+                    is_active
+                `)
+                .eq(
+                    "is_active",
+                    true
+                )
+                .order(
+                    "name",
+                    {
+                        ascending: true
+                    }
+                );
 
 
-  try {
+        /*
+         * IMPORTANT:
+         *
+         * If courses are institution-specific,
+         * use the student's institution.
+         *
+         * If the table contains global courses
+         * with NULL institution_id, we keep those too.
+         */
 
-    /*
-      IMPORTANT:
-      We read directly from courses table.
+        if (institutionId) {
 
-      No TEST COURSE A hard-coding.
-    */
+            const result =
+                await query;
 
-    let query =
-      supabaseClient
-        .from("courses")
-        .select(`
-          id,
-          institution_id,
-          name,
-          code,
-          description,
-          is_active
-        `)
-        .eq(
-          "is_active",
-          true
-        )
-        .order(
-          "name",
-          {
-            ascending: true
-          }
+            if (result.error) {
+                throw result.error;
+            }
+
+            courses =
+                (result.data || [])
+                    .filter(course =>
+                        !course.institution_id ||
+                        course.institution_id === institutionId
+                    );
+
+        } else {
+
+            const {
+                data,
+                error
+            } = await query;
+
+            if (error) {
+                throw error;
+            }
+
+            courses =
+                data || [];
+
+        }
+
+
+        select.innerHTML =
+            `<option value="">
+                Select Course
+            </option>`;
+
+
+        courses.forEach(course => {
+
+            const option =
+                document.createElement("option");
+
+            option.value =
+                course.id;
+
+            option.textContent =
+                course.code
+                    ? `${course.name} (${course.code})`
+                    : course.name;
+
+            select.appendChild(option);
+
+        });
+
+
+        if (!courses.length) {
+
+            select.innerHTML =
+                `<option value="">
+                    No active courses found
+                </option>`;
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Courses error:",
+            error
         );
 
+        select.innerHTML =
+            `<option value="">
+                Unable to load courses
+            </option>`;
 
-    /*
-      If student institution is known,
-      only show courses belonging to
-      that institution.
-    */
-
-    if (institutionId) {
-
-      query =
-        query.eq(
-          "institution_id",
-          institutionId
+        showMessage(
+            "Failed to load courses: " +
+            (error.message || error),
+            "error"
         );
+
     }
 
-
-    const {
-      data,
-      error
-    } =
-      await query;
-
-
-    if (error) {
-      throw error;
-    }
-
-
-    courses =
-      data || [];
-
-
-    courseSelect.innerHTML =
-      `<option value="">Select Course</option>`;
-
-
-    courses.forEach(
-      course => {
-
-        const option =
-          document.createElement(
-            "option"
-          );
-
-        option.value =
-          course.id;
-
-        option.textContent =
-          `${course.name || "Unnamed Course"}${course.code ? " — " + course.code : ""}`;
-
-        option.dataset.courseName =
-          course.name || "";
-
-        option.dataset.courseCode =
-          course.code || "";
-
-        courseSelect.appendChild(
-          option
-        );
-      }
-    );
-
-
-    if (!courses.length) {
-
-      courseSelect.innerHTML =
-        `<option value="">No active courses found</option>`;
-
-      showMessage(
-        "No active courses found for this institution.",
-        "error"
-      );
-    }
-
-
-  } catch (error) {
-
-    console.error(
-      "Course loading error:",
-      error
-    );
-
-    courseSelect.innerHTML =
-      `<option value="">Unable to load courses</option>`;
-
-    showMessage(
-      "Unable to load courses: " +
-      (error.message || error),
-      "error"
-    );
-  }
 }
 
 
@@ -525,293 +503,265 @@ async function loadCourses(
    ========================================================= */
 
 async function loadEnrollmentsForStudent(
-  student
+    student
 ) {
 
-  if (!student) {
     enrollments = [];
-    return [];
-  }
 
+    selectedEnrollment = null;
 
-  try {
-
-    /*
-      select("*") is intentional here.
-
-      It allows V7.3 to work with the existing
-      enrollment schema without assuming a single
-      date-column naming convention.
-    */
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from("enrollments")
-        .select("*");
-
-
-    if (error) {
-      throw error;
+    if (!student) {
+        return;
     }
 
 
-    const studentId =
-      String(
-        student.id || ""
-      );
+    try {
+
+        /*
+         * We intentionally use select("*")
+         * because the exact enrollment schema
+         * may contain different column names.
+         */
+
+        const {
+            data,
+            error
+        } = await supabaseClient
+            .from("enrollments")
+            .select("*");
 
 
-    const studentCode =
-      String(
-        student.student_id || ""
-      );
+        if (error) {
 
+            console.warn(
+                "Enrollment query:",
+                error
+            );
 
-    enrollments =
-      (data || []).filter(
-        enrollment => {
+            return;
 
-          const possibleStudentIds = [
-
-            enrollment.student_id,
-
-            enrollment.student_uuid,
-
-            enrollment.student_profile_id,
-
-            enrollment.profile_id
-
-          ]
-          .filter(
-            value =>
-              value !== null &&
-              value !== undefined
-          )
-          .map(
-            value =>
-              String(value)
-          );
-
-
-          return (
-            possibleStudentIds.includes(
-              studentId
-            ) ||
-            possibleStudentIds.includes(
-              studentCode
-            )
-          );
         }
-      );
 
 
-    return enrollments;
+        const rows =
+            data || [];
 
 
-  } catch (error) {
+        enrollments =
+            rows.filter(row => {
 
-    console.error(
-      "Enrollment loading error:",
-      error
-    );
+                return (
 
-    /*
-      Enrollment table may have RLS
-      or may not be readable.
+                    row.student_id === student.id ||
 
-      Do not stop the entire certificate
-      generator. The user can still select
-      the course manually.
-    */
+                    row.student_id === student.student_id ||
 
-    enrollments = [];
+                    row.student_uuid === student.id ||
 
-    return [];
-  }
+                    row.student_profile_id === student.profile_id ||
+
+                    row.profile_id === student.profile_id ||
+
+                    row.student_profile_id === student.id
+
+                );
+
+            });
+
+
+        console.log(
+            "Enrollments for student:",
+            enrollments
+        );
+
+
+    } catch (error) {
+
+        console.warn(
+            "Enrollment loading skipped:",
+            error
+        );
+
+    }
+
 }
 
 
 /* =========================================================
-   ENROLLMENT COURSE MATCH
+   FIND ENROLLMENT
    ========================================================= */
 
 function findEnrollmentForCourse(
-  course
+    course
 ) {
 
-  if (!course || !enrollments.length) {
-    return null;
-  }
+    if (!course) {
+        return null;
+    }
 
 
-  const courseId =
-    String(
-      course.id || ""
-    );
+    return enrollments.find(
+        enrollment => {
 
+            return (
 
-  const courseCode =
-    String(
-      course.code || ""
-    );
+                enrollment.course_id === course.id ||
 
+                enrollment.course_uuid === course.id ||
 
-  const courseName =
-    String(
-      course.name || ""
-    )
-      .trim()
-      .toLowerCase();
+                enrollment.course_code === course.code ||
 
+                enrollment.course_name === course.name
 
-  const found =
-    enrollments.find(
-      enrollment => {
+            );
 
-        const possibleCourseIds = [
-
-          enrollment.course_id,
-
-          enrollment.course_uuid
-
-        ]
-        .filter(
-          value =>
-            value !== null &&
-            value !== undefined
-        )
-        .map(
-          value =>
-            String(value)
-        );
-
-
-        if (
-          possibleCourseIds.includes(
-            courseId
-          )
-        ) {
-
-          return true;
         }
+    ) || null;
 
-
-        const enrollmentCode =
-          String(
-            enrollment.course_code || ""
-          )
-            .trim()
-            .toLowerCase();
-
-
-        const enrollmentName =
-          String(
-            enrollment.course_name || ""
-          )
-            .trim()
-            .toLowerCase();
-
-
-        return (
-          courseCode &&
-          enrollmentCode ===
-          courseCode.toLowerCase()
-        ) ||
-        (
-          courseName &&
-          enrollmentName ===
-          courseName
-        );
-      }
-    );
-
-
-  return found || null;
 }
 
 
 /* =========================================================
-   FIND ENROLLMENT DATE
+   ENROLLMENT DATE HELPERS
    ========================================================= */
 
-function getEnrollmentStartDate(
-  enrollment
+function findDateValue(
+    row,
+    fields
 ) {
 
-  if (!enrollment) {
-    return "";
-  }
+    if (!row) return "";
 
+    for (const field of fields) {
 
-  const possibleFields = [
+        if (
+            row[field] !== undefined &&
+            row[field] !== null &&
+            row[field] !== ""
+        ) {
 
-    "date_started",
-    "started_at",
-    "start_date",
-    "enrollment_date",
-    "date_enrolled",
-    "created_at"
+            return String(
+                row[field]
+            ).substring(0, 10);
 
-  ];
+        }
 
-
-  for (
-    const field of possibleFields
-  ) {
-
-    if (
-      enrollment[field]
-    ) {
-
-      return formatDate(
-        enrollment[field]
-      );
     }
-  }
+
+    return "";
+
+}
 
 
-  return "";
+function getEnrollmentStartDate(
+    enrollment
+) {
+
+    return findDateValue(
+        enrollment,
+        [
+            "date_started",
+            "started_at",
+            "start_date",
+            "enrollment_date",
+            "date_enrolled",
+            "created_at"
+        ]
+    );
+
 }
 
 
 function getEnrollmentCompletedDate(
-  enrollment
+    enrollment
 ) {
 
-  if (!enrollment) {
-    return "";
-  }
+    return findDateValue(
+        enrollment,
+        [
+            "date_completed",
+            "completed_at",
+            "completion_date",
+            "date_completion",
+            "completed_date"
+        ]
+    );
+
+}
 
 
-  const possibleFields = [
+function getEnrollmentStatus(
+    enrollment
+) {
 
-    "date_completed",
-    "completed_at",
-    "completion_date",
-    "date_completion"
-
-  ];
-
-
-  for (
-    const field of possibleFields
-  ) {
-
-    if (
-      enrollment[field]
-    ) {
-
-      return formatDate(
-        enrollment[field]
-      );
+    if (!enrollment) {
+        return "valid";
     }
-  }
 
 
-  return "";
+    const possible =
+        [
+            enrollment.status,
+            enrollment.enrollment_status,
+            enrollment.certificate_status
+        ];
+
+
+    for (const value of possible) {
+
+        if (
+            value !== undefined &&
+            value !== null &&
+            value !== ""
+        ) {
+
+            return String(value)
+                .toLowerCase();
+
+        }
+
+    }
+
+
+    return "valid";
+
+}
+
+
+/* =========================================================
+   STUDENT PHOTO
+   ========================================================= */
+
+function updateStudentPhoto(
+    photoUrl
+) {
+
+    const photo =
+        $("student_photo");
+
+    if (!photo) return;
+
+
+    if (!photoUrl) {
+
+        photo.style.display =
+            "none";
+
+        photo.removeAttribute(
+            "src"
+        );
+
+        return;
+
+    }
+
+
+    photo.src =
+        photoUrl;
+
+    photo.style.display =
+        "block";
+
 }
 
 
@@ -821,97 +771,88 @@ function getEnrollmentCompletedDate(
 
 async function handleStudentSelection() {
 
-  const value =
-    $("student_select").value;
+    clearMessage();
 
 
-  selectedStudent =
-    students.find(
-      student =>
-        String(student.id) ===
-          String(value) ||
+    const select =
+        $("student_select");
 
-        String(student.student_id) ===
-          String(value)
+    if (!select) return;
+
+
+    const studentId =
+        select.value;
+
+
+    selectedStudent =
+        students.find(
+            student =>
+                String(student.id) ===
+                String(studentId)
+        ) || null;
+
+
+    if (!selectedStudent) {
+
+        $("full_name").value = "";
+        $("student_id").value = "";
+
+        updateStudentPhoto("");
+
+        if ($("course_select")) {
+
+            $("course_select").innerHTML =
+                `<option value="">
+                    Select student first
+                </option>`;
+
+        }
+
+        return;
+
+    }
+
+
+    /* Student information */
+
+    $("full_name").value =
+        selectedStudent.full_name || "";
+
+    $("student_id").value =
+        selectedStudent.student_id || "";
+
+
+    /* Student photo */
+
+    updateStudentPhoto(
+        selectedStudent.photo_url
     );
 
 
-  if (!selectedStudent) {
+    /* Generate certificate IDs */
 
-    $("full_name").value = "";
-    $("student_id").value = "";
-
-    selectedCourse = null;
-    selectedEnrollment = null;
-
-    return;
-  }
+    generateAllIds();
 
 
-  $("full_name").value =
-    selectedStudent.full_name || "";
+    /* Load institution courses */
+
+    await loadCourses(
+        selectedStudent.institution_id
+    );
 
 
-  $("student_id").value =
-    selectedStudent.student_id || "";
+    /* Load student enrollments */
+
+    await loadEnrollmentsForStudent(
+        selectedStudent
+    );
 
 
-  /*
-    Student photo
-  */
+    showMessage(
+        `Student selected: ${selectedStudent.full_name}`,
+        "success"
+    );
 
-  updateStudentPhoto(
-    selectedStudent.photo_url
-  );
-
-
-  /*
-    Generate certificate IDs
-  */
-
-  generateAllIds();
-
-
-  /*
-    Load institution-specific courses
-  */
-
-  await loadCourses(
-    selectedStudent.institution_id
-  );
-
-
-  /*
-    Load this student's enrollments
-  */
-
-  await loadEnrollmentsForStudent(
-    selectedStudent
-  );
-
-
-  /*
-    If the course select already has a value,
-    match it with enrollment.
-  */
-
-  const courseSelect =
-    findFirstElement([
-      "course_select",
-      "course_name_select"
-    ]);
-
-
-  if (
-    courseSelect &&
-    courseSelect.value
-  ) {
-
-    handleCourseSelection();
-  }
-
-
-  generateCertificate();
 }
 
 
@@ -921,179 +862,315 @@ async function handleStudentSelection() {
 
 function handleCourseSelection() {
 
-  const courseSelect =
-    findFirstElement([
-      "course_select",
-      "course_name_select"
-    ]);
+    clearMessage();
 
 
-  if (!courseSelect) {
-    return;
-  }
+    if (!selectedStudent) {
+
+        showMessage(
+            "Please select a student first.",
+            "error"
+        );
+
+        return;
+
+    }
 
 
-  const courseId =
-    courseSelect.value;
+    const courseId =
+        $("course_select").value;
 
 
-  selectedCourse =
-    courses.find(
-      course =>
-        String(course.id) ===
-        String(courseId)
-    );
+    selectedCourse =
+        courses.find(
+            course =>
+                String(course.id) ===
+                String(courseId)
+        ) || null;
 
 
-  if (!selectedCourse) {
+    if (!selectedCourse) {
 
-    selectedEnrollment = null;
+        selectedEnrollment = null;
 
-    return;
-  }
+        return;
 
-
-  /*
-    Put course name into existing
-    certificate_name field.
-  */
-
-  if ($("course_name")) {
-
-    $("course_name").value =
-      selectedCourse.name || "";
-  }
+    }
 
 
-  /*
-    Match enrollment.
-  */
+    /* Find enrollment */
 
-  selectedEnrollment =
-    findEnrollmentForCourse(
-      selectedCourse
-    );
+    selectedEnrollment =
+        findEnrollmentForCourse(
+            selectedCourse
+        );
 
 
-  /*
-    Date Started
-  */
-
-  const startedDate =
-    getEnrollmentStartDate(
-      selectedEnrollment
-    );
+    let startDate = "";
+    let completedDate = "";
+    let enrollmentStatus = "valid";
 
 
-  /*
-    Date Completed
-  */
+    if (selectedEnrollment) {
 
-  const completedDate =
-    getEnrollmentCompletedDate(
-      selectedEnrollment
-    );
+        startDate =
+            getEnrollmentStartDate(
+                selectedEnrollment
+            );
 
+        completedDate =
+            getEnrollmentCompletedDate(
+                selectedEnrollment
+            );
 
-  /*
-    Support optional fields if they
-    exist in certificate.html.
-  */
+        enrollmentStatus =
+            getEnrollmentStatus(
+                selectedEnrollment
+            );
 
-  const startedInput =
-    findFirstElement([
-      "date_started",
-      "start_date"
-    ]);
+    }
 
 
-  const completedInput =
-    findFirstElement([
-      "date_completed",
-      "completed_date"
-    ]);
+    /* Fill enrollment dates */
+
+    if ($("date_started")) {
+
+        $("date_started").value =
+            startDate;
+
+    }
 
 
-  if (
-    startedInput &&
-    startedDate
-  ) {
+    if ($("date_completed")) {
 
-    startedInput.value =
-      startedDate;
-  }
+        $("date_completed").value =
+            completedDate;
+
+    }
 
 
-  if (
-    completedInput &&
-    completedDate
-  ) {
+    /* Certificate status */
 
-    completedInput.value =
-      completedDate;
-  }
+    if ($("status")) {
 
+        const validStatuses =
+            [
+                "valid",
+                "pending",
+                "expired",
+                "revoked"
+            ];
 
-  /*
-    If the existing certificate UI
-    uses issue_date, use completed date
-    when available.
-  */
+        $("status").value =
+            validStatuses.includes(
+                enrollmentStatus
+            )
+                ? enrollmentStatus
+                : "valid";
 
-  if (
-    $("issue_date") &&
-    completedDate
-  ) {
-
-    $("issue_date").value =
-      completedDate;
-  }
+    }
 
 
-  generateCertificate();
+    /*
+     * If completed date exists,
+     * use it as issue date.
+     */
+
+    if (
+        completedDate &&
+        $("issue_date")
+    ) {
+
+        $("issue_date").value =
+            completedDate;
+
+    }
+
+
+    /* Update preview immediately */
+
+    updatePreview();
+
+
+    if (!selectedEnrollment) {
+
+        showMessage(
+            "Course selected, but no matching enrollment was found for this student.",
+            "info"
+        );
+
+    } else {
+
+        showMessage(
+            "Student course enrollment loaded successfully.",
+            "success"
+        );
+
+    }
+
 }
 
 
 /* =========================================================
-   STUDENT PHOTO
+   PREVIEW UPDATE
    ========================================================= */
 
-function updateStudentPhoto(
-  photoUrl
-) {
+function updatePreview() {
 
-  if (!photoUrl) {
-    return;
-  }
+    if (!selectedStudent) {
+        return;
+    }
 
 
-  /*
-    Support common image IDs without
-    breaking the existing certificate.
-  */
-
-  const image =
-    findFirstElement([
-      "student_photo",
-      "preview_student_photo",
-      "certificate_student_photo",
-      "studentPhoto"
-    ]);
+    const fullName =
+        $("full_name")?.value || "STUDENT NAME";
 
 
-  if (!image) {
-    return;
-  }
+    const studentId =
+        $("student_id")?.value || "—";
 
 
-  image.src =
-    photoUrl;
+    const courseName =
+        selectedCourse?.name ||
+        "COURSE NAME";
 
-  image.style.display =
-    "block";
 
-  image.crossOrigin =
-    "anonymous";
+    const certNo =
+        $("certificate_no")?.value || "—";
+
+
+    const certId =
+        $("certificate_id")?.value || "—";
+
+
+    const verifyCode =
+        $("verify_code")?.value || "—";
+
+
+    const issueDate =
+        $("issue_date")?.value || "";
+
+
+    const started =
+        $("date_started")?.value || "";
+
+
+    const completed =
+        $("date_completed")?.value || "";
+
+
+    const status =
+        $("status")?.value || "valid";
+
+
+    if ($("preview_name")) {
+
+        $("preview_name").textContent =
+            fullName;
+
+    }
+
+
+    if ($("preview_student_id")) {
+
+        $("preview_student_id").textContent =
+            studentId;
+
+    }
+
+
+    if ($("preview_course")) {
+
+        $("preview_course").textContent =
+            courseName;
+
+    }
+
+
+    if ($("preview_cert_no")) {
+
+        $("preview_cert_no").textContent =
+            certNo;
+
+    }
+
+
+    if ($("preview_cert_id")) {
+
+        $("preview_cert_id").textContent =
+            certId;
+
+    }
+
+
+    if ($("preview_verify")) {
+
+        $("preview_verify").textContent =
+            verifyCode;
+
+    }
+
+
+    if ($("preview_issue")) {
+
+        $("preview_issue").textContent =
+            formatDate(issueDate);
+
+    }
+
+
+    if ($("preview_started")) {
+
+        $("preview_started").textContent =
+            formatDate(started);
+
+    }
+
+
+    if ($("preview_completed")) {
+
+        $("preview_completed").textContent =
+            formatDate(completed);
+
+    }
+
+
+    if ($("preview_status")) {
+
+        $("preview_status").textContent =
+            status.toUpperCase();
+
+        $("preview_status").className =
+            "value " +
+            (
+                status === "valid"
+                    ? "status-valid"
+                    : ""
+            );
+
+    }
+
+
+    if ($("preview_director")) {
+
+        $("preview_director").textContent =
+            $("director_name")?.value ||
+            "GAAWOW Academy";
+
+    }
+
+
+    if ($("preview_signatory")) {
+
+        $("preview_signatory").textContent =
+            $("signatory_name")?.value ||
+            "Authorized Signatory";
+
+    }
+
+
+    updateQRCode();
+
 }
 
 
@@ -1101,208 +1178,129 @@ function updateStudentPhoto(
    QR CODE
    ========================================================= */
 
-function getVerificationURL() {
-
-  const verifyCode =
-    encodeURIComponent(
-      $("verify_code")?.value || ""
-    );
-
-
-  return (
-    "https://gaawowacademy-dotcom.github.io/" +
-    "GAAWOW-EMS/verify.html?code=" +
-    verifyCode
-  );
-}
-
-
 function updateQRCode() {
 
-  const qr =
-    $("qr_code");
+    const qr =
+        $("qr_code");
+
+    if (!qr) return;
 
 
-  if (!qr) {
-    return;
-  }
+    const verifyCode =
+        $("verify_code")?.value;
 
 
-  const url =
-    encodeURIComponent(
-      getVerificationURL()
-    );
+    if (!verifyCode) {
+
+        qr.removeAttribute(
+            "src"
+        );
+
+        return;
+
+    }
 
 
-  /*
-    QR image is generated remotely.
-    Verification destination remains
-    the official GAAWOW EMS verify.html.
-  */
-
-  qr.src =
-    "https://api.qrserver.com/v1/create-qr-code/" +
-    "?size=300x300&margin=5&data=" +
-    url;
+    const verificationURL =
+        "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify.html" +
+        "?code=" +
+        encodeURIComponent(
+            verifyCode
+        );
 
 
-  qr.alt =
-    "GAAWOW EMS Certificate Verification QR";
+    qr.src =
+        "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" +
+        encodeURIComponent(
+            verificationURL
+        );
+
 }
 
 
 /* =========================================================
-   RENDER CERTIFICATE
+   GENERATE
    ========================================================= */
 
 function generateCertificate() {
 
-  const name =
-    $("full_name")?.value.trim() ||
-    "STUDENT NAME";
+    clearMessage();
 
 
-  const studentId =
-    $("student_id")?.value.trim() ||
-    "—";
+    if (!selectedStudent) {
+
+        showMessage(
+            "Please select a student.",
+            "error"
+        );
+
+        return;
+
+    }
 
 
-  const course =
-    $("course_name")?.value.trim() ||
-    "COURSE NAME";
+    if (!selectedCourse) {
+
+        showMessage(
+            "Please select a course.",
+            "error"
+        );
+
+        return;
+
+    }
 
 
-  const certNo =
-    $("certificate_no")?.value.trim() ||
-    generateCertificateNo();
+    /*
+     * Generate new IDs only when missing.
+     */
+
+    if (
+        !$("certificate_no").value ||
+        !$("certificate_id").value ||
+        !$("verify_code").value
+    ) {
+
+        generateAllIds();
+
+    }
 
 
-  const certId =
-    $("certificate_id")?.value.trim() ||
-    generateCertificateId();
+    if (!$("issue_date").value) {
+
+        $("issue_date").value =
+            $("date_completed").value ||
+            todayISO();
+
+    }
 
 
-  const verify =
-    $("verify_code")?.value.trim() ||
-    generateVerifyCode();
+    if (!$("expiry_date").value) {
+
+        const issue =
+            new Date(
+                $("issue_date").value
+            );
+
+        issue.setFullYear(
+            issue.getFullYear() + 1
+        );
+
+        $("expiry_date").value =
+            issue.toISOString()
+                .substring(0, 10);
+
+    }
 
 
-  const issue =
-    $("issue_date")?.value ||
-    todayISO();
+    updatePreview();
 
 
-  const director =
-    $("director_name")?.value.trim() ||
-    "GAAWOW Academy";
+    showMessage(
+        "Certificate generated successfully.",
+        "success"
+    );
 
-
-  const signatory =
-    $("signatory_name")?.value.trim() ||
-    "Authorized Signatory";
-
-
-  $("certificate_no").value =
-    certNo;
-
-
-  $("certificate_id").value =
-    certId;
-
-
-  $("verify_code").value =
-    verify;
-
-
-  $("issue_date").value =
-    issue;
-
-
-  if (
-    $("expiry_date") &&
-    !$("expiry_date").value
-  ) {
-
-    $("expiry_date").value =
-      addYears(
-        issue,
-        3
-      );
-  }
-
-
-  /*
-    Existing certificate template IDs.
-    No CSS/template changes.
-  */
-
-  if ($("preview_name")) {
-
-    $("preview_name").textContent =
-      name.toUpperCase();
-  }
-
-
-  if ($("preview_student_id")) {
-
-    $("preview_student_id").textContent =
-      `Student ID: ${studentId}`;
-  }
-
-
-  if ($("preview_course")) {
-
-    $("preview_course").textContent =
-      course;
-  }
-
-
-  if ($("preview_cert_no")) {
-
-    $("preview_cert_no").textContent =
-      certNo;
-  }
-
-
-  if ($("preview_cert_id")) {
-
-    $("preview_cert_id").textContent =
-      certId;
-  }
-
-
-  if ($("preview_verify")) {
-
-    $("preview_verify").textContent =
-      verify;
-  }
-
-
-  if ($("preview_issue")) {
-
-    $("preview_issue").textContent =
-      issue;
-  }
-
-
-  if ($("preview_director")) {
-
-    $("preview_director").textContent =
-      director;
-  }
-
-
-  if ($("preview_signatory")) {
-
-    $("preview_signatory").textContent =
-      signatory;
-  }
-
-
-  updateQRCode();
-
-
-  return true;
 }
 
 
@@ -1312,298 +1310,291 @@ function generateCertificate() {
 
 function previewCertificate() {
 
-  generateCertificate();
+    if (!selectedStudent) {
+
+        showMessage(
+            "Please select a student first.",
+            "error"
+        );
+
+        return;
+
+    }
 
 
-  if ($("certificate")) {
-
-    $("certificate").scrollIntoView({
-      behavior: "smooth",
-      block: "center"
-    });
-  }
+    updatePreview();
 
 
-  showMessage(
-    "Certificate preview updated."
-  );
+    const certificate =
+        $("certificate");
+
+
+    if (certificate) {
+
+        certificate.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+
+    }
+
 }
 
 
 /* =========================================================
-   BUILD CERTIFICATE DATABASE RECORD
+   BUILD DATABASE RECORD
    ========================================================= */
 
 function buildCertificateRecord() {
 
-  const record = {
+    const record = {
 
-    certificate_no:
-      $("certificate_no")?.value || "",
+        certificate_no:
+            $("certificate_no")?.value || null,
 
-    certificate_id:
-      $("certificate_id")?.value || "",
+        certificate_id:
+            $("certificate_id")?.value || null,
 
-    verify_code:
-      $("verify_code")?.value || "",
+        verify_code:
+            $("verify_code")?.value || null,
 
-    hash_code:
-      generateHashCode(),
+        hash_code:
+            generateHashCode(),
 
-    issue_date:
-      $("issue_date")?.value || todayISO(),
+        issue_date:
+            $("issue_date")?.value || null,
 
-    expiry_date:
-      $("expiry_date")?.value ||
-      addYears(
-        $("issue_date")?.value ||
-        todayISO(),
-        3
-      ),
+        expiry_date:
+            $("expiry_date")?.value || null,
 
-    status:
-      "valid",
+        status:
+            $("status")?.value || "valid",
 
-    student_name:
-      $("full_name")?.value || "",
+        student_name:
+            selectedStudent?.full_name || null,
 
-    course_name:
-      $("course_name")?.value || ""
+        course_name:
+            selectedCourse?.name || null
 
-  };
+    };
 
 
-  /*
-    Add IDs only when they exist in the
-    existing database/UI context.
-  */
+    /*
+     * Add optional fields only when available.
+     */
 
-  if (
-    selectedStudent?.id
-  ) {
+    if (selectedStudent?.id) {
 
-    record.student_id =
-      selectedStudent.id;
-  }
+        record.student_id =
+            selectedStudent.id;
 
-
-  if (
-    selectedStudent?.institution_id
-  ) {
-
-    record.institution_id =
-      selectedStudent.institution_id;
-  }
-
-
-  if (
-    selectedCourse?.id
-  ) {
-
-    record.course_id =
-      selectedCourse.id;
-  }
-
-
-  if (
-    selectedEnrollment?.id
-  ) {
-
-    record.enrollment_id =
-      selectedEnrollment.id;
-  }
-
-
-  return record;
-}
-
-
-/* =========================================================
-   REMOVE UNKNOWN DATABASE COLUMNS
-   ========================================================= */
-
-function cleanRecordForFallback(
-  record,
-  error
-) {
-
-  const message =
-    String(
-      error?.message || ""
-    ).toLowerCase();
-
-
-  /*
-    If Supabase rejects an optional
-    column because it does not exist,
-    remove that column and allow the
-    original V7 fields to save.
-  */
-
-  const optionalColumns = [
-
-    "student_id",
-    "institution_id",
-    "course_id",
-    "enrollment_id"
-
-  ];
-
-
-  for (
-    const column of optionalColumns
-  ) {
-
-    if (
-      message.includes(
-        column.toLowerCase()
-      )
-    ) {
-
-      delete record[column];
     }
-  }
 
 
-  return record;
+    if (selectedStudent?.institution_id) {
+
+        record.institution_id =
+            selectedStudent.institution_id;
+
+    }
+
+
+    if (selectedCourse?.id) {
+
+        record.course_id =
+            selectedCourse.id;
+
+    }
+
+
+    if (selectedEnrollment?.id) {
+
+        record.enrollment_id =
+            selectedEnrollment.id;
+
+    }
+
+
+    return record;
+
 }
 
 
 /* =========================================================
-   SAVE TO SUPABASE
+   SAVE CERTIFICATE
    ========================================================= */
 
 async function saveCertificate() {
 
-  try {
+    clearMessage();
+
 
     if (!selectedStudent) {
 
-      throw new Error(
-        "Please select a student first."
-      );
+        showMessage(
+            "Please select a student.",
+            "error"
+        );
+
+        return;
+
     }
 
 
-    if (
-      $("course_name") &&
-      !$("course_name").value.trim()
-    ) {
+    if (!selectedCourse) {
 
-      throw new Error(
-        "Please select a course first."
-      );
+        showMessage(
+            "Please select a course.",
+            "error"
+        );
+
+        return;
+
     }
 
+
+    /*
+     * Generate missing values.
+     */
 
     generateCertificate();
 
 
-    let record =
-      buildCertificateRecord();
+    const record =
+        buildCertificateRecord();
 
 
-    let {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from("certificates")
-        .insert([
-          record
-        ])
-        .select()
-        .single();
+    console.log(
+        "Certificate record:",
+        record
+    );
 
 
-    /*
-      If optional new relationship columns
-      are not present in certificates table,
-      retry using the original safe fields.
-    */
+    try {
 
-    if (
-      error &&
-      (
-        error.message.includes(
-          "student_id"
-        ) ||
-        error.message.includes(
-          "institution_id"
-        ) ||
-        error.message.includes(
-          "course_id"
-        ) ||
-        error.message.includes(
-          "enrollment_id"
-        )
-      )
-    ) {
-
-      console.warn(
-        "Retrying certificate save with compatible columns..."
-      );
+        let {
+            data,
+            error
+        } = await supabaseClient
+            .from("certificates")
+            .insert(record)
+            .select()
+            .single();
 
 
-      record =
-        cleanRecordForFallback(
-          record,
-          error
+        /*
+         * If optional columns do not exist,
+         * retry using the core certificate fields.
+         */
+
+        if (
+            error &&
+            (
+                error.message?.includes(
+                    "student_id"
+                ) ||
+                error.message?.includes(
+                    "institution_id"
+                ) ||
+                error.message?.includes(
+                    "course_id"
+                ) ||
+                error.message?.includes(
+                    "enrollment_id"
+                )
+            )
+        ) {
+
+            console.warn(
+                "Retrying with core certificate fields."
+            );
+
+
+            const coreRecord = {
+
+                certificate_no:
+                    record.certificate_no,
+
+                certificate_id:
+                    record.certificate_id,
+
+                verify_code:
+                    record.verify_code,
+
+                hash_code:
+                    record.hash_code,
+
+                issue_date:
+                    record.issue_date,
+
+                expiry_date:
+                    record.expiry_date,
+
+                status:
+                    record.status,
+
+                student_name:
+                    record.student_name,
+
+                course_name:
+                    record.course_name
+
+            };
+
+
+            const retry =
+                await supabaseClient
+                    .from("certificates")
+                    .insert(coreRecord)
+                    .select()
+                    .single();
+
+
+            data =
+                retry.data;
+
+            error =
+                retry.error;
+
+        }
+
+
+        if (error) {
+
+            console.error(
+                "Save certificate error:",
+                error
+            );
+
+            throw error;
+
+        }
+
+
+        console.log(
+            "Certificate saved:",
+            data
         );
 
 
-      const retry =
-        await supabaseClient
-          .from("certificates")
-          .insert([
-            record
-          ])
-          .select()
-          .single();
+        showMessage(
+            "Certificate saved successfully to Supabase.",
+            "success"
+        );
 
 
-      data =
-        retry.data;
+    } catch (error) {
 
-      error =
-        retry.error;
+        console.error(error);
+
+        showMessage(
+            "Certificate could not be saved: " +
+            (error.message || error),
+            "error"
+        );
+
     }
 
-
-    if (error) {
-
-      console.error(
-        "Certificate save error:",
-        error
-      );
-
-      throw error;
-    }
-
-
-    showMessage(
-      "Certificate saved successfully. Certificate No: " +
-      data.certificate_no
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      "Certificate save failed:",
-      error
-    );
-
-
-    showMessage(
-      "Save failed: " +
-      (
-        error.message ||
-        error
-      ),
-      "error"
-    );
-  }
 }
 
 
@@ -1613,113 +1604,92 @@ async function saveCertificate() {
 
 async function downloadCertificate() {
 
-  try {
-
-    generateCertificate();
-
-
-    if (
-      typeof html2canvas ===
-      "undefined"
-    ) {
-
-      throw new Error(
-        "HD download library is not loaded."
-      );
-    }
+    clearMessage();
 
 
     const certificate =
-      $("certificate");
+        $("certificate");
 
 
     if (!certificate) {
 
-      throw new Error(
-        "Certificate preview element not found."
-      );
+        showMessage(
+            "Certificate preview not found.",
+            "error"
+        );
+
+        return;
+
     }
 
 
-    showMessage(
-      "Preparing HD certificate..."
-    );
+    try {
+
+        generateCertificate();
 
 
-    const canvas =
-      await html2canvas(
-        certificate,
-        {
-
-          scale: 3,
-
-          useCORS: true,
-
-          allowTaint: false,
-
-          backgroundColor:
-            "#ffffff",
-
-          logging: false
-        }
-      );
-
-
-    const link =
-      document.createElement("a");
-
-
-    const safeName =
-      (
-        $("full_name")?.value ||
-        "Student"
-      )
-        .replace(
-          /[^a-z0-9]+/gi,
-          "-"
-        )
-        .replace(
-          /^-+|-+$/g,
-          ""
+        showMessage(
+            "Preparing HD certificate...",
+            "info"
         );
 
 
-    link.download =
-      `GAAWOW-Certificate-${safeName || "Student"}.png`;
+        const canvas =
+            await html2canvas(
+                certificate,
+                {
+                    scale: 3,
+                    useCORS: true,
+                    allowTaint: false,
+                    backgroundColor: "#ffffff"
+                }
+            );
 
 
-    link.href =
-      canvas.toDataURL(
-        "image/png",
-        1.0
-      );
+        const link =
+            document.createElement("a");
 
 
-    link.click();
+        const certNo =
+            $("certificate_no")?.value ||
+            "GAAWOW-Certificate";
 
 
-    showMessage(
-      "HD certificate downloaded successfully."
-    );
+        link.download =
+            `${certNo}.png`;
 
 
-  } catch (error) {
+        link.href =
+            canvas.toDataURL(
+                "image/png",
+                1.0
+            );
 
-    console.error(
-      "Download error:",
-      error
-    );
+
+        link.click();
 
 
-    showMessage(
-      "HD download failed: " +
-      (
-        error.message ||
-        error
-      ),
-      "error"
-    );
-  }
+        showMessage(
+            "HD certificate downloaded successfully.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Download error:",
+            error
+        );
+
+        showMessage(
+            "HD download failed: " +
+            (error.message || error),
+            "error"
+        );
+
+    }
+
 }
 
 
@@ -1729,92 +1699,176 @@ async function downloadCertificate() {
 
 function newCertificate() {
 
-  selectedStudent = null;
-  selectedCourse = null;
-  selectedEnrollment = null;
+    selectedStudent = null;
+    selectedCourse = null;
+    selectedEnrollment = null;
+
+    enrollments = [];
 
 
-  if ($("student_select")) {
+    if ($("student_select")) {
 
-    $("student_select").value =
-      "";
-  }
+        $("student_select").value =
+            "";
 
-
-  const courseSelect =
-    findFirstElement([
-      "course_select",
-      "course_name_select"
-    ]);
+    }
 
 
-  if (courseSelect) {
+    if ($("course_select")) {
 
-    courseSelect.value =
-      "";
-  }
+        $("course_select").innerHTML =
+            `<option value="">
+                Select student first
+            </option>`;
 
-
-  if ($("full_name")) {
-
-    $("full_name").value =
-      "";
-  }
+    }
 
 
-  if ($("student_id")) {
+    [
+        "full_name",
+        "student_id",
+        "certificate_no",
+        "certificate_id",
+        "verify_code",
+        "date_started",
+        "date_completed",
+        "issue_date",
+        "expiry_date"
+    ]
+    .forEach(id => {
 
-    $("student_id").value =
-      "";
-  }
+        if ($(id)) {
 
+            $(id).value = "";
 
-  if ($("course_name")) {
+        }
 
-    $("course_name").value =
-      "";
-  }
-
-
-  if ($("issue_date")) {
-
-    $("issue_date").value =
-      todayISO();
-  }
-
-
-  if ($("expiry_date")) {
-
-    $("expiry_date").value =
-      addYears(
-        todayISO(),
-        3
-      );
-  }
+    });
 
 
-  if ($("director_name")) {
+    if ($("status")) {
 
-    $("director_name").value =
-      "GAAWOW Academy";
-  }
+        $("status").value =
+            "valid";
 
-
-  if ($("signatory_name")) {
-
-    $("signatory_name").value =
-      "Authorized Signatory";
-  }
+    }
 
 
-  generateAllIds();
+    if ($("director_name")) {
 
-  generateCertificate();
+        $("director_name").value =
+            "GAAWOW Academy";
+
+    }
 
 
-  showMessage(
-    "New certificate ready."
-  );
+    if ($("signatory_name")) {
+
+        $("signatory_name").value =
+            "Authorized Signatory";
+
+    }
+
+
+    updateStudentPhoto("");
+
+
+    if ($("preview_name")) {
+
+        $("preview_name").textContent =
+            "STUDENT NAME";
+
+    }
+
+
+    if ($("preview_student_id")) {
+
+        $("preview_student_id").textContent =
+            "—";
+
+    }
+
+
+    if ($("preview_course")) {
+
+        $("preview_course").textContent =
+            "COURSE NAME";
+
+    }
+
+
+    if ($("preview_started")) {
+
+        $("preview_started").textContent =
+            "—";
+
+    }
+
+
+    if ($("preview_completed")) {
+
+        $("preview_completed").textContent =
+            "—";
+
+    }
+
+
+    if ($("preview_cert_no")) {
+
+        $("preview_cert_no").textContent =
+            "—";
+
+    }
+
+
+    if ($("preview_cert_id")) {
+
+        $("preview_cert_id").textContent =
+            "—";
+
+    }
+
+
+    if ($("preview_verify")) {
+
+        $("preview_verify").textContent =
+            "—";
+
+    }
+
+
+    if ($("preview_issue")) {
+
+        $("preview_issue").textContent =
+            "—";
+
+    }
+
+
+    if ($("preview_status")) {
+
+        $("preview_status").textContent =
+            "VALID";
+
+    }
+
+
+    if ($("qr_code")) {
+
+        $("qr_code")
+            .removeAttribute("src");
+
+    }
+
+
+    clearMessage();
+
+
+    showMessage(
+        "Ready for a new certificate.",
+        "info"
+    );
+
 }
 
 
@@ -1824,95 +1878,53 @@ function newCertificate() {
 
 function setupEventListeners() {
 
-  /*
-    Student
-  */
+    if ($("student_select")) {
 
-  if ($("student_select")) {
+        $("student_select")
+            .addEventListener(
+                "change",
+                handleStudentSelection
+            );
 
-    $("student_select")
-      .addEventListener(
-        "change",
-        handleStudentSelection
-      );
-  }
+    }
 
 
-  /*
-    Course select
-  */
+    if ($("course_select")) {
 
-  const courseSelect =
-    findFirstElement([
-      "course_select",
-      "course_name_select"
-    ]);
+        $("course_select")
+            .addEventListener(
+                "change",
+                handleCourseSelection
+            );
 
-
-  if (courseSelect) {
-
-    courseSelect
-      .addEventListener(
-        "change",
-        handleCourseSelection
-      );
-  }
+    }
 
 
-  /*
-    Manual course input.
-    This keeps compatibility with
-    the existing certificate.html.
-  */
+    [
+        "issue_date",
+        "expiry_date",
+        "status",
+        "director_name",
+        "signatory_name"
+    ]
+    .forEach(id => {
 
-  if ($("course_name")) {
+        if ($(id)) {
 
-    $("course_name")
-      .addEventListener(
-        "input",
-        generateCertificate
-      );
-  }
+            $(id).addEventListener(
+                "input",
+                updatePreview
+            );
 
+            $(id).addEventListener(
+                "change",
+                updatePreview
+            );
 
-  if ($("director_name")) {
+        }
 
-    $("director_name")
-      .addEventListener(
-        "input",
-        generateCertificate
-      );
-  }
+    });
 
-
-  if ($("signatory_name")) {
-
-    $("signatory_name")
-      .addEventListener(
-        "input",
-        generateCertificate
-      );
-  }
-
-
-  if ($("issue_date")) {
-
-    $("issue_date")
-      .addEventListener(
-        "change",
-        generateCertificate
-      );
-  }
-
-
-  if ($("expiry_date")) {
-
-    $("expiry_date")
-      .addEventListener(
-        "change",
-        generateCertificate
-      );
-  }
 }
 
 
@@ -1920,74 +1932,98 @@ function setupEventListeners() {
    INITIALIZATION
    ========================================================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  async () => {
-
-    /*
-      Default dates
-    */
-
-    if ($("issue_date")) {
-
-      $("issue_date").value =
-        todayISO();
-    }
-
-
-    if ($("expiry_date")) {
-
-      $("expiry_date").value =
-        addYears(
-          todayISO(),
-          3
-        );
-    }
-
-
-    /*
-      Automatic IDs
-    */
-
-    generateAllIds();
-
-
-    /*
-      Events
-    */
-
-    setupEventListeners();
-
-
-    /*
-      Initial certificate
-    */
-
-    generateCertificate();
-
-
-    /*
-      Load students
-    */
-
-    await loadStudents();
-
-
-    /*
-      Load courses initially.
-
-      If no student is selected yet,
-      this loads active courses without
-      institution filtering. Once a student
-      is selected, loadCourses() runs again
-      using that student's institution_id.
-    */
-
-    await loadCourses();
-
+async function initCertificateGenerator() {
 
     console.log(
-      "GAAWOW EMS Certificate Generator V7.3 initialized successfully."
+        "GAAWOW EMS Certificate Generator V7.3 starting..."
     );
-  }
-);
+
+
+    try {
+
+        setupEventListeners();
+
+
+        /*
+         * Generate initial certificate identifiers.
+         */
+
+        generateAllIds();
+
+
+        /*
+         * Default issue date.
+         */
+
+        if ($("issue_date")) {
+
+            $("issue_date").value =
+                todayISO();
+
+        }
+
+
+        /*
+         * Load students.
+         */
+
+        await loadStudents();
+
+
+        /*
+         * Load courses initially.
+         * Student selection will later filter them
+         * according to institution.
+         */
+
+        await loadCourses();
+
+
+        /*
+         * Initial preview.
+         */
+
+        updatePreview();
+
+
+        console.log(
+            "GAAWOW EMS Certificate Generator V7.3 ready."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Certificate initialization error:",
+            error
+        );
+
+        showMessage(
+            "Certificate Generator initialization failed.",
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initCertificateGenerator
+    );
+
+} else {
+
+    initCertificateGenerator();
+
+}
