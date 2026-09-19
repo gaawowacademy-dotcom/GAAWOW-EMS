@@ -3,18 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GAAWOW EMS — Certificate Generator V7.4</title>
 
+<title>GAAWOW EMS — Certificate Generator V8</title>
+
+<!-- =========================================================
+     SUPABASE
+     ========================================================= -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-*{box-sizing:border-box}
+*{
+  box-sizing:border-box;
+}
+
 body{
   margin:0;
   font-family:Arial,Helvetica,sans-serif;
   background:#f5f7fa;
   color:#1f2937;
 }
+
+/* =========================================================
+   TOP BAR
+   ========================================================= */
+
 .topbar{
   height:64px;
   background:linear-gradient(135deg,#0B1E63,#0B4DA2);
@@ -25,219 +37,750 @@ body{
   padding:0 22px;
   box-shadow:0 3px 10px rgba(0,0,0,.15);
 }
-.brand{display:flex;align-items:center;gap:12px}
-.brand img{width:42px;height:42px;object-fit:contain}
-.brand-title{font-size:19px;font-weight:800}
-.brand-subtitle{font-size:11px;opacity:.85}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand img{
+  width:42px;
+  height:42px;
+  object-fit:contain;
+}
+
+.brand-title{
+  font-size:19px;
+  font-weight:800;
+}
+
+.brand-subtitle{
+  font-size:11px;
+  opacity:.85;
+}
+
 .back-btn{
-  border:0;background:rgba(255,255,255,.12);color:#fff;
-  padding:10px 15px;border-radius:8px;cursor:pointer;font-weight:700
+  border:0;
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  padding:10px 15px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:700;
 }
-.main{display:grid;grid-template-columns:360px 1fr;min-height:calc(100vh - 64px)}
+
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+.main{
+  display:grid;
+  grid-template-columns:360px 1fr;
+  min-height:calc(100vh - 64px);
+}
+
+/* =========================================================
+   LEFT PANEL
+   ========================================================= */
+
 .panel{
-  background:#fff;padding:20px;border-right:1px solid #ddd;
-  overflow-y:auto
+  background:#fff;
+  padding:20px;
+  border-right:1px solid #ddd;
+  overflow-y:auto;
 }
-.panel h2{margin:0 0 4px;color:#0B1E63;font-size:20px}
-.panel-subtitle{color:#6b7280;font-size:12px;margin-bottom:18px}
+
+.panel h2{
+  margin:0 0 4px;
+  color:#0B1E63;
+  font-size:20px;
+}
+
+.panel-subtitle{
+  color:#6b7280;
+  font-size:12px;
+  margin-bottom:18px;
+}
+
 .section-title{
-  margin:20px 0 10px;padding-bottom:7px;border-bottom:1px solid #e5e7eb;
-  color:#0B1E63;font-size:13px;font-weight:800;text-transform:uppercase
+  margin:20px 0 10px;
+  padding-bottom:7px;
+  border-bottom:1px solid #e5e7eb;
+  color:#0B1E63;
+  font-size:13px;
+  font-weight:800;
+  text-transform:uppercase;
 }
-.field{margin-bottom:12px}
+
+.field{
+  margin-bottom:12px;
+}
+
 .field label{
-  display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:5px
+  display:block;
+  font-size:12px;
+  font-weight:700;
+  color:#374151;
+  margin-bottom:5px;
 }
-.field input,.field select{
-  width:100%;padding:10px 11px;border:1px solid #d1d5db;border-radius:7px;
-  background:#fff;color:#111827;outline:none;font-size:13px
+
+.field input,
+.field select{
+  width:100%;
+  padding:10px 11px;
+  border:1px solid #d1d5db;
+  border-radius:7px;
+  background:#fff;
+  color:#111827;
+  outline:none;
+  font-size:13px;
 }
-.field input:focus,.field select:focus{
-  border-color:#0B4DA2;box-shadow:0 0 0 2px rgba(11,77,162,.1)
+
+.field input:focus,
+.field select:focus{
+  border-color:#0B4DA2;
+  box-shadow:0 0 0 2px rgba(11,77,162,.1);
 }
-.field input[readonly]{background:#f3f4f6}
+
+.field input[readonly]{
+  background:#f3f4f6;
+}
+
 .photo-preview{
-  display:none;width:82px;height:82px;object-fit:cover;border-radius:50%;
-  border:2px solid #D4AF37;margin:8px auto 15px
+  display:none;
+  width:82px;
+  height:82px;
+  object-fit:cover;
+  border-radius:50%;
+  border:2px solid #D4AF37;
+  margin:8px auto 15px;
 }
-.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.buttons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:18px;
+}
+
 .btn{
-  border:0;padding:11px 8px;border-radius:7px;cursor:pointer;
-  font-weight:700;font-size:12px
+  border:0;
+  padding:11px 8px;
+  border-radius:7px;
+  cursor:pointer;
+  font-weight:700;
+  font-size:12px;
 }
-.btn-primary{background:#0B4DA2;color:#fff}
-.btn-gold{background:#D4AF37;color:#111827}
-.btn-dark{background:#0B1E63;color:#fff}
-.btn-light{background:#e5e7eb;color:#111827}
-.btn:disabled{opacity:.55;cursor:not-allowed}
-.message{display:none;margin-top:14px;padding:10px;border-radius:7px;font-size:12px;font-weight:600}
-.message.success{display:block;background:#dcfce7;color:#166534}
-.message.error{display:block;background:#fee2e2;color:#991b1b}
-.message.info{display:block;background:#dbeafe;color:#1e40af}
+
+.btn-primary{
+  background:#0B4DA2;
+  color:#fff;
+}
+
+.btn-gold{
+  background:#D4AF37;
+  color:#111827;
+}
+
+.btn-dark{
+  background:#0B1E63;
+  color:#fff;
+}
+
+.btn-light{
+  background:#e5e7eb;
+  color:#111827;
+}
+
+.btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+/* =========================================================
+   MESSAGE
+   ========================================================= */
+
+.message{
+  display:none;
+  margin-top:14px;
+  padding:10px;
+  border-radius:7px;
+  font-size:12px;
+  font-weight:600;
+}
+
+.message.success{
+  display:block;
+  background:#dcfce7;
+  color:#166534;
+}
+
+.message.error{
+  display:block;
+  background:#fee2e2;
+  color:#991b1b;
+}
+
+.message.info{
+  display:block;
+  background:#dbeafe;
+  color:#1e40af;
+}
+
+/* =========================================================
+   CERTIFICATE STAGE
+   ========================================================= */
+
 .stage{
-  background:radial-gradient(circle at center,rgba(11,77,162,.08),transparent 40%),#eef2f7;
-  display:flex;justify-content:center;align-items:flex-start;padding:28px;overflow:auto
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(11,77,162,.08),
+      transparent 40%
+    ),
+    #eef2f7;
+
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:28px;
+  overflow:auto;
 }
+
 .preview-shell{
   width:min(100%,1536px);
   background:#fff;
   box-shadow:0 10px 35px rgba(0,0,0,.20);
   line-height:0;
 }
+
 #certificateCanvas{
   display:block;
   width:100%;
   height:auto;
   background:#fff;
 }
+
 .hint{
-  margin-top:10px;color:#6b7280;font-size:11px;line-height:1.45
+  margin-top:10px;
+  color:#6b7280;
+  font-size:11px;
+  line-height:1.45;
 }
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
 @media(max-width:900px){
-  .main{display:block}
-  .panel{border-right:0;border-bottom:1px solid #ddd}
-  .stage{padding:15px}
+
+  .main{
+    display:block;
+  }
+
+  .panel{
+    border-right:0;
+    border-bottom:1px solid #ddd;
+  }
+
+  .stage{
+    padding:15px;
+  }
 }
+
+/* =========================================================
+   PRINT
+   ========================================================= */
+
 @media print{
-  @page{size:A4 landscape;margin:0}
-  body{background:#fff}
-  .topbar,.panel{display:none!important}
-  .main{display:block;min-height:0}
-  .stage{padding:0;background:#fff}
-  .preview-shell{width:100%;box-shadow:none}
-  #certificateCanvas{width:100%}
+
+  @page{
+    size:A4 landscape;
+    margin:0;
+  }
+
+  body{
+    background:#fff;
+  }
+
+  .topbar,
+  .panel{
+    display:none!important;
+  }
+
+  .main{
+    display:block;
+    min-height:0;
+  }
+
+  .stage{
+    padding:0;
+    background:#fff;
+  }
+
+  .preview-shell{
+    width:100%;
+    box-shadow:none;
+  }
+
+  #certificateCanvas{
+    width:100%;
+  }
 }
 </style>
 </head>
 
 <body>
 
+<!-- =========================================================
+     TOP BAR
+     ========================================================= -->
+
 <header class="topbar">
+
   <div class="brand">
-    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+
+    <img
+      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+      alt="GAAWOW Academy"
+    >
+
     <div>
-      <div class="brand-title">GAAWOW EMS</div>
-      <div class="brand-subtitle">Certificate Generator — V7.4</div>
+      <div class="brand-title">
+        GAAWOW EMS
+      </div>
+
+      <div class="brand-subtitle">
+        Certificate Generator — V8 FINAL
+      </div>
     </div>
+
   </div>
-  <button class="back-btn" onclick="window.location.href='dashboard.html'">← Back to Dashboard</button>
+
+  <button
+    class="back-btn"
+    type="button"
+    onclick="window.location.href='dashboard.html'"
+  >
+    ← Back to Dashboard
+  </button>
+
 </header>
+
+
+<!-- =========================================================
+     MAIN
+     ========================================================= -->
 
 <main class="main">
 
+
+<!-- =========================================================
+     LEFT CONTROL PANEL
+     ========================================================= -->
+
 <section class="panel">
-  <h2>Certificate Generator</h2>
-  <div class="panel-subtitle">Template-based • Student → Course → Enrollment → Certificate</div>
 
-  <div class="section-title">Student</div>
+  <h2>
+    Certificate Generator
+  </h2>
+
+  <div class="panel-subtitle">
+    Template-based • Student → Course → Enrollment → Certificate
+  </div>
+
+
+  <!-- =======================================================
+       INSTITUTION
+       ======================================================= -->
+
+  <div class="section-title">
+    Institution
+  </div>
 
   <div class="field">
-    <label for="student_select">Select Student</label>
+
+    <label for="institutionSelect">
+      Select Institution
+    </label>
+
+    <select id="institutionSelect">
+
+      <option value="">
+        Loading institutions...
+      </option>
+
+    </select>
+
+  </div>
+
+
+  <!-- =======================================================
+       STUDENT
+       ======================================================= -->
+
+  <div class="section-title">
+    Student
+  </div>
+
+  <div class="field">
+
+    <label for="student_select">
+      Select Student
+    </label>
+
     <select id="student_select">
-      <option value="">Loading students...</option>
+
+      <option value="">
+        Select institution first
+      </option>
+
     </select>
+
   </div>
 
-  <img id="student_photo" class="photo-preview" alt="Student Photo">
+
+  <img
+    id="student_photo"
+    class="photo-preview"
+    alt="Student Photo"
+  >
+
 
   <div class="field">
-    <label for="full_name">Full Name</label>
-    <input id="full_name" readonly>
+
+    <label for="full_name">
+      Full Name
+    </label>
+
+    <input
+      id="full_name"
+      readonly
+    >
+
   </div>
 
+
   <div class="field">
-    <label for="student_id">Student ID</label>
-    <input id="student_id" readonly>
+
+    <label for="student_id">
+      Student ID
+    </label>
+
+    <input
+      id="student_id"
+      readonly
+    >
+
   </div>
 
-  <div class="section-title">Course & Enrollment</div>
+
+  <!-- =======================================================
+       COURSE / ENROLLMENT
+       ======================================================= -->
+
+  <div class="section-title">
+    Course & Enrollment
+  </div>
+
 
   <div class="field">
-    <label for="course_select">Course</label>
+
+    <label for="course_select">
+      Course
+    </label>
+
     <select id="course_select">
-      <option value="">Select student first</option>
+
+      <option value="">
+        Select student first
+      </option>
+
     </select>
+
   </div>
 
+
   <div class="field">
-    <label for="date_started">Date Started</label>
-    <input id="date_started" type="date" readonly>
+
+    <label for="date_started">
+      Date Started
+    </label>
+
+    <input
+      id="date_started"
+      type="date"
+      readonly
+    >
+
   </div>
 
+
   <div class="field">
-    <label for="date_completed">Date Completed</label>
-    <input id="date_completed" type="date" readonly>
+
+    <label for="date_completed">
+      Date Completed
+    </label>
+
+    <input
+      id="date_completed"
+      type="date"
+      readonly
+    >
+
   </div>
 
-  <div class="section-title">Certificate</div>
 
-  <div class="field">
-    <label for="certificate_no">Certificate No</label>
-    <input id="certificate_no" readonly>
+  <!-- =======================================================
+       CERTIFICATE
+       ======================================================= -->
+
+  <div class="section-title">
+    Certificate
   </div>
 
-  <div class="field">
-    <label for="certificate_id">Certificate ID</label>
-    <input id="certificate_id" readonly>
-  </div>
 
   <div class="field">
-    <label for="verify_code">Verify Code</label>
-    <input id="verify_code" readonly>
+
+    <label for="certificate_no">
+      Certificate No
+    </label>
+
+    <input
+      id="certificate_no"
+      readonly
+    >
+
   </div>
 
-  <div class="field">
-    <label for="issue_date">Date Issued</label>
-    <input id="issue_date" type="date">
-  </div>
 
   <div class="field">
-    <label for="status">Status</label>
+
+    <label for="certificate_id">
+      Certificate ID
+    </label>
+
+    <input
+      id="certificate_id"
+      readonly
+    >
+
+  </div>
+
+
+  <div class="field">
+
+    <label for="verify_code">
+      Verify Code
+    </label>
+
+    <input
+      id="verify_code"
+      readonly
+    >
+
+  </div>
+
+
+  <div class="field">
+
+    <label for="issue_date">
+      Date Issued
+    </label>
+
+    <input
+      id="issue_date"
+      type="date"
+    >
+
+  </div>
+
+
+  <div class="field">
+
+    <label for="status">
+      Status
+    </label>
+
     <select id="status">
-      <option value="graduated">GRADUATED</option>
-      <option value="valid">VALID</option>
-      <option value="pending">PENDING</option>
-      <option value="expired">EXPIRED</option>
-      <option value="revoked">REVOKED</option>
+
+      <option value="graduated">
+        GRADUATED
+      </option>
+
+      <option value="valid">
+        VALID
+      </option>
+
+      <option value="pending">
+        PENDING
+      </option>
+
+      <option value="expired">
+        EXPIRED
+      </option>
+
+      <option value="revoked">
+        REVOKED
+      </option>
+
     </select>
+
   </div>
 
-  <div class="section-title">Signatories</div>
+
+  <!-- =======================================================
+       SIGNATORIES
+       ======================================================= -->
+
+  <div class="section-title">
+    Signatories
+  </div>
+
 
   <div class="field">
-    <label for="director_name">Director</label>
-    <input id="director_name" value="Abdirahman H. Mohamed">
+
+    <label for="director_name">
+      Director
+    </label>
+
+    <input
+      id="director_name"
+      value="Abdirahman H. Mohamed"
+    >
+
   </div>
 
+
   <div class="field">
-    <label for="academic_head_name">Academic Head</label>
-    <input id="academic_head_name" value="Hodan Yusuf">
+
+    <label for="academic_head_name">
+      Academic Head
+    </label>
+
+    <input
+      id="academic_head_name"
+      value="Hodan Yusuf"
+    >
+
   </div>
+
+
+  <!-- =======================================================
+       BUTTONS
+       ======================================================= -->
 
   <div class="buttons">
-    <button class="btn btn-primary" onclick="generateCertificate()">Generate</button>
-    <button class="btn btn-gold" onclick="previewCertificate()">Preview</button>
-    <button class="btn btn-dark" onclick="saveCertificate()">Save Certificate</button>
-    <button class="btn btn-primary" onclick="downloadCertificate()">HD Download</button>
-    <button class="btn btn-light" onclick="window.print()">Print A4</button>
-    <button class="btn btn-light" onclick="newCertificate()">New</button>
+
+    <button
+      id="generateBtn"
+      class="btn btn-primary"
+      type="button"
+    >
+      Generate
+    </button>
+
+
+    <button
+      id="previewBtn"
+      class="btn btn-gold"
+      type="button"
+    >
+      Preview
+    </button>
+
+
+    <button
+      id="saveBtn"
+      class="btn btn-dark"
+      type="button"
+    >
+      Save Certificate
+    </button>
+
+
+    <button
+      id="downloadBtn"
+      class="btn btn-primary"
+      type="button"
+    >
+      HD Download
+    </button>
+
+
+    <button
+      id="printBtn"
+      class="btn btn-light"
+      type="button"
+    >
+      Print A4
+    </button>
+
+
+    <button
+      id="newBtn"
+      class="btn btn-light"
+      type="button"
+    >
+      New
+    </button>
+
   </div>
 
-  <div id="message" class="message"></div>
+
+  <!-- =======================================================
+       MESSAGE
+       ======================================================= -->
+
+  <div
+    id="message"
+    class="message"
+  ></div>
+
 
   <div class="hint">
-    The PNG template is rendered as the certificate background. The existing design is not recreated with HTML/CSS.
+
+    The original PNG certificate template is used as the
+    background. The certificate design itself is not recreated,
+    redesigned, stretched, recolored, or replaced.
+
   </div>
+
 </section>
 
+
+<!-- =========================================================
+     CERTIFICATE PREVIEW
+     ========================================================= -->
+
 <section class="stage">
+
   <div class="preview-shell">
-    <canvas id="certificateCanvas" width="1536" height="1024"></canvas>
+
+    <canvas
+      id="certificateCanvas"
+      width="1536"
+      height="1024"
+    ></canvas>
+
   </div>
+
 </section>
 
 </main>
 
-<script src="certificate.js"></script>
+
+<!-- =========================================================
+     APPLICATION JAVASCRIPT
+     ========================================================= -->
+
+<script src="certificate.js?v=8"></script>
+
 </body>
 </html>
