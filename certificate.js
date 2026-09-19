@@ -1,18 +1,17 @@
 /* =========================================================
    GAAWOW EMS
-   Certificates Management V1
+   Certificates Management V2
+   DATABASE-SAFE / ERROR-SAFE
 
    Purpose:
    - View issued certificates
-   - Search certificates
-   - Filter by status
-   - Filter by institution
-   - View certificate details
-   - Open verification
-   - Delete certificate
+   - Search
+   - Status filter
+   - Institution filter
+   - View details
+   - Verify
+   - Delete
    - Link to Certificate Generator
-
-   This file DOES NOT generate certificates.
 
    Generator:
    certificate.html
@@ -34,11 +33,24 @@ const SUPABASE_KEY =
    CLIENT
    ========================================================= */
 
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
+let supabaseClient = null;
+
+function createSupabaseClient() {
+
+  if (!window.supabase) {
+    throw new Error(
+      "Supabase library failed to load. Check certificate.html script order."
+    );
+  }
+
+  supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+  return supabaseClient;
+}
 
 
 /* =========================================================
@@ -53,13 +65,11 @@ let institutions = [];
 
 
 /* =========================================================
-   DOM
+   DOM HELPER
    ========================================================= */
 
-function $(id){
-
+function $(id) {
   return document.getElementById(id);
-
 }
 
 
@@ -67,38 +77,53 @@ function $(id){
    MESSAGE
    ========================================================= */
 
-function showMessage(
-  message,
-  type="info"
-){
+function showMessage(message, type = "info") {
 
-  const box =
-    $("message");
+  const box = $("message");
 
-  if(!box) return;
+  if (!box) {
+    console.log(`[${type}] ${message}`);
+    return;
+  }
 
-  box.textContent =
-    message;
+  box.textContent = message;
 
-  box.className =
-    `message ${type}`;
-
+  box.className = `message ${type}`;
 }
 
 
-function clearMessage(){
+function clearMessage() {
 
-  const box =
-    $("message");
+  const box = $("message");
 
-  if(!box) return;
+  if (!box) return;
 
-  box.textContent =
-    "";
+  box.textContent = "";
 
-  box.className =
-    "message";
+  box.className = "message";
+}
 
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+function setLoading(show, text = "Loading certificates...") {
+
+  const loading = $("loading");
+
+  if (!loading) return;
+
+  if (show) {
+
+    loading.style.display = "block";
+    loading.textContent = text;
+
+  } else {
+
+    loading.style.display = "none";
+
+  }
 }
 
 
@@ -106,38 +131,36 @@ function clearMessage(){
    AUTH
    ========================================================= */
 
-async function loadSession(){
+async function loadSession() {
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.auth.getSession();
-
-
-  if(error){
-
-    throw error;
-
+  if (!supabaseClient) {
+    throw new Error("Supabase client is not initialized.");
   }
 
+  const result =
+    await supabaseClient.auth.getSession();
+
+  const data = result?.data;
+  const error = result?.error;
+
+  if (error) {
+    throw new Error(
+      `Session error: ${error.message}`
+    );
+  }
 
   currentUser =
     data?.session?.user || null;
 
+  if (!currentUser) {
 
-  if(!currentUser){
-
-    window.location.href =
-      "index.html";
+    window.location.href = "index.html";
 
     return false;
 
   }
 
-
   return true;
-
 }
 
 
@@ -145,7 +168,11 @@ async function loadSession(){
    PROFILE
    ========================================================= */
 
-async function loadProfile(){
+async function loadProfile() {
+
+  if (!currentUser) {
+    throw new Error("User session not found.");
+  }
 
   const {
     data,
@@ -153,41 +180,38 @@ async function loadProfile(){
   } =
     await supabaseClient
       .from("profiles")
-      .select(`
-        id,
-        full_name,
-        role,
-        institution_id,
-        is_active
-      `)
+      .select(
+        "id,full_name,role,institution_id,is_active"
+      )
       .eq(
         "id",
         currentUser.id
       )
-      .single();
+      .maybeSingle();
 
 
-  if(error){
-
-    throw error;
-
-  }
-
-
-  currentProfile =
-    data;
-
-
-  if(!currentProfile){
+  if (error) {
 
     throw new Error(
-      "Profile not found."
+      `Profile loading failed: ${error.message}`
     );
 
   }
 
 
-  if(!currentProfile.is_active){
+  if (!data) {
+
+    throw new Error(
+      "Profile not found for the logged-in account."
+    );
+
+  }
+
+
+  currentProfile = data;
+
+
+  if (currentProfile.is_active === false) {
 
     throw new Error(
       "Your account is inactive."
@@ -203,21 +227,20 @@ async function loadProfile(){
   ];
 
 
-  if(
+  if (
     !allowedRoles.includes(
       currentProfile.role
     )
-  ){
+  ) {
 
     throw new Error(
-      "You are not authorized to manage certificates."
+      `Unauthorized role: ${currentProfile.role || "unknown"}`
     );
 
   }
 
 
   return currentProfile;
-
 }
 
 
@@ -225,54 +248,46 @@ async function loadProfile(){
    LOAD INSTITUTIONS
    ========================================================= */
 
-async function loadInstitutions(){
+async function loadInstitutions() {
 
   const filter =
     $("institutionFilter");
 
 
-  if(!filter){
-
+  if (!filter) {
     return;
-
   }
 
 
   filter.innerHTML =
-    `<option value="">
-       All Institutions
-     </option>`;
+    `<option value="">All Institutions</option>`;
 
 
   let query =
     supabaseClient
       .from("institutions")
-      .select(`
-        id,
-        name,
-        code,
-        is_active
-      `)
-      .order("name");
+      .select(
+        "id,name,code,is_active"
+      )
+      .order(
+        "name",
+        {
+          ascending: true
+        }
+      );
 
 
-  /*
-     Non-super-admin users
-     only see their institution.
-  */
-
-  if(
+  if (
     currentProfile.role !== "super_admin"
-  ){
+  ) {
 
-    if(!currentProfile.institution_id){
+    if (!currentProfile.institution_id) {
 
       throw new Error(
-        "Your profile has no institution."
+        "Your profile has no institution assigned."
       );
 
     }
-
 
     query =
       query.eq(
@@ -290,9 +305,11 @@ async function loadInstitutions(){
     await query;
 
 
-  if(error){
+  if (error) {
 
-    throw error;
+    throw new Error(
+      `Institutions loading failed: ${error.message}`
+    );
 
   }
 
@@ -322,6 +339,24 @@ async function loadInstitutions(){
     }
   );
 
+
+  /*
+     Non-super-admin:
+     lock institution selector
+  */
+
+  if (
+    currentProfile.role !== "super_admin"
+  ) {
+
+    filter.disabled = true;
+
+  } else {
+
+    filter.disabled = false;
+
+  }
+
 }
 
 
@@ -329,108 +364,152 @@ async function loadInstitutions(){
    LOAD CERTIFICATES
    ========================================================= */
 
-async function loadCertificates(){
+async function loadCertificates() {
 
-  const loading =
-    $("loading");
-
-
-  if(loading){
-
-    loading.style.display =
-      "block";
-
-    loading.textContent =
-      "Loading certificates...";
-
-  }
+  setLoading(
+    true,
+    "Loading certificates..."
+  );
 
 
-  const institutionId =
-    $("institutionFilter")?.value || "";
+  try {
+
+    if (!currentProfile) {
+      throw new Error(
+        "User profile is not loaded."
+      );
+    }
 
 
-  let query =
-    supabaseClient
-      .from("certificates")
-      .select(`
-        id,
-        institution_id,
-        student_id,
-        course_id,
-        enrollment_id,
-        certificate_no,
-        certificate_id,
-        verify_code,
-        hash_code,
-        issue_date,
-        expiry_date,
-        status,
-        student_name,
-        course_name,
-        created_at
-      `)
-      .order(
-        "created_at",
-        {
-          ascending:false
-        }
+    let query =
+      supabaseClient
+        .from("certificates")
+        .select(
+          [
+            "id",
+            "institution_id",
+            "student_id",
+            "course_id",
+            "enrollment_id",
+            "certificate_no",
+            "certificate_id",
+            "verify_code",
+            "hash_code",
+            "issue_date",
+            "expiry_date",
+            "status",
+            "student_name",
+            "course_name",
+            "created_at"
+          ].join(",")
+        )
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
+
+
+    /*
+       SECURITY FILTER
+    */
+
+    if (
+      currentProfile.role !== "super_admin"
+    ) {
+
+      if (!currentProfile.institution_id) {
+
+        throw new Error(
+          "No institution is assigned to your account."
+        );
+
+      }
+
+
+      query =
+        query.eq(
+          "institution_id",
+          currentProfile.institution_id
+        );
+
+    } else {
+
+      const institutionId =
+        $("institutionFilter")?.value || "";
+
+
+      if (institutionId) {
+
+        query =
+          query.eq(
+            "institution_id",
+            institutionId
+          );
+
+      }
+
+    }
+
+
+    const {
+      data,
+      error
+    } =
+      await query;
+
+
+    if (error) {
+
+      /*
+         IMPORTANT:
+         Show actual Supabase error.
+      */
+
+      console.error(
+        "Certificates query error:",
+        error
       );
 
 
-  /*
-     Institution security filter.
-  */
-
-  if(
-    currentProfile.role !== "super_admin"
-  ){
-
-    query =
-      query.eq(
-        "institution_id",
-        currentProfile.institution_id
+      throw new Error(
+        `Certificates database error: ${error.message}`
       );
 
-  }else if(institutionId){
+    }
 
-    query =
-      query.eq(
-        "institution_id",
-        institutionId
+
+    certificates =
+      Array.isArray(data)
+        ? data
+        : [];
+
+
+    renderCertificates();
+
+    updateStats();
+
+
+    if (!certificates.length) {
+
+      showMessage(
+        "No issued certificates found.",
+        "info"
       );
 
-  }
+    }
 
 
-  const {
-    data,
-    error
-  } =
-    await query;
+  } finally {
 
+    /*
+       IMPORTANT:
+       Loading ALWAYS stops,
+       even when query fails.
+    */
 
-  if(error){
-
-    throw error;
-
-  }
-
-
-  certificates =
-    data || [];
-
-
-  renderCertificates();
-
-
-  updateStats();
-
-
-  if(loading){
-
-    loading.style.display =
-      "none";
+    setLoading(false);
 
   }
 
@@ -441,13 +520,17 @@ async function loadCertificates(){
    RENDER
    ========================================================= */
 
-function renderCertificates(){
+function renderCertificates() {
 
   const body =
     $("certificatesBody");
 
 
-  if(!body){
+  if (!body) {
+
+    console.warn(
+      "certificatesBody element not found."
+    );
 
     return;
 
@@ -456,16 +539,14 @@ function renderCertificates(){
 
   const search =
     (
-      $("searchInput")?.value ||
-      ""
+      $("searchInput")?.value || ""
     )
       .trim()
       .toLowerCase();
 
 
   const status =
-    $("statusFilter")?.value ||
-    "";
+    $("statusFilter")?.value || "";
 
 
   let filtered =
@@ -473,10 +554,10 @@ function renderCertificates(){
 
 
   /*
-     Search.
+     SEARCH
   */
 
-  if(search){
+  if (search) {
 
     filtered =
       filtered.filter(
@@ -485,13 +566,9 @@ function renderCertificates(){
           const values = [
 
             certificate.certificate_no,
-
             certificate.certificate_id,
-
             certificate.verify_code,
-
             certificate.student_name,
-
             certificate.course_name
 
           ];
@@ -513,39 +590,37 @@ function renderCertificates(){
 
 
   /*
-     Status.
+     STATUS FILTER
   */
 
-  if(status){
+  if (status) {
 
     filtered =
       filtered.filter(
         certificate =>
-          certificate.status === status
+          String(
+            certificate.status || ""
+          ).toLowerCase() ===
+          String(status).toLowerCase()
       );
 
   }
 
 
-  body.innerHTML =
-    "";
+  body.innerHTML = "";
 
 
-  if(!filtered.length){
+  if (!filtered.length) {
 
     body.innerHTML = `
-
       <tr>
-
         <td
           colspan="8"
           class="empty"
         >
           No certificates found.
         </td>
-
       </tr>
-
     `;
 
     return;
@@ -576,6 +651,7 @@ function renderCertificates(){
       row.innerHTML = `
 
         <td>
+
           <strong>
             ${escapeHtml(
               certificate.certificate_no || "—"
@@ -583,10 +659,13 @@ function renderCertificates(){
           </strong>
 
           <div class="muted">
+
             ${escapeHtml(
               certificate.certificate_id || ""
             )}
+
           </div>
+
         </td>
 
 
@@ -626,11 +705,13 @@ function renderCertificates(){
 
 
         <td>
+
           <strong>
             ${escapeHtml(
               certificate.verify_code || "—"
             )}
           </strong>
+
         </td>
 
 
@@ -642,7 +723,9 @@ function renderCertificates(){
               type="button"
               class="small-btn small-view"
               data-action="view"
-              data-id="${certificate.id}"
+              data-id="${escapeAttr(
+                certificate.id
+              )}"
             >
               View
             </button>
@@ -661,19 +744,21 @@ function renderCertificates(){
 
 
             ${
-              currentProfile.role === "super_admin"
-              || currentProfile.role === "school_admin"
-              ? `
-                <button
-                  type="button"
-                  class="small-btn small-delete"
-                  data-action="delete"
-                  data-id="${certificate.id}"
-                >
-                  Delete
-                </button>
-              `
-              : ""
+              currentProfile.role === "super_admin" ||
+              currentProfile.role === "school_admin"
+                ? `
+                  <button
+                    type="button"
+                    class="small-btn small-delete"
+                    data-action="delete"
+                    data-id="${escapeAttr(
+                      certificate.id
+                    )}"
+                  >
+                    Delete
+                  </button>
+                `
+                : ""
             }
 
           </div>
@@ -683,9 +768,7 @@ function renderCertificates(){
       `;
 
 
-      body.appendChild(
-        row
-      );
+      body.appendChild(row);
 
     }
   );
@@ -697,7 +780,7 @@ function renderCertificates(){
    STATS
    ========================================================= */
 
-function updateStats(){
+function updateStats() {
 
   const total =
     certificates.length;
@@ -706,25 +789,31 @@ function updateStats(){
   const valid =
     certificates.filter(
       item =>
-        item.status === "valid"
+        String(
+          item.status || ""
+        ).toLowerCase() === "valid"
     ).length;
 
 
   const pending =
     certificates.filter(
       item =>
-        item.status === "pending"
+        String(
+          item.status || ""
+        ).toLowerCase() === "pending"
     ).length;
 
 
   const revoked =
     certificates.filter(
       item =>
-        item.status === "revoked"
+        String(
+          item.status || ""
+        ).toLowerCase() === "revoked"
     ).length;
 
 
-  if($("totalCount")){
+  if ($("totalCount")) {
 
     $("totalCount").textContent =
       total;
@@ -732,7 +821,7 @@ function updateStats(){
   }
 
 
-  if($("validCount")){
+  if ($("validCount")) {
 
     $("validCount").textContent =
       valid;
@@ -740,7 +829,7 @@ function updateStats(){
   }
 
 
-  if($("pendingCount")){
+  if ($("pendingCount")) {
 
     $("pendingCount").textContent =
       pending;
@@ -748,7 +837,7 @@ function updateStats(){
   }
 
 
-  if($("revokedCount")){
+  if ($("revokedCount")) {
 
     $("revokedCount").textContent =
       revoked;
@@ -762,7 +851,7 @@ function updateStats(){
    STATUS BADGE
    ========================================================= */
 
-function statusBadge(status){
+function statusBadge(status) {
 
   const safe =
     String(
@@ -780,42 +869,30 @@ function statusBadge(status){
     "badge";
 
 
-  if(
-    [
-      "valid"
-    ].includes(safe)
-  ){
+  if (safe === "valid") {
 
     className +=
       " badge-valid";
 
-  }else if(
-    safe === "graduated"
-  ){
-
-    className +=
-      " badge-graduated";
-
-  }else if(
-    safe === "pending"
-  ){
+  } else if (safe === "pending") {
 
     className +=
       " badge-pending";
 
-  }else if(
-    safe === "expired"
-  ){
+  } else if (safe === "expired") {
 
     className +=
       " badge-expired";
 
-  }else if(
-    safe === "revoked"
-  ){
+  } else if (safe === "revoked") {
 
     className +=
       " badge-revoked";
+
+  } else if (safe === "graduated") {
+
+    className +=
+      " badge-graduated";
 
   }
 
@@ -830,19 +907,20 @@ function statusBadge(status){
 
 
 /* =========================================================
-   VIEW
+   VIEW CERTIFICATE
    ========================================================= */
 
-function viewCertificate(id){
+function viewCertificate(id) {
 
   const certificate =
     certificates.find(
       item =>
-        item.id === id
+        String(item.id) ===
+        String(id)
     );
 
 
-  if(!certificate){
+  if (!certificate) {
 
     showMessage(
       "Certificate not found.",
@@ -857,8 +935,10 @@ function viewCertificate(id){
   const institution =
     institutions.find(
       item =>
-        item.id ===
-        certificate.institution_id
+        String(item.id) ===
+        String(
+          certificate.institution_id
+        )
     );
 
 
@@ -866,7 +946,12 @@ function viewCertificate(id){
     $("modalBody");
 
 
-  if(!modalBody){
+  if (!modalBody) {
+
+    showMessage(
+      "Certificate details window is missing.",
+      "error"
+    );
 
     return;
 
@@ -877,9 +962,7 @@ function viewCertificate(id){
 
     <div class="detail-grid">
 
-
       <div class="detail">
-
         <div class="detail-label">
           Student
         </div>
@@ -889,12 +972,10 @@ function viewCertificate(id){
             certificate.student_name || "—"
           )}
         </div>
-
       </div>
 
 
       <div class="detail">
-
         <div class="detail-label">
           Student UUID
         </div>
@@ -904,12 +985,10 @@ function viewCertificate(id){
             certificate.student_id || "—"
           )}
         </div>
-
       </div>
 
 
       <div class="detail">
-
         <div class="detail-label">
           Course
         </div>
@@ -919,12 +998,10 @@ function viewCertificate(id){
             certificate.course_name || "—"
           )}
         </div>
-
       </div>
 
 
       <div class="detail">
-
         <div class="detail-label">
           Course UUID
         </div>
@@ -934,12 +1011,10 @@ function viewCertificate(id){
             certificate.course_id || "—"
           )}
         </div>
-
       </div>
 
 
       <div class="detail">
-
         <div class="detail-label">
           Institution
         </div>
@@ -949,12 +1024,10 @@ function viewCertificate(id){
             institution?.name || "—"
           )}
         </div>
-
       </div>
 
 
       <div class="detail">
-
         <div class="detail-label">
           Certificate No
         </div>
@@ -964,12 +1037,10 @@ function viewCertificate(id){
             certificate.certificate_no || "—"
           )}
         </div>
-
       </div>
 
 
       <div class="detail">
-
         <div class="detail-label">
           Certificate ID
         </div>
@@ -979,12 +1050,10 @@ function viewCertificate(id){
             certificate.certificate_id || "—"
           )}
         </div>
-
       </div>
 
 
       <div class="detail">
-
         <div class="detail-label">
           Verify Code
         </div>
@@ -994,12 +1063,10 @@ function viewCertificate(id){
             certificate.verify_code || "—"
           )}
         </div>
-
       </div>
 
 
       <div class="detail">
-
         <div class="detail-label">
           Issue Date
         </div>
@@ -1009,12 +1076,10 @@ function viewCertificate(id){
             certificate.issue_date
           )}
         </div>
-
       </div>
 
 
       <div class="detail">
-
         <div class="detail-label">
           Expiry Date
         </div>
@@ -1028,12 +1093,10 @@ function viewCertificate(id){
               : "No Expiry"
           }
         </div>
-
       </div>
 
 
       <div class="detail">
-
         <div class="detail-label">
           Status
         </div>
@@ -1043,12 +1106,10 @@ function viewCertificate(id){
             certificate.status
           )}
         </div>
-
       </div>
 
 
       <div class="detail">
-
         <div class="detail-label">
           Enrollment ID
         </div>
@@ -1058,7 +1119,6 @@ function viewCertificate(id){
             certificate.enrollment_id || "—"
           )}
         </div>
-
       </div>
 
 
@@ -1079,16 +1139,13 @@ function viewCertificate(id){
 
       </div>
 
-
     </div>
 
   `;
 
 
   $("viewModal")
-    ?.classList.add(
-      "show"
-    );
+    ?.classList.add("show");
 
 }
 
@@ -1097,16 +1154,22 @@ function viewCertificate(id){
    DELETE
    ========================================================= */
 
-async function deleteCertificate(id){
+async function deleteCertificate(id) {
 
   const certificate =
     certificates.find(
       item =>
-        item.id === id
+        String(item.id) ===
+        String(id)
     );
 
 
-  if(!certificate){
+  if (!certificate) {
+
+    showMessage(
+      "Certificate not found.",
+      "error"
+    );
 
     return;
 
@@ -1115,18 +1178,18 @@ async function deleteCertificate(id){
 
   const confirmed =
     window.confirm(
-      `Delete certificate ${certificate.certificate_no || ""}?\n\nThis action cannot be undone.`
+      `Delete certificate ${
+        certificate.certificate_no || ""
+      }?\n\nThis action cannot be undone.`
     );
 
 
-  if(!confirmed){
-
+  if (!confirmed) {
     return;
-
   }
 
 
-  try{
+  try {
 
     showMessage(
       "Deleting certificate...",
@@ -1146,9 +1209,11 @@ async function deleteCertificate(id){
         );
 
 
-    if(error){
+    if (error) {
 
-      throw error;
+      throw new Error(
+        `Delete failed: ${error.message}`
+      );
 
     }
 
@@ -1162,7 +1227,7 @@ async function deleteCertificate(id){
     await loadCertificates();
 
 
-  }catch(error){
+  } catch (error) {
 
     console.error(
       "Delete Certificate Error:",
@@ -1187,9 +1252,9 @@ async function deleteCertificate(id){
 
 function verifyCertificate(
   verifyCode
-){
+) {
 
-  if(!verifyCode){
+  if (!verifyCode) {
 
     showMessage(
       "Verification code is missing.",
@@ -1200,11 +1265,6 @@ function verifyCertificate(
 
   }
 
-
-  /*
-     Open existing working
-     verification page.
-  */
 
   window.location.href =
     `verify.html?code=${encodeURIComponent(
@@ -1218,31 +1278,28 @@ function verifyCertificate(
    FILTERS
    ========================================================= */
 
-function clearFilters(){
+function clearFilters() {
 
-  if($("searchInput")){
+  if ($("searchInput")) {
 
-    $("searchInput").value =
-      "";
-
-  }
-
-
-  if($("statusFilter")){
-
-    $("statusFilter").value =
-      "";
+    $("searchInput").value = "";
 
   }
 
 
-  if(
+  if ($("statusFilter")) {
+
+    $("statusFilter").value = "";
+
+  }
+
+
+  if (
     $("institutionFilter") &&
-    currentProfile.role === "super_admin"
-  ){
+    currentProfile?.role === "super_admin"
+  ) {
 
-    $("institutionFilter").value =
-      "";
+    $("institutionFilter").value = "";
 
   }
 
@@ -1256,7 +1313,8 @@ function clearFilters(){
    EVENTS
    ========================================================= */
 
-function bindEvents(){
+function bindEvents() {
+
 
   $("backDashboardBtn")
     ?.addEventListener(
@@ -1287,20 +1345,23 @@ function bindEvents(){
       "click",
       async () => {
 
-        try{
+        try {
 
           clearMessage();
 
           await loadCertificates();
 
           showMessage(
-            "Certificates refreshed.",
+            "Certificates refreshed successfully.",
             "success"
           );
 
-        }catch(error){
+        } catch (error) {
 
-          console.error(error);
+          console.error(
+            "Refresh error:",
+            error
+          );
 
           showMessage(
             error.message ||
@@ -1333,13 +1394,18 @@ function bindEvents(){
       "change",
       async () => {
 
-        try{
+        try {
+
+          clearMessage();
 
           await loadCertificates();
 
-        }catch(error){
+        } catch (error) {
 
-          console.error(error);
+          console.error(
+            "Institution filter error:",
+            error
+          );
 
           showMessage(
             error.message ||
@@ -1366,9 +1432,7 @@ function bindEvents(){
       () => {
 
         $("viewModal")
-          ?.classList.remove(
-            "show"
-          );
+          ?.classList.remove("show");
 
       }
     );
@@ -1379,25 +1443,19 @@ function bindEvents(){
       "click",
       event => {
 
-        if(
+        if (
           event.target ===
           $("viewModal")
-        ){
+        ) {
 
           $("viewModal")
-            .classList.remove(
-              "show"
-            );
+            .classList.remove("show");
 
         }
 
       }
     );
 
-
-  /*
-     Table actions.
-  */
 
   $("certificatesBody")
     ?.addEventListener(
@@ -1410,10 +1468,8 @@ function bindEvents(){
           );
 
 
-        if(!button){
-
+        if (!button) {
           return;
-
         }
 
 
@@ -1421,25 +1477,29 @@ function bindEvents(){
           button.dataset.action;
 
 
-        if(action === "view"){
+        if (action === "view") {
 
           viewCertificate(
             button.dataset.id
           );
 
+          return;
+
         }
 
 
-        if(action === "verify"){
+        if (action === "verify") {
 
           verifyCertificate(
             button.dataset.code
           );
 
+          return;
+
         }
 
 
-        if(action === "delete"){
+        if (action === "delete") {
 
           await deleteCertificate(
             button.dataset.id
@@ -1457,28 +1517,46 @@ function bindEvents(){
    DATE
    ========================================================= */
 
-function formatDate(
-  dateString
-){
+function formatDate(dateString) {
 
-  if(!dateString){
-
+  if (!dateString) {
     return "—";
+  }
+
+
+  /*
+     Handle both:
+     YYYY-MM-DD
+     and full ISO timestamp
+  */
+
+  let date;
+
+
+  if (
+    /^\d{4}-\d{2}-\d{2}$/.test(
+      String(dateString)
+    )
+  ) {
+
+    date =
+      new Date(
+        `${dateString}T00:00:00`
+      );
+
+  } else {
+
+    date =
+      new Date(dateString);
 
   }
 
 
-  const date =
-    new Date(
-      `${dateString}T00:00:00`
-    );
-
-
-  if(
+  if (
     Number.isNaN(
       date.getTime()
     )
-  ){
+  ) {
 
     return escapeHtml(
       dateString
@@ -1490,9 +1568,9 @@ function formatDate(
   return date.toLocaleDateString(
     "en-GB",
     {
-      day:"2-digit",
-      month:"short",
-      year:"numeric"
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
     }
   );
 
@@ -1503,7 +1581,7 @@ function formatDate(
    HTML ESCAPE
    ========================================================= */
 
-function escapeHtml(value){
+function escapeHtml(value) {
 
   return String(
     value ?? ""
@@ -1532,11 +1610,9 @@ function escapeHtml(value){
 }
 
 
-function escapeAttr(value){
+function escapeAttr(value) {
 
-  return escapeHtml(
-    value
-  );
+  return escapeHtml(value);
 
 }
 
@@ -1545,65 +1621,76 @@ function escapeAttr(value){
    INITIALIZE
    ========================================================= */
 
-async function initialize(){
+async function initialize() {
 
-  try{
+  setLoading(
+    true,
+    "Loading certificates..."
+  );
+
+
+  try {
 
     clearMessage();
 
 
-    if(
-      !window.supabase
-    ){
+    /*
+       1. Supabase
+    */
 
-      throw new Error(
-        "Supabase library failed to load."
-      );
+    createSupabaseClient();
 
-    }
 
+    /*
+       2. Session
+    */
 
     const authenticated =
       await loadSession();
 
 
-    if(!authenticated){
-
+    if (!authenticated) {
       return;
-
     }
 
+
+    /*
+       3. Profile
+    */
 
     await loadProfile();
 
 
+    /*
+       4. Institutions
+    */
+
     await loadInstitutions();
 
+
+    /*
+       5. Events
+    */
 
     bindEvents();
 
 
+    /*
+       6. Certificates
+    */
+
     await loadCertificates();
 
 
-  }catch(error){
+  } catch (error) {
 
     console.error(
-      "Certificates Management Error:",
+      "GAAWOW Certificates V2 Error:",
       error
     );
 
 
-    const loading =
-      $("loading");
-
-
-    if(loading){
-
-      loading.style.display =
-        "none";
-
-    }
+    setLoading(false);
 
 
     showMessage(
@@ -1611,6 +1698,32 @@ async function initialize(){
       "Certificates page could not load.",
       "error"
     );
+
+
+    /*
+       Also expose error in console
+       for debugging.
+    */
+
+    console.error(
+      "Full error:",
+      {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint
+      }
+    );
+
+  } finally {
+
+    /*
+       FINAL SAFETY:
+       Never leave Loading certificates...
+       visible after initialization.
+    */
+
+    setLoading(false);
 
   }
 
@@ -1621,17 +1734,20 @@ async function initialize(){
    START
    ========================================================= */
 
-if(
+if (
   document.readyState ===
   "loading"
-){
+) {
 
   document.addEventListener(
     "DOMContentLoaded",
-    initialize
+    initialize,
+    {
+      once: true
+    }
   );
 
-}else{
+} else {
 
   initialize();
 
