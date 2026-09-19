@@ -1,704 +1,470 @@
 /* =========================================================
    GAAWOW EMS
-   Certificates Management V3
-   DATABASE-SAFE
+   Certificates Management V4
+   DATABASE-SAFE VERSION
 
    IMPORTANT:
-   certificates table does NOT use enrollment_id.
-   ========================================================= */
-
-
-/* =========================================================
-   SUPABASE CONFIG
+   - certificates table DOES NOT contain enrollment_id
+   - enrollment_id is NOT selected
+   - enrollment_id is NOT displayed
+   - Existing certificates schema preserved
+   - Design/UI handled by certificates.html
    ========================================================= */
 
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
 const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  "YOUR_SUPABASE_ANON_KEY";
 
-
-/* =========================================================
-   CLIENT
-   ========================================================= */
-
-let supabaseClient = null;
-
-function createSupabaseClient() {
-
-  if (!window.supabase) {
-
-    throw new Error(
-      "Supabase library failed to load."
-    );
-
-  }
-
-  supabaseClient =
-    window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY
-    );
-
-}
-
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
 /* =========================================================
-   STATE
+   GLOBAL STATE
    ========================================================= */
 
 let currentUser = null;
 let currentProfile = null;
-
 let certificates = [];
 let institutions = [];
 
-
 /* =========================================================
-   DOM
+   DOM HELPERS
    ========================================================= */
 
 function $(id) {
-
   return document.getElementById(id);
-
 }
 
+function showMessage(message, type = "info") {
+  const el = $("message");
 
-/* =========================================================
-   MESSAGE
-   ========================================================= */
+  if (!el) return;
 
-function showMessage(
-  message,
-  type = "info"
-) {
-
-  const box = $("message");
-
-  if (!box) {
-
-    console.log(
-      `[${type}] ${message}`
-    );
-
-    return;
-
-  }
-
-  box.textContent =
-    message;
-
-  box.className =
-    `message ${type}`;
-
+  el.textContent = message;
+  el.className = `message ${type}`;
+  el.style.display = "block";
 }
 
+function hideMessage() {
+  const el = $("message");
 
-function clearMessage() {
+  if (!el) return;
 
-  const box = $("message");
-
-  if (!box) return;
-
-  box.textContent = "";
-
-  box.className =
-    "message";
-
+  el.style.display = "none";
 }
 
-
-/* =========================================================
-   LOADING
-   ========================================================= */
-
-function setLoading(
-  visible,
-  text = "Loading certificates..."
-) {
-
-  const loading =
-    $("loading");
+function showLoading(show = true) {
+  const loading = $("loading");
 
   if (!loading) return;
 
-  if (visible) {
-
-    loading.style.display =
-      "block";
-
-    loading.textContent =
-      text;
-
-  } else {
-
-    loading.style.display =
-      "none";
-
-  }
-
+  loading.style.display = show ? "block" : "none";
 }
 
+function escapeHTML(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 /* =========================================================
-   SESSION
+   DATE FORMAT
    ========================================================= */
 
-async function loadSession() {
+function formatDate(dateValue) {
+  if (!dateValue) return "—";
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.auth.getSession();
+  const date = new Date(dateValue);
 
-
-  if (error) {
-
-    throw new Error(
-      `Session error: ${error.message}`
-    );
-
+  if (Number.isNaN(date.getTime())) {
+    return escapeHTML(dateValue);
   }
 
-
-  currentUser =
-    data?.session?.user || null;
-
-
-  if (!currentUser) {
-
-    window.location.href =
-      "index.html";
-
-    return false;
-
-  }
-
-
-  return true;
-
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
 }
 
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+function normalizeStatus(status) {
+  return String(status || "")
+    .trim()
+    .toLowerCase();
+}
+
+function statusBadge(status) {
+  const normalized = normalizeStatus(status);
+
+  let className = "status-badge";
+
+  if (normalized === "valid") {
+    className += " valid";
+  } else if (normalized === "pending") {
+    className += " pending";
+  } else if (normalized === "revoked") {
+    className += " revoked";
+  } else if (normalized === "expired") {
+    className += " expired";
+  } else {
+    className += " inactive";
+  }
+
+  return `
+    <span class="${className}">
+      ${escapeHTML(status || "Unknown")}
+    </span>
+  `;
+}
+
+/* =========================================================
+   AUTH
+   ========================================================= */
+
+async function loadCurrentUser() {
+  const {
+    data: { user },
+    error
+  } = await supabaseClient.auth.getUser();
+
+  if (error) {
+    console.error("Auth error:", error);
+    throw error;
+  }
+
+  if (!user) {
+    window.location.href = "index.html";
+    return false;
+  }
+
+  currentUser = user;
+
+  return true;
+}
 
 /* =========================================================
    PROFILE
    ========================================================= */
 
-async function loadProfile() {
-
-  if (!currentUser) {
-
-    throw new Error(
-      "Logged-in user was not found."
-    );
-
-  }
-
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("profiles")
-      .select(
-        "id,full_name,role,institution_id,is_active"
-      )
-      .eq(
-        "id",
-        currentUser.id
-      )
-      .maybeSingle();
-
+async function loadCurrentProfile() {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select(`
+      id,
+      full_name,
+      role,
+      institution_id,
+      is_active
+    `)
+    .eq("id", currentUser.id)
+    .maybeSingle();
 
   if (error) {
-
-    throw new Error(
-      `Profile error: ${error.message}`
-    );
-
+    console.error("Profile error:", error);
+    throw error;
   }
-
 
   if (!data) {
-
-    throw new Error(
-      "Profile not found."
-    );
-
+    throw new Error("User profile was not found.");
   }
 
+  currentProfile = data;
 
-  currentProfile =
-    data;
-
-
-  if (
-    currentProfile.is_active === false
-  ) {
-
-    throw new Error(
-      "Your account is inactive."
-    );
-
+  if (data.is_active === false) {
+    throw new Error("Your account is inactive.");
   }
 
-
-  const allowedRoles = [
-    "super_admin",
-    "school_admin",
-    "teacher"
-  ];
-
-
-  if (
-    !allowedRoles.includes(
-      currentProfile.role
-    )
-  ) {
-
-    throw new Error(
-      "You are not authorized to manage certificates."
-    );
-
-  }
-
-
-  return currentProfile;
-
+  return data;
 }
 
-
 /* =========================================================
-   INSTITUTIONS
+   LOAD INSTITUTIONS
    ========================================================= */
 
 async function loadInstitutions() {
-
-  const filter =
-    $("institutionFilter");
-
+  const filter = $("institutionFilter");
 
   if (!filter) return;
 
+  filter.innerHTML = `
+    <option value="">All Institutions</option>
+  `;
 
-  filter.innerHTML =
-    `<option value="">
-      All Institutions
-    </option>`;
+  let query = supabaseClient
+    .from("institutions")
+    .select("id, name")
+    .order("name", { ascending: true });
 
+  /*
+    Super admin:
+    - Can see all institutions
 
-  let query =
-    supabaseClient
-      .from("institutions")
-      .select(
-        "id,name,code,is_active"
-      )
-      .order(
-        "name",
-        {
-          ascending: true
-        }
-      );
-
+    Other roles:
+    - Only their institution
+  */
 
   if (
-    currentProfile.role !==
-    "super_admin"
+    currentProfile.role !== "super_admin" &&
+    currentProfile.institution_id
   ) {
-
-    if (
-      !currentProfile.institution_id
-    ) {
-
-      throw new Error(
-        "Your profile has no institution assigned."
-      );
-
-    }
-
-
-    query =
-      query.eq(
-        "id",
-        currentProfile.institution_id
-      );
-
+    query = query.eq(
+      "id",
+      currentProfile.institution_id
+    );
   }
 
-
-  const {
-    data,
-    error
-  } =
-    await query;
-
+  const { data, error } = await query;
 
   if (error) {
-
-    throw new Error(
-      `Institutions error: ${error.message}`
-    );
-
+    console.error("Institutions error:", error);
+    throw error;
   }
 
+  institutions = data || [];
 
-  institutions =
-    data || [];
+  institutions.forEach((institution) => {
+    const option = document.createElement("option");
 
+    option.value = institution.id;
+    option.textContent = institution.name;
 
-  institutions.forEach(
-    institution => {
-
-      const option =
-        document.createElement(
-          "option"
-        );
-
-      option.value =
-        institution.id;
-
-      option.textContent =
-        institution.code
-          ? `${institution.name} (${institution.code})`
-          : institution.name;
-
-      filter.appendChild(
-        option
-      );
-
-    }
-  );
-
+    filter.appendChild(option);
+  });
 
   if (
-    currentProfile.role !==
-    "super_admin"
+    currentProfile.role !== "super_admin" &&
+    currentProfile.institution_id
   ) {
-
-    filter.disabled =
-      true;
-
+    filter.value = currentProfile.institution_id;
   }
-
 }
-
 
 /* =========================================================
    LOAD CERTIFICATES
    ========================================================= */
 
 async function loadCertificates() {
-
-  setLoading(
-    true,
-    "Loading certificates..."
-  );
-
+  showLoading(true);
+  hideMessage();
 
   try {
+    /*
+      IMPORTANT DATABASE FIX
 
-    let query =
-      supabaseClient
-        .from("certificates")
-        .select(`
-          id,
-          institution_id,
-          student_id,
-          course_id,
-          certificate_no,
-          certificate_id,
-          verify_code,
-          hash_code,
-          issue_date,
-          expiry_date,
-          status,
-          student_name,
-          course_name,
-          created_at
-        `)
-        .order(
-          "created_at",
-          {
-            ascending: false
-          }
-        );
+      There is NO enrollment_id in certificates.
 
+      Therefore DO NOT add:
+
+      enrollment_id
+
+      to this select.
+    */
+
+    let query = supabaseClient
+      .from("certificates")
+      .select(`
+        id,
+        institution_id,
+        student_id,
+        course_id,
+        certificate_no,
+        certificate_id,
+        verify_code,
+        hash_code,
+        issue_date,
+        expiry_date,
+        status,
+        student_name,
+        course_name,
+        created_at
+      `)
+      .order("created_at", {
+        ascending: false
+      });
 
     /*
-       SUPER ADMIN
-       can see all institutions.
+      Institution security
     */
 
     if (
-      currentProfile.role ===
-      "super_admin"
+      currentProfile.role !== "super_admin" &&
+      currentProfile.institution_id
     ) {
-
-      const institutionId =
-        $("institutionFilter")?.value ||
-        "";
-
-
-      if (institutionId) {
-
-        query =
-          query.eq(
-            "institution_id",
-            institutionId
-          );
-
-      }
-
+      query = query.eq(
+        "institution_id",
+        currentProfile.institution_id
+      );
     }
 
-
-    /*
-       SCHOOL ADMIN / TEACHER
-       only own institution.
-    */
-
-    else {
-
-      if (
-        !currentProfile.institution_id
-      ) {
-
-        throw new Error(
-          "No institution assigned to this account."
-        );
-
-      }
-
-
-      query =
-        query.eq(
-          "institution_id",
-          currentProfile.institution_id
-        );
-
-    }
-
-
-    const {
-      data,
-      error
-    } =
-      await query;
-
+    const { data, error } = await query;
 
     if (error) {
-
-      console.error(
-        "Certificates database error:",
-        error
-      );
+      console.error("Certificates query error:", error);
 
       throw new Error(
         `Certificates database error: ${error.message}`
       );
-
     }
 
+    certificates = data || [];
 
-    certificates =
-      Array.isArray(data)
-        ? data
-        : [];
+    renderCertificates(certificates);
+    updateStatistics(certificates);
 
+  } catch (error) {
+    console.error(error);
 
-    renderCertificates();
+    certificates = [];
 
-    updateStats();
+    renderCertificates([]);
 
-
-    if (!certificates.length) {
-
-      showMessage(
-        "No certificates have been issued yet.",
-        "info"
-      );
-
-    }
-
-
-  } finally {
-
-    setLoading(
-      false
+    showMessage(
+      error.message ||
+      "Unable to load certificates.",
+      "error"
     );
 
+  } finally {
+    showLoading(false);
   }
-
 }
 
-
 /* =========================================================
-   RENDER
+   FILTER CERTIFICATES
    ========================================================= */
 
-function renderCertificates() {
+function getFilteredCertificates() {
+  const searchInput = $("searchInput");
+  const statusFilter = $("statusFilter");
+  const institutionFilter = $("institutionFilter");
 
-  const body =
-    $("certificatesBody");
+  const search = String(
+    searchInput?.value || ""
+  )
+    .trim()
+    .toLowerCase();
 
+  const status = String(
+    statusFilter?.value || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const institutionId = String(
+    institutionFilter?.value || ""
+  ).trim();
+
+  return certificates.filter((certificate) => {
+
+    const matchesSearch =
+      !search ||
+      String(certificate.student_name || "")
+        .toLowerCase()
+        .includes(search) ||
+      String(certificate.student_id || "")
+        .toLowerCase()
+        .includes(search) ||
+      String(certificate.course_name || "")
+        .toLowerCase()
+        .includes(search) ||
+      String(certificate.certificate_no || "")
+        .toLowerCase()
+        .includes(search) ||
+      String(certificate.certificate_id || "")
+        .toLowerCase()
+        .includes(search) ||
+      String(certificate.verify_code || "")
+        .toLowerCase()
+        .includes(search);
+
+    const matchesStatus =
+      !status ||
+      normalizeStatus(certificate.status) === status;
+
+    const matchesInstitution =
+      !institutionId ||
+      certificate.institution_id === institutionId;
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesInstitution
+    );
+  });
+}
+
+/* =========================================================
+   RENDER TABLE
+   ========================================================= */
+
+function renderCertificates(data) {
+  const body = $("certificatesBody");
 
   if (!body) return;
 
-
-  const search =
-    (
-      $("searchInput")?.value ||
-      ""
-    )
-      .trim()
-      .toLowerCase();
-
-
-  const status =
-    $("statusFilter")?.value ||
-    "";
-
-
-  let filtered =
-    [...certificates];
-
-
-  if (search) {
-
-    filtered =
-      filtered.filter(
-        certificate => {
-
-          const values = [
-
-            certificate.certificate_no,
-
-            certificate.certificate_id,
-
-            certificate.verify_code,
-
-            certificate.student_name,
-
-            certificate.course_name
-
-          ];
-
-
-          return values.some(
-            value =>
-              String(
-                value || ""
-              )
-                .toLowerCase()
-                .includes(search)
-          );
-
-        }
-      );
-
-  }
-
-
-  if (status) {
-
-    filtered =
-      filtered.filter(
-        certificate =>
-          String(
-            certificate.status || ""
-          ).toLowerCase() ===
-          String(status).toLowerCase()
-      );
-
-  }
-
-
-  body.innerHTML = "";
-
-
-  if (!filtered.length) {
-
+  if (!data || data.length === 0) {
     body.innerHTML = `
       <tr>
-        <td
-          colspan="8"
-          class="empty"
-        >
+        <td colspan="100%" style="text-align:center;padding:40px;">
           No certificates found.
         </td>
       </tr>
     `;
 
     return;
-
   }
 
+  body.innerHTML = data.map((certificate) => {
 
-  filtered.forEach(
-    certificate => {
-
-      const row =
-        document.createElement(
-          "tr"
-        );
-
-
-      const institution =
-        institutions.find(
-          item =>
-            item.id ===
-            certificate.institution_id
-        );
-
-
-      row.innerHTML = `
+    return `
+      <tr>
 
         <td>
-
           <strong>
-            ${escapeHtml(
-              certificate.certificate_no ||
-              "—"
+            ${escapeHTML(
+              certificate.certificate_no || "—"
             )}
           </strong>
-
-          <div class="muted">
-            ${escapeHtml(
-              certificate.certificate_id ||
-              ""
-            )}
-          </div>
-
         </td>
 
-
         <td>
-          ${escapeHtml(
-            certificate.student_name ||
-            "—"
+          ${escapeHTML(
+            certificate.student_name || "—"
           )}
         </td>
 
-
         <td>
-          ${escapeHtml(
-            certificate.course_name ||
-            "—"
+          ${escapeHTML(
+            certificate.course_name || "—"
           )}
         </td>
 
-
         <td>
-          ${escapeHtml(
-            institution?.name ||
-            "—"
+          ${escapeHTML(
+            certificate.certificate_id || "—"
           )}
         </td>
 
+        <td>
+          ${escapeHTML(
+            certificate.verify_code || "—"
+          )}
+        </td>
 
         <td>
           ${formatDate(
@@ -706,505 +472,410 @@ function renderCertificates() {
           )}
         </td>
 
-
         <td>
           ${statusBadge(
             certificate.status
           )}
         </td>
 
-
         <td>
-          <strong>
-            ${escapeHtml(
-              certificate.verify_code ||
-              "—"
-            )}
-          </strong>
-        </td>
-
-
-        <td>
-
-          <div class="row-actions">
+          <div class="action-buttons">
 
             <button
               type="button"
-              class="small-btn small-view"
-              data-action="view"
-              data-id="${escapeAttr(
-                certificate.id
-              )}"
+              class="btn btn-view"
+              onclick="viewCertificate('${certificate.id}')"
             >
               View
             </button>
 
-
             <button
               type="button"
-              class="small-btn small-verify"
-              data-action="verify"
-              data-code="${escapeAttr(
-                certificate.verify_code ||
-                ""
-              )}"
+              class="btn btn-verify"
+              onclick="verifyCertificate('${escapeHTML(
+                certificate.verify_code || ""
+              )}')"
             >
               Verify
             </button>
 
-
-            ${
-              currentProfile.role ===
-              "super_admin" ||
-              currentProfile.role ===
-              "school_admin"
-                ? `
-                  <button
-                    type="button"
-                    class="small-btn small-delete"
-                    data-action="delete"
-                    data-id="${escapeAttr(
-                      certificate.id
-                    )}"
-                  >
-                    Delete
-                  </button>
-                `
-                : ""
-            }
+            <button
+              type="button"
+              class="btn btn-delete"
+              onclick="deleteCertificate('${certificate.id}')"
+            >
+              Delete
+            </button>
 
           </div>
-
         </td>
 
-      `;
+      </tr>
+    `;
 
-
-      body.appendChild(
-        row
-      );
-
-    }
-  );
-
+  }).join("");
 }
 
-
 /* =========================================================
-   STATS
+   STATISTICS
    ========================================================= */
 
-function updateStats() {
-
+function updateStatistics(data) {
   const total =
-    certificates.length;
-
+    Array.isArray(data)
+      ? data.length
+      : 0;
 
   const valid =
-    certificates.filter(
-      item =>
-        String(
-          item.status || ""
-        ).toLowerCase() ===
-        "valid"
+    data.filter(
+      c => normalizeStatus(c.status) === "valid"
     ).length;
-
 
   const pending =
-    certificates.filter(
-      item =>
-        String(
-          item.status || ""
-        ).toLowerCase() ===
-        "pending"
+    data.filter(
+      c => normalizeStatus(c.status) === "pending"
     ).length;
-
 
   const revoked =
-    certificates.filter(
-      item =>
-        String(
-          item.status || ""
-        ).toLowerCase() ===
-        "revoked"
+    data.filter(
+      c => normalizeStatus(c.status) === "revoked"
     ).length;
 
+  if ($("totalCount")) {
+    $("totalCount").textContent = total;
+  }
 
-  if ($("totalCount"))
-    $("totalCount").textContent =
-      total;
+  if ($("validCount")) {
+    $("validCount").textContent = valid;
+  }
 
+  if ($("pendingCount")) {
+    $("pendingCount").textContent = pending;
+  }
 
-  if ($("validCount"))
-    $("validCount").textContent =
-      valid;
-
-
-  if ($("pendingCount"))
-    $("pendingCount").textContent =
-      pending;
-
-
-  if ($("revokedCount"))
-    $("revokedCount").textContent =
-      revoked;
-
+  if ($("revokedCount")) {
+    $("revokedCount").textContent = revoked;
+  }
 }
 
-
 /* =========================================================
-   STATUS BADGE
+   APPLY FILTERS
    ========================================================= */
 
-function statusBadge(status) {
+function applyFilters() {
+  const filtered = getFilteredCertificates();
 
-  const safe =
-    String(
-      status || ""
-    ).toLowerCase();
-
-
-  const label =
-    safe
-      ? safe.toUpperCase()
-      : "UNKNOWN";
-
-
-  let className =
-    "badge";
-
-
-  if (safe === "valid")
-    className +=
-      " badge-valid";
-
-  else if (safe === "pending")
-    className +=
-      " badge-pending";
-
-  else if (safe === "expired")
-    className +=
-      " badge-expired";
-
-  else if (safe === "revoked")
-    className +=
-      " badge-revoked";
-
-  else if (safe === "graduated")
-    className +=
-      " badge-graduated";
-
-
-  return `
-    <span class="${className}">
-      ${escapeHtml(label)}
-    </span>
-  `;
-
+  renderCertificates(filtered);
 }
 
+/* =========================================================
+   CLEAR FILTERS
+   ========================================================= */
+
+function clearFilters() {
+  if ($("searchInput")) {
+    $("searchInput").value = "";
+  }
+
+  if ($("statusFilter")) {
+    $("statusFilter").value = "";
+  }
+
+  if ($("institutionFilter")) {
+
+    if (
+      currentProfile &&
+      currentProfile.role !== "super_admin" &&
+      currentProfile.institution_id
+    ) {
+      $("institutionFilter").value =
+        currentProfile.institution_id;
+    } else {
+      $("institutionFilter").value = "";
+    }
+  }
+
+  applyFilters();
+}
 
 /* =========================================================
-   VIEW
+   VIEW CERTIFICATE
    ========================================================= */
 
 function viewCertificate(id) {
-
   const certificate =
     certificates.find(
-      item =>
-        String(item.id) ===
-        String(id)
+      item => item.id === id
     );
 
-
   if (!certificate) {
-
     showMessage(
       "Certificate not found.",
       "error"
     );
 
     return;
-
   }
 
+  const modal = $("viewModal");
+  const modalBody = $("modalBody");
+
+  if (!modal || !modalBody) {
+    /*
+      Fallback if the modal is not present.
+    */
+
+    alert(
+      [
+        `Certificate No: ${certificate.certificate_no || "—"}`,
+        `Certificate ID: ${certificate.certificate_id || "—"}`,
+        `Student: ${certificate.student_name || "—"}`,
+        `Course: ${certificate.course_name || "—"}`,
+        `Verify Code: ${certificate.verify_code || "—"}`,
+        `Issue Date: ${formatDate(certificate.issue_date)}`,
+        `Expiry Date: ${formatDate(certificate.expiry_date)}`,
+        `Status: ${certificate.status || "—"}`
+      ].join("\n")
+    );
+
+    return;
+  }
+
+  modalBody.innerHTML = `
+    <div class="certificate-details">
+
+      <div class="detail-row">
+        <strong>Student</strong>
+        <span>
+          ${escapeHTML(
+            certificate.student_name || "—"
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Student UUID</strong>
+        <span>
+          ${escapeHTML(
+            certificate.student_id || "—"
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Course</strong>
+        <span>
+          ${escapeHTML(
+            certificate.course_name || "—"
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Course UUID</strong>
+        <span>
+          ${escapeHTML(
+            certificate.course_id || "—"
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Institution</strong>
+        <span>
+          ${escapeHTML(
+            getInstitutionName(
+              certificate.institution_id
+            )
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Certificate No</strong>
+        <span>
+          ${escapeHTML(
+            certificate.certificate_no || "—"
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Certificate ID</strong>
+        <span>
+          ${escapeHTML(
+            certificate.certificate_id || "—"
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Verify Code</strong>
+        <span>
+          ${escapeHTML(
+            certificate.verify_code || "—"
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Issue Date</strong>
+        <span>
+          ${formatDate(
+            certificate.issue_date
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Expiry Date</strong>
+        <span>
+          ${formatDate(
+            certificate.expiry_date
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Status</strong>
+        <span>
+          ${statusBadge(
+            certificate.status
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Verification Hash</strong>
+        <span style="word-break:break-all;">
+          ${escapeHTML(
+            certificate.hash_code || "—"
+          )}
+        </span>
+      </div>
+
+      <div class="detail-row">
+        <strong>Created</strong>
+        <span>
+          ${formatDate(
+            certificate.created_at
+          )}
+        </span>
+      </div>
+
+    </div>
+  `;
+
+  modal.style.display = "flex";
+}
+
+/* =========================================================
+   INSTITUTION NAME
+   ========================================================= */
+
+function getInstitutionName(id) {
+  if (!id) return "—";
 
   const institution =
     institutions.find(
-      item =>
-        String(item.id) ===
-        String(
-          certificate.institution_id
-        )
+      item => item.id === id
     );
 
+  return institution
+    ? institution.name
+    : id;
+}
 
-  const modalBody =
-    $("modalBody");
+/* =========================================================
+   CLOSE MODAL
+   ========================================================= */
 
+function closeModal() {
+  const modal = $("viewModal");
 
-  if (!modalBody) {
+  if (modal) {
+    modal.style.display = "none";
+  }
+}
 
+/* =========================================================
+   VERIFY CERTIFICATE
+   ========================================================= */
+
+function verifyCertificate(code) {
+  if (!code) {
     showMessage(
-      "Certificate details window is missing.",
+      "Verification code is missing.",
       "error"
     );
 
     return;
-
   }
 
-
-  modalBody.innerHTML = `
-
-    <div class="detail-grid">
-
-      <div class="detail">
-        <div class="detail-label">
-          Student
-        </div>
-        <div class="detail-value">
-          ${escapeHtml(
-            certificate.student_name ||
-            "—"
-          )}
-        </div>
-      </div>
-
-
-      <div class="detail">
-        <div class="detail-label">
-          Student UUID
-        </div>
-        <div class="detail-value">
-          ${escapeHtml(
-            certificate.student_id ||
-            "—"
-          )}
-        </div>
-      </div>
-
-
-      <div class="detail">
-        <div class="detail-label">
-          Course
-        </div>
-        <div class="detail-value">
-          ${escapeHtml(
-            certificate.course_name ||
-            "—"
-          )}
-        </div>
-      </div>
-
-
-      <div class="detail">
-        <div class="detail-label">
-          Course UUID
-        </div>
-        <div class="detail-value">
-          ${escapeHtml(
-            certificate.course_id ||
-            "—"
-          )}
-        </div>
-      </div>
-
-
-      <div class="detail">
-        <div class="detail-label">
-          Institution
-        </div>
-        <div class="detail-value">
-          ${escapeHtml(
-            institution?.name ||
-            "—"
-          )}
-        </div>
-      </div>
-
-
-      <div class="detail">
-        <div class="detail-label">
-          Certificate No
-        </div>
-        <div class="detail-value">
-          ${escapeHtml(
-            certificate.certificate_no ||
-            "—"
-          )}
-        </div>
-      </div>
-
-
-      <div class="detail">
-        <div class="detail-label">
-          Certificate ID
-        </div>
-        <div class="detail-value">
-          ${escapeHtml(
-            certificate.certificate_id ||
-            "—"
-          )}
-        </div>
-      </div>
-
-
-      <div class="detail">
-        <div class="detail-label">
-          Verify Code
-        </div>
-        <div class="detail-value">
-          ${escapeHtml(
-            certificate.verify_code ||
-            "—"
-          )}
-        </div>
-      </div>
-
-
-      <div class="detail">
-        <div class="detail-label">
-          Issue Date
-        </div>
-        <div class="detail-value">
-          ${formatDate(
-            certificate.issue_date
-          )}
-        </div>
-      </div>
-
-
-      <div class="detail">
-        <div class="detail-label">
-          Expiry Date
-        </div>
-        <div class="detail-value">
-          ${
-            certificate.expiry_date
-              ? formatDate(
-                  certificate.expiry_date
-                )
-              : "No Expiry"
-          }
-        </div>
-      </div>
-
-
-      <div class="detail">
-        <div class="detail-label">
-          Status
-        </div>
-        <div class="detail-value">
-          ${statusBadge(
-            certificate.status
-          )}
-        </div>
-      </div>
-
-
-      <div
-        class="detail"
-        style="grid-column:1/-1"
-      >
-        <div class="detail-label">
-          Verification Hash
-        </div>
-
-        <div class="detail-value">
-          ${escapeHtml(
-            certificate.hash_code ||
-            "—"
-          )}
-        </div>
-      </div>
-
-    </div>
-
-  `;
-
-
-  $("viewModal")
-    ?.classList.add("show");
-
+  window.location.href =
+    `verify.html?code=${encodeURIComponent(code)}`;
 }
 
-
 /* =========================================================
-   DELETE
+   DELETE CERTIFICATE
    ========================================================= */
 
 async function deleteCertificate(id) {
-
   const certificate =
     certificates.find(
-      item =>
-        String(item.id) ===
-        String(id)
+      item => item.id === id
     );
 
-
-  if (!certificate) return;
-
-
-  const confirmed =
-    window.confirm(
-      `Delete certificate ${
-        certificate.certificate_no ||
-        ""
-      }?\n\nThis action cannot be undone.`
+  if (!certificate) {
+    showMessage(
+      "Certificate not found.",
+      "error"
     );
 
+    return;
+  }
 
-  if (!confirmed) return;
+  const confirmed = window.confirm(
+    `Delete certificate ${
+      certificate.certificate_no || ""
+    }?\n\nThis action cannot be undone.`
+  );
 
+  if (!confirmed) {
+    return;
+  }
 
   try {
+    showLoading(true);
+    hideMessage();
 
-    showMessage(
-      "Deleting certificate...",
-      "info"
-    );
-
-
-    const {
-      error
-    } =
+    const { error } =
       await supabaseClient
         .from("certificates")
         .delete()
-        .eq(
-          "id",
-          id
-        );
-
+        .eq("id", id);
 
     if (error) {
-
-      throw new Error(
-        `Delete failed: ${error.message}`
+      console.error(
+        "Delete certificate error:",
+        error
       );
 
+      throw new Error(
+        `Unable to delete certificate: ${error.message}`
+      );
     }
-
 
     showMessage(
       "Certificate deleted successfully.",
       "success"
     );
 
-
     await loadCertificates();
-
 
   } catch (error) {
 
-    console.error(
-      "Delete error:",
-      error
-    );
-
+    console.error(error);
 
     showMessage(
       error.message ||
@@ -1212,462 +883,215 @@ async function deleteCertificate(id) {
       "error"
     );
 
+  } finally {
+    showLoading(false);
   }
-
 }
 
-
 /* =========================================================
-   VERIFY
+   NAVIGATION
    ========================================================= */
 
-function verifyCertificate(
-  verifyCode
-) {
-
-  if (!verifyCode) {
-
-    showMessage(
-      "Verification code is missing.",
-      "error"
-    );
-
-    return;
-
-  }
-
-
+function openGenerator() {
   window.location.href =
-    `verify.html?code=${encodeURIComponent(
-      verifyCode
-    )}`;
-
+    "certificate.html";
 }
 
+function openDashboard() {
+  window.location.href =
+    "dashboard.html";
+}
 
 /* =========================================================
-   FILTERS
+   EVENT LISTENERS
    ========================================================= */
 
-function clearFilters() {
+function setupEvents() {
 
-  if ($("searchInput"))
-    $("searchInput").value = "";
+  const searchInput =
+    $("searchInput");
 
+  const statusFilter =
+    $("statusFilter");
 
-  if ($("statusFilter"))
-    $("statusFilter").value = "";
+  const institutionFilter =
+    $("institutionFilter");
 
+  const clearFiltersButton =
+    $("clearFiltersBtn");
 
-  if (
-    $("institutionFilter") &&
-    currentProfile?.role ===
-      "super_admin"
-  ) {
+  const refreshButton =
+    $("refreshBtn");
 
-    $("institutionFilter").value = "";
+  const closeModalButton =
+    $("closeModalBtn");
 
+  const generateButton =
+    $("generateCertificateBtn");
+
+  const backDashboardButton =
+    $("backDashboardBtn");
+
+  if (searchInput) {
+    searchInput.addEventListener(
+      "input",
+      applyFilters
+    );
   }
 
-
-  renderCertificates();
-
-}
-
-
-/* =========================================================
-   EVENTS
-   ========================================================= */
-
-function bindEvents() {
-
-  $("backDashboardBtn")
-    ?.addEventListener(
-      "click",
-      () => {
-
-        window.location.href =
-          "dashboard.html";
-
-      }
-    );
-
-
-  $("generateCertificateBtn")
-    ?.addEventListener(
-      "click",
-      () => {
-
-        window.location.href =
-          "certificate.html";
-
-      }
-    );
-
-
-  $("refreshBtn")
-    ?.addEventListener(
-      "click",
-      async () => {
-
-        try {
-
-          clearMessage();
-
-          await loadCertificates();
-
-          showMessage(
-            "Certificates refreshed.",
-            "success"
-          );
-
-        } catch (error) {
-
-          console.error(error);
-
-          showMessage(
-            error.message ||
-            "Unable to refresh certificates.",
-            "error"
-          );
-
-        }
-
-      }
-    );
-
-
-  $("searchInput")
-    ?.addEventListener(
-      "input",
-      renderCertificates
-    );
-
-
-  $("statusFilter")
-    ?.addEventListener(
+  if (statusFilter) {
+    statusFilter.addEventListener(
       "change",
-      renderCertificates
+      applyFilters
     );
+  }
 
-
-  $("institutionFilter")
-    ?.addEventListener(
+  if (institutionFilter) {
+    institutionFilter.addEventListener(
       "change",
-      async () => {
-
-        try {
-
-          clearMessage();
-
-          await loadCertificates();
-
-        } catch (error) {
-
-          console.error(error);
-
-          showMessage(
-            error.message ||
-            "Unable to filter certificates.",
-            "error"
-          );
-
-        }
-
-      }
+      applyFilters
     );
+  }
 
-
-  $("clearFilterBtn")
-    ?.addEventListener(
+  if (clearFiltersButton) {
+    clearFiltersButton.addEventListener(
       "click",
       clearFilters
     );
+  }
 
-
-  $("closeModalBtn")
-    ?.addEventListener(
+  if (refreshButton) {
+    refreshButton.addEventListener(
       "click",
-      () => {
-
-        $("viewModal")
-          ?.classList.remove(
-            "show"
-          );
-
+      async () => {
+        await loadCertificates();
       }
     );
+  }
 
+  if (closeModalButton) {
+    closeModalButton.addEventListener(
+      "click",
+      closeModal
+    );
+  }
 
-  $("viewModal")
-    ?.addEventListener(
+  if (generateButton) {
+    generateButton.addEventListener(
+      "click",
+      openGenerator
+    );
+  }
+
+  if (backDashboardButton) {
+    backDashboardButton.addEventListener(
+      "click",
+      openDashboard
+    );
+  }
+
+  const modal =
+    $("viewModal");
+
+  if (modal) {
+    modal.addEventListener(
       "click",
       event => {
-
-        if (
-          event.target ===
-          $("viewModal")
-        ) {
-
-          $("viewModal")
-            .classList.remove(
-              "show"
-            );
-
+        if (event.target === modal) {
+          closeModal();
         }
-
       }
     );
+  }
 
-
-  $("certificatesBody")
-    ?.addEventListener(
-      "click",
-      async event => {
-
-        const button =
-          event.target.closest(
-            "button[data-action]"
-          );
-
-
-        if (!button) return;
-
-
-        const action =
-          button.dataset.action;
-
-
-        if (action === "view") {
-
-          viewCertificate(
-            button.dataset.id
-          );
-
-        }
-
-
-        else if (
-          action === "verify"
-        ) {
-
-          verifyCertificate(
-            button.dataset.code
-          );
-
-        }
-
-
-        else if (
-          action === "delete"
-        ) {
-
-          await deleteCertificate(
-            button.dataset.id
-          );
-
-        }
-
+  document.addEventListener(
+    "keydown",
+    event => {
+      if (event.key === "Escape") {
+        closeModal();
       }
-    );
-
-}
-
-
-/* =========================================================
-   DATE
-   ========================================================= */
-
-function formatDate(dateString) {
-
-  if (!dateString) {
-    return "—";
-  }
-
-
-  let date;
-
-
-  if (
-    /^\d{4}-\d{2}-\d{2}$/.test(
-      String(dateString)
-    )
-  ) {
-
-    date =
-      new Date(
-        `${dateString}T00:00:00`
-      );
-
-  } else {
-
-    date =
-      new Date(dateString);
-
-  }
-
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-
-    return escapeHtml(
-      dateString
-    );
-
-  }
-
-
-  return date.toLocaleDateString(
-    "en-GB",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
     }
   );
-
 }
-
-
-/* =========================================================
-   ESCAPE
-   ========================================================= */
-
-function escapeHtml(value) {
-
-  return String(
-    value ?? ""
-  )
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    );
-
-}
-
-
-function escapeAttr(value) {
-
-  return escapeHtml(value);
-
-}
-
 
 /* =========================================================
    INITIALIZE
    ========================================================= */
 
-async function initialize() {
-
-  setLoading(
-    true,
-    "Loading certificates..."
-  );
-
+async function initCertificatesPage() {
 
   try {
 
-    clearMessage();
-
-
-    /* 1. Supabase */
-
-    createSupabaseClient();
-
-
-    /* 2. Login */
+    showLoading(true);
 
     const authenticated =
-      await loadSession();
-
+      await loadCurrentUser();
 
     if (!authenticated) {
       return;
     }
 
-
-    /* 3. Profile */
-
-    await loadProfile();
-
-
-    /* 4. Institutions */
+    await loadCurrentProfile();
 
     await loadInstitutions();
 
-
-    /* 5. Events */
-
-    bindEvents();
-
-
-    /* 6. Certificates */
+    setupEvents();
 
     await loadCertificates();
-
 
   } catch (error) {
 
     console.error(
-      "GAAWOW Certificates V3:",
+      "Certificates initialization error:",
       error
     );
 
-
     showMessage(
       error.message ||
-      "Certificates page could not load.",
+      "Unable to initialize Certificates Management.",
       "error"
     );
 
-
   } finally {
 
-    setLoading(false);
+    showLoading(false);
 
   }
-
 }
 
+/* =========================================================
+   GLOBAL FUNCTIONS
+   ========================================================= */
+
+window.viewCertificate =
+  viewCertificate;
+
+window.verifyCertificate =
+  verifyCertificate;
+
+window.deleteCertificate =
+  deleteCertificate;
+
+window.closeModal =
+  closeModal;
+
+window.clearFilters =
+  clearFilters;
+
+window.applyFilters =
+  applyFilters;
+
+window.openGenerator =
+  openGenerator;
+
+window.openDashboard =
+  openDashboard;
 
 /* =========================================================
    START
    ========================================================= */
 
-if (
-  document.readyState ===
-  "loading"
-) {
-
-  document.addEventListener(
-    "DOMContentLoaded",
-    initialize,
-    {
-      once: true
-    }
-  );
-
-} else {
-
-  initialize();
-
-}
+document.addEventListener(
+  "DOMContentLoaded",
+  initCertificatesPage
+);
