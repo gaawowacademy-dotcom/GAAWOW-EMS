@@ -1,1297 +1,897 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>GAAWOW EMS — Students Management</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-*{
-  box-sizing:border-box;
-}
-
-body{
-  margin:0;
-  font-family:Arial,Helvetica,sans-serif;
-  background:#F5F7FA;
-  color:#1F2937;
-}
-
-/* =========================
-   TOPBAR
-========================= */
-
-.topbar{
-  height:68px;
-  background:linear-gradient(
-    135deg,
-    #0B1E63,
-    #0B4DA2
-  );
-  color:#fff;
-
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-
-  padding:0 22px;
-
-  box-shadow:0 3px 12px rgba(0,0,0,.16);
-}
-
-.brand{
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-
-.brand img{
-  width:44px;
-  height:44px;
-  object-fit:contain;
-}
-
-.brand-title{
-  font-size:19px;
-  font-weight:800;
-}
-
-.brand-subtitle{
-  font-size:11px;
-  opacity:.85;
-  margin-top:2px;
-}
-
-.top-actions{
-  display:flex;
-  gap:8px;
-}
-
-.top-btn{
-  border:1px solid rgba(255,255,255,.25);
-  background:rgba(255,255,255,.10);
-  color:#fff;
-  padding:9px 13px;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:700;
-}
-
-.top-btn:hover{
-  background:rgba(255,255,255,.18);
-}
-
-/* =========================
-   PAGE
-========================= */
-
-.page{
-  padding:22px;
-  max-width:1500px;
-  margin:auto;
-}
-
-.page-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:15px;
-  margin-bottom:18px;
-}
-
-.page-title{
-  margin:0;
-  color:#0B1E63;
-  font-size:25px;
-}
-
-.page-subtitle{
-  margin:5px 0 0;
-  color:#64748B;
-  font-size:13px;
-}
-
-/* =========================
-   STATS
-========================= */
-
-.stats{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:14px;
-  margin-bottom:18px;
-}
-
-.stat{
-  background:#fff;
-  border-radius:12px;
-  padding:17px;
-  border:1px solid #E5E7EB;
-  box-shadow:0 3px 12px rgba(0,0,0,.05);
-}
-
-.stat-label{
-  color:#64748B;
-  font-size:12px;
-  font-weight:700;
-}
-
-.stat-value{
-  margin-top:5px;
-  color:#0B1E63;
-  font-size:25px;
-  font-weight:800;
-}
-
-/* =========================
-   MAIN GRID
-========================= */
-
-.grid{
-  display:grid;
-  grid-template-columns:360px 1fr;
-  gap:18px;
-  align-items:start;
-}
-
-.card{
-  background:#fff;
-  border:1px solid #E5E7EB;
-  border-radius:13px;
-  box-shadow:0 3px 12px rgba(0,0,0,.05);
-}
-
-.card-header{
-  padding:16px 18px;
-  border-bottom:1px solid #E5E7EB;
-}
-
-.card-header h2{
-  margin:0;
-  color:#0B1E63;
-  font-size:16px;
-}
-
-.card-body{
-  padding:18px;
-}
-
-/* =========================
-   FORM
-========================= */
-
-.section-title{
-  margin:18px 0 10px;
-  padding-bottom:7px;
-  border-bottom:1px solid #E5E7EB;
-
-  color:#0B1E63;
-  font-size:12px;
-  font-weight:800;
-  text-transform:uppercase;
-}
-
-.section-title:first-child{
-  margin-top:0;
-}
-
-.field{
-  margin-bottom:12px;
-}
-
-.field label{
-  display:block;
-  margin-bottom:5px;
-
-  font-size:12px;
-  font-weight:700;
-  color:#374151;
-}
-
-.field input,
-.field select,
-.field textarea{
-  width:100%;
-
-  padding:10px 11px;
-
-  border:1px solid #D1D5DB;
-  border-radius:8px;
-
-  background:#fff;
-  color:#111827;
-
-  font-size:13px;
-  outline:none;
-}
-
-.field textarea{
-  min-height:75px;
-  resize:vertical;
-}
-
-.field input:focus,
-.field select:focus,
-.field textarea:focus{
-  border-color:#0B4DA2;
-  box-shadow:0 0 0 3px rgba(11,77,162,.10);
-}
-
-.two{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-}
-
-/* =========================
-   PHOTO
-========================= */
-
-.photo-box{
-  border:2px dashed #CBD5E1;
-  border-radius:12px;
-  padding:15px;
-  text-align:center;
-  background:#F8FAFC;
-  margin-bottom:15px;
-}
-
-.photo-preview{
-  width:115px;
-  height:115px;
-
-  object-fit:cover;
-
-  border-radius:50%;
-
-  border:3px solid #D4AF37;
-
-  background:#E5E7EB;
-
-  display:block;
-  margin:0 auto 12px;
-}
-
-.photo-placeholder{
-  width:115px;
-  height:115px;
-
-  border-radius:50%;
-
-  background:#E5E7EB;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  margin:0 auto 12px;
-
-  color:#64748B;
-  font-size:12px;
-  font-weight:700;
-
-  border:3px solid #CBD5E1;
-}
-
-.file-input{
-  width:100%;
-  font-size:12px;
-}
-
-.photo-info{
-  margin-top:8px;
-  font-size:11px;
-  color:#64748B;
-}
-
-.upload-progress{
-  display:none;
-  margin-top:10px;
-}
-
-.progress-track{
-  height:7px;
-  background:#E5E7EB;
-  border-radius:10px;
-  overflow:hidden;
-}
-
-.progress-bar{
-  width:0%;
-  height:100%;
-  background:linear-gradient(90deg,#0B4DA2,#D4AF37);
-}
-
-/* =========================
-   BUTTONS
-========================= */
-
-.buttons{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:8px;
-  margin-top:16px;
-}
-
-.btn{
-  border:0;
-  padding:11px 9px;
-  border-radius:8px;
-  cursor:pointer;
-
-  font-weight:800;
-  font-size:12px;
-}
-
-.btn-primary{
-  background:#0B4DA2;
-  color:#fff;
-}
-
-.btn-primary:hover{
-  background:#0B1E63;
-}
-
-.btn-secondary{
-  background:#E5E7EB;
-  color:#1F2937;
-}
-
-.btn-gold{
-  background:#D4AF37;
-  color:#0B1E63;
-}
-
-.btn-danger{
-  background:#DC2626;
-  color:#fff;
-}
-
-.btn:disabled{
-  opacity:.55;
-  cursor:not-allowed;
-}
-
-/* =========================
-   SEARCH
-========================= */
-
-.toolbar{
-  display:flex;
-  gap:9px;
-  margin-bottom:14px;
-}
-
-.search{
-  flex:1;
-}
-
-.search input,
-.toolbar select{
-  width:100%;
-  padding:11px;
-
-  border:1px solid #D1D5DB;
-  border-radius:8px;
-
-  outline:none;
-}
-
-.search input:focus,
-.toolbar select:focus{
-  border-color:#0B4DA2;
-}
-
-/* =========================
-   TABLE
-========================= */
-
-.table-wrap{
-  overflow-x:auto;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-  min-width:760px;
-}
-
-thead th{
-  background:#F8FAFC;
-  color:#475569;
-
-  font-size:11px;
-  text-align:left;
-
-  padding:11px 10px;
-
-  border-bottom:1px solid #E5E7EB;
-}
-
-tbody td{
-  padding:10px;
-
-  border-bottom:1px solid #EEF2F7;
-
-  font-size:12px;
-  vertical-align:middle;
-}
-
-tbody tr:hover{
-  background:#F8FAFC;
-}
-
-.student-cell{
-  display:flex;
-  align-items:center;
-  gap:9px;
-}
-
-.student-avatar{
-  width:38px;
-  height:38px;
-
-  border-radius:50%;
-
-  object-fit:cover;
-
-  border:2px solid #D4AF37;
-
-  background:#E5E7EB;
-}
-
-.student-name{
-  font-weight:800;
-  color:#0B1E63;
-}
-
-.student-id{
-  color:#64748B;
-  font-size:10px;
-  margin-top:2px;
-}
-
-.badge{
-  display:inline-block;
-  padding:5px 8px;
-  border-radius:20px;
-
-  font-size:10px;
-  font-weight:800;
-
-  text-transform:capitalize;
-}
-
-.badge-active{
-  background:#DCFCE7;
-  color:#166534;
-}
-
-.badge-inactive{
-  background:#F1F5F9;
-  color:#475569;
-}
-
-.badge-graduated{
-  background:#DBEAFE;
-  color:#1D4ED8;
-}
-
-.badge-suspended{
-  background:#FEE2E2;
-  color:#991B1B;
-}
-
-.badge-withdrawn{
-  background:#FEF3C7;
-  color:#92400E;
-}
-
-.actions{
-  display:flex;
-  gap:5px;
-  flex-wrap:wrap;
-}
-
-.action-btn{
-  border:0;
-  border-radius:6px;
-
-  padding:6px 8px;
-
-  cursor:pointer;
-
-  font-size:10px;
-  font-weight:800;
-}
-
-.view{
-  background:#DBEAFE;
-  color:#1D4ED8;
-}
-
-.edit{
-  background:#FEF3C7;
-  color:#92400E;
-}
-
-.delete{
-  background:#FEE2E2;
-  color:#991B1B;
-}
-
-/* =========================
-   MESSAGE
-========================= */
-
-.message{
-  min-height:20px;
-  margin-bottom:10px;
-
-  padding:0;
-
-  font-size:12px;
-  line-height:1.5;
-}
-
-.message.success{
-  color:#15803D;
-}
-
-.message.error{
-  color:#B91C1C;
-}
-
-.message.info{
-  color:#1D4ED8;
-}
-
-/* =========================
-   MODAL
-========================= */
-
-.modal{
-  display:none;
-
-  position:fixed;
-  inset:0;
-
-  background:rgba(15,23,42,.65);
-
-  z-index:1000;
-
-  align-items:center;
-  justify-content:center;
-
-  padding:18px;
-}
-
-.modal.show{
-  display:flex;
-}
-
-.modal-card{
-  width:100%;
-  max-width:650px;
-  max-height:92vh;
-
-  overflow:auto;
-
-  background:#fff;
-
-  border-radius:15px;
-
-  box-shadow:0 20px 60px rgba(0,0,0,.3);
-}
-
-.modal-header{
-  padding:15px 18px;
-
-  background:linear-gradient(
-    135deg,
-    #0B1E63,
-    #0B4DA2
-  );
-
-  color:#fff;
-
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-}
-
-.modal-header h2{
-  margin:0;
-  font-size:17px;
-}
-
-.close{
-  border:0;
-  background:transparent;
-  color:#fff;
-  font-size:23px;
-  cursor:pointer;
-}
-
-.profile{
-  padding:22px;
-}
-
-.profile-top{
-  display:flex;
-  align-items:center;
-  gap:18px;
-
-  padding-bottom:18px;
-  border-bottom:1px solid #E5E7EB;
-}
-
-.profile-photo{
-  width:105px;
-  height:105px;
-
-  border-radius:50%;
-
-  object-fit:cover;
-
-  border:4px solid #D4AF37;
-
-  background:#E5E7EB;
-}
-
-.profile-name{
-  color:#0B1E63;
-  font-size:22px;
-  font-weight:800;
-}
-
-.profile-id{
-  color:#64748B;
-  font-size:12px;
-  margin-top:4px;
-}
-
-.profile-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-top:18px;
-}
-
-.profile-item{
-  padding:11px;
-  background:#F8FAFC;
-  border-radius:8px;
-}
-
-.profile-label{
-  color:#64748B;
-  font-size:10px;
-  font-weight:700;
-  text-transform:uppercase;
-}
-
-.profile-value{
-  color:#1F2937;
-  font-size:13px;
-  font-weight:700;
-  margin-top:3px;
-  word-break:break-word;
-}
-
-/* =========================
-   LOADING
-========================= */
-
-.loading{
-  text-align:center;
-  padding:40px 20px;
-  color:#64748B;
-  font-size:13px;
-}
-
-/* =========================
-   MOBILE
-========================= */
-
-@media(max-width:1000px){
-
-  .stats{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .grid{
-    grid-template-columns:1fr;
-  }
-}
-
-@media(max-width:650px){
-
-  .topbar{
-    height:auto;
-    min-height:68px;
-    padding:10px 14px;
-  }
-
-  .brand-title{
-    font-size:15px;
-  }
-
-  .brand-subtitle{
-    display:none;
-  }
-
-  .page{
-    padding:13px;
-  }
-
-  .page-header{
-    align-items:flex-start;
-  }
-
-  .stats{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .two{
-    grid-template-columns:1fr;
-  }
-
-  .toolbar{
-    flex-direction:column;
-  }
-
-  .profile-grid{
-    grid-template-columns:1fr;
-  }
-
-  .profile-top{
-    flex-direction:column;
-    text-align:center;
-  }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS — Students</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --blue: #0B4DA2;
+      --navy: #0B1E63;
+      --gold: #D4AF37;
+      --light: #F5F7FA;
+      --dark: #1F2937;
+      --green: #16A34A;
+      --red: #DC2626;
+      --white: #ffffff;
+      --border: #e5e7eb;
+      --shadow: 0 10px 30px rgba(11,30,99,.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--light);
+      color: var(--dark);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: white;
+      padding: 18px 24px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.12);
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand img {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      opacity: .85;
+    }
+
+    .back-btn {
+      border: 1px solid rgba(255,255,255,.35);
+      background: rgba(255,255,255,.12);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: auto;
+      padding: 25px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .stat {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      border-left: 5px solid var(--blue);
+    }
+
+    .stat:nth-child(2) {
+      border-left-color: var(--green);
+    }
+
+    .stat:nth-child(3) {
+      border-left-color: var(--gold);
+    }
+
+    .stat:nth-child(4) {
+      border-left-color: var(--red);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--navy);
+    }
+
+    .card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 18px 22px;
+      background: linear-gradient(135deg, #f9fafb, #fff);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .card-header h2 {
+      margin: 0;
+      color: var(--navy);
+      font-size: 19px;
+    }
+
+    .card-body {
+      padding: 22px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 9px;
+      padding: 11px 12px;
+      font-size: 14px;
+      outline: none;
+      background: white;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(11,77,162,.10);
+    }
+
+    textarea {
+      min-height: 85px;
+      resize: vertical;
+    }
+
+    .photo-box {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      border: 1px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 15px;
+      background: #fafafa;
+    }
+
+    .photo-preview {
+      width: 95px;
+      height: 95px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--gold);
+      background: #e5e7eb;
+    }
+
+    .photo-info {
+      flex: 1;
+    }
+
+    .photo-info small {
+      display: block;
+      margin-top: 6px;
+      color: #6b7280;
+    }
+
+    .progress-wrap {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .progress {
+      height: 7px;
+      background: #e5e7eb;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--blue);
+      transition: width .2s;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--navy);
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: white;
+    }
+
+    .btn-success {
+      background: var(--green);
+      color: white;
+    }
+
+    .message {
+      display: none;
+      padding: 13px 16px;
+      border-radius: 9px;
+      margin-bottom: 18px;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: pre-wrap;
+    }
+
+    .message.success {
+      display: block;
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .message.error {
+      display: block;
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .message.info {
+      display: block;
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #93c5fd;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar input {
+      min-width: 240px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 13px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--navy);
+      font-weight: 800;
+    }
+
+    tr:hover td {
+      background: #fafafa;
+    }
+
+    .student-photo {
+      width: 43px;
+      height: 43px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--gold);
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: capitalize;
+    }
+
+    .status-active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-inactive {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .status-graduated {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-suspended {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status-withdrawn {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .table-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .small-btn {
+      padding: 7px 10px;
+      font-size: 11px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 35px;
+      color: #6b7280;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 25px;
+      color: #6b7280;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 9999;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-card {
+      width: min(650px, 100%);
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0,0,0,.25);
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: white;
+      padding: 18px 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+    }
+
+    .close {
+      background: transparent;
+      color: white;
+      font-size: 25px;
+      padding: 0 5px;
+    }
+
+    .profile-top {
+      text-align: center;
+      padding: 25px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .profile-photo {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 4px solid var(--gold);
+    }
+
+    .profile-top h2 {
+      margin: 12px 0 4px;
+      color: var(--navy);
+    }
+
+    .profile-top p {
+      margin: 0;
+      color: #6b7280;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      padding: 22px;
+      gap: 14px;
+    }
+
+    .profile-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .profile-item small {
+      display: block;
+      color: #6b7280;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .profile-item strong {
+      color: var(--dark);
+      word-break: break-word;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px;
+      color: #6b7280;
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 14px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.full {
+        grid-column: auto;
+      }
+
+      .profile-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .toolbar {
+        width: 100%;
+      }
+
+      .toolbar input,
+      .toolbar select {
+        width: 100%;
+        min-width: 0;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<header class="topbar">
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <img
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
+      >
 
-  <div class="brand">
-
-    <img
-      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-      alt="GAAWOW Academy Logo"
-    >
-
-    <div>
-      <div class="brand-title">GAAWOW EMS</div>
-      <div class="brand-subtitle">
-        Education Management & Verification System
+      <div>
+        <h1>GAAWOW EMS — Students</h1>
+        <p>Gaawow Academy Education Management & Verification System</p>
       </div>
     </div>
 
-  </div>
-
-  <div class="top-actions">
-
-    <button
-      class="top-btn"
-      onclick="goDashboard()"
-    >
-      Dashboard
+    <button class="back-btn" onclick="goDashboard()">
+      ← Dashboard
     </button>
-
-    <button
-      class="top-btn"
-      onclick="resetForm()"
-    >
-      + New Student
-    </button>
-
   </div>
-
 </header>
 
+<main class="container">
 
-<main class="page">
-
-  <div class="page-header">
-
-    <div>
-      <h1 class="page-title">Students Management</h1>
-
-      <p class="page-subtitle">
-        Register, manage and view student profiles
-      </p>
-    </div>
-
-  </div>
-
-
-  <div
-    id="message"
-    class="message"
-    role="status"
-    aria-live="polite"
-  ></div>
-
-
-  <!-- STATS -->
+  <div id="message" class="message"></div>
 
   <section class="stats">
-
     <div class="stat">
-      <div class="stat-label">TOTAL STUDENTS</div>
-      <div
-        id="totalStudents"
-        class="stat-value"
-      >0</div>
+      <div class="stat-label">Total Students</div>
+      <div id="totalStudents" class="stat-value">0</div>
     </div>
 
     <div class="stat">
-      <div class="stat-label">ACTIVE</div>
-      <div
-        id="activeStudents"
-        class="stat-value"
-      >0</div>
+      <div class="stat-label">Active</div>
+      <div id="activeStudents" class="stat-value">0</div>
     </div>
 
     <div class="stat">
-      <div class="stat-label">GRADUATED</div>
-      <div
-        id="graduatedStudents"
-        class="stat-value"
-      >0</div>
+      <div class="stat-label">Graduated</div>
+      <div id="graduatedStudents" class="stat-value">0</div>
     </div>
 
     <div class="stat">
-      <div class="stat-label">WITH PHOTO</div>
-      <div
-        id="photoStudents"
-        class="stat-value"
-      >0</div>
+      <div class="stat-label">Inactive / Other</div>
+      <div id="otherStudents" class="stat-value">0</div>
     </div>
-
   </section>
 
+  <section class="card">
 
-  <div class="grid">
+    <div class="card-header">
+      <h2 id="formTitle">Add New Student</h2>
+    </div>
 
+    <div class="card-body">
 
-    <!-- =========================
-         STUDENT FORM
-    ========================== -->
+      <form id="studentForm">
 
-    <section class="card">
+        <input type="hidden" id="editStudentDbId">
 
-      <div class="card-header">
-        <h2 id="formTitle">
-          Add Student
-        </h2>
-      </div>
+        <div class="grid">
 
-      <div class="card-body">
+          <div class="field">
+            <label for="institutionSelect">
+              Institution *
+            </label>
 
-        <div class="section-title">
-          Student Photo
-        </div>
-
-
-        <div class="photo-box">
-
-          <div
-            id="photoPlaceholder"
-            class="photo-placeholder"
-          >
-            NO PHOTO
+            <select id="institutionSelect" required>
+              <option value="">Loading institutions...</option>
+            </select>
           </div>
 
-          <img
-            id="photoPreview"
-            class="photo-preview"
-            alt="Student Photo"
-            style="display:none"
-          >
+          <div class="field">
+            <label for="studentId">
+              Student ID *
+            </label>
 
-          <input
-            id="photoInput"
-            class="file-input"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-          >
-
-          <div class="photo-info">
-            JPG, PNG or WEBP • Maximum 5MB
+            <input
+              type="text"
+              id="studentId"
+              placeholder="Example: GA-2026-000001"
+              required
+            >
           </div>
 
-          <div
-            id="uploadProgress"
-            class="upload-progress"
-          >
+          <div class="field">
+            <label for="status">
+              Status *
+            </label>
 
-            <div class="progress-track">
-              <div
-                id="progressBar"
-                class="progress-bar"
-              ></div>
+            <select id="status">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="graduated">Graduated</option>
+              <option value="suspended">Suspended</option>
+              <option value="withdrawn">Withdrawn</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="fullName">
+              Full Name *
+            </label>
+
+            <input
+              type="text"
+              id="fullName"
+              placeholder="Student full name"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="gender">
+              Gender
+            </label>
+
+            <select id="gender">
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="dateOfBirth">
+              Date of Birth
+            </label>
+
+            <input
+              type="date"
+              id="dateOfBirth"
+            >
+          </div>
+
+          <div class="field">
+            <label for="phone">
+              Phone
+            </label>
+
+            <input
+              type="tel"
+              id="phone"
+              placeholder="Phone number"
+            >
+          </div>
+
+          <div class="field">
+            <label for="email">
+              Email
+            </label>
+
+            <input
+              type="email"
+              id="email"
+              placeholder="student@email.com"
+            >
+          </div>
+
+          <div class="field">
+            <label for="admissionDate">
+              Admission Date
+            </label>
+
+            <input
+              type="date"
+              id="admissionDate"
+            >
+          </div>
+
+          <div class="field full">
+            <label for="address">
+              Address
+            </label>
+
+            <textarea
+              id="address"
+              placeholder="Student address"
+            ></textarea>
+          </div>
+
+          <div class="field full">
+
+            <label for="photoInput">
+              Student Photo
+            </label>
+
+            <div class="photo-box">
+
+              <img
+                id="photoPreview"
+                class="photo-preview"
+                src=""
+                alt="Student photo preview"
+              >
+
+              <div class="photo-info">
+
+                <input
+                  type="file"
+                  id="photoInput"
+                  accept="image/jpeg,image/png,image/webp"
+                >
+
+                <small>
+                  JPG, PNG or WEBP • Maximum 5MB
+                </small>
+
+                <div id="progressWrap" class="progress-wrap">
+                  <div class="progress">
+                    <div
+                      id="progressBar"
+                      class="progress-bar"
+                    ></div>
+                  </div>
+
+                  <small id="progressText">
+                    Uploading...
+                  </small>
+                </div>
+
+              </div>
+
             </div>
 
           </div>
 
         </div>
 
-
-        <div class="section-title">
-          Institution
-        </div>
-
-        <div class="field">
-
-          <label for="institution_id">
-            Institution
-          </label>
-
-          <select id="institution_id">
-            <option value="">
-              Loading institutions...
-            </option>
-          </select>
-
-        </div>
-
-
-        <div class="section-title">
-          Student Information
-        </div>
-
-
-        <div class="field">
-
-          <label for="student_id">
-            Student ID
-          </label>
-
-          <input
-            id="student_id"
-            type="text"
-            placeholder="e.g. TEST-STUDENT-A"
-          >
-
-        </div>
-
-
-        <div class="field">
-
-          <label for="full_name">
-            Full Name *
-          </label>
-
-          <input
-            id="full_name"
-            type="text"
-            placeholder="Enter student's full name"
-            required
-          >
-
-        </div>
-
-
-        <div class="two">
-
-          <div class="field">
-
-            <label for="gender">
-              Gender
-            </label>
-
-            <select id="gender">
-
-              <option value="">
-                Select
-              </option>
-
-              <option value="male">
-                Male
-              </option>
-
-              <option value="female">
-                Female
-              </option>
-
-            </select>
-
-          </div>
-
-
-          <div class="field">
-
-            <label for="date_of_birth">
-              Date of Birth
-            </label>
-
-            <input
-              id="date_of_birth"
-              type="date"
-            >
-
-          </div>
-
-        </div>
-
-
-        <div class="two">
-
-          <div class="field">
-
-            <label for="phone">
-              Phone
-            </label>
-
-            <input
-              id="phone"
-              type="tel"
-              placeholder="Phone number"
-            >
-
-          </div>
-
-
-          <div class="field">
-
-            <label for="email">
-              Email
-            </label>
-
-            <input
-              id="email"
-              type="email"
-              placeholder="Email address"
-            >
-
-          </div>
-
-        </div>
-
-
-        <div class="field">
-
-          <label for="address">
-            Address
-          </label>
-
-          <textarea
-            id="address"
-            placeholder="Student address"
-          ></textarea>
-
-        </div>
-
-
-        <div class="two">
-
-          <div class="field">
-
-            <label for="admission_date">
-              Admission Date
-            </label>
-
-            <input
-              id="admission_date"
-              type="date"
-            >
-
-          </div>
-
-
-          <div class="field">
-
-            <label for="status">
-              Status
-            </label>
-
-            <select id="status">
-
-              <option value="active">
-                Active
-              </option>
-
-              <option value="inactive">
-                Inactive
-              </option>
-
-              <option value="graduated">
-                Graduated
-              </option>
-
-              <option value="suspended">
-                Suspended
-              </option>
-
-              <option value="withdrawn">
-                Withdrawn
-              </option>
-
-            </select>
-
-          </div>
-
-        </div>
-
-
-        <input
-          id="recordId"
-          type="hidden"
-        >
-
-        <input
-          id="oldPhotoUrl"
-          type="hidden"
-        >
-
-
-        <div class="buttons">
+        <div class="actions">
 
           <button
-            id="saveBtn"
-            class="btn btn-primary"
-            onclick="saveStudent()"
-          >
-            SAVE STUDENT
-          </button>
-
-          <button
-            class="btn btn-secondary"
+            type="button"
+            class="btn-secondary"
             onclick="resetForm()"
           >
-            CLEAR
+            Clear
+          </button>
+
+          <button
+            type="submit"
+            id="saveButton"
+            class="btn-primary"
+          >
+            Save Student
           </button>
 
         </div>
 
-      </div>
+      </form>
 
-    </section>
+    </div>
+  </section>
 
+  <section class="card">
 
-    <!-- =========================
-         STUDENT LIST
-    ========================== -->
+    <div class="card-header">
 
-    <section class="card">
+      <h2>Students List</h2>
 
-      <div class="card-header">
+      <div class="toolbar">
 
-        <h2>
-          Student Records
-        </h2>
+        <input
+          type="search"
+          id="searchInput"
+          placeholder="Search student..."
+        >
 
-      </div>
-
-      <div class="card-body">
-
-        <div class="toolbar">
-
-          <div class="search">
-
-            <input
-              id="searchInput"
-              type="search"
-              placeholder="Search name, student ID, phone..."
-              oninput="renderStudents()"
-            >
-
-          </div>
-
-
-          <select
-            id="statusFilter"
-            onchange="renderStudents()"
-          >
-
-            <option value="">
-              All Status
-            </option>
-
-            <option value="active">
-              Active
-            </option>
-
-            <option value="inactive">
-              Inactive
-            </option>
-
-            <option value="graduated">
-              Graduated
-            </option>
-
-            <option value="suspended">
-              Suspended
-            </option>
-
-            <option value="withdrawn">
-              Withdrawn
-            </option>
-
-          </select>
-
-        </div>
-
-
-        <div class="table-wrap">
-
-          <table>
-
-            <thead>
-
-              <tr>
-
-                <th>STUDENT</th>
-
-                <th>INSTITUTION</th>
-
-                <th>PHONE</th>
-
-                <th>STATUS</th>
-
-                <th>ACTIONS</th>
-
-              </tr>
-
-            </thead>
-
-            <tbody id="studentsBody">
-
-              <tr>
-                <td
-                  colspan="5"
-                  class="loading"
-                >
-                  Loading students...
-                </td>
-              </tr>
-
-            </tbody>
-
-          </table>
-
-        </div>
+        <select id="statusFilter">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="graduated">Graduated</option>
+          <option value="suspended">Suspended</option>
+          <option value="withdrawn">Withdrawn</option>
+        </select>
 
       </div>
 
-    </section>
+    </div>
 
-  </div>
+    <div class="card-body">
+
+      <div class="table-wrap">
+
+        <table>
+
+          <thead>
+            <tr>
+              <th>Photo</th>
+              <th>Student ID</th>
+              <th>Full Name</th>
+              <th>Gender</th>
+              <th>Phone</th>
+              <th>Institution</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody id="studentsTableBody">
+            <tr>
+              <td colspan="8" class="loading">
+                Loading students...
+              </td>
+            </tr>
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </section>
 
 </main>
-
-
-<!-- =========================
-     PROFILE MODAL
-========================== -->
 
 <div
   id="profileModal"
@@ -1301,10 +901,7 @@ tbody tr:hover{
   <div class="modal-card">
 
     <div class="modal-header">
-
-      <h2>
-        Student Profile
-      </h2>
+      <h3>Student Profile</h3>
 
       <button
         class="close"
@@ -1312,21 +909,19 @@ tbody tr:hover{
       >
         ×
       </button>
-
     </div>
 
-
-    <div
-      id="profileContent"
-      class="profile"
-    ></div>
+    <div id="profileContent"></div>
 
   </div>
 
 </div>
 
+<footer>
+  GAAWOW EMS © GAAWOW Academy
+</footer>
 
-<script src="students.js?v=201"></script>
+<script src="students.js?v=300"></script>
 
 </body>
 </html>
