@@ -1,37 +1,43 @@
 /* =========================================================
    GAAWOW EMS
-   CERTIFICATES MANAGEMENT V5
-   FINAL DATABASE-SAFE VERSION
+   CERTIFICATES MANAGEMENT V6
+   FINAL SCHEMA-SAFE VERSION
 
-   SUPABASE:
-   - Publishable key
-   - RLS compatible
-   - Role aware
+   REAL certificates TABLE SCHEMA:
 
-   CERTIFICATES TABLE:
-   - NO enrollment_id
-   - enrollment_id is NOT queried
-   - enrollment_id is NOT displayed
-   - enrollment_id is NOT deleted/updated
+   id
+   institution_id
+   student_id
+   course_id
+   certificate_no
+   certificate_id
+   verify_code
+   hash_code
+   issue_date
+   expiry_date
+   status
+   certificate_url
+   pdf_url
+   qr_url
+   student_name_snapshot
+   course_name_snapshot
+   issued_by
+   created_at
+   updated_at
+   certificate_type
+   template_url
+   student_photo_url
+   verification_url
 
-   FEATURES:
-   - Authentication
-   - Profile / role handling
-   - Institution filtering
-   - Search
-   - Status filtering
-   - Statistics
-   - View certificate
-   - Public verification
-   - Delete certificate
-   - Loading state
-   - Error handling
-   - Refresh
+   IMPORTANT:
+   - enrollment_id DOES NOT EXIST
+   - student_name DOES NOT EXIST
+   - course_name DOES NOT EXIST
    ========================================================= */
 
 
 /* =========================================================
-   1. SUPABASE CONFIGURATION
+   1. SUPABASE
    ========================================================= */
 
 const SUPABASE_URL =
@@ -70,7 +76,7 @@ function $(id) {
 
 
 /* =========================================================
-   4. HTML ESCAPE
+   4. ESCAPE HTML
    ========================================================= */
 
 function escapeHTML(value) {
@@ -112,7 +118,8 @@ function showMessage(
   element.className =
     `message ${type}`;
 
-  element.style.display = "block";
+  element.style.display =
+    "block";
 }
 
 
@@ -122,7 +129,8 @@ function hideMessage() {
 
   if (!element) return;
 
-  element.style.display = "none";
+  element.style.display =
+    "none";
 }
 
 
@@ -138,6 +146,7 @@ function setLoading(value) {
     $("loading");
 
   if (loading) {
+
     loading.style.display =
       value ? "block" : "none";
   }
@@ -146,7 +155,9 @@ function setLoading(value) {
     $("refreshBtn");
 
   if (refresh) {
-    refresh.disabled = value;
+
+    refresh.disabled =
+      value;
   }
 }
 
@@ -199,10 +210,9 @@ function normalizeStatus(status) {
 
 function getStatusClass(status) {
 
-  const normalized =
-    normalizeStatus(status);
-
-  switch (normalized) {
+  switch (
+    normalizeStatus(status)
+  ) {
 
     case "valid":
       return "valid";
@@ -224,12 +234,11 @@ function getStatusClass(status) {
 
 function statusBadge(status) {
 
-  const value =
-    status || "Unknown";
-
   return `
-    <span class="status-badge ${getStatusClass(value)}">
-      ${escapeHTML(value)}
+    <span class="status-badge ${getStatusClass(status)}">
+      ${escapeHTML(
+        status || "Unknown"
+      )}
     </span>
   `;
 }
@@ -247,10 +256,11 @@ async function loadCurrentUser() {
   } =
     await supabaseClient.auth.getUser();
 
+
   if (error) {
 
     console.error(
-      "Supabase authentication error:",
+      "Authentication error:",
       error
     );
 
@@ -259,13 +269,18 @@ async function loadCurrentUser() {
     );
   }
 
-  if (!data || !data.user) {
+
+  if (
+    !data ||
+    !data.user
+  ) {
 
     window.location.href =
       "index.html";
 
     return false;
   }
+
 
   currentUser =
     data.user;
@@ -275,16 +290,18 @@ async function loadCurrentUser() {
 
 
 /* =========================================================
-   10. LOAD PROFILE
+   10. PROFILE
    ========================================================= */
 
 async function loadCurrentProfile() {
 
   if (!currentUser) {
+
     throw new Error(
-      "Authenticated user was not found."
+      "Authenticated user not found."
     );
   }
+
 
   const {
     data,
@@ -305,6 +322,7 @@ async function loadCurrentProfile() {
       )
       .maybeSingle();
 
+
   if (error) {
 
     console.error(
@@ -317,6 +335,7 @@ async function loadCurrentProfile() {
     );
   }
 
+
   if (!data) {
 
     throw new Error(
@@ -324,8 +343,10 @@ async function loadCurrentProfile() {
     );
   }
 
+
   currentProfile =
     data;
+
 
   if (
     data.is_active === false
@@ -336,22 +357,19 @@ async function loadCurrentProfile() {
     );
   }
 
+
   return data;
 }
 
 
 /* =========================================================
-   11. ROLE CHECK
+   11. ROLE
    ========================================================= */
 
 function getUserRole() {
 
-  if (!currentProfile) {
-    return null;
-  }
-
   return String(
-    currentProfile.role || ""
+    currentProfile?.role || ""
   )
     .trim()
     .toLowerCase();
@@ -369,18 +387,17 @@ function isSuperAdmin() {
 
 function canManageCertificates() {
 
-  const role =
-    getUserRole();
-
   return [
     "super_admin",
     "school_admin"
-  ].includes(role);
+  ].includes(
+    getUserRole()
+  );
 }
 
 
 /* =========================================================
-   12. LOAD INSTITUTIONS
+   12. INSTITUTIONS
    ========================================================= */
 
 async function loadInstitutions() {
@@ -392,8 +409,10 @@ async function loadInstitutions() {
     return;
   }
 
+
   filter.innerHTML =
     `<option value="">All Institutions</option>`;
+
 
   let query =
     supabaseClient
@@ -410,17 +429,9 @@ async function loadInstitutions() {
       );
 
 
-  /*
-    SUPER ADMIN:
-    Can request all institutions.
-
-    OTHER ROLES:
-    Restricted to their own institution.
-  */
-
   if (
     !isSuperAdmin() &&
-    currentProfile.institution_id
+    currentProfile?.institution_id
   ) {
 
     query =
@@ -475,14 +486,9 @@ async function loadInstitutions() {
   );
 
 
-  /*
-    School admin:
-    automatically stay on own institution.
-  */
-
   if (
     !isSuperAdmin() &&
-    currentProfile.institution_id
+    currentProfile?.institution_id
   ) {
 
     filter.value =
@@ -500,16 +506,16 @@ async function loadCertificates() {
   setLoading(true);
   hideMessage();
 
+
   try {
 
     /*
-      IMPORTANT:
+      THIS IS THE REAL DATABASE QUERY.
 
-      The certificates table DOES NOT contain
-      enrollment_id.
-
-      Therefore this query intentionally contains
-      NO enrollment_id.
+      NO:
+      enrollment_id
+      student_name
+      course_name
     */
 
     let query =
@@ -527,9 +533,18 @@ async function loadCertificates() {
           issue_date,
           expiry_date,
           status,
-          student_name,
-          course_name,
-          created_at
+          certificate_url,
+          pdf_url,
+          qr_url,
+          student_name_snapshot,
+          course_name_snapshot,
+          issued_by,
+          created_at,
+          updated_at,
+          certificate_type,
+          template_url,
+          student_photo_url,
+          verification_url
         `)
         .order(
           "created_at",
@@ -540,17 +555,14 @@ async function loadCertificates() {
 
 
     /*
-      ROLE / INSTITUTION SECURITY
+      Institution restriction.
 
-      RLS remains the actual database security layer.
-
-      This client-side restriction is an additional
-      UI/data filter.
+      RLS remains the real security layer.
     */
 
     if (
       !isSuperAdmin() &&
-      currentProfile.institution_id
+      currentProfile?.institution_id
     ) {
 
       query =
@@ -588,27 +600,33 @@ async function loadCertificates() {
       certificates
     );
 
+
     applyFilters();
 
 
   } catch (error) {
 
     console.error(
-      "Load certificates failed:",
+      "Certificates loading failed:",
       error
     );
 
+
     certificates = [];
+
 
     updateStatistics([]);
 
+
     renderCertificates([]);
+
 
     showMessage(
       error.message ||
       "Unable to load certificates.",
       "error"
     );
+
 
   } finally {
 
@@ -618,7 +636,7 @@ async function loadCertificates() {
 
 
 /* =========================================================
-   14. FILTER
+   14. SEARCH + FILTER
    ========================================================= */
 
 function getFilteredCertificates() {
@@ -652,7 +670,8 @@ function getFilteredCertificates() {
   const institutionId =
     String(
       institutionFilter?.value || ""
-    ).trim();
+    )
+      .trim();
 
 
   return certificates.filter(
@@ -662,7 +681,7 @@ function getFilteredCertificates() {
         !search ||
 
         String(
-          certificate.student_name || ""
+          certificate.student_name_snapshot || ""
         )
           .toLowerCase()
           .includes(search) ||
@@ -674,7 +693,7 @@ function getFilteredCertificates() {
           .includes(search) ||
 
         String(
-          certificate.course_name || ""
+          certificate.course_name_snapshot || ""
         )
           .toLowerCase()
           .includes(search) ||
@@ -747,6 +766,7 @@ function renderCertificates(
   const body =
     $("certificatesBody");
 
+
   if (!body) {
     return;
   }
@@ -791,19 +811,22 @@ function renderCertificates(
               </strong>
             </td>
 
+
             <td>
               ${escapeHTML(
-                certificate.student_name ||
+                certificate.student_name_snapshot ||
                 "—"
               )}
             </td>
 
+
             <td>
               ${escapeHTML(
-                certificate.course_name ||
+                certificate.course_name_snapshot ||
                 "—"
               )}
             </td>
+
 
             <td>
               ${escapeHTML(
@@ -812,6 +835,7 @@ function renderCertificates(
               )}
             </td>
 
+
             <td>
               ${escapeHTML(
                 certificate.verify_code ||
@@ -819,17 +843,20 @@ function renderCertificates(
               )}
             </td>
 
+
             <td>
               ${formatDate(
                 certificate.issue_date
               )}
             </td>
 
+
             <td>
               ${statusBadge(
                 certificate.status
               )}
             </td>
+
 
             <td>
 
@@ -843,6 +870,7 @@ function renderCertificates(
                   View
                 </button>
 
+
                 <button
                   type="button"
                   class="btn btn-verify"
@@ -853,6 +881,7 @@ function renderCertificates(
                 >
                   Verify
                 </button>
+
 
                 ${
                   canManageCertificates()
@@ -900,27 +929,27 @@ function updateStatistics(
 
   const valid =
     list.filter(
-      certificate =>
+      item =>
         normalizeStatus(
-          certificate.status
+          item.status
         ) === "valid"
     ).length;
 
 
   const pending =
     list.filter(
-      certificate =>
+      item =>
         normalizeStatus(
-          certificate.status
+          item.status
         ) === "pending"
     ).length;
 
 
   const revoked =
     list.filter(
-      certificate =>
+      item =>
         normalizeStatus(
-          certificate.status
+          item.status
         ) === "revoked"
     ).length;
 
@@ -930,15 +959,18 @@ function updateStatistics(
       .textContent = total;
   }
 
+
   if ($("validCount")) {
     $("validCount")
       .textContent = valid;
   }
 
+
   if ($("pendingCount")) {
     $("pendingCount")
       .textContent = pending;
   }
+
 
   if ($("revokedCount")) {
     $("revokedCount")
@@ -957,9 +989,11 @@ function clearFilters() {
     $("searchInput").value = "";
   }
 
+
   if ($("statusFilter")) {
     $("statusFilter").value = "";
   }
+
 
   if ($("institutionFilter")) {
 
@@ -973,16 +1007,18 @@ function clearFilters() {
 
     } else {
 
-      $("institutionFilter").value = "";
+      $("institutionFilter").value =
+        "";
     }
   }
+
 
   applyFilters();
 }
 
 
 /* =========================================================
-   19. GET INSTITUTION NAME
+   19. INSTITUTION NAME
    ========================================================= */
 
 function getInstitutionName(
@@ -993,11 +1029,13 @@ function getInstitutionName(
     return "—";
   }
 
+
   const institution =
     institutions.find(
       item =>
         item.id === institutionId
     );
+
 
   return institution
     ? institution.name
@@ -1047,8 +1085,8 @@ function viewCertificate(
       [
         `Certificate No: ${certificate.certificate_no || "—"}`,
         `Certificate ID: ${certificate.certificate_id || "—"}`,
-        `Student: ${certificate.student_name || "—"}`,
-        `Course: ${certificate.course_name || "—"}`,
+        `Student: ${certificate.student_name_snapshot || "—"}`,
+        `Course: ${certificate.course_name_snapshot || "—"}`,
         `Verify Code: ${certificate.verify_code || "—"}`,
         `Issue Date: ${formatDate(certificate.issue_date)}`,
         `Expiry Date: ${formatDate(certificate.expiry_date)}`,
@@ -1068,7 +1106,7 @@ function viewCertificate(
         <strong>Student</strong>
         <span>
           ${escapeHTML(
-            certificate.student_name ||
+            certificate.student_name_snapshot ||
             "—"
           )}
         </span>
@@ -1090,7 +1128,7 @@ function viewCertificate(
         <strong>Course</strong>
         <span>
           ${escapeHTML(
-            certificate.course_name ||
+            certificate.course_name_snapshot ||
             "—"
           )}
         </span>
@@ -1143,6 +1181,17 @@ function viewCertificate(
 
 
       <div class="detail-row">
+        <strong>Certificate Type</strong>
+        <span>
+          ${escapeHTML(
+            certificate.certificate_type ||
+            "—"
+          )}
+        </span>
+      </div>
+
+
+      <div class="detail-row">
         <strong>Verify Code</strong>
         <span>
           ${escapeHTML(
@@ -1184,14 +1233,155 @@ function viewCertificate(
 
 
       <div class="detail-row">
+        <strong>Student Photo</strong>
+        <span>
+          ${
+            certificate.student_photo_url
+              ? `
+                <a
+                  href="${escapeHTML(
+                    certificate.student_photo_url
+                  )}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  View Photo
+                </a>
+              `
+              : "—"
+          }
+        </span>
+      </div>
+
+
+      <div class="detail-row">
+        <strong>Certificate URL</strong>
+        <span>
+          ${
+            certificate.certificate_url
+              ? `
+                <a
+                  href="${escapeHTML(
+                    certificate.certificate_url
+                  )}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Open Certificate
+                </a>
+              `
+              : "—"
+          }
+        </span>
+      </div>
+
+
+      <div class="detail-row">
+        <strong>PDF</strong>
+        <span>
+          ${
+            certificate.pdf_url
+              ? `
+                <a
+                  href="${escapeHTML(
+                    certificate.pdf_url
+                  )}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Open PDF
+                </a>
+              `
+              : "—"
+          }
+        </span>
+      </div>
+
+
+      <div class="detail-row">
+        <strong>Verification URL</strong>
+        <span>
+          ${
+            certificate.verification_url
+              ? `
+                <a
+                  href="${escapeHTML(
+                    certificate.verification_url
+                  )}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Verify Online
+                </a>
+              `
+              : "—"
+          }
+        </span>
+      </div>
+
+
+      <div class="detail-row">
+        <strong>QR URL</strong>
+        <span>
+          ${
+            certificate.qr_url
+              ? `
+                <a
+                  href="${escapeHTML(
+                    certificate.qr_url
+                  )}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Open QR
+                </a>
+              `
+              : "—"
+          }
+        </span>
+      </div>
+
+
+      <div class="detail-row">
+        <strong>Template</strong>
+        <span>
+          ${
+            certificate.template_url
+              ? `
+                <a
+                  href="${escapeHTML(
+                    certificate.template_url
+                  )}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Open Template
+                </a>
+              `
+              : "—"
+          }
+        </span>
+      </div>
+
+
+      <div class="detail-row">
         <strong>Verification Hash</strong>
         <span
-          style="
-            word-break:break-all;
-          "
+          style="word-break:break-all;"
         >
           ${escapeHTML(
             certificate.hash_code ||
+            "—"
+          )}
+        </span>
+      </div>
+
+
+      <div class="detail-row">
+        <strong>Issued By</strong>
+        <span>
+          ${escapeHTML(
+            certificate.issued_by ||
             "—"
           )}
         </span>
@@ -1203,6 +1393,16 @@ function viewCertificate(
         <span>
           ${formatDate(
             certificate.created_at
+          )}
+        </span>
+      </div>
+
+
+      <div class="detail-row">
+        <strong>Updated</strong>
+        <span>
+          ${formatDate(
+            certificate.updated_at
           )}
         </span>
       </div>
@@ -1226,6 +1426,7 @@ function closeModal() {
   const modal =
     $("viewModal");
 
+
   if (modal) {
 
     modal.style.display =
@@ -1235,7 +1436,7 @@ function closeModal() {
 
 
 /* =========================================================
-   22. VERIFY
+   22. VERIFY CERTIFICATE
    ========================================================= */
 
 function verifyCertificate(
@@ -1259,21 +1460,16 @@ function verifyCertificate(
 
 
 /* =========================================================
-   23. DELETE CERTIFICATE
+   23. DELETE
    ========================================================= */
 
 async function deleteCertificate(
   id
 ) {
 
-  /*
-    Only super_admin and school_admin
-    may use the management delete action.
-
-    RLS remains the final security layer.
-  */
-
-  if (!canManageCertificates()) {
+  if (
+    !canManageCertificates()
+  ) {
 
     showMessage(
       "You do not have permission to delete certificates.",
@@ -1337,7 +1533,7 @@ async function deleteCertificate(
     if (error) {
 
       console.error(
-        "Delete error:",
+        "Delete certificate error:",
         error
       );
 
@@ -1359,9 +1555,10 @@ async function deleteCertificate(
   } catch (error) {
 
     console.error(
-      "Delete certificate failed:",
+      "Delete failed:",
       error
     );
+
 
     showMessage(
       error.message ||
@@ -1549,7 +1746,7 @@ function setupEvents() {
 
 
 /* =========================================================
-   27. INITIALIZATION
+   27. INITIALIZE
    ========================================================= */
 
 async function initCertificatesPage() {
@@ -1557,12 +1754,12 @@ async function initCertificatesPage() {
   try {
 
     setLoading(true);
-
     hideMessage();
 
 
     /*
-      1. Authenticate
+      STEP 1
+      Authentication
     */
 
     const authenticated =
@@ -1575,28 +1772,32 @@ async function initCertificatesPage() {
 
 
     /*
-      2. Load profile / role
+      STEP 2
+      Profile / Role
     */
 
     await loadCurrentProfile();
 
 
     /*
-      3. Load institutions
+      STEP 3
+      Institutions
     */
 
     await loadInstitutions();
 
 
     /*
-      4. Register UI events
+      STEP 4
+      UI events
     */
 
     setupEvents();
 
 
     /*
-      5. Load certificates
+      STEP 5
+      Certificates
     */
 
     await loadCertificates();
@@ -1605,7 +1806,7 @@ async function initCertificatesPage() {
   } catch (error) {
 
     console.error(
-      "Certificates page initialization failed:",
+      "Certificates initialization error:",
       error
     );
 
