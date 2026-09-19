@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>GAAWOW EMS — Certificate Generator V8</title>
+  <title>GAAWOW EMS — Certificates</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -21,13 +21,13 @@
     }
 
     .topbar{
-      height:64px;
+      min-height:64px;
       background:linear-gradient(135deg,#0B1E63,#0B4DA2);
       color:#fff;
       display:flex;
       align-items:center;
       justify-content:space-between;
-      padding:0 22px;
+      padding:10px 22px;
       box-shadow:0 3px 10px rgba(0,0,0,.15);
     }
 
@@ -63,96 +63,43 @@
       font-weight:700;
     }
 
-    .main{
-      display:grid;
-      grid-template-columns:360px 1fr;
-      min-height:calc(100vh - 64px);
+    .container{
+      padding:24px;
+      max-width:1500px;
+      margin:auto;
     }
 
-    .panel{
-      background:#fff;
-      padding:20px;
-      border-right:1px solid #ddd;
-      overflow-y:auto;
+    .page-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:15px;
+      margin-bottom:20px;
+      flex-wrap:wrap;
     }
 
-    .panel h2{
-      margin:0 0 4px;
+    .page-head h1{
+      margin:0;
       color:#0B1E63;
-      font-size:20px;
+      font-size:25px;
     }
 
-    .panel-subtitle{
+    .page-head p{
+      margin:5px 0 0;
       color:#6b7280;
-      font-size:12px;
-      margin-bottom:18px;
-    }
-
-    .section-title{
-      margin:20px 0 10px;
-      padding-bottom:7px;
-      border-bottom:1px solid #e5e7eb;
-      color:#0B1E63;
-      font-size:13px;
-      font-weight:800;
-      text-transform:uppercase;
-    }
-
-    .field{
-      margin-bottom:12px;
-    }
-
-    .field label{
-      display:block;
-      font-size:12px;
-      font-weight:700;
-      color:#374151;
-      margin-bottom:5px;
-    }
-
-    .field input,
-    .field select{
-      width:100%;
-      padding:10px 11px;
-      border:1px solid #d1d5db;
-      border-radius:7px;
-      background:#fff;
-      color:#111827;
-      outline:none;
       font-size:13px;
     }
 
-    .field input:focus,
-    .field select:focus{
-      border-color:#0B4DA2;
-      box-shadow:0 0 0 2px rgba(11,77,162,.1);
-    }
-
-    .field input[readonly]{
-      background:#f3f4f6;
-    }
-
-    .photo-preview{
-      display:none;
-      width:82px;
-      height:82px;
-      object-fit:cover;
-      border-radius:50%;
-      border:2px solid #D4AF37;
-      margin:8px auto 15px;
-    }
-
-    .buttons{
-      display:grid;
-      grid-template-columns:1fr 1fr;
+    .actions{
+      display:flex;
       gap:8px;
-      margin-top:18px;
+      flex-wrap:wrap;
     }
 
     .btn{
       border:0;
-      padding:11px 8px;
       border-radius:7px;
+      padding:10px 14px;
       cursor:pointer;
       font-weight:700;
       font-size:12px;
@@ -168,25 +115,189 @@
       color:#111827;
     }
 
-    .btn-dark{
-      background:#0B1E63;
-      color:#fff;
-    }
-
     .btn-light{
       background:#e5e7eb;
       color:#111827;
     }
 
-    .btn:disabled{
-      opacity:.55;
-      cursor:not-allowed;
+    .filters{
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:10px;
+      padding:15px;
+      margin-bottom:18px;
+      display:grid;
+      grid-template-columns:2fr 1fr 1fr 1fr;
+      gap:10px;
+      box-shadow:0 3px 12px rgba(0,0,0,.05);
+    }
+
+    .filters input,
+    .filters select{
+      width:100%;
+      padding:10px 11px;
+      border:1px solid #d1d5db;
+      border-radius:7px;
+      background:#fff;
+      outline:none;
+      font-size:13px;
+    }
+
+    .filters input:focus,
+    .filters select:focus{
+      border-color:#0B4DA2;
+      box-shadow:0 0 0 2px rgba(11,77,162,.1);
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+      margin-bottom:18px;
+    }
+
+    .stat{
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:10px;
+      padding:16px;
+      box-shadow:0 3px 12px rgba(0,0,0,.05);
+    }
+
+    .stat-label{
+      font-size:11px;
+      color:#6b7280;
+      font-weight:700;
+      text-transform:uppercase;
+    }
+
+    .stat-value{
+      margin-top:6px;
+      font-size:25px;
+      font-weight:800;
+      color:#0B1E63;
+    }
+
+    .table-card{
+      background:#fff;
+      border:1px solid #e5e7eb;
+      border-radius:10px;
+      overflow:hidden;
+      box-shadow:0 3px 12px rgba(0,0,0,.05);
+    }
+
+    .table-wrap{
+      overflow-x:auto;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:1050px;
+    }
+
+    thead{
+      background:#0B1E63;
+      color:#fff;
+    }
+
+    th{
+      padding:12px 10px;
+      text-align:left;
+      font-size:11px;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+
+    td{
+      padding:12px 10px;
+      border-bottom:1px solid #edf0f3;
+      font-size:12px;
+      vertical-align:middle;
+    }
+
+    tbody tr:hover{
+      background:#f8fafc;
+    }
+
+    .muted{
+      color:#6b7280;
+    }
+
+    .badge{
+      display:inline-block;
+      padding:5px 8px;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:800;
+    }
+
+    .badge-valid{
+      background:#dcfce7;
+      color:#166534;
+    }
+
+    .badge-graduated{
+      background:#dbeafe;
+      color:#1e40af;
+    }
+
+    .badge-pending{
+      background:#fef3c7;
+      color:#92400e;
+    }
+
+    .badge-expired{
+      background:#fee2e2;
+      color:#991b1b;
+    }
+
+    .badge-revoked{
+      background:#e5e7eb;
+      color:#374151;
+    }
+
+    .row-actions{
+      display:flex;
+      gap:5px;
+      flex-wrap:wrap;
+    }
+
+    .small-btn{
+      border:0;
+      padding:6px 8px;
+      border-radius:5px;
+      cursor:pointer;
+      font-size:10px;
+      font-weight:700;
+    }
+
+    .small-view{
+      background:#dbeafe;
+      color:#1e40af;
+    }
+
+    .small-verify{
+      background:#dcfce7;
+      color:#166534;
+    }
+
+    .small-delete{
+      background:#fee2e2;
+      color:#991b1b;
+    }
+
+    .empty{
+      text-align:center;
+      padding:40px 20px;
+      color:#6b7280;
+      font-size:13px;
     }
 
     .message{
       display:none;
-      margin-top:14px;
-      padding:10px;
+      margin-bottom:15px;
+      padding:11px;
       border-radius:7px;
       font-size:12px;
       font-weight:600;
@@ -210,93 +321,133 @@
       color:#1e40af;
     }
 
-    .stage{
-      background:
-        radial-gradient(
-          circle at center,
-          rgba(11,77,162,.08),
-          transparent 40%
-        ),
-        #eef2f7;
-
-      display:flex;
-      justify-content:center;
-      align-items:flex-start;
-      padding:28px;
-      overflow:auto;
-    }
-
-    .preview-shell{
-      width:min(100%,1536px);
-      background:#fff;
-      box-shadow:0 10px 35px rgba(0,0,0,.20);
-      line-height:0;
-    }
-
-    #certificateCanvas{
-      display:block;
-      width:100%;
-      height:auto;
-      background:#fff;
-    }
-
-    .hint{
-      margin-top:10px;
+    .loading{
+      text-align:center;
+      padding:35px;
       color:#6b7280;
-      font-size:11px;
-      line-height:1.45;
+      font-size:13px;
+    }
+
+    .modal{
+      display:none;
+      position:fixed;
+      inset:0;
+      background:rgba(15,23,42,.62);
+      z-index:1000;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    .modal.show{
+      display:flex;
+    }
+
+    .modal-box{
+      width:min(700px,100%);
+      max-height:90vh;
+      overflow:auto;
+      background:#fff;
+      border-radius:12px;
+      box-shadow:0 20px 60px rgba(0,0,0,.3);
+    }
+
+    .modal-head{
+      background:linear-gradient(135deg,#0B1E63,#0B4DA2);
+      color:#fff;
+      padding:16px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .modal-head h2{
+      margin:0;
+      font-size:17px;
+    }
+
+    .close-btn{
+      border:0;
+      background:transparent;
+      color:#fff;
+      font-size:22px;
+      cursor:pointer;
+    }
+
+    .modal-body{
+      padding:20px;
+    }
+
+    .detail-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+
+    .detail{
+      background:#f8fafc;
+      border:1px solid #e5e7eb;
+      border-radius:8px;
+      padding:11px;
+    }
+
+    .detail-label{
+      font-size:10px;
+      text-transform:uppercase;
+      font-weight:800;
+      color:#6b7280;
+      margin-bottom:4px;
+    }
+
+    .detail-value{
+      font-size:13px;
+      font-weight:700;
+      color:#111827;
+      word-break:break-word;
     }
 
     @media(max-width:900px){
 
-      .main{
-        display:block;
+      .filters{
+        grid-template-columns:1fr 1fr;
       }
 
-      .panel{
-        border-right:0;
-        border-bottom:1px solid #ddd;
+      .stats{
+        grid-template-columns:1fr 1fr;
       }
 
-      .stage{
-        padding:15px;
-      }
     }
 
-    @media print{
+    @media(max-width:600px){
 
-      @page{
-        size:A4 landscape;
-        margin:0;
+      .container{
+        padding:15px;
       }
 
-      body{
-        background:#fff;
+      .filters{
+        grid-template-columns:1fr;
       }
 
-      .topbar,
-      .panel{
-        display:none!important;
+      .stats{
+        grid-template-columns:1fr;
       }
 
-      .main{
-        display:block;
-        min-height:0;
+      .detail-grid{
+        grid-template-columns:1fr;
       }
 
-      .stage{
-        padding:0;
-        background:#fff;
+      .topbar{
+        padding:10px 15px;
       }
 
-      .preview-shell{
-        width:100%;
-        box-shadow:none;
+      .brand-title{
+        font-size:16px;
       }
 
-      #certificateCanvas{
-        width:100%;
+      .back-btn{
+        padding:8px 10px;
       }
+
     }
   </style>
 </head>
@@ -313,9 +464,12 @@
     >
 
     <div>
-      <div class="brand-title">GAAWOW EMS</div>
+      <div class="brand-title">
+        GAAWOW EMS
+      </div>
+
       <div class="brand-subtitle">
-        Certificate Generator — V8
+        Certificates Management
       </div>
     </div>
 
@@ -332,384 +486,216 @@
 </header>
 
 
-<main class="main">
+<main class="container">
 
-  <!-- =========================
-       LEFT CONTROL PANEL
-       ========================= -->
+  <div class="page-head">
 
-  <section class="panel">
+    <div>
 
-    <h2>Certificate Generator</h2>
+      <h1>Certificates</h1>
 
-    <div class="panel-subtitle">
-      Student → Course → Enrollment → Certificate
-    </div>
-
-
-    <!-- INSTITUTION -->
-
-    <div class="section-title">
-      Institution
-    </div>
-
-    <div class="field">
-
-      <label for="institutionSelect">
-        Select Institution
-      </label>
-
-      <select id="institutionSelect">
-
-        <option value="">
-          Loading institutions...
-        </option>
-
-      </select>
+      <p>
+        View, search and manage issued certificates.
+      </p>
 
     </div>
 
-
-    <!-- STUDENT -->
-
-    <div class="section-title">
-      Student
-    </div>
-
-    <div class="field">
-
-      <label for="studentSelect">
-        Select Student
-      </label>
-
-      <select id="studentSelect">
-
-        <option value="">
-          Select institution first
-        </option>
-
-      </select>
-
-    </div>
-
-
-    <img
-      id="studentPhoto"
-      class="photo-preview"
-      alt="Student Photo"
-    >
-
-
-    <div class="field">
-
-      <label for="studentFullName">
-        Full Name
-      </label>
-
-      <input
-        id="studentFullName"
-        type="text"
-        readonly
-      >
-
-    </div>
-
-
-    <div class="field">
-
-      <label for="studentId">
-        Student ID
-      </label>
-
-      <input
-        id="studentId"
-        type="text"
-        readonly
-      >
-
-    </div>
-
-
-    <!-- COURSE / ENROLLMENT -->
-
-    <div class="section-title">
-      Course & Enrollment
-    </div>
-
-
-    <div class="field">
-
-      <label for="courseSelect">
-        Course
-      </label>
-
-      <select id="courseSelect">
-
-        <option value="">
-          Select student first
-        </option>
-
-      </select>
-
-    </div>
-
-
-    <div class="field">
-
-      <label for="dateStarted">
-        Date Started
-      </label>
-
-      <input
-        id="dateStarted"
-        type="date"
-        readonly
-      >
-
-    </div>
-
-
-    <div class="field">
-
-      <label for="dateCompleted">
-        Date Completed
-      </label>
-
-      <input
-        id="dateCompleted"
-        type="date"
-        readonly
-      >
-
-    </div>
-
-
-    <!-- CERTIFICATE -->
-
-    <div class="section-title">
-      Certificate
-    </div>
-
-
-    <div class="field">
-
-      <label for="certificateNo">
-        Certificate No
-      </label>
-
-      <input
-        id="certificateNo"
-        type="text"
-        readonly
-      >
-
-    </div>
-
-
-    <div class="field">
-
-      <label for="certificateId">
-        Certificate ID
-      </label>
-
-      <input
-        id="certificateId"
-        type="text"
-        readonly
-      >
-
-    </div>
-
-
-    <div class="field">
-
-      <label for="verifyCode">
-        Verify Code
-      </label>
-
-      <input
-        id="verifyCode"
-        type="text"
-        readonly
-      >
-
-    </div>
-
-
-    <div class="field">
-
-      <label for="issueDate">
-        Date Issued
-      </label>
-
-      <input
-        id="issueDate"
-        type="date"
-      >
-
-    </div>
-
-
-    <div class="field">
-
-      <label for="certificateStatus">
-        Status
-      </label>
-
-      <select id="certificateStatus">
-
-        <option value="valid">
-          VALID
-        </option>
-
-        <option value="graduated">
-          GRADUATED
-        </option>
-
-        <option value="pending">
-          PENDING
-        </option>
-
-        <option value="expired">
-          EXPIRED
-        </option>
-
-        <option value="revoked">
-          REVOKED
-        </option>
-
-      </select>
-
-    </div>
-
-
-    <!-- SIGNATORIES -->
-
-    <div class="section-title">
-      Signatories
-    </div>
-
-
-    <div class="field">
-
-      <label for="directorName">
-        Director
-      </label>
-
-      <input
-        id="directorName"
-        type="text"
-        value="Abdirahman H. Mohamed"
-      >
-
-    </div>
-
-
-    <div class="field">
-
-      <label for="academicHead">
-        Academic Head
-      </label>
-
-      <input
-        id="academicHead"
-        type="text"
-        value="Hodan Yusuf"
-      >
-
-    </div>
-
-
-    <!-- BUTTONS -->
-
-    <div class="buttons">
-
-      <button
-        type="button"
-        class="btn btn-primary"
-        id="generateBtn"
-      >
-        Generate
-      </button>
-
+    <div class="actions">
 
       <button
         type="button"
         class="btn btn-gold"
-        id="previewBtn"
+        id="generateCertificateBtn"
       >
-        Preview
+        + Generate Certificate
       </button>
-
-
-      <button
-        type="button"
-        class="btn btn-dark"
-        id="saveBtn"
-      >
-        Save Certificate
-      </button>
-
-
-      <button
-        type="button"
-        class="btn btn-primary"
-        id="downloadBtn"
-      >
-        HD Download
-      </button>
-
 
       <button
         type="button"
         class="btn btn-light"
-        id="printBtn"
+        id="refreshBtn"
       >
-        Print A4
-      </button>
-
-
-      <button
-        type="button"
-        class="btn btn-light"
-        id="newBtn"
-      >
-        New
+        Refresh
       </button>
 
     </div>
 
-
-    <div
-      id="message"
-      class="message"
-    ></div>
+  </div>
 
 
-    <div class="hint">
+  <div
+    id="message"
+    class="message"
+  ></div>
 
-      The original PNG template is used as the certificate
-      background. The certificate design is not recreated
-      with HTML/CSS.
+
+  <section class="stats">
+
+    <div class="stat">
+
+      <div class="stat-label">
+        Total Certificates
+      </div>
+
+      <div
+        class="stat-value"
+        id="totalCount"
+      >
+        0
+      </div>
+
+    </div>
+
+
+    <div class="stat">
+
+      <div class="stat-label">
+        Valid
+      </div>
+
+      <div
+        class="stat-value"
+        id="validCount"
+      >
+        0
+      </div>
+
+    </div>
+
+
+    <div class="stat">
+
+      <div class="stat-label">
+        Pending
+      </div>
+
+      <div
+        class="stat-value"
+        id="pendingCount"
+      >
+        0
+      </div>
+
+    </div>
+
+
+    <div class="stat">
+
+      <div class="stat-label">
+        Revoked
+      </div>
+
+      <div
+        class="stat-value"
+        id="revokedCount"
+      >
+        0
+      </div>
 
     </div>
 
   </section>
 
 
-  <!-- =========================
-       CERTIFICATE PREVIEW
-       ========================= -->
+  <section class="filters">
 
-  <section class="stage">
+    <input
+      id="searchInput"
+      type="search"
+      placeholder="Search certificate no, student, course, verify code..."
+    >
 
-    <div class="preview-shell">
 
-      <canvas
-        id="certificateCanvas"
-        width="1536"
-        height="1024"
-      ></canvas>
+    <select id="statusFilter">
+
+      <option value="">
+        All Status
+      </option>
+
+      <option value="valid">
+        Valid
+      </option>
+
+      <option value="graduated">
+        Graduated
+      </option>
+
+      <option value="pending">
+        Pending
+      </option>
+
+      <option value="expired">
+        Expired
+      </option>
+
+      <option value="revoked">
+        Revoked
+      </option>
+
+    </select>
+
+
+    <select id="institutionFilter">
+
+      <option value="">
+        All Institutions
+      </option>
+
+    </select>
+
+
+    <button
+      type="button"
+      class="btn btn-light"
+      id="clearFilterBtn"
+    >
+      Clear Filters
+    </button>
+
+  </section>
+
+
+  <section class="table-card">
+
+    <div
+      id="loading"
+      class="loading"
+    >
+      Loading certificates...
+    </div>
+
+
+    <div class="table-wrap">
+
+      <table id="certificatesTable">
+
+        <thead>
+
+          <tr>
+
+            <th>Certificate No</th>
+
+            <th>Student</th>
+
+            <th>Course</th>
+
+            <th>Institution</th>
+
+            <th>Issue Date</th>
+
+            <th>Status</th>
+
+            <th>Verify Code</th>
+
+            <th>Actions</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody id="certificatesBody"></tbody>
+
+      </table>
 
     </div>
 
@@ -718,7 +704,45 @@
 </main>
 
 
-<script src="certificate.js?v=8"></script>
+<!-- =========================
+     VIEW MODAL
+     ========================= -->
+
+<div
+  class="modal"
+  id="viewModal"
+>
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+
+      <h2>
+        Certificate Details
+      </h2>
+
+      <button
+        type="button"
+        class="close-btn"
+        id="closeModalBtn"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div
+      class="modal-body"
+      id="modalBody"
+    ></div>
+
+  </div>
+
+</div>
+
+
+<script src="certificates.js?v=1"></script>
 
 </body>
 </html>
