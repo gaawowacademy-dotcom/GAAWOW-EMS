@@ -1,14 +1,17 @@
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+// ============================================
+// SUPABASE
+// ============================================
 
-const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
+let supabaseClient = null;
+
+try {
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch (err) {
+  console.error("Supabase init error:", err);
+}
 
 
 // ============================================
@@ -27,32 +30,82 @@ let currentInstitutionId = null;
 // ELEMENTS
 // ============================================
 
-const studentsBody =
-  document.getElementById("studentsBody");
+const studentsBody = document.getElementById("studentsBody");
+const searchInput = document.getElementById("searchInput");
+const statusFilter = document.getElementById("statusFilter");
+const studentForm = document.getElementById("studentForm");
+const studentModal = document.getElementById("studentModal");
+const viewModal = document.getElementById("viewModal");
+const messageBox = document.getElementById("message");
+const institutionSelect = document.getElementById("institutionId");
+const institutionGroup = document.getElementById("institutionGroup");
 
-const searchInput =
-  document.getElementById("searchInput");
 
-const statusFilter =
-  document.getElementById("statusFilter");
+// ============================================
+// HELPERS
+// ============================================
 
-const studentForm =
-  document.getElementById("studentForm");
+// Never let a request hang forever
+function withTimeout(promise, ms, label) {
+  let timer;
 
-const studentModal =
-  document.getElementById("studentModal");
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(
+        (label || "Request") +
+        " timed out. Check your internet connection and try again."
+      ));
+    }, ms || 15000);
+  });
 
-const viewModal =
-  document.getElementById("viewModal");
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
-const messageBox =
-  document.getElementById("message");
+function formatDate(date) {
+  if (!date) return "-";
+  return new Date(date).toLocaleDateString();
+}
 
-const institutionSelect =
-  document.getElementById("institutionId");
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-const institutionGroup =
-  document.getElementById("institutionGroup");
+function showMessage(text, type) {
+  messageBox.textContent = text;
+  messageBox.className = "message " + type;
+
+  clearTimeout(showMessage._t);
+
+  showMessage._t = setTimeout(() => {
+    messageBox.className = "message";
+  }, 5000);
+}
+
+// Shows a permanent error in the table (with Retry) instead of endless "Loading..."
+function showFatal(text) {
+  console.error("FATAL:", text);
+
+  studentsBody.innerHTML = `
+    <tr>
+      <td colspan="7" class="empty">
+        <div style="color:#991B1B; margin-bottom:12px;">
+          ${escapeHtml(text)}
+        </div>
+        <button class="save" onclick="startStudentsPage()">Retry</button>
+      </td>
+    </tr>
+  `;
+
+  institutionSelect.innerHTML =
+    `<option value="">Unable to load institutions</option>`;
+
+  showMessage(text, "error");
+}
 
 
 // ============================================
@@ -61,103 +114,60 @@ const institutionGroup =
 
 async function checkSession() {
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.auth.getSession();
-
+  const { data, error } = await withTimeout(
+    supabaseClient.auth.getSession(),
+    10000,
+    "Session check"
+  );
 
   if (error || !data.session) {
-
-    window.location.href =
-      "index.html";
-
+    window.location.href = "index.html";
     return false;
   }
 
+  currentUser = data.session.user;
 
-  currentUser =
-    data.session.user;
-
-
-  const {
-    data: profile,
-    error: profileError
-  } =
-    await supabaseClient
+  const { data: profile, error: profileError } = await withTimeout(
+    supabaseClient
       .from("profiles")
-      .select(`
-        id,
-        full_name,
-        role,
-        institution_id,
-        is_active
-      `)
-      .eq(
-        "id",
-        currentUser.id
-      )
-      .single();
-
+      .select("id, full_name, role, institution_id, is_active")
+      .eq("id", currentUser.id)
+      .maybeSingle(),
+    10000,
+    "Profile"
+  );
 
   if (profileError) {
-
-    console.error(
-      "Profile error:",
-      profileError
-    );
-
-    showMessage(
-      "Unable to load user profile.",
-      "error"
-    );
-
+    showFatal("Unable to load user profile: " + profileError.message);
     return false;
   }
-
 
   if (!profile) {
-
-    showMessage(
-      "User profile not found.",
-      "error"
-    );
-
+    showFatal("User profile not found for this account.");
     return false;
   }
-
-
-  currentRole =
-    profile.role;
-
-  currentInstitutionId =
-    profile.institution_id;
-
-
-  console.log(
-    "Current role:",
-    currentRole
-  );
-
-  console.log(
-    "Current institution:",
-    currentInstitutionId
-  );
-
 
   if (profile.is_active === false) {
-
     await supabaseClient.auth.signOut();
-
-    window.location.href =
-      "index.html";
-
+    window.location.href = "index.html";
     return false;
   }
 
+  currentRole = profile.role;
+  currentInstitutionId = profile.institution_id;
 
   return true;
+}
+
+
+function applyRoleUI() {
+  if (currentRole === "super_admin") {
+    institutionGroup.style.display = "flex";
+    institutionSelect.required = true;
+  } else {
+    institutionGroup.style.display = "none";
+    institutionSelect.required = false;
+  }
 }
 
 
@@ -167,110 +177,45 @@ async function checkSession() {
 
 async function loadInstitutions() {
 
-  institutionSelect.innerHTML = `
-    <option value="">
-      Loading institutions...
-    </option>
-  `;
+  try {
 
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
+    let query = supabaseClient
       .from("institutions")
-      .select(`
-        id,
-        name
-      `)
-      .order(
-        "name",
-        {
-          ascending: true
-        }
-      );
+      .select("id, name")
+      .order("name", { ascending: true });
 
-
-  if (error) {
-
-    console.error(
-      "Load institutions error:",
-      error
-    );
-
-
-    institutionSelect.innerHTML = `
-      <option value="">
-        Unable to load institutions
-      </option>
-    `;
-
-
-    showMessage(
-      "Unable to load institutions: " +
-      error.message,
-      "error"
-    );
-
-
-    return;
-  }
-
-
-  institutions =
-    data || [];
-
-
-  institutionSelect.innerHTML = `
-    <option value="">
-      Select Institution
-    </option>
-  `;
-
-
-  institutions.forEach(
-    institution => {
-
-      const option =
-        document.createElement("option");
-
-      option.value =
-        institution.id;
-
-      option.textContent =
-        institution.name;
-
-      institutionSelect.appendChild(
-        option
-      );
-
+    // Non super-admin only needs their own institution
+    if (currentRole !== "super_admin") {
+      if (!currentInstitutionId) return;
+      query = query.eq("id", currentInstitutionId);
     }
-  );
 
+    const { data, error } = await withTimeout(query, 15000, "Institutions");
 
-  // ==========================================
-  // ROLE BEHAVIOR
-  // ==========================================
+    if (error) throw error;
 
-  if (
-    currentRole === "super_admin"
-  ) {
+    institutions = data || [];
 
-    institutionGroup.style.display =
-      "flex";
+    institutionSelect.innerHTML =
+      `<option value="">Select Institution</option>`;
 
-    institutionSelect.required =
-      true;
+    institutions.forEach(institution => {
+      const option = document.createElement("option");
+      option.value = institution.id;
+      option.textContent = institution.name;
+      institutionSelect.appendChild(option);
+    });
 
-  } else {
+  } catch (err) {
 
-    institutionGroup.style.display =
-      "none";
+    console.error("Load institutions error:", err);
 
-    institutionSelect.required =
-      false;
+    institutionSelect.innerHTML =
+      `<option value="">Unable to load institutions</option>`;
 
+    if (currentRole === "super_admin") {
+      showMessage("Unable to load institutions: " + err.message, "error");
+    }
   }
 }
 
@@ -279,24 +224,23 @@ async function loadInstitutions() {
 // LOAD STUDENTS
 // ============================================
 
-async function loadStudents() {
+async function loadStudents(silent) {
 
-  studentsBody.innerHTML = `
-    <tr>
-      <td colspan="7" class="loading">
-        Loading students...
-      </td>
-    </tr>
-  `;
+  if (!silent) {
+    studentsBody.innerHTML = `
+      <tr>
+        <td colspan="7" class="loading">Loading students...</td>
+      </tr>
+    `;
+  }
 
+  try {
 
-  let query =
-    supabaseClient
+    let query = supabaseClient
       .from("students")
       .select(`
         id,
         institution_id,
-        profile_id,
         student_id,
         full_name,
         gender,
@@ -309,104 +253,41 @@ async function loadStudents() {
         status,
         emergency_contact_name,
         emergency_contact_phone,
-        created_at,
-        updated_at
+        created_at
       `);
 
+    // Super Admin sees ALL students. Others: only their institution.
+    if (currentRole !== "super_admin") {
 
-  // ==========================================
-  // SUPER ADMIN
-  // ==========================================
+      if (!currentInstitutionId) {
+        studentsBody.innerHTML = `
+          <tr>
+            <td colspan="7" class="empty">
+              Institution not assigned to this account.
+            </td>
+          </tr>
+        `;
+        return;
+      }
 
-  if (
-    currentRole === "super_admin"
-  ) {
-
-    // No institution filter.
-    // Super Admin sees ALL students.
-
-  }
-
-
-  // ==========================================
-  // OTHER USERS
-  // ==========================================
-
-  else {
-
-    if (!currentInstitutionId) {
-
-      studentsBody.innerHTML = `
-        <tr>
-          <td colspan="7" class="empty">
-            Institution not assigned to this account.
-          </td>
-        </tr>
-      `;
-
-      return;
+      query = query.eq("institution_id", currentInstitutionId);
     }
 
+    const { data, error } = await withTimeout(
+      query.order("created_at", { ascending: false }),
+      20000,
+      "Students"
+    );
 
-    query =
-      query.eq(
-        "institution_id",
-        currentInstitutionId
-      );
+    if (error) throw error;
+
+    students = data || [];
+
+    renderStudents();
+
+  } catch (err) {
+    showFatal("Unable to load students: " + err.message);
   }
-
-
-  const {
-    data,
-    error
-  } =
-    await query.order(
-      "created_at",
-      {
-        ascending: false
-      }
-    );
-
-
-  if (error) {
-
-    console.error(
-      "Load students error:",
-      error
-    );
-
-
-    showMessage(
-      "Unable to load students: " +
-      error.message,
-      "error"
-    );
-
-
-    studentsBody.innerHTML = `
-      <tr>
-        <td colspan="7" class="empty">
-          Unable to load students.
-        </td>
-      </tr>
-    `;
-
-
-    return;
-  }
-
-
-  students =
-    data || [];
-
-
-  console.log(
-    "Students loaded:",
-    students.length
-  );
-
-
-  renderStudents();
 }
 
 
@@ -416,166 +297,52 @@ async function loadStudents() {
 
 function renderStudents() {
 
-  const search =
-    searchInput.value
-      .trim()
-      .toLowerCase();
+  const search = searchInput.value.trim().toLowerCase();
+  const status = statusFilter.value;
 
+  const filtered = students.filter(student => {
 
-  const status =
-    statusFilter.value;
+    const matchesSearch =
+      !search ||
+      (student.student_id || "").toLowerCase().includes(search) ||
+      (student.full_name || "").toLowerCase().includes(search) ||
+      (student.phone || "").toLowerCase().includes(search);
 
+    const matchesStatus = !status || student.status === status;
 
-  const filtered =
-    students.filter(
-      student => {
-
-        const matchesSearch =
-          !search ||
-          (student.student_id || "")
-            .toLowerCase()
-            .includes(search) ||
-
-          (student.full_name || "")
-            .toLowerCase()
-            .includes(search) ||
-
-          (student.phone || "")
-            .toLowerCase()
-            .includes(search);
-
-
-        const matchesStatus =
-          !status ||
-          student.status === status;
-
-
-        return (
-          matchesSearch &&
-          matchesStatus
-        );
-
-      }
-    );
-
+    return matchesSearch && matchesStatus;
+  });
 
   if (!filtered.length) {
-
     studentsBody.innerHTML = `
       <tr>
-        <td colspan="7" class="empty">
-          No students found.
-        </td>
+        <td colspan="7" class="empty">No students found.</td>
       </tr>
     `;
-
     return;
   }
 
-
-  studentsBody.innerHTML =
-    filtered
-      .map(
-        student => {
-
-          const admission =
-            formatDate(
-              student.admission_date
-            );
-
-
-          return `
-            <tr>
-
-              <td>
-                <strong>
-                  ${escapeHtml(
-                    student.student_id || "-"
-                  )}
-                </strong>
-              </td>
-
-
-              <td>
-                ${escapeHtml(
-                  student.full_name || "-"
-                )}
-              </td>
-
-
-              <td>
-                ${escapeHtml(
-                  student.gender || "-"
-                )}
-              </td>
-
-
-              <td>
-                ${escapeHtml(
-                  student.phone || "-"
-                )}
-              </td>
-
-
-              <td>
-                <span
-                  class="status ${escapeHtml(
-                    student.status || ""
-                  )}">
-
-                  ${escapeHtml(
-                    student.status || "-"
-                  )}
-
-                </span>
-              </td>
-
-
-              <td>
-                ${admission}
-              </td>
-
-
-              <td>
-
-                <div class="actions">
-
-                  <button
-                    class="action-btn view"
-                    onclick="viewStudent('${student.id}')">
-
-                    View
-
-                  </button>
-
-
-                  <button
-                    class="action-btn edit"
-                    onclick="editStudent('${student.id}')">
-
-                    Edit
-
-                  </button>
-
-
-                  <button
-                    class="action-btn delete"
-                    onclick="deleteStudent('${student.id}')">
-
-                    Delete
-
-                  </button>
-
-                </div>
-
-              </td>
-
-            </tr>
-          `;
-
-        }
-      )
-      .join("");
+  studentsBody.innerHTML = filtered.map(student => `
+    <tr>
+      <td><strong>${escapeHtml(student.student_id || "-")}</strong></td>
+      <td>${escapeHtml(student.full_name || "-")}</td>
+      <td>${escapeHtml(student.gender || "-")}</td>
+      <td>${escapeHtml(student.phone || "-")}</td>
+      <td>
+        <span class="status ${escapeHtml(student.status || "")}">
+          ${escapeHtml(student.status || "-")}
+        </span>
+      </td>
+      <td>${formatDate(student.admission_date)}</td>
+      <td>
+        <div class="actions">
+          <button class="action-btn view" onclick="viewStudent('${student.id}')">View</button>
+          <button class="action-btn edit" onclick="editStudent('${student.id}')">Edit</button>
+          <button class="action-btn delete" onclick="deleteStudent('${student.id}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
 }
 
 
@@ -587,65 +354,21 @@ function openAddModal() {
 
   studentForm.reset();
 
+  document.getElementById("editId").value = "";
+  document.getElementById("modalTitle").textContent = "Add Student";
+  document.getElementById("saveButton").textContent = "Save Student";
+  document.getElementById("saveButton").disabled = false;
+  document.getElementById("status").value = "active";
 
-  document.getElementById(
-    "editId"
-  ).value = "";
-
-
-  document.getElementById(
-    "modalTitle"
-  ).textContent =
-    "Add Student";
-
-
-  document.getElementById(
-    "saveButton"
-  ).textContent =
-    "Save Student";
-
-
-  document.getElementById(
-    "status"
-  ).value =
-    "active";
-
-
-  // ==========================================
-  // SUPER ADMIN
-  // ==========================================
-
-  if (
-    currentRole === "super_admin"
-  ) {
-
-    institutionSelect.value =
-      "";
-
-
-    institutionSelect.disabled =
-      false;
-
+  if (currentRole === "super_admin") {
+    institutionSelect.value = "";
+    institutionSelect.disabled = false;
+  } else {
+    institutionSelect.value = currentInstitutionId || "";
+    institutionSelect.disabled = true;
   }
 
-
-  // ==========================================
-  // SCHOOL ADMIN / TEACHER
-  // ==========================================
-
-  else {
-
-    institutionSelect.value =
-      currentInstitutionId || "";
-
-    institutionSelect.disabled =
-      true;
-
-  }
-
-
-  studentModal.style.display =
-    "block";
+  studentModal.style.display = "block";
 }
 
 
@@ -655,132 +378,31 @@ function openAddModal() {
 
 function editStudent(id) {
 
-  const student =
-    students.find(
-      item => item.id === id
-    );
+  const student = students.find(item => item.id === id);
+  if (!student) return;
 
+  document.getElementById("editId").value = student.id;
+  document.getElementById("studentId").value = student.student_id || "";
+  document.getElementById("fullName").value = student.full_name || "";
+  document.getElementById("gender").value = student.gender || "";
+  document.getElementById("dateOfBirth").value = student.date_of_birth || "";
+  document.getElementById("phone").value = student.phone || "";
+  document.getElementById("email").value = student.email || "";
+  document.getElementById("address").value = student.address || "";
+  document.getElementById("admissionDate").value = student.admission_date || "";
+  document.getElementById("status").value = student.status || "active";
+  document.getElementById("emergencyContactName").value = student.emergency_contact_name || "";
+  document.getElementById("emergencyContactPhone").value = student.emergency_contact_phone || "";
+  document.getElementById("photoUrl").value = student.photo_url || "";
 
-  if (!student) {
-    return;
-  }
+  institutionSelect.value = student.institution_id || "";
+  institutionSelect.disabled = currentRole !== "super_admin";
 
+  document.getElementById("modalTitle").textContent = "Edit Student";
+  document.getElementById("saveButton").textContent = "Update Student";
+  document.getElementById("saveButton").disabled = false;
 
-  document.getElementById(
-    "editId"
-  ).value =
-    student.id;
-
-
-  document.getElementById(
-    "studentId"
-  ).value =
-    student.student_id || "";
-
-
-  document.getElementById(
-    "fullName"
-  ).value =
-    student.full_name || "";
-
-
-  document.getElementById(
-    "gender"
-  ).value =
-    student.gender || "";
-
-
-  document.getElementById(
-    "dateOfBirth"
-  ).value =
-    student.date_of_birth || "";
-
-
-  document.getElementById(
-    "phone"
-  ).value =
-    student.phone || "";
-
-
-  document.getElementById(
-    "email"
-  ).value =
-    student.email || "";
-
-
-  document.getElementById(
-    "address"
-  ).value =
-    student.address || "";
-
-
-  document.getElementById(
-    "admissionDate"
-  ).value =
-    student.admission_date || "";
-
-
-  document.getElementById(
-    "status"
-  ).value =
-    student.status || "active";
-
-
-  document.getElementById(
-    "emergencyContactName"
-  ).value =
-    student.emergency_contact_name || "";
-
-
-  document.getElementById(
-    "emergencyContactPhone"
-  ).value =
-    student.emergency_contact_phone || "";
-
-
-  document.getElementById(
-    "photoUrl"
-  ).value =
-    student.photo_url || "";
-
-
-  // Set institution
-  institutionSelect.value =
-    student.institution_id || "";
-
-
-  document.getElementById(
-    "modalTitle"
-  ).textContent =
-    "Edit Student";
-
-
-  document.getElementById(
-    "saveButton"
-  ).textContent =
-    "Update Student";
-
-
-  // Super Admin can change institution.
-  // Other roles cannot.
-
-  if (
-    currentRole === "super_admin"
-  ) {
-
-    institutionSelect.disabled =
-      false;
-
-  } else {
-
-    institutionSelect.disabled =
-      true;
-
-  }
-
-
-  studentModal.style.display =
-    "block";
+  studentModal.style.display = "block";
 }
 
 
@@ -788,241 +410,76 @@ function editStudent(id) {
 // SAVE / UPDATE STUDENT
 // ============================================
 
-studentForm.addEventListener(
-  "submit",
-  async function(event) {
+studentForm.addEventListener("submit", async function (event) {
 
-    event.preventDefault();
+  event.preventDefault();
 
+  const saveButton = document.getElementById("saveButton");
+  const editId = document.getElementById("editId").value;
+  const idleText = editId ? "Update Student" : "Save Student";
 
-    const saveButton =
-      document.getElementById(
-        "saveButton"
-      );
+  saveButton.disabled = true;
+  saveButton.textContent = "Saving...";
 
+  try {
 
-    saveButton.disabled =
-      true;
+    let selectedInstitutionId = institutionSelect.value;
 
-
-    saveButton.textContent =
-      "Saving...";
-
-
-    const editId =
-      document.getElementById(
-        "editId"
-      ).value;
-
-
-    // ========================================
-    // DETERMINE INSTITUTION
-    // ========================================
-
-    let selectedInstitutionId =
-      institutionSelect.value;
-
-
-    // For non-super-admin users,
-    // force their own institution.
-
-    if (
-      currentRole !== "super_admin"
-    ) {
-
-      selectedInstitutionId =
-        currentInstitutionId;
-
+    if (currentRole !== "super_admin") {
+      selectedInstitutionId = currentInstitutionId;
     }
-
 
     if (!selectedInstitutionId) {
-
-      saveButton.disabled =
-        false;
-
-
-      saveButton.textContent =
-        editId
-          ? "Update Student"
-          : "Save Student";
-
-
-      showMessage(
-        "Please select an institution.",
-        "error"
-      );
-
-
+      showMessage("Please select an institution.", "error");
       return;
     }
-
-
-    // ========================================
-    // STUDENT DATA
-    // ========================================
 
     const studentData = {
-
-      student_id:
-        document.getElementById(
-          "studentId"
-        ).value.trim(),
-
-      full_name:
-        document.getElementById(
-          "fullName"
-        ).value.trim(),
-
-      gender:
-        document.getElementById(
-          "gender"
-        ).value || null,
-
-      date_of_birth:
-        document.getElementById(
-          "dateOfBirth"
-        ).value || null,
-
-      phone:
-        document.getElementById(
-          "phone"
-        ).value.trim() || null,
-
-      email:
-        document.getElementById(
-          "email"
-        ).value.trim() || null,
-
-      address:
-        document.getElementById(
-          "address"
-        ).value.trim() || null,
-
-      admission_date:
-        document.getElementById(
-          "admissionDate"
-        ).value || null,
-
-      status:
-        document.getElementById(
-          "status"
-        ).value,
-
-      emergency_contact_name:
-        document.getElementById(
-          "emergencyContactName"
-        ).value.trim() || null,
-
-      emergency_contact_phone:
-        document.getElementById(
-          "emergencyContactPhone"
-        ).value.trim() || null,
-
-      photo_url:
-        document.getElementById(
-          "photoUrl"
-        ).value.trim() || null
-
+      student_id: document.getElementById("studentId").value.trim(),
+      full_name: document.getElementById("fullName").value.trim(),
+      gender: document.getElementById("gender").value || null,
+      date_of_birth: document.getElementById("dateOfBirth").value || null,
+      phone: document.getElementById("phone").value.trim() || null,
+      email: document.getElementById("email").value.trim() || null,
+      address: document.getElementById("address").value.trim() || null,
+      admission_date: document.getElementById("admissionDate").value || null,
+      status: document.getElementById("status").value,
+      emergency_contact_name: document.getElementById("emergencyContactName").value.trim() || null,
+      emergency_contact_phone: document.getElementById("emergencyContactPhone").value.trim() || null,
+      photo_url: document.getElementById("photoUrl").value.trim() || null,
+      institution_id: selectedInstitutionId
     };
 
+    const request = editId
+      ? supabaseClient.from("students").update(studentData).eq("id", editId)
+      : supabaseClient.from("students").insert(studentData);
 
-    let result;
-
-
-    // ========================================
-    // UPDATE
-    // ========================================
-
-    if (editId) {
-
-      result =
-        await supabaseClient
-          .from("students")
-          .update({
-
-            ...studentData,
-
-            institution_id:
-              selectedInstitutionId
-
-          })
-          .eq(
-            "id",
-            editId
-          );
-
-    }
-
-
-    // ========================================
-    // INSERT
-    // ========================================
-
-    else {
-
-      result =
-        await supabaseClient
-          .from("students")
-          .insert({
-
-            ...studentData,
-
-            institution_id:
-              selectedInstitutionId
-
-          });
-
-    }
-
-
-    saveButton.disabled =
-      false;
-
+    const result = await withTimeout(request, 20000, "Save");
 
     if (result.error) {
-
-      console.error(
-        "Save student error:",
-        result.error
-      );
-
-
-      showMessage(
-        result.error.message,
-        "error"
-      );
-
-
-      saveButton.textContent =
-        editId
-          ? "Update Student"
-          : "Save Student";
-
-
+      console.error("Save student error:", result.error);
+      showMessage(result.error.message, "error");
       return;
     }
-
-
-    saveButton.textContent =
-      "Saved ✓";
-
 
     closeModal();
 
-
     showMessage(
-      editId
-        ? "Student updated successfully."
-        : "Student added successfully.",
+      editId ? "Student updated successfully." : "Student added successfully.",
       "success"
     );
 
+    // Refresh list quietly (no "Loading..." flash)
+    loadStudents(true);
 
-    await loadStudents();
-
+  } catch (err) {
+    console.error("Save student error:", err);
+    showMessage(err.message, "error");
+  } finally {
+    saveButton.disabled = false;
+    saveButton.textContent = idleText;
   }
-);
+});
 
 
 // ============================================
@@ -1031,159 +488,46 @@ studentForm.addEventListener(
 
 function viewStudent(id) {
 
-  const student =
-    students.find(
-      item => item.id === id
-    );
+  const student = students.find(item => item.id === id);
+  if (!student) return;
 
+  const institution = institutions.find(
+    item => item.id === student.institution_id
+  );
 
-  if (!student) {
-    return;
-  }
+  const institutionName = institution
+    ? institution.name
+    : student.institution_id || "-";
 
+  const photo = student.photo_url
+    ? `<img
+         src="${escapeHtml(student.photo_url)}"
+         style="width:90px;height:90px;object-fit:cover;border-radius:50%;margin-bottom:15px;">`
+    : "";
 
-  const institution =
-    institutions.find(
-      item =>
-        item.id === student.institution_id
-    );
-
-
-  const institutionName =
-    institution
-      ? institution.name
-      : student.institution_id || "-";
-
-
-  const photo =
-    student.photo_url
-      ? `
-        <img
-          src="${escapeHtml(
-            student.photo_url
-          )}"
-          style="
-            width:90px;
-            height:90px;
-            object-fit:cover;
-            border-radius:50%;
-            margin-bottom:15px;
-          "
-        >
-      `
-      : "";
-
-
-  document.getElementById(
-    "studentDetails"
-  ).innerHTML = `
+  document.getElementById("studentDetails").innerHTML = `
 
     <div style="text-align:center;">
-
       ${photo}
-
-      <h2 style="color:#0B1E63;">
-        ${escapeHtml(
-          student.full_name || "-"
-        )}
-      </h2>
-
-      <p>
-        ${escapeHtml(
-          student.student_id || "-"
-        )}
-      </p>
-
+      <h2 style="color:#0B1E63;">${escapeHtml(student.full_name || "-")}</h2>
+      <p>${escapeHtml(student.student_id || "-")}</p>
     </div>
-
 
     <hr style="margin:18px 0;">
 
-
-    <p>
-      <strong>Institution:</strong>
-      ${escapeHtml(
-        institutionName
-      )}
-    </p>
-
-
-    <p>
-      <strong>Gender:</strong>
-      ${escapeHtml(
-        student.gender || "-"
-      )}
-    </p>
-
-
-    <p>
-      <strong>Date of Birth:</strong>
-      ${formatDate(
-        student.date_of_birth
-      )}
-    </p>
-
-
-    <p>
-      <strong>Phone:</strong>
-      ${escapeHtml(
-        student.phone || "-"
-      )}
-    </p>
-
-
-    <p>
-      <strong>Email:</strong>
-      ${escapeHtml(
-        student.email || "-"
-      )}
-    </p>
-
-
-    <p>
-      <strong>Address:</strong>
-      ${escapeHtml(
-        student.address || "-"
-      )}
-    </p>
-
-
-    <p>
-      <strong>Admission Date:</strong>
-      ${formatDate(
-        student.admission_date
-      )}
-    </p>
-
-
-    <p>
-      <strong>Status:</strong>
-      ${escapeHtml(
-        student.status || "-"
-      )}
-    </p>
-
-
-    <p>
-      <strong>Emergency Contact:</strong>
-      ${escapeHtml(
-        student.emergency_contact_name || "-"
-      )}
-    </p>
-
-
-    <p>
-      <strong>Emergency Phone:</strong>
-      ${escapeHtml(
-        student.emergency_contact_phone || "-"
-      )}
-    </p>
-
+    <p><strong>Institution:</strong> ${escapeHtml(institutionName)}</p>
+    <p><strong>Gender:</strong> ${escapeHtml(student.gender || "-")}</p>
+    <p><strong>Date of Birth:</strong> ${formatDate(student.date_of_birth)}</p>
+    <p><strong>Phone:</strong> ${escapeHtml(student.phone || "-")}</p>
+    <p><strong>Email:</strong> ${escapeHtml(student.email || "-")}</p>
+    <p><strong>Address:</strong> ${escapeHtml(student.address || "-")}</p>
+    <p><strong>Admission Date:</strong> ${formatDate(student.admission_date)}</p>
+    <p><strong>Status:</strong> ${escapeHtml(student.status || "-")}</p>
+    <p><strong>Emergency Contact:</strong> ${escapeHtml(student.emergency_contact_name || "-")}</p>
+    <p><strong>Emergency Phone:</strong> ${escapeHtml(student.emergency_contact_phone || "-")}</p>
   `;
 
-
-  viewModal.style.display =
-    "block";
+  viewModal.style.display = "block";
 }
 
 
@@ -1193,65 +537,31 @@ function viewStudent(id) {
 
 async function deleteStudent(id) {
 
-  const student =
-    students.find(
-      item => item.id === id
+  const student = students.find(item => item.id === id);
+  if (!student) return;
+
+  if (!confirm(`Delete ${student.full_name}?`)) return;
+
+  try {
+
+    const { error } = await withTimeout(
+      supabaseClient.from("students").delete().eq("id", id),
+      15000,
+      "Delete"
     );
 
+    if (error) throw error;
 
-  if (!student) {
-    return;
+    // Remove locally = instant UI update
+    students = students.filter(item => item.id !== id);
+    renderStudents();
+
+    showMessage("Student deleted successfully.", "success");
+
+  } catch (err) {
+    console.error("Delete student error:", err);
+    showMessage(err.message, "error");
   }
-
-
-  const confirmed =
-    confirm(
-      `Delete ${student.full_name}?`
-    );
-
-
-  if (!confirmed) {
-    return;
-  }
-
-
-  const {
-    error
-  } =
-    await supabaseClient
-      .from("students")
-      .delete()
-      .eq(
-        "id",
-        id
-      );
-
-
-  if (error) {
-
-    console.error(
-      "Delete student error:",
-      error
-    );
-
-
-    showMessage(
-      error.message,
-      "error"
-    );
-
-
-    return;
-  }
-
-
-  showMessage(
-    "Student deleted successfully.",
-    "success"
-  );
-
-
-  await loadStudents();
 }
 
 
@@ -1260,33 +570,26 @@ async function deleteStudent(id) {
 // ============================================
 
 function closeModal() {
-
-  studentModal.style.display =
-    "none";
+  studentModal.style.display = "none";
 }
-
 
 function closeViewModal() {
-
-  viewModal.style.display =
-    "none";
+  viewModal.style.display = "none";
 }
 
 
 // ============================================
-// SEARCH
+// SEARCH (debounced)
 // ============================================
 
-searchInput.addEventListener(
-  "input",
-  renderStudents
-);
+let searchTimer;
 
+searchInput.addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(renderStudents, 150);
+});
 
-statusFilter.addEventListener(
-  "change",
-  renderStudents
-);
+statusFilter.addEventListener("change", renderStudents);
 
 
 // ============================================
@@ -1294,80 +597,7 @@ statusFilter.addEventListener(
 // ============================================
 
 function goDashboard() {
-
-  window.location.href =
-    "dashboard.html";
-}
-
-
-// ============================================
-// MESSAGE
-// ============================================
-
-function showMessage(
-  text,
-  type
-) {
-
-  messageBox.textContent =
-    text;
-
-
-  messageBox.className =
-    "message " + type;
-
-
-  setTimeout(
-    () => {
-
-      messageBox.className =
-        "message";
-
-    },
-    4000
-  );
-}
-
-
-// ============================================
-// HELPERS
-// ============================================
-
-function formatDate(date) {
-
-  if (!date) {
-    return "-";
-  }
-
-
-  return new Date(date)
-    .toLocaleDateString();
-}
-
-
-function escapeHtml(value) {
-
-  return String(value)
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    );
+  window.location.href = "dashboard.html";
 }
 
 
@@ -1377,18 +607,27 @@ function escapeHtml(value) {
 
 async function startStudentsPage() {
 
-  const authenticated =
-    await checkSession();
-
-
-  if (!authenticated) {
+  if (!supabaseClient) {
+    showFatal("Supabase library failed to load. Check your internet connection.");
     return;
   }
 
+  try {
 
-  await loadInstitutions();
+    const authenticated = await checkSession();
+    if (!authenticated) return;
 
-  await loadStudents();
+    applyRoleUI();
+
+    // Load both at the same time (faster)
+    await Promise.all([
+      loadStudents(),
+      loadInstitutions()
+    ]);
+
+  } catch (err) {
+    showFatal(err.message || "Something went wrong.");
+  }
 }
 
 
