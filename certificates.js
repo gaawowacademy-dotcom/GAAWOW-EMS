@@ -1,20 +1,10 @@
 /* =========================================================
    GAAWOW EMS
-   Certificates Management V2
-   DATABASE-SAFE / ERROR-SAFE
+   Certificates Management V3
+   DATABASE-SAFE
 
-   Purpose:
-   - View issued certificates
-   - Search
-   - Status filter
-   - Institution filter
-   - View details
-   - Verify
-   - Delete
-   - Link to Certificate Generator
-
-   Generator:
-   certificate.html
+   IMPORTANT:
+   certificates table does NOT use enrollment_id.
    ========================================================= */
 
 
@@ -38,9 +28,11 @@ let supabaseClient = null;
 function createSupabaseClient() {
 
   if (!window.supabase) {
+
     throw new Error(
-      "Supabase library failed to load. Check certificate.html script order."
+      "Supabase library failed to load."
     );
+
   }
 
   supabaseClient =
@@ -49,7 +41,6 @@ function createSupabaseClient() {
       SUPABASE_KEY
     );
 
-  return supabaseClient;
 }
 
 
@@ -65,11 +56,13 @@ let institutions = [];
 
 
 /* =========================================================
-   DOM HELPER
+   DOM
    ========================================================= */
 
 function $(id) {
+
   return document.getElementById(id);
+
 }
 
 
@@ -77,18 +70,29 @@ function $(id) {
    MESSAGE
    ========================================================= */
 
-function showMessage(message, type = "info") {
+function showMessage(
+  message,
+  type = "info"
+) {
 
   const box = $("message");
 
   if (!box) {
-    console.log(`[${type}] ${message}`);
+
+    console.log(
+      `[${type}] ${message}`
+    );
+
     return;
+
   }
 
-  box.textContent = message;
+  box.textContent =
+    message;
 
-  box.className = `message ${type}`;
+  box.className =
+    `message ${type}`;
+
 }
 
 
@@ -100,7 +104,9 @@ function clearMessage() {
 
   box.textContent = "";
 
-  box.className = "message";
+  box.className =
+    "message";
+
 }
 
 
@@ -108,59 +114,72 @@ function clearMessage() {
    LOADING
    ========================================================= */
 
-function setLoading(show, text = "Loading certificates...") {
+function setLoading(
+  visible,
+  text = "Loading certificates..."
+) {
 
-  const loading = $("loading");
+  const loading =
+    $("loading");
 
   if (!loading) return;
 
-  if (show) {
+  if (visible) {
 
-    loading.style.display = "block";
-    loading.textContent = text;
+    loading.style.display =
+      "block";
+
+    loading.textContent =
+      text;
 
   } else {
 
-    loading.style.display = "none";
+    loading.style.display =
+      "none";
 
   }
+
 }
 
 
 /* =========================================================
-   AUTH
+   SESSION
    ========================================================= */
 
 async function loadSession() {
 
-  if (!supabaseClient) {
-    throw new Error("Supabase client is not initialized.");
-  }
-
-  const result =
+  const {
+    data,
+    error
+  } =
     await supabaseClient.auth.getSession();
 
-  const data = result?.data;
-  const error = result?.error;
 
   if (error) {
+
     throw new Error(
       `Session error: ${error.message}`
     );
+
   }
+
 
   currentUser =
     data?.session?.user || null;
 
+
   if (!currentUser) {
 
-    window.location.href = "index.html";
+    window.location.href =
+      "index.html";
 
     return false;
 
   }
 
+
   return true;
+
 }
 
 
@@ -171,8 +190,13 @@ async function loadSession() {
 async function loadProfile() {
 
   if (!currentUser) {
-    throw new Error("User session not found.");
+
+    throw new Error(
+      "Logged-in user was not found."
+    );
+
   }
+
 
   const {
     data,
@@ -193,7 +217,7 @@ async function loadProfile() {
   if (error) {
 
     throw new Error(
-      `Profile loading failed: ${error.message}`
+      `Profile error: ${error.message}`
     );
 
   }
@@ -202,16 +226,19 @@ async function loadProfile() {
   if (!data) {
 
     throw new Error(
-      "Profile not found for the logged-in account."
+      "Profile not found."
     );
 
   }
 
 
-  currentProfile = data;
+  currentProfile =
+    data;
 
 
-  if (currentProfile.is_active === false) {
+  if (
+    currentProfile.is_active === false
+  ) {
 
     throw new Error(
       "Your account is inactive."
@@ -234,18 +261,19 @@ async function loadProfile() {
   ) {
 
     throw new Error(
-      `Unauthorized role: ${currentProfile.role || "unknown"}`
+      "You are not authorized to manage certificates."
     );
 
   }
 
 
   return currentProfile;
+
 }
 
 
 /* =========================================================
-   LOAD INSTITUTIONS
+   INSTITUTIONS
    ========================================================= */
 
 async function loadInstitutions() {
@@ -254,13 +282,13 @@ async function loadInstitutions() {
     $("institutionFilter");
 
 
-  if (!filter) {
-    return;
-  }
+  if (!filter) return;
 
 
   filter.innerHTML =
-    `<option value="">All Institutions</option>`;
+    `<option value="">
+      All Institutions
+    </option>`;
 
 
   let query =
@@ -278,16 +306,20 @@ async function loadInstitutions() {
 
 
   if (
-    currentProfile.role !== "super_admin"
+    currentProfile.role !==
+    "super_admin"
   ) {
 
-    if (!currentProfile.institution_id) {
+    if (
+      !currentProfile.institution_id
+    ) {
 
       throw new Error(
         "Your profile has no institution assigned."
       );
 
     }
+
 
     query =
       query.eq(
@@ -308,7 +340,7 @@ async function loadInstitutions() {
   if (error) {
 
     throw new Error(
-      `Institutions loading failed: ${error.message}`
+      `Institutions error: ${error.message}`
     );
 
   }
@@ -322,7 +354,9 @@ async function loadInstitutions() {
     institution => {
 
       const option =
-        document.createElement("option");
+        document.createElement(
+          "option"
+        );
 
       option.value =
         institution.id;
@@ -340,20 +374,13 @@ async function loadInstitutions() {
   );
 
 
-  /*
-     Non-super-admin:
-     lock institution selector
-  */
-
   if (
-    currentProfile.role !== "super_admin"
+    currentProfile.role !==
+    "super_admin"
   ) {
 
-    filter.disabled = true;
-
-  } else {
-
-    filter.disabled = false;
+    filter.disabled =
+      true;
 
   }
 
@@ -374,35 +401,25 @@ async function loadCertificates() {
 
   try {
 
-    if (!currentProfile) {
-      throw new Error(
-        "User profile is not loaded."
-      );
-    }
-
-
     let query =
       supabaseClient
         .from("certificates")
-        .select(
-          [
-            "id",
-            "institution_id",
-            "student_id",
-            "course_id",
-            "enrollment_id",
-            "certificate_no",
-            "certificate_id",
-            "verify_code",
-            "hash_code",
-            "issue_date",
-            "expiry_date",
-            "status",
-            "student_name",
-            "course_name",
-            "created_at"
-          ].join(",")
-        )
+        .select(`
+          id,
+          institution_id,
+          student_id,
+          course_id,
+          certificate_no,
+          certificate_id,
+          verify_code,
+          hash_code,
+          issue_date,
+          expiry_date,
+          status,
+          student_name,
+          course_name,
+          created_at
+        `)
         .order(
           "created_at",
           {
@@ -412,32 +429,18 @@ async function loadCertificates() {
 
 
     /*
-       SECURITY FILTER
+       SUPER ADMIN
+       can see all institutions.
     */
 
     if (
-      currentProfile.role !== "super_admin"
+      currentProfile.role ===
+      "super_admin"
     ) {
 
-      if (!currentProfile.institution_id) {
-
-        throw new Error(
-          "No institution is assigned to your account."
-        );
-
-      }
-
-
-      query =
-        query.eq(
-          "institution_id",
-          currentProfile.institution_id
-        );
-
-    } else {
-
       const institutionId =
-        $("institutionFilter")?.value || "";
+        $("institutionFilter")?.value ||
+        "";
 
 
       if (institutionId) {
@@ -453,6 +456,33 @@ async function loadCertificates() {
     }
 
 
+    /*
+       SCHOOL ADMIN / TEACHER
+       only own institution.
+    */
+
+    else {
+
+      if (
+        !currentProfile.institution_id
+      ) {
+
+        throw new Error(
+          "No institution assigned to this account."
+        );
+
+      }
+
+
+      query =
+        query.eq(
+          "institution_id",
+          currentProfile.institution_id
+        );
+
+    }
+
+
     const {
       data,
       error
@@ -462,16 +492,10 @@ async function loadCertificates() {
 
     if (error) {
 
-      /*
-         IMPORTANT:
-         Show actual Supabase error.
-      */
-
       console.error(
-        "Certificates query error:",
+        "Certificates database error:",
         error
       );
-
 
       throw new Error(
         `Certificates database error: ${error.message}`
@@ -494,7 +518,7 @@ async function loadCertificates() {
     if (!certificates.length) {
 
       showMessage(
-        "No issued certificates found.",
+        "No certificates have been issued yet.",
         "info"
       );
 
@@ -503,13 +527,9 @@ async function loadCertificates() {
 
   } finally {
 
-    /*
-       IMPORTANT:
-       Loading ALWAYS stops,
-       even when query fails.
-    */
-
-    setLoading(false);
+    setLoading(
+      false
+    );
 
   }
 
@@ -526,36 +546,26 @@ function renderCertificates() {
     $("certificatesBody");
 
 
-  if (!body) {
-
-    console.warn(
-      "certificatesBody element not found."
-    );
-
-    return;
-
-  }
+  if (!body) return;
 
 
   const search =
     (
-      $("searchInput")?.value || ""
+      $("searchInput")?.value ||
+      ""
     )
       .trim()
       .toLowerCase();
 
 
   const status =
-    $("statusFilter")?.value || "";
+    $("statusFilter")?.value ||
+    "";
 
 
   let filtered =
     [...certificates];
 
-
-  /*
-     SEARCH
-  */
 
   if (search) {
 
@@ -566,9 +576,13 @@ function renderCertificates() {
           const values = [
 
             certificate.certificate_no,
+
             certificate.certificate_id,
+
             certificate.verify_code,
+
             certificate.student_name,
+
             certificate.course_name
 
           ];
@@ -588,10 +602,6 @@ function renderCertificates() {
 
   }
 
-
-  /*
-     STATUS FILTER
-  */
 
   if (status) {
 
@@ -632,7 +642,9 @@ function renderCertificates() {
     certificate => {
 
       const row =
-        document.createElement("tr");
+        document.createElement(
+          "tr"
+        );
 
 
       const institution =
@@ -643,27 +655,22 @@ function renderCertificates() {
         );
 
 
-      const institutionName =
-        institution?.name ||
-        "—";
-
-
       row.innerHTML = `
 
         <td>
 
           <strong>
             ${escapeHtml(
-              certificate.certificate_no || "—"
+              certificate.certificate_no ||
+              "—"
             )}
           </strong>
 
           <div class="muted">
-
             ${escapeHtml(
-              certificate.certificate_id || ""
+              certificate.certificate_id ||
+              ""
             )}
-
           </div>
 
         </td>
@@ -671,21 +678,24 @@ function renderCertificates() {
 
         <td>
           ${escapeHtml(
-            certificate.student_name || "—"
+            certificate.student_name ||
+            "—"
           )}
         </td>
 
 
         <td>
           ${escapeHtml(
-            certificate.course_name || "—"
+            certificate.course_name ||
+            "—"
           )}
         </td>
 
 
         <td>
           ${escapeHtml(
-            institutionName
+            institution?.name ||
+            "—"
           )}
         </td>
 
@@ -705,13 +715,12 @@ function renderCertificates() {
 
 
         <td>
-
           <strong>
             ${escapeHtml(
-              certificate.verify_code || "—"
+              certificate.verify_code ||
+              "—"
             )}
           </strong>
-
         </td>
 
 
@@ -736,7 +745,8 @@ function renderCertificates() {
               class="small-btn small-verify"
               data-action="verify"
               data-code="${escapeAttr(
-                certificate.verify_code || ""
+                certificate.verify_code ||
+                ""
               )}"
             >
               Verify
@@ -744,8 +754,10 @@ function renderCertificates() {
 
 
             ${
-              currentProfile.role === "super_admin" ||
-              currentProfile.role === "school_admin"
+              currentProfile.role ===
+              "super_admin" ||
+              currentProfile.role ===
+              "school_admin"
                 ? `
                   <button
                     type="button"
@@ -768,7 +780,9 @@ function renderCertificates() {
       `;
 
 
-      body.appendChild(row);
+      body.appendChild(
+        row
+      );
 
     }
   );
@@ -791,7 +805,8 @@ function updateStats() {
       item =>
         String(
           item.status || ""
-        ).toLowerCase() === "valid"
+        ).toLowerCase() ===
+        "valid"
     ).length;
 
 
@@ -800,7 +815,8 @@ function updateStats() {
       item =>
         String(
           item.status || ""
-        ).toLowerCase() === "pending"
+        ).toLowerCase() ===
+        "pending"
     ).length;
 
 
@@ -809,40 +825,29 @@ function updateStats() {
       item =>
         String(
           item.status || ""
-        ).toLowerCase() === "revoked"
+        ).toLowerCase() ===
+        "revoked"
     ).length;
 
 
-  if ($("totalCount")) {
-
+  if ($("totalCount"))
     $("totalCount").textContent =
       total;
 
-  }
 
-
-  if ($("validCount")) {
-
+  if ($("validCount"))
     $("validCount").textContent =
       valid;
 
-  }
 
-
-  if ($("pendingCount")) {
-
+  if ($("pendingCount"))
     $("pendingCount").textContent =
       pending;
 
-  }
 
-
-  if ($("revokedCount")) {
-
+  if ($("revokedCount"))
     $("revokedCount").textContent =
       revoked;
-
-  }
 
 }
 
@@ -869,32 +874,25 @@ function statusBadge(status) {
     "badge";
 
 
-  if (safe === "valid") {
-
+  if (safe === "valid")
     className +=
       " badge-valid";
 
-  } else if (safe === "pending") {
-
+  else if (safe === "pending")
     className +=
       " badge-pending";
 
-  } else if (safe === "expired") {
-
+  else if (safe === "expired")
     className +=
       " badge-expired";
 
-  } else if (safe === "revoked") {
-
+  else if (safe === "revoked")
     className +=
       " badge-revoked";
 
-  } else if (safe === "graduated") {
-
+  else if (safe === "graduated")
     className +=
       " badge-graduated";
-
-  }
 
 
   return `
@@ -907,7 +905,7 @@ function statusBadge(status) {
 
 
 /* =========================================================
-   VIEW CERTIFICATE
+   VIEW
    ========================================================= */
 
 function viewCertificate(id) {
@@ -966,10 +964,10 @@ function viewCertificate(id) {
         <div class="detail-label">
           Student
         </div>
-
         <div class="detail-value">
           ${escapeHtml(
-            certificate.student_name || "—"
+            certificate.student_name ||
+            "—"
           )}
         </div>
       </div>
@@ -979,10 +977,10 @@ function viewCertificate(id) {
         <div class="detail-label">
           Student UUID
         </div>
-
         <div class="detail-value">
           ${escapeHtml(
-            certificate.student_id || "—"
+            certificate.student_id ||
+            "—"
           )}
         </div>
       </div>
@@ -992,10 +990,10 @@ function viewCertificate(id) {
         <div class="detail-label">
           Course
         </div>
-
         <div class="detail-value">
           ${escapeHtml(
-            certificate.course_name || "—"
+            certificate.course_name ||
+            "—"
           )}
         </div>
       </div>
@@ -1005,10 +1003,10 @@ function viewCertificate(id) {
         <div class="detail-label">
           Course UUID
         </div>
-
         <div class="detail-value">
           ${escapeHtml(
-            certificate.course_id || "—"
+            certificate.course_id ||
+            "—"
           )}
         </div>
       </div>
@@ -1018,10 +1016,10 @@ function viewCertificate(id) {
         <div class="detail-label">
           Institution
         </div>
-
         <div class="detail-value">
           ${escapeHtml(
-            institution?.name || "—"
+            institution?.name ||
+            "—"
           )}
         </div>
       </div>
@@ -1031,10 +1029,10 @@ function viewCertificate(id) {
         <div class="detail-label">
           Certificate No
         </div>
-
         <div class="detail-value">
           ${escapeHtml(
-            certificate.certificate_no || "—"
+            certificate.certificate_no ||
+            "—"
           )}
         </div>
       </div>
@@ -1044,10 +1042,10 @@ function viewCertificate(id) {
         <div class="detail-label">
           Certificate ID
         </div>
-
         <div class="detail-value">
           ${escapeHtml(
-            certificate.certificate_id || "—"
+            certificate.certificate_id ||
+            "—"
           )}
         </div>
       </div>
@@ -1057,10 +1055,10 @@ function viewCertificate(id) {
         <div class="detail-label">
           Verify Code
         </div>
-
         <div class="detail-value">
           ${escapeHtml(
-            certificate.verify_code || "—"
+            certificate.verify_code ||
+            "—"
           )}
         </div>
       </div>
@@ -1070,7 +1068,6 @@ function viewCertificate(id) {
         <div class="detail-label">
           Issue Date
         </div>
-
         <div class="detail-value">
           ${formatDate(
             certificate.issue_date
@@ -1083,7 +1080,6 @@ function viewCertificate(id) {
         <div class="detail-label">
           Expiry Date
         </div>
-
         <div class="detail-value">
           ${
             certificate.expiry_date
@@ -1100,23 +1096,9 @@ function viewCertificate(id) {
         <div class="detail-label">
           Status
         </div>
-
         <div class="detail-value">
           ${statusBadge(
             certificate.status
-          )}
-        </div>
-      </div>
-
-
-      <div class="detail">
-        <div class="detail-label">
-          Enrollment ID
-        </div>
-
-        <div class="detail-value">
-          ${escapeHtml(
-            certificate.enrollment_id || "—"
           )}
         </div>
       </div>
@@ -1126,17 +1108,16 @@ function viewCertificate(id) {
         class="detail"
         style="grid-column:1/-1"
       >
-
         <div class="detail-label">
           Verification Hash
         </div>
 
         <div class="detail-value">
           ${escapeHtml(
-            certificate.hash_code || "—"
+            certificate.hash_code ||
+            "—"
           )}
         </div>
-
       </div>
 
     </div>
@@ -1164,29 +1145,19 @@ async function deleteCertificate(id) {
     );
 
 
-  if (!certificate) {
-
-    showMessage(
-      "Certificate not found.",
-      "error"
-    );
-
-    return;
-
-  }
+  if (!certificate) return;
 
 
   const confirmed =
     window.confirm(
       `Delete certificate ${
-        certificate.certificate_no || ""
+        certificate.certificate_no ||
+        ""
       }?\n\nThis action cannot be undone.`
     );
 
 
-  if (!confirmed) {
-    return;
-  }
+  if (!confirmed) return;
 
 
   try {
@@ -1230,7 +1201,7 @@ async function deleteCertificate(id) {
   } catch (error) {
 
     console.error(
-      "Delete Certificate Error:",
+      "Delete error:",
       error
     );
 
@@ -1280,23 +1251,18 @@ function verifyCertificate(
 
 function clearFilters() {
 
-  if ($("searchInput")) {
-
+  if ($("searchInput"))
     $("searchInput").value = "";
 
-  }
 
-
-  if ($("statusFilter")) {
-
+  if ($("statusFilter"))
     $("statusFilter").value = "";
-
-  }
 
 
   if (
     $("institutionFilter") &&
-    currentProfile?.role === "super_admin"
+    currentProfile?.role ===
+      "super_admin"
   ) {
 
     $("institutionFilter").value = "";
@@ -1314,7 +1280,6 @@ function clearFilters() {
    ========================================================= */
 
 function bindEvents() {
-
 
   $("backDashboardBtn")
     ?.addEventListener(
@@ -1352,16 +1317,13 @@ function bindEvents() {
           await loadCertificates();
 
           showMessage(
-            "Certificates refreshed successfully.",
+            "Certificates refreshed.",
             "success"
           );
 
         } catch (error) {
 
-          console.error(
-            "Refresh error:",
-            error
-          );
+          console.error(error);
 
           showMessage(
             error.message ||
@@ -1402,10 +1364,7 @@ function bindEvents() {
 
         } catch (error) {
 
-          console.error(
-            "Institution filter error:",
-            error
-          );
+          console.error(error);
 
           showMessage(
             error.message ||
@@ -1432,7 +1391,9 @@ function bindEvents() {
       () => {
 
         $("viewModal")
-          ?.classList.remove("show");
+          ?.classList.remove(
+            "show"
+          );
 
       }
     );
@@ -1449,7 +1410,9 @@ function bindEvents() {
         ) {
 
           $("viewModal")
-            .classList.remove("show");
+            .classList.remove(
+              "show"
+            );
 
         }
 
@@ -1468,9 +1431,7 @@ function bindEvents() {
           );
 
 
-        if (!button) {
-          return;
-        }
+        if (!button) return;
 
 
         const action =
@@ -1483,23 +1444,23 @@ function bindEvents() {
             button.dataset.id
           );
 
-          return;
-
         }
 
 
-        if (action === "verify") {
+        else if (
+          action === "verify"
+        ) {
 
           verifyCertificate(
             button.dataset.code
           );
 
-          return;
-
         }
 
 
-        if (action === "delete") {
+        else if (
+          action === "delete"
+        ) {
 
           await deleteCertificate(
             button.dataset.id
@@ -1523,12 +1484,6 @@ function formatDate(dateString) {
     return "—";
   }
 
-
-  /*
-     Handle both:
-     YYYY-MM-DD
-     and full ISO timestamp
-  */
 
   let date;
 
@@ -1578,7 +1533,7 @@ function formatDate(dateString) {
 
 
 /* =========================================================
-   HTML ESCAPE
+   ESCAPE
    ========================================================= */
 
 function escapeHtml(value) {
@@ -1634,16 +1589,12 @@ async function initialize() {
     clearMessage();
 
 
-    /*
-       1. Supabase
-    */
+    /* 1. Supabase */
 
     createSupabaseClient();
 
 
-    /*
-       2. Session
-    */
+    /* 2. Login */
 
     const authenticated =
       await loadSession();
@@ -1654,30 +1605,22 @@ async function initialize() {
     }
 
 
-    /*
-       3. Profile
-    */
+    /* 3. Profile */
 
     await loadProfile();
 
 
-    /*
-       4. Institutions
-    */
+    /* 4. Institutions */
 
     await loadInstitutions();
 
 
-    /*
-       5. Events
-    */
+    /* 5. Events */
 
     bindEvents();
 
 
-    /*
-       6. Certificates
-    */
+    /* 6. Certificates */
 
     await loadCertificates();
 
@@ -1685,12 +1628,9 @@ async function initialize() {
   } catch (error) {
 
     console.error(
-      "GAAWOW Certificates V2 Error:",
+      "GAAWOW Certificates V3:",
       error
     );
-
-
-    setLoading(false);
 
 
     showMessage(
@@ -1700,28 +1640,7 @@ async function initialize() {
     );
 
 
-    /*
-       Also expose error in console
-       for debugging.
-    */
-
-    console.error(
-      "Full error:",
-      {
-        message: error?.message,
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint
-      }
-    );
-
   } finally {
-
-    /*
-       FINAL SAFETY:
-       Never leave Loading certificates...
-       visible after initialization.
-    */
 
     setLoading(false);
 
