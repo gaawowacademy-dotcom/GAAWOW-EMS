@@ -1,31 +1,29 @@
 /* =========================================================
    GAAWOW EMS
-   STUDENTS MODULE V3.3 FINAL
-   ---------------------------------------------------------
-   - Supabase connection diagnostics
-   - Authentication check
-   - Role / institution handling
+   STUDENTS MANAGEMENT V2.0
+
+   FEATURES:
    - Students CRUD
-   - Search + status filter
-   - Student photo upload
+   - Supabase Auth
+   - Institution filtering
+   - Student Photo Upload
+   - Supabase Storage
+   - students.photo_url
+   - Student Profile
+   - Search
+   - Status filter
    - Photo preview
-   - Safe error handling
-   - Cache-busting friendly
-   ---------------------------------------------------------
-   Database:
+   - Certificate-compatible photo_url
+
+   STORAGE BUCKET:
+   student-photos
+
+   DATABASE:
    students
    profiles
    institutions
-
-   Storage:
-   student-photos
    ========================================================= */
 
-"use strict";
-
-/* =========================================================
-   1. SUPABASE CONFIG
-   ========================================================= */
 
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
@@ -33,34 +31,17 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-const PHOTO_BUCKET = "student-photos";
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 
 
 /* =========================================================
-   2. SUPABASE CLIENT CHECK
-   ========================================================= */
-
-if (!window.supabase) {
-  throw new Error(
-    "Supabase library lama soo degin. Hubi supabase-js CDN-ka students.html."
-  );
-}
-
-if (!window.supabase.createClient) {
-  throw new Error(
-    "Supabase createClient lama helin. Hubi nooca supabase-js."
-  );
-}
-
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
-
-
-/* =========================================================
-   3. STATE
-   ========================================================= */
+   GLOBAL STATE
+========================================================= */
 
 let currentUser = null;
 let currentProfile = null;
@@ -68,1386 +49,1084 @@ let currentProfile = null;
 let students = [];
 let institutions = [];
 
-let editingStudent = null;
 let selectedPhotoFile = null;
 
-let isInitialized = false;
-let isLoadingStudents = false;
-let isSaving = false;
-
 
 /* =========================================================
-   4. DOM HELPER
-   ========================================================= */
+   HELPERS
+========================================================= */
 
-function $(id) {
-  return document.getElementById(id);
+const $ = (id) =>
+  document.getElementById(id);
+
+
+function escapeHtml(value) {
+
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
 }
 
 
-/* =========================================================
-   5. HTML ESCAPE
-   ========================================================= */
+function showMessage(
+  message,
+  type = "info"
+) {
 
-function escapeHTML(value) {
-  if (value === null || value === undefined) return "";
+  const box =
+    $("message");
 
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+  box.className =
+    `message ${type}`;
 
+  box.textContent =
+    message;
 
-/* =========================================================
-   6. MESSAGE
-   ========================================================= */
-
-function showMessage(message, type = "info") {
-  const box = $("message");
-
-  if (!box) return;
-
-  box.textContent = message;
-
-  box.style.display = "block";
-
-  box.style.padding = "12px";
-  box.style.marginBottom = "15px";
-  box.style.borderRadius = "8px";
-
-  if (type === "success") {
-    box.style.background = "#dcfce7";
-    box.style.color = "#166534";
-  } else if (type === "error") {
-    box.style.background = "#fee2e2";
-    box.style.color = "#991b1b";
-  } else if (type === "warning") {
-    box.style.background = "#fef3c7";
-    box.style.color = "#92400e";
-  } else {
-    box.style.background = "#dbeafe";
-    box.style.color = "#1e3a8a";
-  }
 }
 
 
 function clearMessage() {
-  const box = $("message");
 
-  if (!box) return;
+  const box =
+    $("message");
 
-  box.textContent = "";
-  box.style.display = "none";
+  box.className =
+    "message";
+
+  box.textContent =
+    "";
+
 }
 
 
-/* =========================================================
-   7. ERROR MESSAGE
-   ========================================================= */
+function todayISO() {
 
-function getErrorMessage(error) {
-  if (!error) return "Unknown error";
+  const d =
+    new Date();
 
-  if (typeof error === "string") {
-    return error;
-  }
+  return [
+    d.getFullYear(),
+    String(
+      d.getMonth() + 1
+    ).padStart(2, "0"),
+    String(
+      d.getDate()
+    ).padStart(2, "0")
+  ].join("-");
+
+}
+
+
+function normalizeStatus(
+  value
+) {
+
+  return String(
+    value || ""
+  )
+    .toLowerCase()
+    .trim();
+
+}
+
+
+function statusClass(
+  status
+) {
+
+  const s =
+    normalizeStatus(status);
+
+  if (s === "active")
+    return "badge-active";
+
+  if (s === "graduated")
+    return "badge-graduated";
+
+  if (s === "suspended")
+    return "badge-suspended";
+
+  if (s === "withdrawn")
+    return "badge-withdrawn";
+
+  return "badge-inactive";
+
+}
+
+
+function defaultAvatar(
+  name = "Student"
+) {
+
+  const letter =
+    String(name)
+      .trim()
+      .charAt(0)
+      .toUpperCase() || "S";
 
   return (
-    error.message ||
-    error.error_description ||
-    error.details ||
-    error.hint ||
-    "Unknown Supabase error"
+    "data:image/svg+xml;charset=UTF-8," +
+    encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg"
+           width="200"
+           height="200"
+           viewBox="0 0 200 200">
+
+        <rect
+          width="200"
+          height="200"
+          fill="#E5E7EB"
+        />
+
+        <circle
+          cx="100"
+          cy="75"
+          r="42"
+          fill="#94A3B8"
+        />
+
+        <path
+          d="M30 190c8-45 38-68 70-68s62 23 70 68"
+          fill="#94A3B8"
+        />
+
+        <text
+          x="100"
+          y="188"
+          text-anchor="middle"
+          font-family="Arial"
+          font-size="24"
+          font-weight="bold"
+          fill="#0B1E63">
+          ${letter}
+        </text>
+
+      </svg>
+    `)
   );
+
 }
 
 
 /* =========================================================
-   8. LOADING
-   ========================================================= */
-
-function setLoading(active, text = "Loading...") {
-  const button = $("saveButton");
-
-  if (button) {
-    button.disabled = active;
-    button.textContent = active ? text : "Save Student";
-  }
-}
-
-
-/* =========================================================
-   9. ROLE HELPERS
-   ========================================================= */
-
-function isSuperAdmin() {
-  return currentProfile?.role === "super_admin";
-}
-
-
-function isInstitutionAdmin() {
-  return (
-    currentProfile?.role === "school_admin" ||
-    currentProfile?.role === "teacher"
-  );
-}
-
-
-/* =========================================================
-   10. STEP 1
-   SUPABASE CONNECTION TEST
-   ========================================================= */
-
-async function testSupabaseConnection() {
-
-  console.log("STEP 1: SUPABASE CONNECTION");
-
-  try {
-
-    const response = await fetch(
-      `${SUPABASE_URL}/auth/v1/settings`,
-      {
-        method: "GET",
-        headers: {
-          apikey: SUPABASE_KEY
-        }
-      }
-    );
-
-    const responseText = await response.text();
-
-    console.log(
-      "Supabase connection status:",
-      response.status
-    );
-
-    if (!response.ok) {
-
-      let detail = responseText;
-
-      try {
-        const json = JSON.parse(responseText);
-
-        detail =
-          json.message ||
-          json.error_description ||
-          json.error ||
-          responseText;
-
-      } catch (_) {}
-
-      throw new Error(
-        `Supabase connection failed (${response.status}): ${detail}`
-      );
-    }
-
-    console.log("Supabase connection: OK");
-
-    return true;
-
-  } catch (error) {
-
-    console.error(
-      "SUPABASE CONNECTION ERROR:",
-      error
-    );
-
-    throw new Error(
-      `Supabase Connection Error: ${getErrorMessage(error)}`
-    );
-  }
-}
-
-
-/* =========================================================
-   11. STEP 2
    AUTHENTICATION
-   ========================================================= */
+========================================================= */
 
-async function getCurrentUser() {
+async function checkAuth() {
 
-  console.log("STEP 2: AUTHENTICATION");
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .auth
+      .getSession();
 
-  try {
 
-    const {
-      data,
-      error
-    } = await supabaseClient.auth.getUser();
+  if (error) {
 
-    if (error) {
-      throw error;
-    }
+    throw error;
 
-    if (!data?.user) {
-
-      throw new Error(
-        "No authenticated user found. Please login again."
-      );
-    }
-
-    currentUser = data.user;
-
-    console.log(
-      "Authenticated user:",
-      currentUser.id
-    );
-
-    return currentUser;
-
-  } catch (error) {
-
-    console.error(
-      "AUTH ERROR:",
-      error
-    );
-
-    throw new Error(
-      `Authentication error: ${getErrorMessage(error)}`
-    );
   }
+
+
+  currentUser =
+    data?.session?.user || null;
+
+
+  if (!currentUser) {
+
+    window.location.href =
+      "index.html";
+
+    return false;
+
+  }
+
+
+  return true;
+
 }
 
 
 /* =========================================================
-   12. STEP 3
-   LOAD PROFILE
-   ========================================================= */
+   PROFILE / ROLE
+========================================================= */
 
-async function loadCurrentProfile(userId) {
+async function loadCurrentProfile() {
 
-  console.log("STEP 3: PROFILE");
-
-  try {
-
-    const {
-      data,
-      error
-    } = await supabaseClient
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
       .from("profiles")
       .select(`
         id,
-        user_id,
-        institution_id,
         full_name,
         role,
+        institution_id,
         is_active
       `)
-      .eq("user_id", userId)
-      .maybeSingle();
+      .eq(
+        "id",
+        currentUser.id
+      )
+      .single();
 
-    if (error) {
-      throw error;
-    }
 
-    if (!data) {
+  if (error) {
 
-      throw new Error(
-        "Profile not found for this account."
-      );
-    }
+    throw error;
 
-    currentProfile = data;
+  }
 
-    console.log(
-      "Profile:",
-      currentProfile
-    );
 
-    if (currentProfile.is_active === false) {
+  currentProfile =
+    data;
 
-      throw new Error(
-        "Your account is inactive."
-      );
-    }
 
-    return currentProfile;
-
-  } catch (error) {
-
-    console.error(
-      "PROFILE ERROR:",
-      error
-    );
+  if (
+    !currentProfile.is_active
+  ) {
 
     throw new Error(
-      `Profile error: ${getErrorMessage(error)}`
+      "Your account is inactive."
     );
+
   }
+
+
+  console.log(
+    "GAAWOW EMS profile:",
+    currentProfile
+  );
+
 }
 
 
 /* =========================================================
-   13. STEP 4
-   LOAD INSTITUTIONS
-   ========================================================= */
+   INSTITUTIONS
+========================================================= */
 
 async function loadInstitutions() {
 
-  console.log("STEP 4: INSTITUTIONS");
+  const select =
+    $("institution_id");
 
-  try {
 
-    let query = supabaseClient
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
       .from("institutions")
       .select(`
         id,
         name
       `)
-      .order("name", {
-        ascending: true
-      });
-
-    if (!isSuperAdmin()) {
-
-      if (!currentProfile?.institution_id) {
-
-        throw new Error(
-          "Your account is not linked to an institution."
-        );
-      }
-
-      query = query.eq(
-        "id",
-        currentProfile.institution_id
+      .order(
+        "name",
+        {
+          ascending:true
+        }
       );
-    }
-
-    const {
-      data,
-      error
-    } = await query;
-
-    if (error) {
-      throw error;
-    }
-
-    institutions = data || [];
-
-    renderInstitutionSelect();
-
-    console.log(
-      "Institutions loaded:",
-      institutions.length
-    );
-
-  } catch (error) {
-
-    console.error(
-      "INSTITUTIONS ERROR:",
-      error
-    );
-
-    throw new Error(
-      `Institutions error: ${getErrorMessage(error)}`
-    );
-  }
-}
 
 
-/* =========================================================
-   14. INSTITUTION SELECT
-   ========================================================= */
+  if (error) {
 
-function renderInstitutionSelect() {
+    throw error;
 
-  const select = $("institutionSelect");
-
-  if (!select) return;
-
-  select.innerHTML = "";
-
-  if (institutions.length === 0) {
-
-    select.innerHTML =
-      `<option value="">No institution found</option>`;
-
-    return;
   }
 
-  institutions.forEach(institution => {
 
-    const option =
-      document.createElement("option");
+  institutions =
+    data || [];
 
-    option.value = institution.id;
-    option.textContent = institution.name;
 
-    select.appendChild(option);
-  });
+  select.innerHTML =
+    `<option value="">
+       Select Institution
+     </option>`;
 
-  if (!isSuperAdmin()) {
+
+  institutions
+    .forEach(
+      institution => {
+
+        /*
+         * Super Admin:
+         * sees all institutions.
+         *
+         * School Admin:
+         * sees own institution.
+         */
+
+        if (
+          currentProfile.role ===
+          "super_admin"
+          ||
+          institution.id ===
+          currentProfile.institution_id
+        ) {
+
+          const option =
+            document.createElement(
+              "option"
+            );
+
+          option.value =
+            institution.id;
+
+          option.textContent =
+            institution.name;
+
+          select.appendChild(
+            option
+          );
+
+        }
+
+      }
+    );
+
+
+  if (
+    currentProfile.role !==
+    "super_admin"
+    &&
+    currentProfile.institution_id
+  ) {
 
     select.value =
       currentProfile.institution_id;
 
-    select.disabled = true;
+    select.disabled =
+      true;
 
-  } else {
-
-    select.disabled = false;
   }
+
 }
 
 
 /* =========================================================
-   15. STEP 5
-   FETCH STUDENTS
-   ========================================================= */
+   LOAD STUDENTS
+========================================================= */
 
-async function fetchStudents() {
+async function loadStudents() {
 
-  console.log("STEP 5: STUDENTS");
+  $("studentsBody").innerHTML =
+    `
+      <tr>
+        <td
+          colspan="5"
+          class="loading"
+        >
+          Loading students...
+        </td>
+      </tr>
+    `;
 
-  let query = supabaseClient
-    .from("students")
-    .select(`
-      id,
-      institution_id,
-      profile_id,
-      student_id,
-      full_name,
-      gender,
-      date_of_birth,
-      phone,
-      email,
-      address,
-      photo_url,
-      admission_date,
-      status,
-      emergency_contact_name,
-      emergency_contact_phone,
-      created_at,
-      updated_at
-    `)
-    .order("created_at", {
-      ascending: false
-    });
 
-  if (!isSuperAdmin()) {
-
-    if (!currentProfile?.institution_id) {
-
-      throw new Error(
-        "Institution ID is missing from your profile."
+  let query =
+    supabaseClient
+      .from("students")
+      .select(`
+        id,
+        institution_id,
+        profile_id,
+        student_id,
+        full_name,
+        gender,
+        date_of_birth,
+        phone,
+        email,
+        address,
+        photo_url,
+        admission_date,
+        status,
+        emergency_contact_name,
+        emergency_contact_phone,
+        created_at,
+        updated_at
+      `)
+      .order(
+        "created_at",
+        {
+          ascending:false
+        }
       );
-    }
 
-    query = query.eq(
-      "institution_id",
-      currentProfile.institution_id
-    );
+
+  /*
+   * Client-side institution filter
+   *
+   * RLS remains the final security layer.
+   */
+
+  if (
+    currentProfile.role !==
+      "super_admin"
+    &&
+    currentProfile.institution_id
+  ) {
+
+    query =
+      query.eq(
+        "institution_id",
+        currentProfile.institution_id
+      );
+
   }
+
 
   const {
     data,
     error
-  } = await query;
+  } =
+    await query;
+
 
   if (error) {
+
     throw error;
+
   }
 
-  students = data || [];
 
-  console.log(
-    "Students loaded:",
-    students.length
-  );
+  students =
+    data || [];
 
-  return students;
+
+  updateStats();
+
+  renderStudents();
+
 }
 
 
 /* =========================================================
-   16. LOAD STUDENTS
-   ========================================================= */
+   STATS
+========================================================= */
 
-async function loadStudents() {
+function updateStats() {
 
-  if (isLoadingStudents) return;
-
-  isLoadingStudents = true;
-
-  try {
-
-    setTableLoading();
-
-    await fetchStudents();
-
-    updateStatistics();
-
-    renderStudents();
-
-  } catch (error) {
-
-    console.error(
-      "STUDENTS ERROR:",
-      error
-    );
-
-    setTableError(
-      getErrorMessage(error)
-    );
-
-  } finally {
-
-    isLoadingStudents = false;
-  }
-}
-
-
-/* =========================================================
-   17. TABLE LOADING
-   ========================================================= */
-
-function setTableLoading() {
-
-  const body = $("studentsTableBody");
-
-  if (!body) return;
-
-  body.innerHTML = `
-    <tr>
-      <td colspan="10" style="text-align:center;padding:25px;">
-        Loading students...
-      </td>
-    </tr>
-  `;
-}
-
-
-function setTableError(message) {
-
-  const body = $("studentsTableBody");
-
-  if (!body) return;
-
-  body.innerHTML = `
-    <tr>
-      <td colspan="10"
-          style="text-align:center;padding:25px;color:#b91c1c;">
-        ${escapeHTML(message)}
-        <br><br>
-        <button onclick="loadStudents()">
-          Retry
-        </button>
-      </td>
-    </tr>
-  `;
-}
-
-
-function setEmpty() {
-
-  const body = $("studentsTableBody");
-
-  if (!body) return;
-
-  body.innerHTML = `
-    <tr>
-      <td colspan="10"
-          style="text-align:center;padding:25px;">
-        No students found.
-      </td>
-    </tr>
-  `;
-}
-
-
-/* =========================================================
-   18. STATISTICS
-   ========================================================= */
-
-function updateStatistics() {
-
-  const total =
+  $("totalStudents").textContent =
     students.length;
 
-  const active =
+
+  $("activeStudents").textContent =
     students.filter(
-      s => s.status === "active"
+      s =>
+        normalizeStatus(
+          s.status
+        ) === "active"
     ).length;
 
-  const graduated =
+
+  $("graduatedStudents").textContent =
     students.filter(
-      s => s.status === "graduated"
+      s =>
+        normalizeStatus(
+          s.status
+        ) === "graduated"
     ).length;
 
-  const other =
-    total - active - graduated;
 
-  if ($("totalStudents")) {
-    $("totalStudents").textContent = total;
-  }
+  $("photoStudents").textContent =
+    students.filter(
+      s =>
+        !!s.photo_url
+    ).length;
 
-  if ($("activeStudents")) {
-    $("activeStudents").textContent = active;
-  }
-
-  if ($("graduatedStudents")) {
-    $("graduatedStudents").textContent =
-      graduated;
-  }
-
-  if ($("otherStudents")) {
-    $("otherStudents").textContent =
-      other;
-  }
 }
 
 
 /* =========================================================
-   19. FILTER
-   ========================================================= */
-
-function getFilteredStudents() {
-
-  const search =
-    ($("searchInput")?.value || "")
-      .trim()
-      .toLowerCase();
-
-  const status =
-    $("statusFilter")?.value || "";
-
-  return students.filter(student => {
-
-    const matchesSearch =
-      !search ||
-      String(student.student_id || "")
-        .toLowerCase()
-        .includes(search) ||
-      String(student.full_name || "")
-        .toLowerCase()
-        .includes(search) ||
-      String(student.phone || "")
-        .toLowerCase()
-        .includes(search) ||
-      String(student.email || "")
-        .toLowerCase()
-        .includes(search);
-
-    const matchesStatus =
-      !status ||
-      student.status === status;
-
-    return (
-      matchesSearch &&
-      matchesStatus
-    );
-  });
-}
-
-
-/* =========================================================
-   20. RENDER STUDENTS
-   ========================================================= */
+   RENDER STUDENTS
+========================================================= */
 
 function renderStudents() {
 
   const body =
-    $("studentsTableBody");
+    $("studentsBody");
 
-  if (!body) return;
 
-  const filtered =
-    getFilteredStudents();
+  const search =
+    String(
+      $("searchInput")
+        .value || ""
+    )
+      .toLowerCase()
+      .trim();
 
-  if (filtered.length === 0) {
 
-    setEmpty();
+  const statusFilter =
+    normalizeStatus(
+      $("statusFilter")
+        .value
+    );
 
-    return;
+
+  let rows =
+    [...students];
+
+
+  if (search) {
+
+    rows =
+      rows.filter(
+        student => {
+
+          const text =
+            [
+              student.student_id,
+              student.full_name,
+              student.phone,
+              student.email,
+              student.address
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+
+          return text.includes(
+            search
+          );
+
+        }
+      );
+
   }
 
-  body.innerHTML =
-    filtered.map(student => {
 
-      const photo =
-        student.photo_url
-          ? `
-            <img
-              src="${escapeHTML(student.photo_url)}"
-              alt="Student"
-              style="
-                width:42px;
-                height:42px;
-                object-fit:cover;
-                border-radius:50%;
-              "
-            >
-          `
-          : `
-            <div style="
-              width:42px;
-              height:42px;
-              border-radius:50%;
-              background:#e5e7eb;
-              display:flex;
-              align-items:center;
-              justify-content:center;
-              font-size:18px;
-            ">
-              👤
-            </div>
-          `;
+  if (statusFilter) {
 
-      return `
+    rows =
+      rows.filter(
+        student =>
+          normalizeStatus(
+            student.status
+          ) === statusFilter
+      );
+
+  }
+
+
+  if (!rows.length) {
+
+    body.innerHTML =
+      `
         <tr>
-
-          <td>
-            ${photo}
+          <td
+            colspan="5"
+            class="loading"
+          >
+            No students found.
           </td>
-
-          <td>
-            ${escapeHTML(student.student_id)}
-          </td>
-
-          <td>
-            ${escapeHTML(student.full_name)}
-          </td>
-
-          <td>
-            ${escapeHTML(student.gender || "-")}
-          </td>
-
-          <td>
-            ${escapeHTML(student.phone || "-")}
-          </td>
-
-          <td>
-            ${escapeHTML(student.email || "-")}
-          </td>
-
-          <td>
-            ${escapeHTML(student.status || "-")}
-          </td>
-
-          <td>
-            ${student.admission_date
-              ? escapeHTML(student.admission_date)
-              : "-"
-            }
-          </td>
-
-          <td>
-            <button
-              type="button"
-              onclick="viewStudent('${student.id}')">
-              View
-            </button>
-
-            <button
-              type="button"
-              onclick="editStudent('${student.id}')">
-              Edit
-            </button>
-
-            ${
-              isSuperAdmin() || isInstitutionAdmin()
-                ? `
-                  <button
-                    type="button"
-                    onclick="deleteStudent('${student.id}')">
-                    Delete
-                  </button>
-                `
-                : ""
-            }
-          </td>
-
         </tr>
       `;
 
-    }).join("");
+    return;
+
+  }
+
+
+  body.innerHTML =
+    rows
+      .map(
+        student =>
+          studentRow(student)
+      )
+      .join("");
+
 }
 
 
 /* =========================================================
-   21. PHOTO VALIDATION
-   ========================================================= */
+   STUDENT ROW
+========================================================= */
 
-function validatePhoto(file) {
+function studentRow(
+  student
+) {
 
-  if (!file) return true;
+  const avatar =
+    student.photo_url ||
+    defaultAvatar(
+      student.full_name
+    );
 
-  const allowedTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/webp"
-  ];
 
-  if (!allowedTypes.includes(file.type)) {
+  const status =
+    normalizeStatus(
+      student.status
+    ) || "inactive";
+
+
+  const institution =
+    institutions.find(
+      i =>
+        i.id ===
+        student.institution_id
+    );
+
+
+  return `
+    <tr>
+
+      <td>
+
+        <div class="student-cell">
+
+          <img
+            class="student-avatar"
+            src="${escapeHtml(avatar)}"
+            alt="Student Photo"
+            onerror="
+              this.src='${defaultAvatar(
+                student.full_name
+              )}'
+            "
+          >
+
+          <div>
+
+            <div class="student-name">
+              ${escapeHtml(
+                student.full_name ||
+                "Unnamed Student"
+              )}
+            </div>
+
+            <div class="student-id">
+              ${escapeHtml(
+                student.student_id ||
+                "No Student ID"
+              )}
+            </div>
+
+          </div>
+
+        </div>
+
+      </td>
+
+
+      <td>
+        ${escapeHtml(
+          institution?.name ||
+          "—"
+        )}
+      </td>
+
+
+      <td>
+        ${escapeHtml(
+          student.phone ||
+          "—"
+        )}
+      </td>
+
+
+      <td>
+
+        <span
+          class="badge ${statusClass(
+            status
+          )}"
+        >
+          ${escapeHtml(
+            status
+          )}
+        </span>
+
+      </td>
+
+
+      <td>
+
+        <div class="actions">
+
+          <button
+            class="action-btn view"
+            onclick="viewStudent(
+              '${student.id}'
+            )"
+          >
+            VIEW
+          </button>
+
+          <button
+            class="action-btn edit"
+            onclick="editStudent(
+              '${student.id}'
+            )"
+          >
+            EDIT
+          </button>
+
+          ${
+            canDelete()
+              ? `
+                <button
+                  class="action-btn delete"
+                  onclick="deleteStudent(
+                    '${student.id}'
+                  )"
+                >
+                  DELETE
+                </button>
+              `
+              : ""
+          }
+
+        </div>
+
+      </td>
+
+    </tr>
+  `;
+
+}
+
+
+/* =========================================================
+   PERMISSIONS
+========================================================= */
+
+function canDelete() {
+
+  return [
+    "super_admin",
+    "school_admin"
+  ].includes(
+    currentProfile?.role
+  );
+
+}
+
+
+/* =========================================================
+   PHOTO SELECTION
+========================================================= */
+
+$("photoInput")
+  .addEventListener(
+    "change",
+    handlePhotoSelection
+  );
+
+
+function handlePhotoSelection(
+  event
+) {
+
+  clearMessage();
+
+
+  const file =
+    event.target.files?.[0];
+
+
+  if (!file) {
+
+    selectedPhotoFile =
+      null;
+
+    return;
+
+  }
+
+
+  const allowed =
+    [
+      "image/jpeg",
+      "image/png",
+      "image/webp"
+    ];
+
+
+  if (
+    !allowed.includes(
+      file.type
+    )
+  ) {
+
+    event.target.value =
+      "";
+
+    selectedPhotoFile =
+      null;
 
     showMessage(
-      "Photo-ga waa inuu noqdaa JPG, PNG ama WEBP.",
+      "Only JPG, PNG or WEBP images are allowed.",
       "error"
     );
 
-    return false;
+    return;
+
   }
+
 
   const maxSize =
     5 * 1024 * 1024;
 
-  if (file.size > maxSize) {
+
+  if (
+    file.size >
+    maxSize
+  ) {
+
+    event.target.value =
+      "";
+
+    selectedPhotoFile =
+      null;
 
     showMessage(
-      "Photo-ga kama weynaan karo 5MB.",
+      "Photo must be 5MB or smaller.",
       "error"
     );
 
-    return false;
+    return;
+
   }
 
-  return true;
-}
-
-
-/* =========================================================
-   22. PHOTO PREVIEW
-   ========================================================= */
-
-function handlePhotoPreview() {
-
-  const input =
-    $("photoInput");
-
-  const preview =
-    $("photoPreview");
-
-  if (!input || !preview) return;
-
-  const file =
-    input.files?.[0];
 
   selectedPhotoFile =
-    file || null;
+    file;
 
-  if (!file) {
-
-    preview.src = "";
-    preview.style.display = "none";
-
-    return;
-  }
-
-  if (!validatePhoto(file)) {
-
-    input.value = "";
-    selectedPhotoFile = null;
-
-    return;
-  }
 
   const reader =
     new FileReader();
 
-  reader.onload = function(event) {
 
-    preview.src =
-      event.target.result;
+  reader.onload =
+    function(e) {
 
-    preview.style.display =
-      "block";
-  };
+      $("photoPlaceholder")
+        .style.display =
+        "none";
 
-  reader.readAsDataURL(file);
+
+      $("photoPreview")
+        .src =
+        e.target.result;
+
+
+      $("photoPreview")
+        .style.display =
+        "block";
+
+    };
+
+
+  reader.readAsDataURL(
+    file
+  );
+
 }
 
 
 /* =========================================================
-   23. PHOTO UPLOAD
-   ========================================================= */
+   UPLOAD PHOTO
+========================================================= */
 
 async function uploadStudentPhoto(
-  file,
-  databaseId
+  studentId,
+  file
 ) {
 
   if (!file) {
+
     return null;
+
   }
 
-  if (!databaseId) {
-
-    throw new Error(
-      "Student database ID is missing."
-    );
-  }
-
-  if (!validatePhoto(file)) {
-
-    throw new Error(
-      "Invalid student photo."
-    );
-  }
-
-  console.log(
-    "PHOTO UPLOAD START:",
-    databaseId
-  );
 
   const extension =
-    file.name.includes(".")
-      ? file.name
-          .split(".")
-          .pop()
-          .toLowerCase()
-      : "jpg";
+    file.name
+      .split(".")
+      .pop()
+      .toLowerCase();
 
-  const uniqueName =
-    `${Date.now()}-${crypto.randomUUID()}.${extension}`;
+
+  const safeStudentId =
+    String(
+      studentId
+    )
+      .replace(
+        /[^a-zA-Z0-9_-]/g,
+        "-"
+      );
+
+
+  const fileName =
+    `${safeStudentId}-${Date.now()}.${extension}`;
+
 
   const filePath =
-    `students/${databaseId}/${uniqueName}`;
+    `students/${safeStudentId}/${fileName}`;
+
+
+  $("uploadProgress")
+    .style.display =
+    "block";
+
+
+  $("progressBar")
+    .style.width =
+    "20%";
+
 
   const {
-    error: uploadError
-  } = await supabaseClient
-    .storage
-    .from(PHOTO_BUCKET)
-    .upload(
-      filePath,
-      file,
-      {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: file.type
-      }
-    );
+    error
+  } =
+    await supabaseClient
+      .storage
+      .from("student-photos")
+      .upload(
+        filePath,
+        file,
+        {
+          cacheControl:
+            "3600",
 
-  if (uploadError) {
+          upsert:
+            false,
 
-    console.error(
-      "PHOTO STORAGE ERROR:",
-      uploadError
-    );
+          contentType:
+            file.type
+        }
+      );
 
-    throw new Error(
-      `Photo upload failed: ${getErrorMessage(uploadError)}`
-    );
+
+  if (error) {
+
+    $("uploadProgress")
+      .style.display =
+      "none";
+
+    throw error;
+
   }
+
+
+  $("progressBar")
+    .style.width =
+    "80%";
+
 
   const {
     data
-  } = supabaseClient
-    .storage
-    .from(PHOTO_BUCKET)
-    .getPublicUrl(filePath);
-
-  const publicUrl =
-    data?.publicUrl;
-
-  if (!publicUrl) {
-
-    throw new Error(
-      "Photo uploaded, but public URL could not be generated."
-    );
-  }
-
-  console.log(
-    "PHOTO UPLOAD SUCCESS:",
-    publicUrl
-  );
-
-  return publicUrl;
-}
+  } =
+    supabaseClient
+      .storage
+      .from("student-photos")
+      .getPublicUrl(
+        filePath
+      );
 
 
-/* =========================================================
-   24. RESET FORM
-   ========================================================= */
-
-function resetStudentForm() {
-
-  const form =
-    $("studentForm");
-
-  if (form) {
-    form.reset();
-  }
-
-  if ($("editStudentDbId")) {
-    $("editStudentDbId").value = "";
-  }
-
-  editingStudent = null;
-  selectedPhotoFile = null;
-
-  if ($("formTitle")) {
-    $("formTitle").textContent =
-      "Add Student";
-  }
-
-  if ($("photoPreview")) {
-
-    $("photoPreview").src = "";
-    $("photoPreview").style.display =
-      "none";
-  }
-
-  if ($("institutionSelect")) {
-
-    if (!isSuperAdmin() &&
-        currentProfile?.institution_id) {
-
-      $("institutionSelect").value =
-        currentProfile.institution_id;
-
-    }
-  }
-
-  clearMessage();
-}
+  $("progressBar")
+    .style.width =
+    "100%";
 
 
-/* =========================================================
-   25. EDIT STUDENT
-   ========================================================= */
+  setTimeout(
+    () => {
 
-window.editStudent = function(studentDbId) {
-
-  const student =
-    students.find(
-      s => s.id === studentDbId
-    );
-
-  if (!student) {
-
-    showMessage(
-      "Student-ka lama helin.",
-      "error"
-    );
-
-    return;
-  }
-
-  editingStudent = student;
-
-  if ($("editStudentDbId")) {
-    $("editStudentDbId").value =
-      student.id;
-  }
-
-  if ($("institutionSelect")) {
-    $("institutionSelect").value =
-      student.institution_id || "";
-  }
-
-  if ($("studentId")) {
-    $("studentId").value =
-      student.student_id || "";
-  }
-
-  if ($("fullName")) {
-    $("fullName").value =
-      student.full_name || "";
-  }
-
-  if ($("gender")) {
-    $("gender").value =
-      student.gender || "";
-  }
-
-  if ($("dateOfBirth")) {
-    $("dateOfBirth").value =
-      student.date_of_birth || "";
-  }
-
-  if ($("phone")) {
-    $("phone").value =
-      student.phone || "";
-  }
-
-  if ($("email")) {
-    $("email").value =
-      student.email || "";
-  }
-
-  if ($("admissionDate")) {
-    $("admissionDate").value =
-      student.admission_date || "";
-  }
-
-  if ($("address")) {
-    $("address").value =
-      student.address || "";
-  }
-
-  if ($("status")) {
-    $("status").value =
-      student.status || "active";
-  }
-
-  selectedPhotoFile = null;
-
-  if ($("photoInput")) {
-    $("photoInput").value = "";
-  }
-
-  if ($("photoPreview")) {
-
-    if (student.photo_url) {
-
-      $("photoPreview").src =
-        student.photo_url;
-
-      $("photoPreview").style.display =
-        "block";
-
-    } else {
-
-      $("photoPreview").src = "";
-      $("photoPreview").style.display =
+      $("uploadProgress")
+        .style.display =
         "none";
-    }
-  }
 
-  if ($("formTitle")) {
-    $("formTitle").textContent =
-      "Edit Student";
-  }
+      $("progressBar")
+        .style.width =
+        "0%";
 
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-};
+    },
+    500
+  );
 
 
-/* =========================================================
-   26. VIEW STUDENT
-   ========================================================= */
+  return data.publicUrl;
 
-window.viewStudent = function(studentDbId) {
-
-  const student =
-    students.find(
-      s => s.id === studentDbId
-    );
-
-  if (!student) {
-
-    showMessage(
-      "Student-ka lama helin.",
-      "error"
-    );
-
-    return;
-  }
-
-  const modal =
-    $("profileModal");
-
-  const content =
-    $("profileContent");
-
-  if (!modal || !content) return;
-
-  content.innerHTML = `
-
-    <div style="text-align:center;margin-bottom:20px;">
-
-      ${
-        student.photo_url
-          ? `
-            <img
-              src="${escapeHTML(student.photo_url)}"
-              style="
-                width:120px;
-                height:120px;
-                object-fit:cover;
-                border-radius:50%;
-              "
-            >
-          `
-          : `
-            <div style="
-              width:120px;
-              height:120px;
-              border-radius:50%;
-              margin:auto;
-              background:#e5e7eb;
-              display:flex;
-              align-items:center;
-              justify-content:center;
-              font-size:45px;
-            ">
-              👤
-            </div>
-          `
-      }
-
-      <h2>
-        ${escapeHTML(student.full_name)}
-      </h2>
-
-      <p>
-        ${escapeHTML(student.student_id)}
-      </p>
-
-    </div>
-
-    <p>
-      <strong>Gender:</strong>
-      ${escapeHTML(student.gender || "-")}
-    </p>
-
-    <p>
-      <strong>Date of Birth:</strong>
-      ${escapeHTML(student.date_of_birth || "-")}
-    </p>
-
-    <p>
-      <strong>Phone:</strong>
-      ${escapeHTML(student.phone || "-")}
-    </p>
-
-    <p>
-      <strong>Email:</strong>
-      ${escapeHTML(student.email || "-")}
-    </p>
-
-    <p>
-      <strong>Address:</strong>
-      ${escapeHTML(student.address || "-")}
-    </p>
-
-    <p>
-      <strong>Admission Date:</strong>
-      ${escapeHTML(student.admission_date || "-")}
-    </p>
-
-    <p>
-      <strong>Status:</strong>
-      ${escapeHTML(student.status || "-")}
-    </p>
-
-    <p>
-      <strong>Emergency Contact:</strong>
-      ${escapeHTML(student.emergency_contact_name || "-")}
-    </p>
-
-    <p>
-      <strong>Emergency Phone:</strong>
-      ${escapeHTML(student.emergency_contact_phone || "-")}
-    </p>
-
-  `;
-
-  modal.style.display = "flex";
-};
-
-
-/* =========================================================
-   27. CLOSE MODAL
-   ========================================================= */
-
-function closeProfileModal() {
-
-  const modal =
-    $("profileModal");
-
-  if (modal) {
-    modal.style.display = "none";
-  }
 }
 
 
 /* =========================================================
-   28. SAVE STUDENT
-   ========================================================= */
+   SAVE STUDENT
+========================================================= */
 
-async function saveStudent(event) {
-
-  event.preventDefault();
-
-  if (isSaving) return;
+async function saveStudent() {
 
   clearMessage();
 
-  isSaving = true;
 
-  setLoading(
-    true,
-    editingStudent
-      ? "Updating..."
-      : "Saving..."
-  );
+  const saveBtn =
+    $("saveBtn");
+
+
+  saveBtn.disabled =
+    true;
+
 
   try {
 
-    /* -----------------------------------------------------
-       VALIDATION
-       ----------------------------------------------------- */
+    const recordId =
+      $("recordId").value;
+
 
     const institutionId =
-      $("institutionSelect")?.value;
+      $("institution_id").value;
 
-    const studentId =
-      $("studentId")?.value.trim();
 
     const fullName =
-      $("fullName")?.value.trim();
+      $("full_name")
+        .value
+        .trim();
+
 
     if (!institutionId) {
 
       throw new Error(
         "Please select an institution."
       );
+
     }
 
-    if (!studentId) {
-
-      throw new Error(
-        "Student ID is required."
-      );
-    }
 
     if (!fullName) {
 
       throw new Error(
-        "Full name is required."
+        "Student full name is required."
       );
+
     }
 
-    if (
-      !isSuperAdmin() &&
-      institutionId !== currentProfile.institution_id
-    ) {
 
-      throw new Error(
-        "You cannot save a student outside your institution."
-      );
+    /*
+     * Student ID
+     */
+
+    let studentId =
+      $("student_id")
+        .value
+        .trim();
+
+
+    if (!studentId) {
+
+      studentId =
+        generateStudentId();
+
     }
 
-    /* -----------------------------------------------------
-       PHOTO
-       ----------------------------------------------------- */
-
-    const photoFile =
-      selectedPhotoFile ||
-      $("photoInput")?.files?.[0] ||
-      null;
-
-    if (
-      photoFile &&
-      !validatePhoto(photoFile)
-    ) {
-
-      throw new Error(
-        "Please select a valid photo."
-      );
-    }
-
-    /* -----------------------------------------------------
-       PAYLOAD
-       ----------------------------------------------------- */
 
     const payload = {
 
@@ -1461,625 +1140,901 @@ async function saveStudent(event) {
         fullName,
 
       gender:
-        $("gender")?.value || null,
+        $("gender").value ||
+        null,
 
       date_of_birth:
-        $("dateOfBirth")?.value || null,
+        $("date_of_birth").value ||
+        null,
 
       phone:
-        $("phone")?.value.trim() || null,
+        $("phone").value.trim() ||
+        null,
 
       email:
-        $("email")?.value.trim() || null,
+        $("email").value.trim() ||
+        null,
 
       address:
-        $("address")?.value.trim() || null,
+        $("address").value.trim() ||
+        null,
 
       admission_date:
-        $("admissionDate")?.value || null,
+        $("admission_date").value ||
+        todayISO(),
 
       status:
-        $("status")?.value || "active",
+        $("status").value ||
+        "active"
 
-      updated_at:
-        new Date().toISOString()
     };
 
 
-    /* =====================================================
-       UPDATE
-       ===================================================== */
+    /*
+     * UPDATE
+     */
 
-    if (editingStudent) {
+    if (recordId) {
 
-      console.log(
-        "UPDATING STUDENT:",
-        editingStudent.id
-      );
+      /*
+       * Upload new photo first
+       */
 
-      const {
-        data,
-        error
-      } = await supabaseClient
-        .from("students")
-        .update(payload)
-        .eq("id", editingStudent.id)
-        .select(`
-          id,
-          institution_id,
-          student_id,
-          full_name,
-          photo_url
-        `)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      console.log(
-        "STUDENT UPDATED:",
-        data
-      );
-
-      /* ---------------------------------------------------
-         PHOTO UPDATE
-         --------------------------------------------------- */
-
-      if (photoFile) {
+      if (
+        selectedPhotoFile
+      ) {
 
         showMessage(
-          "Student updated. Uploading new photo...",
+          "Uploading student photo...",
           "info"
         );
 
+
         const photoUrl =
           await uploadStudentPhoto(
-            photoFile,
-            editingStudent.id
+            studentId,
+            selectedPhotoFile
           );
 
-        const {
-          error: photoDbError
-        } = await supabaseClient
-          .from("students")
-          .update({
-            photo_url: photoUrl,
-            updated_at:
-              new Date().toISOString()
-          })
-          .eq(
-            "id",
-            editingStudent.id
-          );
 
-        if (photoDbError) {
-          throw photoDbError;
-        }
+        payload.photo_url =
+          photoUrl;
+
       }
 
+
+      const {
+        error
+      } =
+        await supabaseClient
+          .from("students")
+          .update(
+            payload
+          )
+          .eq(
+            "id",
+            recordId
+          );
+
+
+      if (error) {
+
+        throw error;
+
+      }
+
+
       showMessage(
-        photoFile
-          ? "STUDENT DATA UPDATED. Photo-ga cusubna waa la kaydiyey."
-          : "STUDENT DATA UPDATED.",
+        "Student updated successfully.",
         "success"
       );
 
     }
 
 
-    /* =====================================================
-       INSERT
-       ===================================================== */
+    /*
+     * INSERT
+     */
 
     else {
 
-      console.log(
-        "CREATING STUDENT"
-      );
+      /*
+       * Upload photo before
+       * database insert so
+       * photo_url is available.
+       */
+
+      if (
+        selectedPhotoFile
+      ) {
+
+        showMessage(
+          "Uploading student photo...",
+          "info"
+        );
+
+
+        const photoUrl =
+          await uploadStudentPhoto(
+            studentId,
+            selectedPhotoFile
+          );
+
+
+        payload.photo_url =
+          photoUrl;
+
+      }
+
 
       const {
         data,
         error
-      } = await supabaseClient
-        .from("students")
-        .insert(payload)
-        .select(`
-          id,
-          institution_id,
-          student_id,
-          full_name,
-          photo_url
-        `)
-        .single();
+      } =
+        await supabaseClient
+          .from("students")
+          .insert(
+            payload
+          )
+          .select()
+          .single();
+
 
       if (error) {
+
         throw error;
+
       }
 
+
       console.log(
-        "STUDENT CREATED:",
+        "Student created:",
         data
       );
 
-      /* ---------------------------------------------------
-         PHOTO UPLOAD
-         --------------------------------------------------- */
 
-      if (photoFile) {
+      showMessage(
+        "Student registered successfully.",
+        "success"
+      );
 
-        showMessage(
-          "STUDENT SAVED SUCCESSFULLY. Uploading photo...",
-          "info"
-        );
-
-        const photoUrl =
-          await uploadStudentPhoto(
-            photoFile,
-            data.id
-          );
-
-        const {
-          error: photoDbError
-        } = await supabaseClient
-          .from("students")
-          .update({
-            photo_url: photoUrl,
-            updated_at:
-              new Date().toISOString()
-          })
-          .eq(
-            "id",
-            data.id
-          );
-
-        if (photoDbError) {
-          throw photoDbError;
-        }
-
-        showMessage(
-          "STUDENT SAVED SUCCESSFULLY. Photo-gana waa la kaydiyey.",
-          "success"
-        );
-
-      } else {
-
-        showMessage(
-          "STUDENT SAVED SUCCESSFULLY.",
-          "success"
-        );
-      }
     }
 
 
-    /* =====================================================
-       RESET + RELOAD
-       ===================================================== */
-
-    resetStudentForm();
-
     await loadStudents();
+
+
+    resetForm(
+      false
+    );
+
 
   } catch (error) {
 
     console.error(
-      "SAVE STUDENT ERROR:",
+      "Save student error:",
       error
     );
 
+
     showMessage(
-      getErrorMessage(error),
+      error?.message ||
+      "Unable to save student.",
       "error"
     );
 
   } finally {
 
-    isSaving = false;
+    saveBtn.disabled =
+      false;
 
-    setLoading(
-      false
-    );
   }
+
 }
 
 
 /* =========================================================
-   29. DELETE STUDENT
-   ========================================================= */
+   GENERATE STUDENT ID
+========================================================= */
 
-window.deleteStudent = async function(studentDbId) {
+function generateStudentId() {
+
+  const year =
+    new Date()
+      .getFullYear();
+
+
+  const random =
+    Math.floor(
+      100000 +
+      Math.random() *
+      900000
+    );
+
+
+  return `GA-${year}-${random}`;
+
+}
+
+
+/* =========================================================
+   EDIT STUDENT
+========================================================= */
+
+function editStudent(
+  id
+) {
+
+  clearMessage();
+
 
   const student =
     students.find(
-      s => s.id === studentDbId
+      s =>
+        String(s.id) ===
+        String(id)
     );
+
 
   if (!student) {
 
     showMessage(
-      "Student-ka lama helin.",
+      "Student record not found.",
       "error"
     );
 
     return;
+
   }
 
-  const confirmed =
-    confirm(
-      `Delete student "${student.full_name}"?`
+
+  $("formTitle")
+    .textContent =
+    "Edit Student";
+
+
+  $("recordId")
+    .value =
+    student.id;
+
+
+  $("institution_id")
+    .value =
+    student.institution_id ||
+    "";
+
+
+  $("student_id")
+    .value =
+    student.student_id ||
+    "";
+
+
+  $("full_name")
+    .value =
+    student.full_name ||
+    "";
+
+
+  $("gender")
+    .value =
+    student.gender ||
+    "";
+
+
+  $("date_of_birth")
+    .value =
+    student.date_of_birth ||
+    "";
+
+
+  $("phone")
+    .value =
+    student.phone ||
+    "";
+
+
+  $("email")
+    .value =
+    student.email ||
+    "";
+
+
+  $("address")
+    .value =
+    student.address ||
+    "";
+
+
+  $("admission_date")
+    .value =
+    student.admission_date ||
+    "";
+
+
+  $("status")
+    .value =
+    student.status ||
+    "active";
+
+
+  $("oldPhotoUrl")
+    .value =
+    student.photo_url ||
+    "";
+
+
+  selectedPhotoFile =
+    null;
+
+
+  $("photoInput")
+    .value =
+    "";
+
+
+  if (
+    student.photo_url
+  ) {
+
+    $("photoPlaceholder")
+      .style.display =
+      "none";
+
+
+    $("photoPreview")
+      .src =
+      student.photo_url;
+
+
+    $("photoPreview")
+      .style.display =
+      "block";
+
+  }
+
+  else {
+
+    $("photoPlaceholder")
+      .style.display =
+      "flex";
+
+
+    $("photoPreview")
+      .style.display =
+      "none";
+
+  }
+
+
+  $("saveBtn")
+    .textContent =
+    "UPDATE STUDENT";
+
+
+  window.scrollTo({
+    top:0,
+    behavior:"smooth"
+  });
+
+}
+
+
+/* =========================================================
+   RESET FORM
+========================================================= */
+
+function resetForm(
+  showMessageAfter = true
+) {
+
+  $("recordId")
+    .value =
+    "";
+
+
+  $("oldPhotoUrl")
+    .value =
+    "";
+
+
+  $("student_id")
+    .value =
+    "";
+
+
+  $("full_name")
+    .value =
+    "";
+
+
+  $("gender")
+    .value =
+    "";
+
+
+  $("date_of_birth")
+    .value =
+    "";
+
+
+  $("phone")
+    .value =
+    "";
+
+
+  $("email")
+    .value =
+    "";
+
+
+  $("address")
+    .value =
+    "";
+
+
+  $("admission_date")
+    .value =
+    todayISO();
+
+
+  $("status")
+    .value =
+    "active";
+
+
+  $("photoInput")
+    .value =
+    "";
+
+
+  selectedPhotoFile =
+    null;
+
+
+  $("photoPreview")
+    .removeAttribute(
+      "src"
     );
 
-  if (!confirmed) return;
+
+  $("photoPreview")
+    .style.display =
+    "none";
+
+
+  $("photoPlaceholder")
+    .style.display =
+    "flex";
+
+
+  $("formTitle")
+    .textContent =
+    "Add Student";
+
+
+  $("saveBtn")
+    .textContent =
+    "SAVE STUDENT";
+
+
+  if (
+    currentProfile?.role !==
+    "super_admin"
+  ) {
+
+    $("institution_id")
+      .value =
+      currentProfile
+        ?.institution_id ||
+      "";
+
+  }
+
+  else {
+
+    $("institution_id")
+      .value =
+      "";
+
+  }
+
+
+  if (
+    showMessageAfter
+  ) {
+
+    clearMessage();
+
+  }
+
+}
+
+
+/* =========================================================
+   VIEW STUDENT PROFILE
+========================================================= */
+
+function viewStudent(
+  id
+) {
+
+  const student =
+    students.find(
+      s =>
+        String(s.id) ===
+        String(id)
+    );
+
+
+  if (!student) {
+
+    showMessage(
+      "Student record not found.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  const institution =
+    institutions.find(
+      i =>
+        i.id ===
+        student.institution_id
+    );
+
+
+  const photo =
+    student.photo_url ||
+    defaultAvatar(
+      student.full_name
+    );
+
+
+  const status =
+    normalizeStatus(
+      student.status
+    ) || "inactive";
+
+
+  $("profileContent")
+    .innerHTML = `
+
+      <div class="profile-top">
+
+        <img
+          class="profile-photo"
+          src="${escapeHtml(photo)}"
+          alt="Student Photo"
+          onerror="
+            this.src='${defaultAvatar(
+              student.full_name
+            )}'
+          "
+        >
+
+        <div>
+
+          <div class="profile-name">
+            ${escapeHtml(
+              student.full_name ||
+              "Unnamed Student"
+            )}
+          </div>
+
+          <div class="profile-id">
+            Student ID:
+            ${escapeHtml(
+              student.student_id ||
+              "—"
+            )}
+          </div>
+
+          <div style="margin-top:8px">
+
+            <span
+              class="badge ${statusClass(
+                status
+              )}"
+            >
+              ${escapeHtml(
+                status
+              )}
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="profile-grid">
+
+        ${profileItem(
+          "Institution",
+          institution?.name || "—"
+        )}
+
+        ${profileItem(
+          "Gender",
+          student.gender || "—"
+        )}
+
+        ${profileItem(
+          "Date of Birth",
+          student.date_of_birth || "—"
+        )}
+
+        ${profileItem(
+          "Phone",
+          student.phone || "—"
+        )}
+
+        ${profileItem(
+          "Email",
+          student.email || "—"
+        )}
+
+        ${profileItem(
+          "Admission Date",
+          student.admission_date || "—"
+        )}
+
+        ${profileItem(
+          "Address",
+          student.address || "—"
+        )}
+
+        ${profileItem(
+          "Photo",
+          student.photo_url
+            ? "Uploaded"
+            : "No photo"
+        )}
+
+      </div>
+
+    `;
+
+
+  $("profileModal")
+    .classList
+    .add("show");
+
+}
+
+
+function profileItem(
+  label,
+  value
+) {
+
+  return `
+
+    <div class="profile-item">
+
+      <div class="profile-label">
+        ${escapeHtml(
+          label
+        )}
+      </div>
+
+      <div class="profile-value">
+        ${escapeHtml(
+          value
+        )}
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   CLOSE PROFILE
+========================================================= */
+
+function closeProfile() {
+
+  $("profileModal")
+    .classList
+    .remove("show");
+
+}
+
+
+$("profileModal")
+  .addEventListener(
+    "click",
+    function(event) {
+
+      if (
+        event.target ===
+        $("profileModal")
+      ) {
+
+        closeProfile();
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   DELETE STUDENT
+========================================================= */
+
+async function deleteStudent(
+  id
+) {
+
+  if (!canDelete()) {
+
+    showMessage(
+      "You do not have permission to delete students.",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  const student =
+    students.find(
+      s =>
+        String(s.id) ===
+        String(id)
+    );
+
+
+  if (!student) {
+
+    return;
+
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `Delete student "${student.full_name}"?\n\nThis action cannot be undone.`
+    );
+
+
+  if (!confirmed) {
+
+    return;
+
+  }
+
 
   try {
 
-    showMessage(
-      "Deleting student...",
-      "info"
-    );
-
     const {
       error
-    } = await supabaseClient
-      .from("students")
-      .delete()
-      .eq(
-        "id",
-        studentDbId
-      );
+    } =
+      await supabaseClient
+        .from("students")
+        .delete()
+        .eq(
+          "id",
+          id
+        );
+
 
     if (error) {
+
       throw error;
+
     }
 
+
     showMessage(
-      "STUDENT DELETED SUCCESSFULLY.",
+      "Student deleted successfully.",
       "success"
     );
 
+
     await loadStudents();
+
 
   } catch (error) {
 
     console.error(
-      "DELETE STUDENT ERROR:",
+      "Delete student error:",
       error
     );
 
+
     showMessage(
-      `Delete failed: ${getErrorMessage(error)}`,
+      error?.message ||
+      "Unable to delete student.",
       "error"
     );
-  }
-};
 
-
-/* =========================================================
-   30. EVENTS
-   ========================================================= */
-
-function setupEvents() {
-
-  console.log(
-    "Setting up Students events..."
-  );
-
-  const form =
-    $("studentForm");
-
-  if (form &&
-      !form.dataset.studentsEvents) {
-
-    form.addEventListener(
-      "submit",
-      saveStudent
-    );
-
-    form.dataset.studentsEvents =
-      "true";
   }
 
-
-  const photoInput =
-    $("photoInput");
-
-  if (
-    photoInput &&
-    !photoInput.dataset.studentsEvents
-  ) {
-
-    photoInput.addEventListener(
-      "change",
-      handlePhotoPreview
-    );
-
-    photoInput.dataset.studentsEvents =
-      "true";
-  }
-
-
-  const searchInput =
-    $("searchInput");
-
-  if (
-    searchInput &&
-    !searchInput.dataset.studentsEvents
-  ) {
-
-    searchInput.addEventListener(
-      "input",
-      renderStudents
-    );
-
-    searchInput.dataset.studentsEvents =
-      "true";
-  }
-
-
-  const statusFilter =
-    $("statusFilter");
-
-  if (
-    statusFilter &&
-    !statusFilter.dataset.studentsEvents
-  ) {
-
-    statusFilter.addEventListener(
-      "change",
-      renderStudents
-    );
-
-    statusFilter.dataset.studentsEvents =
-      "true";
-  }
-
-
-  const closeButtons =
-    document.querySelectorAll(
-      "[data-close-profile-modal]"
-    );
-
-  closeButtons.forEach(button => {
-
-    if (button.dataset.studentsEvents) {
-      return;
-    }
-
-    button.addEventListener(
-      "click",
-      closeProfileModal
-    );
-
-    button.dataset.studentsEvents =
-      "true";
-  });
-
-
-  window.addEventListener(
-    "click",
-    event => {
-
-      const modal =
-        $("profileModal");
-
-      if (
-        modal &&
-        event.target === modal
-      ) {
-
-        closeProfileModal();
-      }
-    }
-  );
 }
 
 
 /* =========================================================
-   31. RESET BUTTON
-   ========================================================= */
+   NAVIGATION
+========================================================= */
 
-function setupResetButton() {
+function goDashboard() {
 
-  const buttons =
-    document.querySelectorAll(
-      "[data-reset-student-form]"
-    );
+  window.location.href =
+    "dashboard.html";
 
-  buttons.forEach(button => {
-
-    if (button.dataset.studentsReset) {
-      return;
-    }
-
-    button.addEventListener(
-      "click",
-      resetStudentForm
-    );
-
-    button.dataset.studentsReset =
-      "true";
-  });
 }
 
 
 /* =========================================================
-   32. GLOBAL FUNCTIONS
-   ========================================================= */
+   INITIALIZE
+========================================================= */
 
-window.loadStudents =
-  loadStudents;
-
-window.resetStudentForm =
-  resetStudentForm;
-
-window.closeProfileModal =
-  closeProfileModal;
-
-window.saveStudent =
-  saveStudent;
-
-
-/* =========================================================
-   33. INITIALIZATION
-   ========================================================= */
-
-async function initializeStudentsPage() {
-
-  if (isInitialized) {
-
-    console.warn(
-      "Students page already initialized."
-    );
-
-    return;
-  }
-
-  isInitialized = true;
-
-  console.log(
-    "========================================"
-  );
-
-  console.log(
-    "GAAWOW EMS STUDENTS V3.3"
-  );
-
-  console.log(
-    "Initialization started..."
-  );
-
-  console.log(
-    "========================================"
-  );
-
+async function initialize() {
 
   try {
 
     clearMessage();
 
-    /* -----------------------------------------------------
-       STEP 1
-       ----------------------------------------------------- */
 
-    showMessage(
-      "Connecting to Supabase...",
-      "info"
-    );
-
-    await testSupabaseConnection();
+    const authenticated =
+      await checkAuth();
 
 
-    /* -----------------------------------------------------
-       STEP 2
-       ----------------------------------------------------- */
-
-    showMessage(
-      "Checking authentication...",
-      "info"
-    );
-
-    await getCurrentUser();
+    if (!authenticated)
+      return;
 
 
-    /* -----------------------------------------------------
-       STEP 3
-       ----------------------------------------------------- */
+    await loadCurrentProfile();
 
-    showMessage(
-      "Loading profile...",
-      "info"
-    );
-
-    await loadCurrentProfile(
-      currentUser.id
-    );
-
-
-    /* -----------------------------------------------------
-       STEP 4
-       ----------------------------------------------------- */
-
-    showMessage(
-      "Loading institutions...",
-      "info"
-    );
 
     await loadInstitutions();
 
 
-    /* -----------------------------------------------------
-       EVENTS
-       ----------------------------------------------------- */
-
-    setupEvents();
-
-    setupResetButton();
-
-
-    /* -----------------------------------------------------
-       STEP 5
-       ----------------------------------------------------- */
-
-    showMessage(
-      "Loading students...",
-      "info"
+    resetForm(
+      false
     );
+
 
     await loadStudents();
 
 
-    /* -----------------------------------------------------
-       SUCCESS
-       ----------------------------------------------------- */
-
-    showMessage(
-      "Students module loaded successfully.",
-      "success"
-    );
-
     console.log(
-      "Students module READY."
+      "GAAWOW EMS Students Module V2 loaded successfully."
     );
+
 
   } catch (error) {
 
     console.error(
-      "STUDENTS INITIALIZATION FAILED:",
+      "Students module initialization error:",
       error
     );
 
+
     showMessage(
-      getErrorMessage(error),
+      error?.message ||
+      "Unable to load Students Module.",
       "error"
     );
 
   }
+
 }
 
 
 /* =========================================================
-   34. START
-   ========================================================= */
+   START
+========================================================= */
 
-if (
-  document.readyState ===
-  "loading"
-) {
-
-  document.addEventListener(
-    "DOMContentLoaded",
-    initializeStudentsPage,
-    {
-      once: true
-    }
-  );
-
-} else {
-
-  initializeStudentsPage();
-}
-
-
-/* =========================================================
-   END
-   ========================================================= */
+initialize();
