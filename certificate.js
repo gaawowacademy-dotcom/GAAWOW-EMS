@@ -1,28 +1,26 @@
 /* =========================================================
    GAAWOW EMS
-   Certificate Generator V7.8 FINAL
-   DATABASE-SAFE + PUBLISHABLE KEY
-   =========================================================
+   Certificate Generator V8 FINAL
 
-   Design:
-   - Existing certificate.html preserved
-   - Existing certificate-template.png preserved
-   - A4 Landscape
-   - Canvas: 1536 × 1024
-   - HD Download / Print
-   - Signature areas preserved
+   DATABASE-SAFE
+   PUBLISHABLE KEY
+   ORIGINAL TEMPLATE PRESERVED
 
-   Supabase:
-   - Profiles
-   - Institutions
-   - Students
-   - Enrollments
-   - Courses
-   - Certificates
+   Canvas:
+   1536 × 1024
+   A4 Landscape
+
+   Database:
+   profiles
+   institutions
+   students
+   enrollments
+   courses
+   certificates
 
    IMPORTANT:
-   - Frontend-safe Publishable Key
-   - NEVER use service_role / secret key here
+   Frontend-safe publishable key only.
+   NEVER use service_role / secret key.
    ========================================================= */
 
 
@@ -38,28 +36,10 @@ const SUPABASE_KEY =
 
 
 /* =========================================================
-   2. SUPABASE CLIENT
+   2. GLOBAL STATE
    ========================================================= */
 
 let supabaseClient = null;
-
-try {
-  if (typeof window.supabase !== "undefined") {
-    supabaseClient = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY
-    );
-  } else {
-    console.error("Supabase CDN library was not loaded.");
-  }
-} catch (error) {
-  console.error("Supabase initialization error:", error);
-}
-
-
-/* =========================================================
-   3. GLOBAL STATE
-   ========================================================= */
 
 let currentUser = null;
 let currentProfile = null;
@@ -75,7 +55,7 @@ let certificateBackground = null;
 
 
 /* =========================================================
-   4. DOM HELPERS
+   3. DOM HELPERS
    ========================================================= */
 
 function $(id) {
@@ -84,103 +64,134 @@ function $(id) {
 
 
 function firstExisting(...ids) {
+
   for (const id of ids) {
+
     const element = $(id);
-    if (element) return element;
+
+    if (element) {
+      return element;
+    }
   }
+
   return null;
 }
 
 
 function setValue(ids, value) {
-  const element = firstExisting(...ids);
 
-  if (!element) return;
+  const element =
+    firstExisting(...ids);
+
+  if (!element) {
+    return;
+  }
 
   if ("value" in element) {
-    element.value = value ?? "";
+
+    element.value =
+      value ?? "";
+
   } else {
-    element.textContent = value ?? "";
+
+    element.textContent =
+      value ?? "";
   }
 }
 
 
 function getValue(ids) {
-  const element = firstExisting(...ids);
 
-  if (!element) return "";
+  const element =
+    firstExisting(...ids);
 
-  return ("value" in element)
-    ? String(element.value || "").trim()
-    : String(element.textContent || "").trim();
+  if (!element) {
+    return "";
+  }
+
+  if ("value" in element) {
+
+    return String(
+      element.value || ""
+    ).trim();
+
+  }
+
+  return String(
+    element.textContent || ""
+  ).trim();
 }
 
 
 function setText(ids, value) {
-  const element = firstExisting(...ids);
 
-  if (!element) return;
+  const element =
+    firstExisting(...ids);
 
-  element.textContent = value ?? "";
+  if (!element) {
+    return;
+  }
+
+  element.textContent =
+    value ?? "";
 }
 
 
 /* =========================================================
-   5. STATUS / MESSAGE
+   4. MESSAGE SYSTEM
    ========================================================= */
 
-function showMessage(message, type = "info") {
+function showMessage(
+  message,
+  type = "info"
+) {
 
-  const existing =
-    firstExisting(
-      "message",
-      "statusMessage",
-      "alert",
-      "errorMessage",
-      "successMessage"
+  const element =
+    $("message");
+
+  if (!element) {
+
+    console.log(
+      `[${type}] ${message}`
     );
-
-  if (existing) {
-
-    existing.textContent = message;
-
-    existing.style.display = "block";
-
-    if (type === "error") {
-      existing.style.color = "#DC2626";
-    } else if (type === "success") {
-      existing.style.color = "#16A34A";
-    } else {
-      existing.style.color = "#0B4DA2";
-    }
 
     return;
   }
 
-  console.log(`[${type}] ${message}`);
+  element.textContent =
+    message;
+
+  element.style.display =
+    "block";
+
+  element.className =
+    `message ${type}`;
+
 }
 
 
 function clearMessage() {
 
-  const existing =
-    firstExisting(
-      "message",
-      "statusMessage",
-      "alert",
-      "errorMessage",
-      "successMessage"
-    );
+  const element =
+    $("message");
 
-  if (existing) {
-    existing.textContent = "";
-    existing.style.display = "none";
+  if (!element) {
+    return;
   }
+
+  element.textContent =
+    "";
+
+  element.style.display =
+    "none";
+
+  element.className =
+    "message";
 }
 
 
 /* =========================================================
-   6. SAFE ERROR HANDLER
+   5. ERROR HANDLER
    ========================================================= */
 
 function readableError(error) {
@@ -201,7 +212,57 @@ function readableError(error) {
     return error.error_description;
   }
 
-  return JSON.stringify(error);
+  try {
+
+    return JSON.stringify(
+      error
+    );
+
+  } catch {
+
+    return "Unknown error";
+  }
+}
+
+
+/* =========================================================
+   6. SUPABASE INITIALIZATION
+   ========================================================= */
+
+function initializeSupabase() {
+
+  try {
+
+    if (
+      !window.supabase ||
+      typeof window.supabase.createClient !==
+        "function"
+    ) {
+
+      console.error(
+        "Supabase CDN library was not loaded."
+      );
+
+      return false;
+    }
+
+    supabaseClient =
+      window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
+
+    return true;
+
+  } catch (error) {
+
+    console.error(
+      "Supabase initialization error:",
+      error
+    );
+
+    return false;
+  }
 }
 
 
@@ -212,13 +273,17 @@ function readableError(error) {
 async function getCurrentSession() {
 
   if (!supabaseClient) {
-    throw new Error("Supabase client is not initialized.");
+
+    throw new Error(
+      "Supabase client is not initialized."
+    );
   }
 
   const {
     data,
     error
-  } = await supabaseClient.auth.getSession();
+  } =
+    await supabaseClient.auth.getSession();
 
   if (error) {
     throw error;
@@ -234,37 +299,29 @@ async function getCurrentSession() {
 
 async function loadCurrentUser() {
 
-  try {
+  const session =
+    await getCurrentSession();
 
-    const session = await getCurrentSession();
+  if (
+    !session ||
+    !session.user
+  ) {
 
-    if (!session || !session.user) {
-
-      currentUser = null;
-
-      showMessage(
-        "Please login first before using Certificate Generator.",
-        "error"
-      );
-
-      return null;
-    }
-
-    currentUser = session.user;
-
-    return currentUser;
-
-  } catch (error) {
-
-    console.error("Session error:", error);
+    currentUser =
+      null;
 
     showMessage(
-      `Authentication error: ${readableError(error)}`,
+      "Please login first before using Certificate Generator.",
       "error"
     );
 
     return null;
   }
+
+  currentUser =
+    session.user;
+
+  return currentUser;
 }
 
 
@@ -278,93 +335,135 @@ async function loadCurrentProfile() {
     return null;
   }
 
-  try {
-
-    const {
-      data,
-      error
-    } = await supabaseClient
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
       .from("profiles")
       .select("*")
-      .eq("id", currentUser.id)
+      .eq(
+        "id",
+        currentUser.id
+      )
       .maybeSingle();
 
-    if (error) {
-      throw error;
-    }
+  if (error) {
+    throw error;
+  }
 
-    if (!data) {
-
-      showMessage(
-        "Profile not found for the logged-in user.",
-        "error"
-      );
-
-      return null;
-    }
-
-    currentProfile = data;
-
-    console.log("Current profile:", currentProfile);
-
-    return currentProfile;
-
-  } catch (error) {
-
-    console.error("Profile error:", error);
+  if (!data) {
 
     showMessage(
-      `Profile error: ${readableError(error)}`,
+      "Profile not found for the logged-in user.",
       "error"
     );
 
     return null;
   }
+
+  currentProfile =
+    data;
+
+  console.log(
+    "Current profile:",
+    currentProfile
+  );
+
+  return currentProfile;
 }
 
 
 /* =========================================================
-   10. ENSURE INSTITUTION SELECT
+   10. INSTITUTION SELECTOR
+   ========================================================= */
+
+function getInstitutionSelect() {
+
+  return firstExisting(
+    "institutionSelect",
+    "institution_select",
+    "institution",
+    "institution_id"
+  );
+}
+
+
+/* =========================================================
+   11. STUDENT SELECTOR
+   ========================================================= */
+
+function getStudentSelect() {
+
+  return firstExisting(
+    "student_select",
+    "studentSelect",
+    "student",
+    "student_id"
+  );
+}
+
+
+/* =========================================================
+   12. COURSE SELECTOR
+   ========================================================= */
+
+function getCourseSelect() {
+
+  return firstExisting(
+    "course_select",
+    "courseSelect",
+    "course",
+    "course_id"
+  );
+}
+
+
+/* =========================================================
+   13. ENSURE INSTITUTION SELECTOR
    ========================================================= */
 
 function ensureInstitutionSelector() {
 
   let select =
-    firstExisting(
-      "institutionSelect",
-      "institution",
-      "institution_id"
-    );
+    getInstitutionSelect();
 
   if (select) {
     return select;
   }
 
   const studentSelect =
-    firstExisting(
-      "studentSelect",
-      "student",
-      "student_id"
-    );
+    getStudentSelect();
 
   if (!studentSelect) {
+
+    console.warn(
+      "Student selector not found."
+    );
+
     return null;
   }
 
-  const parent =
-    studentSelect.parentElement;
+  const field =
+    studentSelect.closest(
+      ".field"
+    );
 
-  if (!parent) {
+  if (!field) {
     return null;
   }
 
-  const wrapper = document.createElement("div");
+  const wrapper =
+    document.createElement(
+      "div"
+    );
 
-  wrapper.className = "form-group";
+  wrapper.className =
+    "field";
 
   wrapper.innerHTML = `
     <label for="institutionSelect">
-      Institution
+      Select Institution
     </label>
 
     <select id="institutionSelect">
@@ -374,82 +473,107 @@ function ensureInstitutionSelector() {
     </select>
   `;
 
-  parent.parentElement.insertBefore(
+  field.parentElement.insertBefore(
     wrapper,
-    parent
+    field
   );
 
-  return $("institutionSelect");
+  return $(
+    "institutionSelect"
+  );
 }
 
 
 /* =========================================================
-   11. LOAD INSTITUTIONS
+   14. LOAD INSTITUTIONS
    ========================================================= */
 
 async function loadInstitutions() {
 
-  const select = ensureInstitutionSelector();
+  const select =
+    ensureInstitutionSelector();
+
+  if (!select) {
+
+    throw new Error(
+      "Institution selector not found."
+    );
+  }
 
   try {
 
     const {
       data,
       error
-    } = await supabaseClient
-      .from("institutions")
-      .select("*")
-      .order("name", {
-        ascending: true
-      });
+    } =
+      await supabaseClient
+        .from("institutions")
+        .select("*")
+        .order(
+          "name",
+          {
+            ascending:true
+          }
+        );
 
     if (error) {
       throw error;
     }
 
-    institutions = data || [];
-
-    if (!select) {
-      console.warn(
-        "Institution selector was not found."
-      );
-      return institutions;
-    }
+    institutions =
+      data || [];
 
     select.innerHTML = "";
 
     const defaultOption =
-      document.createElement("option");
+      document.createElement(
+        "option"
+      );
 
-    defaultOption.value = "";
+    defaultOption.value =
+      "";
 
     defaultOption.textContent =
       "Select Institution";
 
-    select.appendChild(defaultOption);
+    select.appendChild(
+      defaultOption
+    );
 
-    institutions.forEach(institution => {
 
-      const option =
-        document.createElement("option");
+    institutions.forEach(
+      institution => {
 
-      option.value = institution.id;
+        const option =
+          document.createElement(
+            "option"
+          );
 
-      option.textContent =
-        institution.name || institution.id;
+        option.value =
+          institution.id;
 
-      select.appendChild(option);
-    });
+        option.textContent =
+          institution.name ||
+          institution.code ||
+          institution.id;
+
+        select.appendChild(
+          option
+        );
+
+      }
+    );
+
 
     /*
-      Super admin:
-      no automatic institution selection.
-      User chooses institution manually.
+      Non-super-admin:
+      automatically use own institution.
     */
 
     if (
       currentProfile &&
-      currentProfile.role !== "super_admin" &&
+      currentProfile.role !==
+        "super_admin" &&
       currentProfile.institution_id
     ) {
 
@@ -461,6 +585,7 @@ async function loadInstitutions() {
       );
     }
 
+
     return institutions;
 
   } catch (error) {
@@ -470,41 +595,32 @@ async function loadInstitutions() {
       error
     );
 
-    if (select) {
+    select.innerHTML = `
+      <option value="">
+        Unable to load institutions
+      </option>
+    `;
 
-      select.innerHTML = `
-        <option value="">
-          Unable to load institutions
-        </option>
-      `;
-    }
-
-    showMessage(
-      `Institution loading error: ${readableError(error)}`,
-      "error"
-    );
-
-    return [];
+    throw error;
   }
 }
 
 
 /* =========================================================
-   12. LOAD STUDENTS
+   15. LOAD STUDENTS
    ========================================================= */
 
-async function loadStudents(institutionId) {
+async function loadStudents(
+  institutionId
+) {
 
   const studentSelect =
-    firstExisting(
-      "studentSelect",
-      "student",
-      "student_id"
-    );
+    getStudentSelect();
 
   if (!institutionId) {
 
-    students = [];
+    students =
+      [];
 
     if (studentSelect) {
 
@@ -515,44 +631,64 @@ async function loadStudents(institutionId) {
       `;
     }
 
+    resetCourseSelector();
+
     return [];
   }
 
+
   try {
 
-    let query =
-      supabaseClient
-        .from("students")
-        .select("*")
-        .order("full_name", {
-          ascending: true
-        });
+    if (studentSelect) {
 
-    query =
-      query.eq(
-        "institution_id",
-        institutionId
-      );
+      studentSelect.innerHTML = `
+        <option value="">
+          Loading students...
+        </option>
+      `;
+    }
+
 
     const {
       data,
       error
-    } = await query;
+    } =
+      await supabaseClient
+        .from("students")
+        .select("*")
+        .eq(
+          "institution_id",
+          institutionId
+        )
+        .order(
+          "full_name",
+          {
+            ascending:true
+          }
+        );
+
 
     if (error) {
       throw error;
     }
 
-    students = data || [];
+
+    students =
+      data || [];
+
 
     if (studentSelect) {
 
-      studentSelect.innerHTML = "";
+      studentSelect.innerHTML =
+        "";
 
       const defaultOption =
-        document.createElement("option");
+        document.createElement(
+          "option"
+        );
 
-      defaultOption.value = "";
+      defaultOption.value =
+        "";
 
       defaultOption.textContent =
         students.length
@@ -563,27 +699,35 @@ async function loadStudents(institutionId) {
         defaultOption
       );
 
-      students.forEach(student => {
 
-        const option =
-          document.createElement("option");
+      students.forEach(
+        student => {
 
-        option.value = student.id;
+          const option =
+            document.createElement(
+              "option"
+            );
 
-        option.textContent =
-          `${student.full_name || "Unnamed Student"}`
-          +
-          (
-            student.student_id
-              ? ` — ${student.student_id}`
-              : ""
+          option.value =
+            student.id;
+
+          option.textContent =
+            `${student.full_name || "Unnamed Student"}`
+            +
+            (
+              student.student_id
+                ? ` — ${student.student_id}`
+                : ""
+            );
+
+          studentSelect.appendChild(
+            option
           );
 
-        studentSelect.appendChild(
-          option
-        );
-      });
+        }
+      );
     }
+
 
     return students;
 
@@ -593,6 +737,15 @@ async function loadStudents(institutionId) {
       "Student loading error:",
       error
     );
+
+    if (studentSelect) {
+
+      studentSelect.innerHTML = `
+        <option value="">
+          Unable to load students
+        </option>
+      `;
+    }
 
     showMessage(
       `Student loading error: ${readableError(error)}`,
@@ -605,58 +758,68 @@ async function loadStudents(institutionId) {
 
 
 /* =========================================================
-   13. LOAD ENROLLMENTS
+   16. LOAD ENROLLMENTS
    ========================================================= */
 
-async function loadEnrollments(studentId) {
+async function loadEnrollments(
+  studentId
+) {
 
   if (!studentId) {
 
-    enrollments = [];
+    enrollments =
+      [];
 
     return [];
   }
+
 
   try {
 
     const {
       data,
       error
-    } = await supabaseClient
-      .from("enrollments")
-      .select(`
-        id,
-        institution_id,
-        student_id,
-        course_id,
-        class_id,
-        enrollment_number,
-        enrollment_date,
-        start_date,
-        end_date,
-        status
-      `)
-      .eq(
-        "student_id",
-        studentId
-      )
-      .order(
-        "enrollment_date",
-        {
-          ascending: false
-        }
-      );
+    } =
+      await supabaseClient
+        .from("enrollments")
+        .select(`
+          id,
+          institution_id,
+          student_id,
+          course_id,
+          class_id,
+          enrollment_number,
+          enrollment_date,
+          start_date,
+          end_date,
+          status
+        `)
+        .eq(
+          "student_id",
+          studentId
+        )
+        .order(
+          "enrollment_date",
+          {
+            ascending:false
+          }
+        );
+
 
     if (error) {
       throw error;
     }
 
-    enrollments = data || [];
+
+    enrollments =
+      data || [];
+
 
     console.log(
       "Student enrollments:",
       enrollments
     );
+
 
     return enrollments;
 
@@ -678,42 +841,51 @@ async function loadEnrollments(studentId) {
 
 
 /* =========================================================
-   14. LOAD COURSES
+   17. LOAD COURSES
    ========================================================= */
 
-async function loadCourses(courseIds = []) {
+async function loadCourses(
+  courseIds = []
+) {
 
   if (!courseIds.length) {
 
-    courses = [];
+    courses =
+      [];
 
     return [];
   }
+
 
   try {
 
     const {
       data,
       error
-    } = await supabaseClient
-      .from("courses")
-      .select("*")
-      .in(
-        "id",
-        courseIds
-      )
-      .order(
-        "name",
-        {
-          ascending: true
-        }
-      );
+    } =
+      await supabaseClient
+        .from("courses")
+        .select("*")
+        .in(
+          "id",
+          courseIds
+        )
+        .order(
+          "name",
+          {
+            ascending:true
+          }
+        );
+
 
     if (error) {
       throw error;
     }
 
-    courses = data || [];
+
+    courses =
+      data || [];
+
 
     return courses;
 
@@ -735,7 +907,30 @@ async function loadCourses(courseIds = []) {
 
 
 /* =========================================================
-   15. COURSE SELECTOR
+   18. RESET COURSE SELECTOR
+   ========================================================= */
+
+function resetCourseSelector(
+  message = "Select student first"
+) {
+
+  const select =
+    getCourseSelect();
+
+  if (!select) {
+    return;
+  }
+
+  select.innerHTML = `
+    <option value="">
+      ${message}
+    </option>
+  `;
+}
+
+
+/* =========================================================
+   19. POPULATE COURSE SELECTOR
    ========================================================= */
 
 function populateCourseSelector(
@@ -743,22 +938,24 @@ function populateCourseSelector(
 ) {
 
   const courseSelect =
-    firstExisting(
-      "courseSelect",
-      "course",
-      "course_id"
-    );
+    getCourseSelect();
 
   if (!courseSelect) {
     return;
   }
 
-  courseSelect.innerHTML = "";
+
+  courseSelect.innerHTML =
+    "";
+
 
   const defaultOption =
-    document.createElement("option");
+    document.createElement(
+      "option"
+    );
 
-  defaultOption.value = "";
+  defaultOption.value =
+    "";
 
   defaultOption.textContent =
     enrollmentRows.length
@@ -769,79 +966,108 @@ function populateCourseSelector(
     defaultOption
   );
 
-  enrollmentRows.forEach(row => {
 
-    const course =
-      courses.find(
-        c => c.id === row.course_id
+  enrollmentRows.forEach(
+    enrollment => {
+
+      const course =
+        courses.find(
+          item =>
+            item.id ===
+            enrollment.course_id
+        );
+
+
+      if (!course) {
+        return;
+      }
+
+
+      /*
+        Avoid duplicate course options
+        if the student has multiple
+        enrollment records for same course.
+      */
+
+      const alreadyAdded =
+        Array.from(
+          courseSelect.options
+        ).some(
+          option =>
+            option.value ===
+            course.id
+        );
+
+
+      if (alreadyAdded) {
+        return;
+      }
+
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        course.id;
+
+      option.textContent =
+        `${course.name || "Unnamed Course"}`
+        +
+        (
+          course.code
+            ? ` — ${course.code}`
+            : ""
+        );
+
+
+      courseSelect.appendChild(
+        option
       );
 
-    if (!course) {
-      return;
     }
-
-    const option =
-      document.createElement("option");
-
-    option.value = course.id;
-
-    option.textContent =
-      `${course.name || "Unnamed Course"}`
-      +
-      (
-        course.code
-          ? ` — ${course.code}`
-          : ""
-      );
-
-    courseSelect.appendChild(
-      option
-    );
-  });
+  );
 }
 
 
 /* =========================================================
-   16. LOAD STUDENT ENROLLMENTS + COURSES
+   20. HANDLE STUDENT CHANGE
    ========================================================= */
 
 async function handleStudentChange() {
 
   const studentId =
     getValue([
+      "student_select",
       "studentSelect",
       "student",
       "student_id"
     ]);
 
+
   if (!studentId) {
+
+    resetCourseSelector();
+
     return;
   }
 
+
   clearMessage();
+
 
   const rows =
     await loadEnrollments(
       studentId
     );
 
+
   if (!rows.length) {
 
-    const courseSelect =
-      firstExisting(
-        "courseSelect",
-        "course",
-        "course_id"
-      );
-
-    if (courseSelect) {
-
-      courseSelect.innerHTML = `
-        <option value="">
-          No enrollment found
-        </option>
-      `;
-    }
+    resetCourseSelector(
+      "No enrollment found"
+    );
 
     showMessage(
       "This student has no enrollment record.",
@@ -851,18 +1077,24 @@ async function handleStudentChange() {
     return;
   }
 
+
   const courseIds =
     [
       ...new Set(
         rows
-          .map(row => row.course_id)
+          .map(
+            row =>
+              row.course_id
+          )
           .filter(Boolean)
       )
     ];
 
+
   await loadCourses(
     courseIds
   );
+
 
   populateCourseSelector(
     rows
@@ -871,59 +1103,67 @@ async function handleStudentChange() {
 
 
 /* =========================================================
-   17. SELECTED STUDENT
+   21. GET SELECTED STUDENT
    ========================================================= */
 
 function getSelectedStudent() {
 
   const studentId =
     getValue([
+      "student_select",
       "studentSelect",
       "student",
       "student_id"
     ]);
 
+
   if (!studentId) {
     return null;
   }
 
+
   return (
     students.find(
       student =>
-        student.id === studentId
+        String(student.id) ===
+        String(studentId)
     ) || null
   );
 }
 
 
 /* =========================================================
-   18. SELECTED COURSE
+   22. GET SELECTED COURSE
    ========================================================= */
 
 function getSelectedCourse() {
 
   const courseId =
     getValue([
+      "course_select",
       "courseSelect",
       "course",
       "course_id"
     ]);
 
+
   if (!courseId) {
     return null;
   }
 
+
   return (
     courses.find(
       course =>
-        course.id === courseId
+        String(course.id) ===
+        String(courseId)
     ) || null
   );
 }
 
 
 /* =========================================================
-   19. SELECTED ENROLLMENT
+   23. GET SELECTED ENROLLMENT
    ========================================================= */
 
 function getSelectedEnrollment() {
@@ -934,22 +1174,40 @@ function getSelectedEnrollment() {
   const course =
     getSelectedCourse();
 
-  if (!student || !course) {
+
+  if (
+    !student ||
+    !course
+  ) {
     return null;
   }
 
-  return (
-    enrollments.find(
+
+  /*
+    Use most recent matching enrollment.
+  */
+
+  const matches =
+    enrollments.filter(
       enrollment =>
-        enrollment.student_id === student.id &&
-        enrollment.course_id === course.id
-    ) || null
-  );
+        String(enrollment.student_id) ===
+          String(student.id) &&
+        String(enrollment.course_id) ===
+          String(course.id)
+    );
+
+
+  if (!matches.length) {
+    return null;
+  }
+
+
+  return matches[0];
 }
 
 
 /* =========================================================
-   20. AUTO-FILL STUDENT DATA
+   24. FILL STUDENT DATA
    ========================================================= */
 
 function fillStudentData() {
@@ -957,12 +1215,36 @@ function fillStudentData() {
   const student =
     getSelectedStudent();
 
+
   if (!student) {
+
+    setValue(
+      [
+        "full_name",
+        "studentFullName",
+        "fullName",
+        "studentName",
+        "student_name"
+      ],
+      ""
+    );
+
+    setValue(
+      [
+        "student_id",
+        "studentId",
+        "studentID"
+      ],
+      ""
+    );
+
     return;
   }
 
+
   setValue(
     [
+      "full_name",
       "studentFullName",
       "fullName",
       "studentName",
@@ -971,21 +1253,56 @@ function fillStudentData() {
     student.full_name
   );
 
+
   setValue(
     [
+      "student_id",
       "studentId",
-      "studentID",
-      "student_id"
+      "studentID"
     ],
     student.student_id
   );
 
-  const institutionSelect =
-    firstExisting(
-      "institutionSelect",
-      "institution",
-      "institution_id"
+
+  /*
+    Student photo.
+    If photo_url exists, show it.
+    The certificate template itself is not changed.
+  */
+
+  const photo =
+    $("student_photo");
+
+
+  if (
+    photo &&
+    student.photo_url
+  ) {
+
+    photo.src =
+      student.photo_url;
+
+    photo.style.display =
+      "block";
+
+  } else if (photo) {
+
+    photo.removeAttribute(
+      "src"
     );
+
+    photo.style.display =
+      "none";
+  }
+
+
+  /*
+    Keep institution synchronized.
+  */
+
+  const institutionSelect =
+    getInstitutionSelect();
+
 
   if (
     institutionSelect &&
@@ -999,7 +1316,7 @@ function fillStudentData() {
 
 
 /* =========================================================
-   21. AUTO-FILL COURSE / DATES
+   25. FILL ENROLLMENT DATA
    ========================================================= */
 
 function fillEnrollmentData() {
@@ -1007,28 +1324,65 @@ function fillEnrollmentData() {
   const enrollment =
     getSelectedEnrollment();
 
+
   if (!enrollment) {
+
+    setValue(
+      [
+        "date_started",
+        "dateStarted",
+        "startDate",
+        "start_date",
+        "date_started"
+      ],
+      ""
+    );
+
+
+    setValue(
+      [
+        "date_completed",
+        "dateCompleted",
+        "completedDate",
+        "completionDate",
+        "endDate",
+        "end_date",
+        "date_completed"
+      ],
+      ""
+    );
+
+
     return;
   }
 
+
+  /*
+    IMPORTANT:
+    Correct database fields:
+    start_date
+    end_date
+  */
+
   setValue(
     [
+      "date_started",
       "dateStarted",
       "startDate",
-      "start_date",
-      "date_started"
+      "start_date"
     ],
     enrollment.start_date || ""
   );
 
+
   setValue(
     [
+      "date_completed",
       "dateCompleted",
       "completedDate",
       "completionDate",
       "endDate",
-      "end_date",
-      "date_completed"
+      "end_date"
     ],
     enrollment.end_date || ""
   );
@@ -1036,7 +1390,7 @@ function fillEnrollmentData() {
 
 
 /* =========================================================
-   22. DATE FORMAT
+   26. DATE FORMAT
    ========================================================= */
 
 function formatDate(
@@ -1047,10 +1401,12 @@ function formatDate(
     return "";
   }
 
+
   const date =
     new Date(
       `${dateValue}T00:00:00`
     );
+
 
   if (
     Number.isNaN(
@@ -1060,25 +1416,28 @@ function formatDate(
     return dateValue;
   }
 
+
   return date.toLocaleDateString(
     "en-GB",
     {
-      day: "2-digit",
-      month: "long",
-      year: "numeric"
+      day:"2-digit",
+      month:"long",
+      year:"numeric"
     }
   );
 }
 
 
 /* =========================================================
-   23. CERTIFICATE NUMBER
+   27. CERTIFICATE NUMBER
    ========================================================= */
 
 function generateCertificateNumber() {
 
   const year =
-    new Date().getFullYear();
+    new Date()
+      .getFullYear();
+
 
   const random =
     Math.floor(
@@ -1086,18 +1445,21 @@ function generateCertificateNumber() {
       Math.random() * 900000
     );
 
+
   return `CERT-${year}-${random}`;
 }
 
 
 /* =========================================================
-   24. CERTIFICATE ID
+   28. CERTIFICATE ID
    ========================================================= */
 
 function generateCertificateId() {
 
   const year =
-    new Date().getFullYear();
+    new Date()
+      .getFullYear();
+
 
   const random =
     Math.floor(
@@ -1105,12 +1467,13 @@ function generateCertificateId() {
       Math.random() * 90000
     );
 
+
   return `GA-CERT-${year}-${random}`;
 }
 
 
 /* =========================================================
-   25. VERIFY CODE
+   29. VERIFY CODE
    ========================================================= */
 
 function generateVerifyCode() {
@@ -1118,7 +1481,10 @@ function generateVerifyCode() {
   const chars =
     "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-  let code = "";
+
+  let code =
+    "";
+
 
   for (
     let i = 0;
@@ -1135,12 +1501,13 @@ function generateVerifyCode() {
       ];
   }
 
+
   return `GAW-${code}`;
 }
 
 
 /* =========================================================
-   26. HASH CODE
+   30. HASH CODE
    ========================================================= */
 
 async function createHashCode(
@@ -1152,14 +1519,19 @@ async function createHashCode(
     const encoder =
       new TextEncoder();
 
+
     const data =
-      encoder.encode(text);
+      encoder.encode(
+        text
+      );
+
 
     const hashBuffer =
       await crypto.subtle.digest(
         "SHA-256",
         data
       );
+
 
     const hashArray =
       Array.from(
@@ -1168,14 +1540,19 @@ async function createHashCode(
         )
       );
 
+
     return hashArray
       .map(
         byte =>
           byte
             .toString(16)
-            .padStart(2, "0")
+            .padStart(
+              2,
+              "0"
+            )
       )
       .join("");
+
 
   } catch (error) {
 
@@ -1190,7 +1567,7 @@ async function createHashCode(
 
 
 /* =========================================================
-   27. CERTIFICATE FORM DATA
+   31. GET CERTIFICATE FORM DATA
    ========================================================= */
 
 function getCertificateFormData() {
@@ -1204,21 +1581,27 @@ function getCertificateFormData() {
   const enrollment =
     getSelectedEnrollment();
 
+
   const institutionId =
     getValue([
       "institutionSelect",
+      "institution_select",
       "institution",
       "institution_id"
     ]);
 
+
   const institution =
     institutions.find(
       item =>
-        item.id === institutionId
+        String(item.id) ===
+        String(institutionId)
     );
+
 
   const fullName =
     getValue([
+      "full_name",
       "studentFullName",
       "fullName",
       "studentName",
@@ -1227,95 +1610,109 @@ function getCertificateFormData() {
     student?.full_name ||
     "";
 
-  const studentId =
+
+  const studentNumber =
     getValue([
+      "student_id",
       "studentId",
-      "studentID",
-      "student_id"
+      "studentID"
     ]) ||
     student?.student_id ||
     "";
+
 
   const courseName =
     course?.name ||
     getValue([
       "courseName",
       "course_name"
-    ]);
+    ]) ||
+    "";
+
 
   const dateStarted =
     getValue([
+      "date_started",
       "dateStarted",
       "startDate",
-      "start_date",
-      "date_started"
+      "start_date"
     ]) ||
     enrollment?.start_date ||
     "";
 
+
   const dateCompleted =
     getValue([
+      "date_completed",
       "dateCompleted",
       "completedDate",
       "completionDate",
       "endDate",
-      "end_date",
-      "date_completed"
+      "end_date"
     ]) ||
     enrollment?.end_date ||
     "";
 
+
   const certificateNo =
     getValue([
+      "certificate_no",
       "certificateNo",
-      "certificateNumber",
-      "certificate_no"
+      "certificateNumber"
     ]) ||
     generateCertificateNumber();
 
+
   const certificateId =
     getValue([
-      "certificateId",
-      "certificate_id"
+      "certificate_id",
+      "certificateId"
     ]) ||
     generateCertificateId();
 
+
   const verifyCode =
     getValue([
-      "verifyCode",
-      "verify_code"
+      "verify_code",
+      "verifyCode"
     ]) ||
     generateVerifyCode();
 
+
   const issueDate =
     getValue([
-      "issueDate",
-      "issue_date"
+      "issue_date",
+      "issueDate"
     ]) ||
     new Date()
       .toISOString()
       .split("T")[0];
 
+
   const status =
     getValue([
-      "certificateStatus",
-      "status"
+      "status",
+      "certificateStatus"
     ]) ||
     "valid";
 
+
   const director =
     getValue([
+      "director_name",
       "directorName",
-      "director",
-      "director_name"
+      "director"
     ]);
+
 
   const academicHead =
     getValue([
+      "academic_head_name",
       "academicHead",
       "academicHeadName",
       "academic_head"
     ]);
+
 
   return {
 
@@ -1333,7 +1730,7 @@ function getCertificateFormData() {
       null,
 
     student_number:
-      studentId,
+      studentNumber,
 
     student_name:
       fullName,
@@ -1386,7 +1783,7 @@ function getCertificateFormData() {
 
 
 /* =========================================================
-   28. LOAD TEMPLATE
+   32. LOAD ORIGINAL TEMPLATE
    ========================================================= */
 
 function loadCertificateTemplate() {
@@ -1397,29 +1794,44 @@ function loadCertificateTemplate() {
       reject
     ) => {
 
+      if (
+        certificateBackground
+      ) {
+
+        resolve(
+          certificateBackground
+        );
+
+        return;
+      }
+
+
       const image =
         new Image();
 
-      image.crossOrigin =
-        "anonymous";
 
-      image.onload = () => {
+      image.onload =
+        function() {
 
-        certificateBackground =
-          image;
+          certificateBackground =
+            image;
 
-        resolve(image);
-      };
+          resolve(
+            image
+          );
+        };
+
 
       image.onerror =
-        () => {
+        function() {
 
           reject(
             new Error(
-              "certificate-template.png could not be loaded."
+              "certificate-template.png could not be loaded. Make sure the file is in the same repository folder as certificate.html."
             )
           );
         };
+
 
       image.src =
         "./certificate-template.png";
@@ -1429,7 +1841,7 @@ function loadCertificateTemplate() {
 
 
 /* =========================================================
-   29. CANVAS
+   33. GET CANVAS
    ========================================================= */
 
 function getCertificateCanvas() {
@@ -1442,7 +1854,7 @@ function getCertificateCanvas() {
 
 
 /* =========================================================
-   30. DRAW TEMPLATE
+   34. PREPARE CANVAS
    ========================================================= */
 
 async function prepareCanvas() {
@@ -1450,12 +1862,18 @@ async function prepareCanvas() {
   const canvas =
     getCertificateCanvas();
 
+
   if (!canvas) {
 
     throw new Error(
-      "certificateCanvas was not found in certificate.html."
+      "certificateCanvas was not found."
     );
   }
+
+
+  /*
+    HD canvas.
+  */
 
   canvas.width =
     1536;
@@ -1463,8 +1881,20 @@ async function prepareCanvas() {
   canvas.height =
     1024;
 
+
   const ctx =
-    canvas.getContext("2d");
+    canvas.getContext(
+      "2d"
+    );
+
+
+  if (!ctx) {
+
+    throw new Error(
+      "Could not create 2D canvas context."
+    );
+  }
+
 
   ctx.clearRect(
     0,
@@ -1473,10 +1903,17 @@ async function prepareCanvas() {
     canvas.height
   );
 
+
   if (!certificateBackground) {
 
     await loadCertificateTemplate();
   }
+
+
+  /*
+    IMPORTANT:
+    Original template is drawn as-is.
+  */
 
   ctx.drawImage(
     certificateBackground,
@@ -1486,6 +1923,7 @@ async function prepareCanvas() {
     canvas.height
   );
 
+
   return {
     canvas,
     ctx
@@ -1494,7 +1932,7 @@ async function prepareCanvas() {
 
 
 /* =========================================================
-   31. TEXT DRAW HELPER
+   35. DRAW CENTERED TEXT
    ========================================================= */
 
 function drawCenteredText(
@@ -1508,6 +1946,7 @@ function drawCenteredText(
 
   ctx.save();
 
+
   ctx.font =
     font;
 
@@ -1520,18 +1959,20 @@ function drawCenteredText(
   ctx.textBaseline =
     "middle";
 
+
   ctx.fillText(
     text || "",
     x,
     y
   );
 
+
   ctx.restore();
 }
 
 
 /* =========================================================
-   32. DRAW CERTIFICATE
+   36. DRAW CERTIFICATE
    ========================================================= */
 
 async function drawCertificate(
@@ -1541,23 +1982,28 @@ async function drawCertificate(
   const {
     canvas,
     ctx
-  } = await prepareCanvas();
+  } =
+    await prepareCanvas();
 
-  /*
-    IMPORTANT:
-    Existing background/template remains untouched.
-
-    Text positions are intentionally conservative.
-    If the existing certificate.html already contains
-    its own preview renderer, this canvas remains the
-    HD export surface.
-  */
 
   const centerX =
     canvas.width / 2;
 
+
   /*
-    Student name
+    =======================================================
+    ORIGINAL TEMPLATE
+    =======================================================
+
+    The PNG remains untouched.
+
+    Only dynamic certificate information
+    is written on top.
+  */
+
+
+  /*
+    STUDENT NAME
   */
 
   drawCenteredText(
@@ -1569,8 +2015,9 @@ async function drawCertificate(
     "#0B1E63"
   );
 
+
   /*
-    Course
+    COURSE
   */
 
   drawCenteredText(
@@ -1582,8 +2029,9 @@ async function drawCertificate(
     "#0B4DA2"
   );
 
+
   /*
-    Certificate number
+    CERTIFICATE NUMBER
   */
 
   drawCenteredText(
@@ -1595,8 +2043,9 @@ async function drawCertificate(
     "#1F2937"
   );
 
+
   /*
-    Issue date
+    ISSUE DATE
   */
 
   drawCenteredText(
@@ -1610,12 +2059,135 @@ async function drawCertificate(
     "#1F2937"
   );
 
+
   return canvas;
 }
 
 
 /* =========================================================
-   33. PREVIEW
+   37. GENERATE
+   ========================================================= */
+
+async function generateCertificate() {
+
+  try {
+
+    clearMessage();
+
+
+    const data =
+      getCertificateFormData();
+
+
+    if (
+      !data.institution_id
+    ) {
+
+      showMessage(
+        "Please select an institution first.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    if (
+      !data.student_id ||
+      !data.student_name
+    ) {
+
+      showMessage(
+        "Please select a student.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    if (
+      !data.course_id ||
+      !data.course_name
+    ) {
+
+      showMessage(
+        "Please select a course.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    /*
+      Generate certificate.
+    */
+
+    currentCertificate =
+      data;
+
+
+    await drawCertificate(
+      data
+    );
+
+
+    /*
+      Put generated values into UI.
+    */
+
+    setValue(
+      [
+        "certificate_no",
+        "certificateNo",
+        "certificateNumber"
+      ],
+      data.certificate_no
+    );
+
+
+    setValue(
+      [
+        "certificate_id",
+        "certificateId"
+      ],
+      data.certificate_id
+    );
+
+
+    setValue(
+      [
+        "verify_code",
+        "verifyCode"
+      ],
+      data.verify_code
+    );
+
+
+    showMessage(
+      "Certificate generated successfully.",
+      "success"
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Generate error:",
+      error
+    );
+
+    showMessage(
+      `Generate error: ${readableError(error)}`,
+      "error"
+    );
+  }
+}
+
+
+/* =========================================================
+   38. PREVIEW
    ========================================================= */
 
 async function previewCertificate() {
@@ -1624,8 +2196,23 @@ async function previewCertificate() {
 
     clearMessage();
 
+
     const data =
       getCertificateFormData();
+
+
+    if (
+      !data.institution_id
+    ) {
+
+      showMessage(
+        "Please select an institution first.",
+        "error"
+      );
+
+      return;
+    }
+
 
     if (!data.student_name) {
 
@@ -1637,6 +2224,7 @@ async function previewCertificate() {
       return;
     }
 
+
     if (!data.course_name) {
 
       showMessage(
@@ -1647,17 +2235,21 @@ async function previewCertificate() {
       return;
     }
 
+
     currentCertificate =
       data;
+
 
     await drawCertificate(
       data
     );
 
+
     showMessage(
       "Certificate preview generated successfully.",
       "success"
     );
+
 
   } catch (error) {
 
@@ -1675,7 +2267,7 @@ async function previewCertificate() {
 
 
 /* =========================================================
-   34. SAVE CERTIFICATE
+   39. SAVE CERTIFICATE
    ========================================================= */
 
 async function saveCertificate() {
@@ -1684,30 +2276,18 @@ async function saveCertificate() {
 
     clearMessage();
 
+
     const data =
       getCertificateFormData();
 
-    if (!data.student_name) {
 
-      showMessage(
-        "Please select a student.",
-        "error"
-      );
+    /*
+      Validation
+    */
 
-      return;
-    }
-
-    if (!data.course_id) {
-
-      showMessage(
-        "Please select a course.",
-        "error"
-      );
-
-      return;
-    }
-
-    if (!data.institution_id) {
+    if (
+      !data.institution_id
+    ) {
 
       showMessage(
         "Please select an institution.",
@@ -1717,13 +2297,56 @@ async function saveCertificate() {
       return;
     }
 
+
+    if (
+      !data.student_id ||
+      !data.student_name
+    ) {
+
+      showMessage(
+        "Please select a student.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    if (
+      !data.course_id ||
+      !data.course_name
+    ) {
+
+      showMessage(
+        "Please select a course.",
+        "error"
+      );
+
+      return;
+    }
+
+
     /*
-      Prevent accidental duplicate generation
-      when the same certificate number is already
-      stored.
+      Ensure certificate is rendered first.
     */
 
-    const existing =
+    currentCertificate =
+      data;
+
+
+    await drawCertificate(
+      data
+    );
+
+
+    /*
+      Check duplicate certificate number.
+    */
+
+    const {
+      data: existing,
+      error: existingError
+    } =
       await supabaseClient
         .from("certificates")
         .select("id")
@@ -1733,23 +2356,25 @@ async function saveCertificate() {
         )
         .maybeSingle();
 
-    if (existing.error) {
 
-      throw existing.error;
+    if (existingError) {
+      throw existingError;
     }
 
-    if (existing.data) {
+
+    if (existing) {
 
       showMessage(
-        "This certificate number already exists.",
+        "This certificate number already exists. Click New to create another certificate.",
         "error"
       );
 
       return;
     }
 
+
     /*
-      Generate hash.
+      Generate verification hash.
     */
 
     const hashSource =
@@ -1762,17 +2387,18 @@ async function saveCertificate() {
         data.issue_date
       ].join("|");
 
+
     data.hash_code =
       await createHashCode(
         hashSource
       );
 
-    /*
-      Build database payload.
 
-      Existing schema may contain additional
-      columns. We only send fields known to
-      the certificate system.
+    /*
+      DATABASE-SAFE PAYLOAD
+
+      Only known certificate columns
+      are sent.
     */
 
     const payload = {
@@ -1818,20 +2444,27 @@ async function saveCertificate() {
     };
 
 
+    /*
+      Insert certificate.
+    */
+
     const {
       data: saved,
       error
-    } = await supabaseClient
-      .from("certificates")
-      .insert(
-        payload
-      )
-      .select()
-      .single();
+    } =
+      await supabaseClient
+        .from("certificates")
+        .insert(
+          payload
+        )
+        .select()
+        .single();
+
 
     if (error) {
       throw error;
     }
+
 
     currentCertificate =
       {
@@ -1839,41 +2472,53 @@ async function saveCertificate() {
         ...saved
       };
 
+
     /*
-      Put generated values back into UI.
+      Update UI with generated IDs.
     */
 
     setValue(
       [
+        "certificate_no",
         "certificateNo",
-        "certificateNumber",
-        "certificate_no"
+        "certificateNumber"
       ],
       data.certificate_no
     );
 
+
     setValue(
       [
-        "certificateId",
-        "certificate_id"
+        "certificate_id",
+        "certificateId"
       ],
       data.certificate_id
     );
 
+
     setValue(
       [
-        "verifyCode",
-        "verify_code"
+        "verify_code",
+        "verifyCode"
       ],
       data.verify_code
     );
+
 
     showMessage(
       "Certificate saved successfully to Supabase.",
       "success"
     );
 
+
+    console.log(
+      "Saved certificate:",
+      saved
+    );
+
+
     return saved;
+
 
   } catch (error) {
 
@@ -1882,10 +2527,12 @@ async function saveCertificate() {
       error
     );
 
+
     showMessage(
       `Save error: ${readableError(error)}`,
       "error"
     );
+
 
     return null;
   }
@@ -1893,101 +2540,15 @@ async function saveCertificate() {
 
 
 /* =========================================================
-   35. GENERATE
-   ========================================================= */
-
-async function generateCertificate() {
-
-  try {
-
-    clearMessage();
-
-    const data =
-      getCertificateFormData();
-
-    if (!data.student_name) {
-
-      showMessage(
-        "Please select a student.",
-        "error"
-      );
-
-      return;
-    }
-
-    if (!data.course_name) {
-
-      showMessage(
-        "Please select a course.",
-        "error"
-      );
-
-      return;
-    }
-
-    currentCertificate =
-      data;
-
-    await drawCertificate(
-      data
-    );
-
-    /*
-      Fill generated values.
-    */
-
-    setValue(
-      [
-        "certificateNo",
-        "certificateNumber",
-        "certificate_no"
-      ],
-      data.certificate_no
-    );
-
-    setValue(
-      [
-        "certificateId",
-        "certificate_id"
-      ],
-      data.certificate_id
-    );
-
-    setValue(
-      [
-        "verifyCode",
-        "verify_code"
-      ],
-      data.verify_code
-    );
-
-    showMessage(
-      "Certificate generated successfully.",
-      "success"
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Generate error:",
-      error
-    );
-
-    showMessage(
-      `Generate error: ${readableError(error)}`,
-      "error"
-    );
-  }
-}
-
-
-/* =========================================================
-   36. HD DOWNLOAD
+   40. HD DOWNLOAD
    ========================================================= */
 
 async function downloadHD() {
 
   try {
+
+    clearMessage();
+
 
     if (!currentCertificate) {
 
@@ -1995,13 +2556,32 @@ async function downloadHD() {
         getCertificateFormData();
     }
 
+
+    if (
+      !currentCertificate.student_name ||
+      !currentCertificate.course_name
+    ) {
+
+      showMessage(
+        "Generate or preview the certificate first.",
+        "error"
+      );
+
+      return;
+    }
+
+
     const canvas =
       await drawCertificate(
         currentCertificate
       );
 
+
     const link =
-      document.createElement("a");
+      document.createElement(
+        "a"
+      );
+
 
     const safeName =
       (
@@ -2013,27 +2593,33 @@ async function downloadHD() {
           "_"
         );
 
+
     link.download =
       `GAAWOW-Certificate-${safeName}.png`;
 
+
     link.href =
       canvas.toDataURL(
-        "image/png",
-        1.0
+        "image/png"
       );
+
 
     document.body.appendChild(
       link
     );
 
+
     link.click();
 
+
     link.remove();
+
 
     showMessage(
       "HD certificate downloaded successfully.",
       "success"
     );
+
 
   } catch (error) {
 
@@ -2041,6 +2627,7 @@ async function downloadHD() {
       "HD download error:",
       error
     );
+
 
     showMessage(
       `HD download error: ${readableError(error)}`,
@@ -2050,13 +2637,28 @@ async function downloadHD() {
 }
 
 
+/*
+  Compatibility alias.
+
+  The old HTML called downloadCertificate().
+*/
+
+async function downloadCertificate() {
+
+  return downloadHD();
+}
+
+
 /* =========================================================
-   37. PRINT
+   41. PRINT A4
    ========================================================= */
 
 async function printCertificate() {
 
   try {
+
+    clearMessage();
+
 
     if (!currentCertificate) {
 
@@ -2064,22 +2666,39 @@ async function printCertificate() {
         getCertificateFormData();
     }
 
+
+    if (
+      !currentCertificate.student_name ||
+      !currentCertificate.course_name
+    ) {
+
+      showMessage(
+        "Generate or preview the certificate first.",
+        "error"
+      );
+
+      return;
+    }
+
+
     const canvas =
       await drawCertificate(
         currentCertificate
       );
 
+
     const image =
       canvas.toDataURL(
-        "image/png",
-        1.0
+        "image/png"
       );
+
 
     const printWindow =
       window.open(
         "",
         "_blank"
       );
+
 
     if (!printWindow) {
 
@@ -2091,37 +2710,52 @@ async function printCertificate() {
       return;
     }
 
+
+    printWindow.document.open();
+
+
     printWindow.document.write(`
       <!DOCTYPE html>
+
       <html>
+
       <head>
-        <title>GAAWOW Certificate</title>
+
+        <title>
+          GAAWOW Academy Certificate
+        </title>
 
         <style>
 
-          @page {
-            size: A4 landscape;
-            margin: 0;
+          @page{
+            size:A4 landscape;
+            margin:0;
           }
 
           html,
-          body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background: white;
+          body{
+            margin:0;
+            padding:0;
+            width:100%;
+            height:100%;
+            background:#fff;
           }
 
-          img {
-            width: 297mm;
-            height: 198mm;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto;
+          body{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+          }
+
+          img{
+            width:297mm;
+            height:210mm;
+            object-fit:contain;
+            display:block;
           }
 
         </style>
+
       </head>
 
       <body>
@@ -2129,19 +2763,19 @@ async function printCertificate() {
         <img
           src="${image}"
           alt="GAAWOW Academy Certificate"
-        />
+        >
 
         <script>
 
-          window.onload = function () {
+          window.onload = function(){
 
             setTimeout(
-              function () {
+              function(){
 
                 window.print();
 
               },
-              500
+              600
             );
 
           };
@@ -2149,15 +2783,19 @@ async function printCertificate() {
         <\/script>
 
       </body>
+
       </html>
     `);
 
+
     printWindow.document.close();
 
+
     showMessage(
-      "Print window opened successfully.",
+      "A4 certificate print window opened successfully.",
       "success"
     );
+
 
   } catch (error) {
 
@@ -2165,6 +2803,7 @@ async function printCertificate() {
       "Print error:",
       error
     );
+
 
     showMessage(
       `Print error: ${readableError(error)}`,
@@ -2175,7 +2814,7 @@ async function printCertificate() {
 
 
 /* =========================================================
-   38. NEW CERTIFICATE
+   42. NEW CERTIFICATE
    ========================================================= */
 
 function newCertificate() {
@@ -2183,79 +2822,161 @@ function newCertificate() {
   currentCertificate =
     null;
 
-  const fields = [
 
-    "certificateNo",
-    "certificateNumber",
+  /*
+    Clear generated certificate fields.
+  */
+
+  [
     "certificate_no",
-
-    "certificateId",
     "certificate_id",
-
-    "verifyCode",
-    "verify_code",
-
-    "dateStarted",
-    "startDate",
-    "start_date",
-    "date_started",
-
-    "dateCompleted",
-    "completedDate",
-    "completionDate",
-    "endDate",
-    "end_date",
-    "date_completed"
-  ];
-
-  fields.forEach(
+    "verify_code"
+  ].forEach(
     id => {
 
       const element =
         $(id);
 
       if (element) {
-        element.value = "";
+        element.value =
+          "";
       }
+
     }
   );
 
+
+  /*
+    Clear enrollment dates.
+  */
+
+  [
+    "date_started",
+    "date_completed"
+  ].forEach(
+    id => {
+
+      const element =
+        $(id);
+
+      if (element) {
+        element.value =
+          "";
+      }
+
+    }
+  );
+
+
+  /*
+    Clear student.
+  */
+
   const studentSelect =
-    firstExisting(
-      "studentSelect",
-      "student",
-      "student_id"
-    );
+    getStudentSelect();
+
 
   if (studentSelect) {
-    studentSelect.value = "";
+    studentSelect.value =
+      "";
   }
 
-  const courseSelect =
-    firstExisting(
-      "courseSelect",
-      "course",
-      "course_id"
+
+  /*
+    Clear student fields.
+  */
+
+  setValue(
+    [
+      "full_name",
+      "studentFullName",
+      "fullName",
+      "studentName",
+      "student_name"
+    ],
+    ""
+  );
+
+
+  setValue(
+    [
+      "student_id",
+      "studentId",
+      "studentID"
+    ],
+    ""
+  );
+
+
+  /*
+    Clear photo.
+  */
+
+  const photo =
+    $("student_photo");
+
+
+  if (photo) {
+
+    photo.removeAttribute(
+      "src"
     );
 
-  if (courseSelect) {
-
-    courseSelect.innerHTML = `
-      <option value="">
-        Select Course
-      </option>
-    `;
+    photo.style.display =
+      "none";
   }
 
-  clearMessage();
+
+  /*
+    Reset course.
+  */
+
+  resetCourseSelector();
+
+
+  /*
+    Issue date = today.
+  */
+
+  setValue(
+    [
+      "issue_date",
+      "issueDate"
+    ],
+    new Date()
+      .toISOString()
+      .split("T")[0]
+  );
+
+
+  /*
+    Status.
+  */
+
+  setValue(
+    [
+      "status",
+      "certificateStatus"
+    ],
+    "graduated"
+  );
+
+
+  /*
+    Clear canvas.
+  */
 
   const canvas =
     getCertificateCanvas();
 
+
   if (canvas) {
 
     const ctx =
-      canvas.getContext("2d");
+      canvas.getContext(
+        "2d"
+      );
+
 
     ctx.clearRect(
       0,
@@ -2264,78 +2985,93 @@ function newCertificate() {
       canvas.height
     );
   }
+
+
+  clearMessage();
 }
 
 
 /* =========================================================
-   39. EVENT LISTENERS
+   43. EVENT LISTENERS
    ========================================================= */
 
 function setupEventListeners() {
 
+  /*
+    Institution
+  */
+
   const institutionSelect =
-    firstExisting(
-      "institutionSelect",
-      "institution",
-      "institution_id"
-    );
+    getInstitutionSelect();
+
 
   if (institutionSelect) {
 
     institutionSelect.addEventListener(
       "change",
-      async function () {
+      async function() {
+
+        clearMessage();
 
         await loadStudents(
           this.value
         );
-      }
-    );
-  }
 
-
-  const studentSelect =
-    firstExisting(
-      "studentSelect",
-      "student",
-      "student_id"
-    );
-
-  if (studentSelect) {
-
-    studentSelect.addEventListener(
-      "change",
-      async function () {
-
-        fillStudentData();
-
-        await handleStudentChange();
-      }
-    );
-  }
-
-
-  const courseSelect =
-    firstExisting(
-      "courseSelect",
-      "course",
-      "course_id"
-    );
-
-  if (courseSelect) {
-
-    courseSelect.addEventListener(
-      "change",
-      function () {
-
-        fillEnrollmentData();
       }
     );
   }
 
 
   /*
-    Buttons
+    Student
+  */
+
+  const studentSelect =
+    getStudentSelect();
+
+
+  if (studentSelect) {
+
+    studentSelect.addEventListener(
+      "change",
+      async function() {
+
+        clearMessage();
+
+        fillStudentData();
+
+        await handleStudentChange();
+
+      }
+    );
+  }
+
+
+  /*
+    Course
+  */
+
+  const courseSelect =
+    getCourseSelect();
+
+
+  if (courseSelect) {
+
+    courseSelect.addEventListener(
+      "change",
+      function() {
+
+        clearMessage();
+
+        fillEnrollmentData();
+
+      }
+    );
+  }
+
+
+  /*
+    Generate
   */
 
   const generateButton =
@@ -2344,6 +3080,7 @@ function setupEventListeners() {
       "generateCertificateBtn",
       "btnGenerate"
     );
+
 
   if (generateButton) {
 
@@ -2354,12 +3091,17 @@ function setupEventListeners() {
   }
 
 
+  /*
+    Preview
+  */
+
   const previewButton =
     firstExisting(
       "previewBtn",
       "previewCertificateBtn",
       "btnPreview"
     );
+
 
   if (previewButton) {
 
@@ -2370,12 +3112,17 @@ function setupEventListeners() {
   }
 
 
+  /*
+    Save
+  */
+
   const saveButton =
     firstExisting(
       "saveBtn",
       "saveCertificateBtn",
       "btnSave"
     );
+
 
   if (saveButton) {
 
@@ -2386,22 +3133,31 @@ function setupEventListeners() {
   }
 
 
-  const hdButton =
+  /*
+    HD Download
+  */
+
+  const downloadButton =
     firstExisting(
       "downloadBtn",
-      "downloadHD",
+      "downloadCertificateBtn",
       "hdDownloadBtn",
       "btnHD"
     );
 
-  if (hdButton) {
 
-    hdButton.addEventListener(
+  if (downloadButton) {
+
+    downloadButton.addEventListener(
       "click",
       downloadHD
     );
   }
 
+
+  /*
+    Print
+  */
 
   const printButton =
     firstExisting(
@@ -2409,6 +3165,7 @@ function setupEventListeners() {
       "printCertificateBtn",
       "btnPrint"
     );
+
 
   if (printButton) {
 
@@ -2419,12 +3176,17 @@ function setupEventListeners() {
   }
 
 
+  /*
+    New
+  */
+
   const newButton =
     firstExisting(
       "newBtn",
       "newCertificateBtn",
       "btnNew"
     );
+
 
   if (newButton) {
 
@@ -2437,129 +3199,15 @@ function setupEventListeners() {
 
 
 /* =========================================================
-   40. INITIALIZATION
+   44. AUTH STATE
    ========================================================= */
 
-async function initializeCertificateGenerator() {
-
-  console.log(
-    "=============================================="
-  );
-
-  console.log(
-    "GAAWOW EMS Certificate Generator V7.8 FINAL"
-  );
-
-  console.log(
-    "=============================================="
-  );
-
-  clearMessage();
+function setupAuthListener() {
 
   if (!supabaseClient) {
-
-    showMessage(
-      "Supabase client failed to initialize.",
-      "error"
-    );
-
     return;
   }
 
-  try {
-
-    /*
-      1. Session
-    */
-
-    const user =
-      await loadCurrentUser();
-
-    if (!user) {
-      return;
-    }
-
-
-    /*
-      2. Profile
-    */
-
-    const profile =
-      await loadCurrentProfile();
-
-    if (!profile) {
-      return;
-    }
-
-
-    /*
-      3. Institutions
-    */
-
-    await loadInstitutions();
-
-
-    /*
-      4. Template preload
-    */
-
-    try {
-
-      await loadCertificateTemplate();
-
-      console.log(
-        "Certificate template loaded."
-      );
-
-    } catch (templateError) {
-
-      console.error(
-        "Template error:",
-        templateError
-      );
-
-      showMessage(
-        `Template error: ${readableError(templateError)}`,
-        "error"
-      );
-    }
-
-
-    /*
-      5. Events
-    */
-
-    setupEventListeners();
-
-
-    /*
-      6. Final status
-    */
-
-    console.log(
-      "Certificate Generator initialized successfully."
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Certificate Generator initialization error:",
-      error
-    );
-
-    showMessage(
-      `Initialization error: ${readableError(error)}`,
-      "error"
-    );
-  }
-}
-
-
-/* =========================================================
-   41. AUTH STATE
-   ========================================================= */
-
-if (supabaseClient) {
 
   supabaseClient.auth.onAuthStateChange(
     async (
@@ -2572,13 +3220,17 @@ if (supabaseClient) {
         event
       );
 
+
       if (
-        event === "SIGNED_OUT"
+        event ===
+        "SIGNED_OUT"
       ) {
 
-        currentUser = null;
+        currentUser =
+          null;
 
-        currentProfile = null;
+        currentProfile =
+          null;
 
         showMessage(
           "You have been signed out.",
@@ -2588,25 +3240,213 @@ if (supabaseClient) {
         return;
       }
 
+
       if (
-        event === "SIGNED_IN" &&
+        event ===
+          "SIGNED_IN" &&
         session?.user
       ) {
 
         currentUser =
           session.user;
 
-        await loadCurrentProfile();
 
-        await loadInstitutions();
+        try {
+
+          await loadCurrentProfile();
+
+          await loadInstitutions();
+
+        } catch (error) {
+
+          console.error(
+            "Auth refresh error:",
+            error
+          );
+
+        }
       }
+
     }
   );
 }
 
 
 /* =========================================================
-   42. GLOBAL FUNCTIONS
+   45. INITIALIZATION
+   ========================================================= */
+
+async function initializeCertificateGenerator() {
+
+  console.log(
+    "=============================================="
+  );
+
+  console.log(
+    "GAAWOW EMS Certificate Generator V8 FINAL"
+  );
+
+  console.log(
+    "DATABASE-SAFE"
+  );
+
+  console.log(
+    "=============================================="
+  );
+
+
+  clearMessage();
+
+
+  /*
+    1. Supabase
+  */
+
+  if (!initializeSupabase()) {
+
+    showMessage(
+      "Supabase client failed to initialize. Please check the CDN connection.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  try {
+
+    /*
+      2. Authentication
+    */
+
+    const user =
+      await loadCurrentUser();
+
+
+    if (!user) {
+      return;
+    }
+
+
+    /*
+      3. Profile
+    */
+
+    const profile =
+      await loadCurrentProfile();
+
+
+    if (!profile) {
+      return;
+    }
+
+
+    /*
+      4. Institution selector
+    */
+
+    ensureInstitutionSelector();
+
+
+    /*
+      5. Load institutions
+    */
+
+    try {
+
+      await loadInstitutions();
+
+    } catch (error) {
+
+      showMessage(
+        `Institution loading error: ${readableError(error)}`,
+        "error"
+      );
+
+      return;
+    }
+
+
+    /*
+      6. Template preload
+    */
+
+    try {
+
+      await loadCertificateTemplate();
+
+      console.log(
+        "certificate-template.png loaded successfully."
+      );
+
+    } catch (templateError) {
+
+      console.error(
+        "Template loading error:",
+        templateError
+      );
+
+      showMessage(
+        `Template error: ${readableError(templateError)}`,
+        "error"
+      );
+    }
+
+
+    /*
+      7. Events
+    */
+
+    setupEventListeners();
+
+
+    /*
+      8. Set today's issue date
+    */
+
+    const issueDate =
+      $("issue_date");
+
+
+    if (
+      issueDate &&
+      !issueDate.value
+    ) {
+
+      issueDate.value =
+        new Date()
+          .toISOString()
+          .split("T")[0];
+    }
+
+
+    /*
+      9. Final
+    */
+
+    console.log(
+      "Certificate Generator V8 initialized successfully."
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Certificate Generator initialization error:",
+      error
+    );
+
+
+    showMessage(
+      `Initialization error: ${readableError(error)}`,
+      "error"
+    );
+  }
+}
+
+
+/* =========================================================
+   46. GLOBAL FUNCTIONS
    ========================================================= */
 
 window.generateCertificate =
@@ -2620,6 +3460,9 @@ window.saveCertificate =
 
 window.downloadHD =
   downloadHD;
+
+window.downloadCertificate =
+  downloadCertificate;
 
 window.printCertificate =
   printCertificate;
@@ -2635,7 +3478,80 @@ window.loadStudents =
 
 
 /* =========================================================
-   43. START
+   47. START
+   ========================================================= */
+
+function startCertificateGenerator() {
+
+  /*
+    Supabase CDN must be available first.
+  */
+
+  if (
+    window.supabase &&
+    typeof window.supabase.createClient ===
+      "function"
+  ) {
+
+    initializeCertificateGenerator();
+
+    return;
+  }
+
+
+  /*
+    Small retry protects against CDN timing.
+  */
+
+  let attempts =
+    0;
+
+
+  const timer =
+    setInterval(
+      function() {
+
+        attempts++;
+
+
+        if (
+          window.supabase &&
+          typeof window.supabase.createClient ===
+            "function"
+        ) {
+
+          clearInterval(
+            timer
+          );
+
+          initializeCertificateGenerator();
+
+          return;
+        }
+
+
+        if (
+          attempts >= 50
+        ) {
+
+          clearInterval(
+            timer
+          );
+
+          showMessage(
+            "Supabase CDN library failed to load.",
+            "error"
+          );
+        }
+
+      },
+      100
+    );
+}
+
+
+/* =========================================================
+   DOM READY
    ========================================================= */
 
 if (
@@ -2645,10 +3561,18 @@ if (
 
   document.addEventListener(
     "DOMContentLoaded",
-    initializeCertificateGenerator
+    function() {
+
+      setupAuthListener();
+
+      startCertificateGenerator();
+
+    }
   );
 
 } else {
 
-  initializeCertificateGenerator();
+  setupAuthListener();
+
+  startCertificateGenerator();
 }
