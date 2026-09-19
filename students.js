@@ -7,10 +7,54 @@ const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
 let supabaseClient = null;
 
-try {
+// If the first CDN in the HTML is blocked/slow, try these one by one.
+// (Best permanent fix: download supabase.min.js and host it next to this file,
+//  then add "./supabase.min.js" as the first item below.)
+const SUPABASE_LIBS = [
+  "./supabase.min.js",
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js",
+  "https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.js",
+  "https://fastly.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js",
+  "https://gcore.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
+];
+
+function loadScript(src, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.async = true;
+
+    const timer = setTimeout(() => {
+      s.remove();
+      reject(new Error("timeout"));
+    }, timeoutMs || 8000);
+
+    s.onload = () => { clearTimeout(timer); resolve(); };
+    s.onerror = () => { clearTimeout(timer); s.remove(); reject(new Error("failed")); };
+
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureSupabase() {
+
+  if (supabaseClient) return true;
+
+  if (!(window.supabase && window.supabase.createClient)) {
+    for (const url of SUPABASE_LIBS) {
+      try {
+        await loadScript(url);
+        if (window.supabase && window.supabase.createClient) break;
+      } catch (e) {
+        console.warn("Supabase library failed from:", url);
+      }
+    }
+  }
+
+  if (!(window.supabase && window.supabase.createClient)) return false;
+
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-} catch (err) {
-  console.error("Supabase init error:", err);
+  return true;
 }
 
 
@@ -607,8 +651,13 @@ function goDashboard() {
 
 async function startStudentsPage() {
 
-  if (!supabaseClient) {
-    showFatal("Supabase library failed to load. Check your internet connection.");
+  const ready = await ensureSupabase();
+
+  if (!ready) {
+    showFatal(
+      "Supabase library could not be loaded from any source. " +
+      "Check your internet, turn off ad-blocker/VPN, or host supabase.min.js locally."
+    );
     return;
   }
 
