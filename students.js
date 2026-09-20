@@ -1,37 +1,29 @@
 /* =========================================================
    GAAWOW EMS
-   STUDENTS MODULE V3.4 FINAL
-   =========================================================
-   FEATURES
-   ---------------------------------------------------------
-   ✓ Supabase connection diagnostic
-   ✓ Authentication
-   ✓ Profile / role detection
-   ✓ Institution filtering
-   ✓ Super Admin → all institutions
-   ✓ School Admin / Teacher → own institution
-   ✓ Students CRUD
-   ✓ Search
-   ✓ Status filter
-   ✓ Statistics
-   ✓ Student profile view
-   ✓ Edit student
-   ✓ Delete student
-   ✓ JPG / PNG / WEBP photo upload
-   ✓ 5MB photo validation
-   ✓ Photo preview
-   ✓ Supabase Storage
-   ✓ Photo URL saved to students.photo_url
-   ✓ Duplicate initialization protection
-   ✓ Clear error messages
-   ✓ GitHub Pages compatible
+   STUDENTS MODULE V3.5 FINAL
+
+   Database:
+   - Supabase
+   - students
+   - profiles
+   - institutions
+
+   Storage:
+   - student-photos
+
+   IMPORTANT:
+   - Matched with students.html V3.5
+   - No duplicate initialization
+   - DOM null-safe
+   - Photo upload supported
+   - Super Admin sees all institutions
    ========================================================= */
 
 "use strict";
 
 
 /* =========================================================
-   1. SUPABASE CONFIGURATION
+   CONFIGURATION
    ========================================================= */
 
 const SUPABASE_URL =
@@ -45,55 +37,41 @@ const PHOTO_BUCKET =
 
 
 /* =========================================================
-   2. SUPABASE CLIENT
+   SUPABASE CLIENT
    ========================================================= */
 
 if (!window.supabase) {
-  throw new Error(
-    "Supabase JS library lama soo degin. Hubi CDN-ka Supabase ee students.html."
-  );
+  console.error("Supabase library was not loaded.");
+  throw new Error("Supabase library was not loaded.");
 }
 
-if (typeof window.supabase.createClient !== "function") {
-  throw new Error(
-    "Supabase createClient lama helin. Hubi Supabase JS version-ka."
-  );
-}
-
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY,
-    {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
     }
-  );
+  }
+);
 
 
 /* =========================================================
-   3. APPLICATION STATE
+   GLOBAL STATE
    ========================================================= */
 
 let currentUser = null;
 let currentProfile = null;
-
-let students = [];
 let institutions = [];
-
+let students = [];
 let editingStudent = null;
-let selectedPhotoFile = null;
-
-let initialized = false;
-let loadingStudents = false;
-let savingStudent = false;
+let isSaving = false;
 
 
 /* =========================================================
-   4. DOM HELPER
+   DOM HELPER
    ========================================================= */
 
 function $(id) {
@@ -102,10 +80,554 @@ function $(id) {
 
 
 /* =========================================================
-   5. HTML ESCAPE
+   MESSAGE
    ========================================================= */
 
-function escapeHTML(value) {
+function showMessage(message, type = "info", duration = 5000) {
+
+  const box = $("message");
+
+  if (!box) {
+    console.warn("Message element not found:", message);
+    return;
+  }
+
+  box.className = "";
+  box.textContent = message;
+
+  if (type === "success") {
+    box.classList.add("success");
+  } else if (type === "error") {
+    box.classList.add("error");
+  } else {
+    box.classList.add("info");
+  }
+
+  box.style.display = "block";
+
+  if (duration > 0) {
+    window.clearTimeout(showMessage.timer);
+
+    showMessage.timer = window.setTimeout(() => {
+
+      if (box) {
+        box.style.display = "none";
+        box.textContent = "";
+        box.className = "";
+      }
+
+    }, duration);
+  }
+}
+
+
+function clearMessage() {
+
+  const box = $("message");
+
+  if (!box) return;
+
+  box.style.display = "none";
+  box.textContent = "";
+  box.className = "";
+}
+
+
+/* =========================================================
+   ERROR HELPER
+   ========================================================= */
+
+function getErrorMessage(error) {
+
+  if (!error) {
+    return "Unknown error.";
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return (
+    error.message ||
+    error.error_description ||
+    error.details ||
+    error.hint ||
+    "Unknown error."
+  );
+}
+
+
+/* =========================================================
+   SUPABASE CONNECTION CHECK
+   ========================================================= */
+
+async function checkSupabaseConnection() {
+
+  try {
+
+    const response = await fetch(
+      `${SUPABASE_URL}/auth/v1/settings`,
+      {
+        method: "GET",
+        headers: {
+          apikey: SUPABASE_KEY
+        }
+      }
+    );
+
+    if (!response.ok) {
+
+      console.warn(
+        "Supabase connection check returned:",
+        response.status
+      );
+
+      return false;
+    }
+
+    return true;
+
+  } catch (error) {
+
+    console.warn(
+      "Supabase connection test failed:",
+      error
+    );
+
+    return false;
+  }
+}
+
+
+/* =========================================================
+   AUTHENTICATION
+   ========================================================= */
+
+async function loadCurrentUser() {
+
+  const {
+    data,
+    error
+  } = await supabaseClient.auth.getUser();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data || !data.user) {
+    throw new Error(
+      "No authenticated user found. Please login again."
+    );
+  }
+
+  currentUser = data.user;
+
+  return currentUser;
+}
+
+
+/* =========================================================
+   LOAD PROFILE
+   ========================================================= */
+
+async function loadCurrentProfile() {
+
+  if (!currentUser) {
+    throw new Error("User is not authenticated.");
+  }
+
+  const {
+    data,
+    error
+  } = await supabaseClient
+    .from("profiles")
+    .select(`
+      id,
+      user_id,
+      institution_id,
+      full_name,
+      role,
+      is_active
+    `)
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error(
+      "Your profile was not found in the profiles table."
+    );
+  }
+
+  if (data.is_active === false) {
+    throw new Error(
+      "Your account is inactive."
+    );
+  }
+
+  currentProfile = data;
+
+  return data;
+}
+
+
+/* =========================================================
+   ROLE HELPERS
+   ========================================================= */
+
+function isSuperAdmin() {
+
+  return (
+    currentProfile &&
+    currentProfile.role === "super_admin"
+  );
+}
+
+
+function isSchoolAdmin() {
+
+  return (
+    currentProfile &&
+    (
+      currentProfile.role === "school_admin" ||
+      currentProfile.role === "super_admin"
+    )
+  );
+}
+
+
+/* =========================================================
+   LOAD INSTITUTIONS
+   ========================================================= */
+
+async function loadInstitutions() {
+
+  let query = supabaseClient
+    .from("institutions")
+    .select(`
+      id,
+      name
+    `)
+    .order("name", {
+      ascending: true
+    });
+
+
+  /*
+   Super Admin:
+   - sees all institutions
+
+   Other users:
+   - only own institution
+  */
+
+  if (!isSuperAdmin()) {
+
+    if (!currentProfile.institution_id) {
+
+      throw new Error(
+        "Your profile does not have an institution assigned."
+      );
+    }
+
+    query = query.eq(
+      "id",
+      currentProfile.institution_id
+    );
+  }
+
+
+  const {
+    data,
+    error
+  } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  institutions = data || [];
+
+  renderInstitutionSelect();
+
+  return institutions;
+}
+
+
+/* =========================================================
+   RENDER INSTITUTION SELECT
+   ========================================================= */
+
+function renderInstitutionSelect() {
+
+  const select = $("institutionSelect");
+
+  if (!select) {
+    console.error(
+      "Missing DOM element: #institutionSelect"
+    );
+    return;
+  }
+
+  select.innerHTML = "";
+
+  const placeholder =
+    document.createElement("option");
+
+  placeholder.value = "";
+  placeholder.textContent =
+    "Select Institution";
+
+  select.appendChild(placeholder);
+
+
+  institutions.forEach(institution => {
+
+    const option =
+      document.createElement("option");
+
+    option.value = institution.id;
+
+    option.textContent =
+      institution.name || "Unnamed Institution";
+
+    select.appendChild(option);
+  });
+
+
+  /*
+   Non-super-admin:
+   automatically select own institution
+  */
+
+  if (
+    !isSuperAdmin() &&
+    currentProfile &&
+    currentProfile.institution_id
+  ) {
+
+    select.value =
+      currentProfile.institution_id;
+
+    select.disabled = true;
+
+  } else {
+
+    select.disabled = false;
+  }
+}
+
+
+/* =========================================================
+   LOAD STUDENTS
+   ========================================================= */
+
+async function loadStudents() {
+
+  const body = $("studentsTableBody");
+
+  if (body) {
+
+    body.innerHTML = `
+      <tr>
+        <td colspan="9">
+          <div class="loading">
+            Loading students...
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+
+  let query = supabaseClient
+    .from("students")
+    .select(`
+      id,
+      institution_id,
+      profile_id,
+      student_id,
+      full_name,
+      gender,
+      date_of_birth,
+      phone,
+      email,
+      address,
+      photo_url,
+      admission_date,
+      status,
+      emergency_contact_name,
+      emergency_contact_phone,
+      created_at,
+      updated_at
+    `)
+    .order("created_at", {
+      ascending: false
+    });
+
+
+  /*
+   Super Admin:
+   all students
+
+   Other users:
+   own institution
+  */
+
+  if (!isSuperAdmin()) {
+
+    if (!currentProfile.institution_id) {
+
+      throw new Error(
+        "Your profile does not have an institution."
+      );
+    }
+
+    query = query.eq(
+      "institution_id",
+      currentProfile.institution_id
+    );
+  }
+
+
+  const {
+    data,
+    error
+  } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  students = data || [];
+
+  renderStats();
+  renderStudents();
+
+  return students;
+}
+
+
+/* =========================================================
+   STATS
+   ========================================================= */
+
+function renderStats() {
+
+  const total =
+    students.length;
+
+  const active =
+    students.filter(
+      s => s.status === "active"
+    ).length;
+
+  const graduated =
+    students.filter(
+      s => s.status === "graduated"
+    ).length;
+
+  const other =
+    total - active - graduated;
+
+
+  const totalEl =
+    $("totalStudents");
+
+  const activeEl =
+    $("activeStudents");
+
+  const graduatedEl =
+    $("graduatedStudents");
+
+  const otherEl =
+    $("otherStudents");
+
+
+  if (totalEl) {
+    totalEl.textContent = total;
+  }
+
+  if (activeEl) {
+    activeEl.textContent = active;
+  }
+
+  if (graduatedEl) {
+    graduatedEl.textContent = graduated;
+  }
+
+  if (otherEl) {
+    otherEl.textContent = other;
+  }
+}
+
+
+/* =========================================================
+   SEARCH / FILTER
+   ========================================================= */
+
+function getFilteredStudents() {
+
+  const searchEl =
+    $("searchInput");
+
+  const statusEl =
+    $("statusFilter");
+
+
+  const search =
+    searchEl
+      ? searchEl.value.trim().toLowerCase()
+      : "";
+
+  const status =
+    statusEl
+      ? statusEl.value
+      : "";
+
+
+  return students.filter(student => {
+
+    const matchesStatus =
+      !status ||
+      student.status === status;
+
+
+    if (!search) {
+      return matchesStatus;
+    }
+
+
+    const searchable = [
+      student.student_id,
+      student.full_name,
+      student.gender,
+      student.phone,
+      student.email,
+      student.address,
+      student.status
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+
+    return (
+      matchesStatus &&
+      searchable.includes(search)
+    );
+  });
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHtml(value) {
 
   if (
     value === null ||
@@ -124,809 +646,87 @@ function escapeHTML(value) {
 
 
 /* =========================================================
-   6. MESSAGE SYSTEM
+   INITIALS
    ========================================================= */
 
-function showMessage(
-  message,
-  type = "info"
-) {
+function getInitials(name) {
 
-  const box = $("message");
-
-  if (!box) {
-    console.log(message);
-    return;
+  if (!name) {
+    return "?";
   }
 
-  box.textContent = message;
+  const parts =
+    name.trim().split(/\s+/);
 
-  box.style.display = "block";
-  box.style.padding = "12px 15px";
-  box.style.marginBottom = "15px";
-  box.style.borderRadius = "8px";
-  box.style.fontWeight = "600";
-
-  if (type === "success") {
-
-    box.style.background = "#dcfce7";
-    box.style.color = "#166534";
-    box.style.border = "1px solid #86efac";
-
-  } else if (type === "error") {
-
-    box.style.background = "#fee2e2";
-    box.style.color = "#991b1b";
-    box.style.border = "1px solid #fca5a5";
-
-  } else if (type === "warning") {
-
-    box.style.background = "#fef3c7";
-    box.style.color = "#92400e";
-    box.style.border = "1px solid #fcd34d";
-
-  } else {
-
-    box.style.background = "#dbeafe";
-    box.style.color = "#1e3a8a";
-    box.style.border = "1px solid #93c5fd";
-  }
-}
-
-
-function clearMessage() {
-
-  const box = $("message");
-
-  if (!box) return;
-
-  box.textContent = "";
-  box.style.display = "none";
-}
-
-
-/* =========================================================
-   7. ERROR NORMALIZER
-   ========================================================= */
-
-function getErrorMessage(error) {
-
-  if (!error) {
-    return "Unknown error.";
-  }
-
-  if (typeof error === "string") {
-    return error;
+  if (parts.length === 1) {
+    return parts[0]
+      .substring(0, 2)
+      .toUpperCase();
   }
 
   return (
-    error.message ||
-    error.error_description ||
-    error.details ||
-    error.hint ||
-    "Unknown Supabase error."
-  );
+    parts[0][0] +
+    parts[parts.length - 1][0]
+  ).toUpperCase();
 }
 
 
 /* =========================================================
-   8. BUTTON LOADING
+   STATUS HTML
    ========================================================= */
 
-function setSaveLoading(
-  loading,
-  text = "Save Student"
-) {
+function statusHtml(status) {
 
-  const button =
-    $("saveButton");
+  const safeStatus =
+    status || "inactive";
 
-  if (!button) return;
+  const className =
+    `status-${safeStatus}`;
 
-  button.disabled = loading;
-
-  button.textContent =
-    loading
-      ? text
-      : "Save Student";
+  return `
+    <span class="status ${className}">
+      ${escapeHtml(safeStatus)}
+    </span>
+  `;
 }
 
 
 /* =========================================================
-   9. ROLE HELPERS
+   FORMAT DATE
    ========================================================= */
 
-function isSuperAdmin() {
+function formatDate(dateValue) {
 
-  return (
-    currentProfile?.role ===
-    "super_admin"
-  );
-}
-
-
-function isInstitutionAdmin() {
-
-  return (
-    currentProfile?.role ===
-      "school_admin" ||
-    currentProfile?.role ===
-      "teacher"
-  );
-}
-
-
-/* =========================================================
-   10. CONNECTION TEST
-   ========================================================= */
-
-async function testSupabaseConnection() {
-
-  console.log(
-    "STEP 1 → SUPABASE CONNECTION"
-  );
-
-  try {
-
-    const response =
-      await fetch(
-        `${SUPABASE_URL}/auth/v1/settings`,
-        {
-          method: "GET",
-          headers: {
-            apikey: SUPABASE_KEY
-          }
-        }
-      );
-
-    const text =
-      await response.text();
-
-    console.log(
-      "Supabase status:",
-      response.status
-    );
-
-    if (!response.ok) {
-
-      let message = text;
-
-      try {
-
-        const json =
-          JSON.parse(text);
-
-        message =
-          json.message ||
-          json.error_description ||
-          json.error ||
-          text;
-
-      } catch (_) {}
-
-      throw new Error(
-        `Supabase connection failed (${response.status}): ${message}`
-      );
-    }
-
-    console.log(
-      "STEP 1 → OK"
-    );
-
-    return true;
-
-  } catch (error) {
-
-    console.error(
-      "SUPABASE CONNECTION ERROR:",
-      error
-    );
-
-    throw new Error(
-      `Supabase Connection Error: ${getErrorMessage(error)}`
-    );
+  if (!dateValue) {
+    return "—";
   }
-}
-
-
-/* =========================================================
-   11. AUTHENTICATION
-   ========================================================= */
-
-async function getCurrentUser() {
-
-  console.log(
-    "STEP 2 → AUTHENTICATION"
-  );
 
   try {
 
-    const {
-      data,
-      error
-    } =
-      await supabaseClient.auth.getUser();
+    const date =
+      new Date(dateValue);
 
-    if (error) {
-      throw error;
+    if (Number.isNaN(date.getTime())) {
+      return escapeHtml(dateValue);
     }
 
-    if (!data?.user) {
-
-      throw new Error(
-        "No authenticated user. Fadlan login samee."
-      );
-    }
-
-    currentUser =
-      data.user;
-
-    console.log(
-      "Authenticated user:",
-      currentUser.id
-    );
-
-    console.log(
-      "STEP 2 → OK"
-    );
-
-    return currentUser;
-
-  } catch (error) {
-
-    console.error(
-      "AUTH ERROR:",
-      error
-    );
-
-    throw new Error(
-      `Authentication error: ${getErrorMessage(error)}`
-    );
-  }
-}
-
-
-/* =========================================================
-   12. LOAD PROFILE
-   ========================================================= */
-
-async function loadCurrentProfile(
-  userId
-) {
-
-  console.log(
-    "STEP 3 → PROFILE"
-  );
-
-  try {
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .from("profiles")
-        .select(`
-          id,
-          user_id,
-          institution_id,
-          full_name,
-          role,
-          is_active
-        `)
-        .eq(
-          "user_id",
-          userId
-        )
-        .maybeSingle();
-
-    if (error) {
-      throw error;
-    }
-
-    if (!data) {
-
-      throw new Error(
-        "Profile-ka account-kan lama helin."
-      );
-    }
-
-    currentProfile =
-      data;
-
-    console.log(
-      "Current profile:",
-      currentProfile
-    );
-
-    if (
-      currentProfile.is_active === false
-    ) {
-
-      throw new Error(
-        "Account-kaaga waa inactive."
-      );
-    }
-
-    console.log(
-      "STEP 3 → OK"
-    );
-
-    return currentProfile;
-
-  } catch (error) {
-
-    console.error(
-      "PROFILE ERROR:",
-      error
-    );
-
-    throw new Error(
-      `Profile error: ${getErrorMessage(error)}`
-    );
-  }
-}
-
-
-/* =========================================================
-   13. LOAD INSTITUTIONS
-   ========================================================= */
-
-async function loadInstitutions() {
-
-  console.log(
-    "STEP 4 → INSTITUTIONS"
-  );
-
-  try {
-
-    let query =
-      supabaseClient
-        .from("institutions")
-        .select(`
-          id,
-          name
-        `)
-        .order(
-          "name",
-          {
-            ascending: true
-          }
-        );
-
-    if (!isSuperAdmin()) {
-
-      if (
-        !currentProfile?.institution_id
-      ) {
-
-        throw new Error(
-          "Account-kaagu institution kuma xirna."
-        );
+    return date.toLocaleDateString(
+      "en-GB",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
       }
-
-      query =
-        query.eq(
-          "id",
-          currentProfile.institution_id
-        );
-    }
-
-    const {
-      data,
-      error
-    } = await query;
-
-    if (error) {
-      throw error;
-    }
-
-    institutions =
-      data || [];
-
-    renderInstitutionSelect();
-
-    console.log(
-      "Institutions:",
-      institutions.length
     );
 
-    console.log(
-      "STEP 4 → OK"
-    );
-
-  } catch (error) {
-
-    console.error(
-      "INSTITUTIONS ERROR:",
-      error
-    );
-
-    throw new Error(
-      `Institutions error: ${getErrorMessage(error)}`
-    );
+  } catch {
+    return escapeHtml(dateValue);
   }
 }
 
 
 /* =========================================================
-   14. RENDER INSTITUTION SELECT
-   ========================================================= */
-
-function renderInstitutionSelect() {
-
-  const select =
-    $("institutionSelect");
-
-  if (!select) return;
-
-  select.innerHTML = "";
-
-  if (
-    institutions.length === 0
-  ) {
-
-    select.innerHTML =
-      `<option value="">No institution found</option>`;
-
-    return;
-  }
-
-  institutions.forEach(
-    institution => {
-
-      const option =
-        document.createElement(
-          "option"
-        );
-
-      option.value =
-        institution.id;
-
-      option.textContent =
-        institution.name;
-
-      select.appendChild(
-        option
-      );
-    }
-  );
-
-  if (!isSuperAdmin()) {
-
-    select.value =
-      currentProfile.institution_id;
-
-    select.disabled =
-      true;
-
-  } else {
-
-    select.disabled =
-      false;
-  }
-}
-
-
-/* =========================================================
-   15. FETCH STUDENTS
-   ========================================================= */
-
-async function fetchStudents() {
-
-  console.log(
-    "STEP 5 → STUDENTS"
-  );
-
-  let query =
-    supabaseClient
-      .from("students")
-      .select(`
-        id,
-        institution_id,
-        profile_id,
-        student_id,
-        full_name,
-        gender,
-        date_of_birth,
-        phone,
-        email,
-        address,
-        photo_url,
-        admission_date,
-        status,
-        emergency_contact_name,
-        emergency_contact_phone,
-        created_at,
-        updated_at
-      `)
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
-
-  if (!isSuperAdmin()) {
-
-    if (
-      !currentProfile?.institution_id
-    ) {
-
-      throw new Error(
-        "Institution ID profile-ka kuma jiro."
-      );
-    }
-
-    query =
-      query.eq(
-        "institution_id",
-        currentProfile.institution_id
-      );
-  }
-
-  const {
-    data,
-    error
-  } = await query;
-
-  if (error) {
-    throw error;
-  }
-
-  students =
-    data || [];
-
-  console.log(
-    "Students loaded:",
-    students.length
-  );
-
-  console.log(
-    "STEP 5 → OK"
-  );
-
-  return students;
-}
-
-
-/* =========================================================
-   16. LOAD STUDENTS
-   ========================================================= */
-
-async function loadStudents() {
-
-  if (loadingStudents) {
-    return;
-  }
-
-  loadingStudents =
-    true;
-
-  try {
-
-    setTableLoading();
-
-    await fetchStudents();
-
-    updateStatistics();
-
-    renderStudents();
-
-  } catch (error) {
-
-    console.error(
-      "LOAD STUDENTS ERROR:",
-      error
-    );
-
-    setTableError(
-      getErrorMessage(error)
-    );
-
-  } finally {
-
-    loadingStudents =
-      false;
-  }
-}
-
-
-/* =========================================================
-   17. TABLE LOADING
-   ========================================================= */
-
-function setTableLoading() {
-
-  const body =
-    $("studentsTableBody");
-
-  if (!body) return;
-
-  body.innerHTML = `
-    <tr>
-      <td
-        colspan="10"
-        style="
-          text-align:center;
-          padding:30px;
-        "
-      >
-        Loading students...
-      </td>
-    </tr>
-  `;
-}
-
-
-function setTableError(
-  message
-) {
-
-  const body =
-    $("studentsTableBody");
-
-  if (!body) return;
-
-  body.innerHTML = `
-    <tr>
-      <td
-        colspan="10"
-        style="
-          text-align:center;
-          padding:30px;
-          color:#b91c1c;
-        "
-      >
-        ${escapeHTML(message)}
-
-        <br><br>
-
-        <button
-          type="button"
-          onclick="loadStudents()"
-        >
-          Retry
-        </button>
-      </td>
-    </tr>
-  `;
-}
-
-
-function setEmpty() {
-
-  const body =
-    $("studentsTableBody");
-
-  if (!body) return;
-
-  body.innerHTML = `
-    <tr>
-      <td
-        colspan="10"
-        style="
-          text-align:center;
-          padding:30px;
-        "
-      >
-        No students found.
-      </td>
-    </tr>
-  `;
-}
-
-
-/* =========================================================
-   18. STATISTICS
-   ========================================================= */
-
-function updateStatistics() {
-
-  const total =
-    students.length;
-
-  const active =
-    students.filter(
-      student =>
-        student.status ===
-        "active"
-    ).length;
-
-  const graduated =
-    students.filter(
-      student =>
-        student.status ===
-        "graduated"
-    ).length;
-
-  const other =
-    total -
-    active -
-    graduated;
-
-  if ($("totalStudents")) {
-
-    $("totalStudents")
-      .textContent =
-      total;
-  }
-
-  if ($("activeStudents")) {
-
-    $("activeStudents")
-      .textContent =
-      active;
-  }
-
-  if ($("graduatedStudents")) {
-
-    $("graduatedStudents")
-      .textContent =
-      graduated;
-  }
-
-  if ($("otherStudents")) {
-
-    $("otherStudents")
-      .textContent =
-      other;
-  }
-}
-
-
-/* =========================================================
-   19. FILTER
-   ========================================================= */
-
-function getFilteredStudents() {
-
-  const search =
-    (
-      $("searchInput")?.value ||
-      ""
-    )
-      .trim()
-      .toLowerCase();
-
-  const status =
-    $("statusFilter")?.value ||
-    "";
-
-  return students.filter(
-    student => {
-
-      const text =
-        [
-          student.student_id,
-          student.full_name,
-          student.phone,
-          student.email
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-
-      const matchesSearch =
-        !search ||
-        text.includes(search);
-
-      const matchesStatus =
-        !status ||
-        student.status ===
-          status;
-
-      return (
-        matchesSearch &&
-        matchesStatus
-      );
-    }
-  );
-}
-
-
-/* =========================================================
-   20. RENDER STUDENTS
+   RENDER STUDENTS
    ========================================================= */
 
 function renderStudents() {
@@ -934,158 +734,298 @@ function renderStudents() {
   const body =
     $("studentsTableBody");
 
-  if (!body) return;
+  if (!body) {
 
-  const filtered =
-    getFilteredStudents();
-
-  if (
-    filtered.length === 0
-  ) {
-
-    setEmpty();
+    console.error(
+      "CRITICAL: #studentsTableBody does not exist."
+    );
 
     return;
   }
 
+
+  const filtered =
+    getFilteredStudents();
+
+
+  if (!filtered.length) {
+
+    body.innerHTML = `
+      <tr>
+        <td colspan="9">
+          <div class="empty">
+            <strong>No students found</strong>
+            Try changing your search or status filter.
+          </div>
+        </td>
+      </tr>
+    `;
+
+    return;
+  }
+
+
   body.innerHTML =
-    filtered
-      .map(
-        student => {
+    filtered.map(student => {
 
-          const photo =
-            student.photo_url
-
-              ? `
-                <img
-                  src="${escapeHTML(
-                    student.photo_url
-                  )}"
-                  alt="Student"
-                  loading="lazy"
-                  style="
-                    width:42px;
-                    height:42px;
-                    object-fit:cover;
-                    border-radius:50%;
-                    border:2px solid #D4AF37;
-                  "
-                >
-              `
-
-              : `
-                <div
-                  style="
-                    width:42px;
-                    height:42px;
-                    border-radius:50%;
-                    background:#e5e7eb;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                  "
-                >
-                  👤
-                </div>
-              `;
-
-          return `
-            <tr>
-
-              <td>
-                ${photo}
-              </td>
-
-              <td>
-                ${escapeHTML(
-                  student.student_id
-                )}
-              </td>
-
-              <td>
-                ${escapeHTML(
-                  student.full_name
-                )}
-              </td>
-
-              <td>
-                ${escapeHTML(
-                  student.gender ||
-                  "-"
-                )}
-              </td>
-
-              <td>
-                ${escapeHTML(
-                  student.phone ||
-                  "-"
-                )}
-              </td>
-
-              <td>
-                ${escapeHTML(
-                  student.email ||
-                  "-"
-                )}
-              </td>
-
-              <td>
-                ${escapeHTML(
-                  student.status ||
-                  "-"
-                )}
-              </td>
-
-              <td>
-                ${escapeHTML(
-                  student.admission_date ||
-                  "-"
-                )}
-              </td>
-
-              <td>
-
-                <button
-                  type="button"
-                  onclick="viewStudent('${student.id}')"
-                >
-                  View
-                </button>
-
-                <button
-                  type="button"
-                  onclick="editStudent('${student.id}')"
-                >
-                  Edit
-                </button>
-
-                <button
-                  type="button"
-                  onclick="deleteStudent('${student.id}')"
-                >
-                  Delete
-                </button>
-
-              </td>
-
-            </tr>
+      const photo =
+        student.photo_url
+          ? `
+            <img
+              class="student-photo"
+              src="${escapeHtml(student.photo_url)}"
+              alt="${escapeHtml(student.full_name)}"
+              loading="lazy"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+            />
+            <div
+              class="avatar"
+              style="display:none"
+            >
+              ${escapeHtml(
+                getInitials(student.full_name)
+              )}
+            </div>
+          `
+          : `
+            <div class="avatar">
+              ${escapeHtml(
+                getInitials(student.full_name)
+              )}
+            </div>
           `;
-        }
-      )
-      .join("");
+
+
+      return `
+        <tr>
+
+          <td>
+            ${photo}
+          </td>
+
+          <td>
+            <strong>
+              ${escapeHtml(student.student_id)}
+            </strong>
+          </td>
+
+          <td>
+            <strong>
+              ${escapeHtml(student.full_name)}
+            </strong>
+          </td>
+
+          <td>
+            ${escapeHtml(student.gender || "—")}
+          </td>
+
+          <td>
+            ${escapeHtml(student.phone || "—")}
+          </td>
+
+          <td>
+            ${escapeHtml(student.email || "—")}
+          </td>
+
+          <td>
+            ${statusHtml(student.status)}
+          </td>
+
+          <td>
+            ${formatDate(student.admission_date)}
+          </td>
+
+          <td>
+
+            <div class="actions">
+
+              <button
+                type="button"
+                class="btn btn-small btn-primary"
+                data-action="view"
+                data-id="${escapeHtml(student.id)}"
+              >
+                View
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-small btn-gold"
+                data-action="edit"
+                data-id="${escapeHtml(student.id)}"
+              >
+                Edit
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-small btn-danger"
+                data-action="delete"
+                data-id="${escapeHtml(student.id)}"
+              >
+                Delete
+              </button>
+
+            </div>
+
+          </td>
+
+        </tr>
+      `;
+
+    }).join("");
 }
 
 
 /* =========================================================
-   21. PHOTO VALIDATION
+   FORM DATA
    ========================================================= */
 
-function validatePhoto(
-  file
-) {
+function getFormData() {
+
+  const institutionSelect =
+    $("institutionSelect");
+
+  const studentId =
+    $("studentId");
+
+  const fullName =
+    $("fullName");
+
+  const gender =
+    $("gender");
+
+  const dateOfBirth =
+    $("dateOfBirth");
+
+  const phone =
+    $("phone");
+
+  const email =
+    $("email");
+
+  const address =
+    $("address");
+
+  const admissionDate =
+    $("admissionDate");
+
+  const status =
+    $("status");
+
+
+  return {
+
+    institution_id:
+      institutionSelect
+        ? institutionSelect.value
+        : "",
+
+    student_id:
+      studentId
+        ? studentId.value.trim()
+        : "",
+
+    full_name:
+      fullName
+        ? fullName.value.trim()
+        : "",
+
+    gender:
+      gender
+        ? (gender.value || null)
+        : null,
+
+    date_of_birth:
+      dateOfBirth
+        ? (dateOfBirth.value || null)
+        : null,
+
+    phone:
+      phone
+        ? (phone.value.trim() || null)
+        : null,
+
+    email:
+      email
+        ? (email.value.trim() || null)
+        : null,
+
+    address:
+      address
+        ? (address.value.trim() || null)
+        : null,
+
+    admission_date:
+      admissionDate
+        ? (admissionDate.value || null)
+        : null,
+
+    status:
+      status
+        ? status.value
+        : "active"
+  };
+}
+
+
+/* =========================================================
+   VALIDATE FORM
+   ========================================================= */
+
+function validateForm(data) {
+
+  if (!data.institution_id) {
+    throw new Error(
+      "Please select an institution."
+    );
+  }
+
+  if (!data.student_id) {
+    throw new Error(
+      "Student ID is required."
+    );
+  }
+
+  if (!data.full_name) {
+    throw new Error(
+      "Student full name is required."
+    );
+  }
+
+  if (!data.status) {
+    throw new Error(
+      "Student status is required."
+    );
+  }
+
+
+  /*
+   Non-super-admin cannot choose another institution
+  */
+
+  if (
+    !isSuperAdmin() &&
+    currentProfile &&
+    currentProfile.institution_id !==
+      data.institution_id
+  ) {
+
+    throw new Error(
+      "You can only manage students in your own institution."
+    );
+  }
+}
+
+
+/* =========================================================
+   PHOTO VALIDATION
+   ========================================================= */
+
+function validatePhoto(file) {
 
   if (!file) {
-    return true;
+    return;
   }
 
   const allowedTypes = [
@@ -1094,41 +1034,30 @@ function validatePhoto(
     "image/webp"
   ];
 
-  if (
-    !allowedTypes.includes(
-      file.type
-    )
-  ) {
 
-    showMessage(
-      "Photo-ga waa inuu noqdaa JPG, PNG ama WEBP.",
-      "error"
+  if (!allowedTypes.includes(file.type)) {
+
+    throw new Error(
+      "Photo must be JPG, PNG, or WEBP."
     );
-
-    return false;
   }
+
 
   const maxSize =
     5 * 1024 * 1024;
 
-  if (
-    file.size > maxSize
-  ) {
 
-    showMessage(
-      "Photo-ga kama weynaan karo 5MB.",
-      "error"
+  if (file.size > maxSize) {
+
+    throw new Error(
+      "Photo must be smaller than 5MB."
     );
-
-    return false;
   }
-
-  return true;
 }
 
 
 /* =========================================================
-   22. PHOTO PREVIEW
+   PHOTO PREVIEW
    ========================================================= */
 
 function handlePhotoPreview() {
@@ -1139,176 +1068,696 @@ function handlePhotoPreview() {
   const preview =
     $("photoPreview");
 
-  if (!input || !preview) {
-    return;
-  }
+  const placeholder =
+    $("photoPlaceholder");
+
+
+  if (!input) return;
+
 
   const file =
-    input.files?.[0] ||
-    null;
+    input.files &&
+    input.files[0];
 
-  selectedPhotoFile =
-    file;
 
   if (!file) {
 
-    preview.src = "";
+    if (preview) {
+      preview.src = "";
+      preview.style.display = "none";
+    }
 
-    preview.style.display =
-      "none";
+    if (placeholder) {
+      placeholder.style.display = "flex";
+    }
 
     return;
   }
 
-  if (
-    !validatePhoto(file)
-  ) {
+
+  try {
+    validatePhoto(file);
+  } catch (error) {
 
     input.value = "";
 
-    selectedPhotoFile =
-      null;
+    if (preview) {
+      preview.src = "";
+      preview.style.display = "none";
+    }
+
+    if (placeholder) {
+      placeholder.style.display = "flex";
+    }
+
+    showMessage(
+      getErrorMessage(error),
+      "error"
+    );
 
     return;
   }
+
 
   const reader =
     new FileReader();
 
-  reader.onload =
-    function(event) {
+
+  reader.onload = function(event) {
+
+    if (preview) {
 
       preview.src =
         event.target.result;
 
       preview.style.display =
         "block";
-    };
+    }
 
-  reader.readAsDataURL(
-    file
-  );
+    if (placeholder) {
+      placeholder.style.display =
+        "none";
+    }
+  };
+
+
+  reader.readAsDataURL(file);
 }
 
 
 /* =========================================================
-   23. UPLOAD PHOTO
+   FILE EXTENSION
+   ========================================================= */
+
+function getFileExtension(file) {
+
+  if (!file) {
+    return "jpg";
+  }
+
+  const name =
+    file.name || "";
+
+  const parts =
+    name.split(".");
+
+  if (parts.length < 2) {
+    return "jpg";
+  }
+
+  return parts[
+    parts.length - 1
+  ].toLowerCase();
+}
+
+
+/* =========================================================
+   PROGRESS
+   ========================================================= */
+
+function setProgress(
+  percent,
+  text
+) {
+
+  const wrap =
+    $("progressWrap");
+
+  const bar =
+    $("progressBar");
+
+  const label =
+    $("progressText");
+
+
+  if (wrap) {
+    wrap.style.display =
+      "block";
+  }
+
+  if (bar) {
+    bar.style.width =
+      `${Math.max(
+        0,
+        Math.min(100, percent)
+      )}%`;
+  }
+
+  if (label) {
+    label.textContent =
+      text || "Processing...";
+  }
+}
+
+
+function hideProgress() {
+
+  const wrap =
+    $("progressWrap");
+
+  if (wrap) {
+    wrap.style.display =
+      "none";
+  }
+}
+
+
+/* =========================================================
+   UPLOAD PHOTO
    ========================================================= */
 
 async function uploadStudentPhoto(
-  file,
-  studentDbId
+  studentDbId,
+  file
 ) {
+
+  if (!studentDbId) {
+    throw new Error(
+      "Student database ID is missing."
+    );
+  }
 
   if (!file) {
     return null;
   }
 
-  if (!studentDbId) {
 
-    throw new Error(
-      "Student database ID lama helin."
+  validatePhoto(file);
+
+
+  const extension =
+    getFileExtension(file);
+
+
+  const uniqueName =
+    `${Date.now()}-${crypto.randomUUID()}.${extension}`;
+
+
+  const filePath =
+    `students/${studentDbId}/${uniqueName}`;
+
+
+  setProgress(
+    10,
+    "Uploading student photo..."
+  );
+
+
+  const {
+    error
+  } = await supabaseClient
+    .storage
+    .from(PHOTO_BUCKET)
+    .upload(
+      filePath,
+      file,
+      {
+        cacheControl: "3600",
+        contentType: file.type,
+        upsert: false
+      }
     );
+
+
+  if (error) {
+    throw error;
   }
 
+
+  setProgress(
+    90,
+    "Preparing photo URL..."
+  );
+
+
+  const {
+    data
+  } = supabaseClient
+    .storage
+    .from(PHOTO_BUCKET)
+    .getPublicUrl(filePath);
+
+
   if (
-    !validatePhoto(file)
+    !data ||
+    !data.publicUrl
   ) {
 
     throw new Error(
-      "Invalid student photo."
+      "Photo uploaded, but public URL could not be created."
     );
   }
 
-  console.log(
-    "PHOTO → upload starting..."
+
+  setProgress(
+    100,
+    "Photo uploaded successfully."
   );
 
-  const extension =
-    file.name.includes(".")
-      ? file.name
-          .split(".")
-          .pop()
-          .toLowerCase()
-      : "jpg";
 
-  const uniqueId =
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID ===
-      "function"
-
-      ? crypto.randomUUID()
-
-      : `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2)}`;
-
-  const filePath =
-    `students/${studentDbId}/${Date.now()}-${uniqueId}.${extension}`;
-
-  const {
-    error: uploadError
-  } =
-    await supabaseClient
-      .storage
-      .from(PHOTO_BUCKET)
-      .upload(
-        filePath,
-        file,
-        {
-          cacheControl: "3600",
-          upsert: false,
-          contentType: file.type
-        }
-      );
-
-  if (uploadError) {
-
-    console.error(
-      "PHOTO STORAGE ERROR:",
-      uploadError
-    );
-
-    throw new Error(
-      `Photo upload failed: ${getErrorMessage(
-        uploadError
-      )}`
-    );
-  }
-
-  const {
-    data: publicData
-  } =
-    supabaseClient
-      .storage
-      .from(PHOTO_BUCKET)
-      .getPublicUrl(
-        filePath
-      );
-
-  const publicUrl =
-    publicData?.publicUrl;
-
-  if (!publicUrl) {
-
-    throw new Error(
-      "Photo waa upload-gareysmay laakiin public URL lama helin."
-    );
-  }
-
-  console.log(
-    "PHOTO → upload successful"
-  );
-
-  return publicUrl;
+  return data.publicUrl;
 }
 
 
 /* =========================================================
-   24. RESET FORM
+   CREATE STUDENT
+   ========================================================= */
+
+async function createStudent(
+  payload,
+  photoFile
+) {
+
+  /*
+   Generate UUID locally.
+
+   This avoids depending on INSERT...RETURNING
+   when RLS policies affect SELECT permissions.
+  */
+
+  const studentDbId =
+    crypto.randomUUID();
+
+
+  const insertPayload = {
+    id: studentDbId,
+    institution_id:
+      payload.institution_id,
+    student_id:
+      payload.student_id,
+    full_name:
+      payload.full_name,
+    gender:
+      payload.gender,
+    date_of_birth:
+      payload.date_of_birth,
+    phone:
+      payload.phone,
+    email:
+      payload.email,
+    address:
+      payload.address,
+    admission_date:
+      payload.admission_date,
+    status:
+      payload.status
+  };
+
+
+  /*
+   First save student.
+  */
+
+  const {
+    error: insertError
+  } = await supabaseClient
+    .from("students")
+    .insert(insertPayload);
+
+
+  if (insertError) {
+    throw insertError;
+  }
+
+
+  /*
+   Photo is optional.
+
+   Student remains saved even if
+   photo upload fails.
+  */
+
+  if (photoFile) {
+
+    try {
+
+      const photoUrl =
+        await uploadStudentPhoto(
+          studentDbId,
+          photoFile
+        );
+
+
+      const {
+        error: photoUpdateError
+      } = await supabaseClient
+        .from("students")
+        .update({
+          photo_url: photoUrl,
+          updated_at:
+            new Date().toISOString()
+        })
+        .eq(
+          "id",
+          studentDbId
+        );
+
+
+      if (photoUpdateError) {
+
+        return {
+          success: true,
+          photoError:
+            photoUpdateError,
+          studentDbId
+        };
+      }
+
+
+      return {
+        success: true,
+        photoUploaded: true,
+        studentDbId
+      };
+
+    } catch (photoError) {
+
+      return {
+        success: true,
+        photoError,
+        studentDbId
+      };
+    }
+  }
+
+
+  return {
+    success: true,
+    photoUploaded: false,
+    studentDbId
+  };
+}
+
+
+/* =========================================================
+   UPDATE STUDENT
+   ========================================================= */
+
+async function updateStudent(
+  studentDbId,
+  payload,
+  photoFile
+) {
+
+  const updatePayload = {
+    institution_id:
+      payload.institution_id,
+    student_id:
+      payload.student_id,
+    full_name:
+      payload.full_name,
+    gender:
+      payload.gender,
+    date_of_birth:
+      payload.date_of_birth,
+    phone:
+      payload.phone,
+    email:
+      payload.email,
+    address:
+      payload.address,
+    admission_date:
+      payload.admission_date,
+    status:
+      payload.status,
+    updated_at:
+      new Date().toISOString()
+  };
+
+
+  const {
+    error: updateError
+  } = await supabaseClient
+    .from("students")
+    .update(updatePayload)
+    .eq("id", studentDbId);
+
+
+  if (updateError) {
+    throw updateError;
+  }
+
+
+  /*
+   If no new photo was selected,
+   keep existing photo.
+  */
+
+  if (!photoFile) {
+
+    return {
+      success: true,
+      photoUploaded: false
+    };
+  }
+
+
+  /*
+   Upload new photo.
+  */
+
+  try {
+
+    const photoUrl =
+      await uploadStudentPhoto(
+        studentDbId,
+        photoFile
+      );
+
+
+    const {
+      error: photoUpdateError
+    } = await supabaseClient
+      .from("students")
+      .update({
+        photo_url: photoUrl,
+        updated_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "id",
+        studentDbId
+      );
+
+
+    if (photoUpdateError) {
+
+      return {
+        success: true,
+        photoError:
+          photoUpdateError
+      };
+    }
+
+
+    return {
+      success: true,
+      photoUploaded: true
+    };
+
+  } catch (photoError) {
+
+    return {
+      success: true,
+      photoError
+    };
+  }
+}
+
+
+/* =========================================================
+   SAVE FORM
+   ========================================================= */
+
+async function handleStudentSubmit(
+  event
+) {
+
+  event.preventDefault();
+
+
+  if (isSaving) {
+    return;
+  }
+
+
+  isSaving = true;
+
+  clearMessage();
+
+
+  const saveButton =
+    $("saveButton");
+
+
+  if (saveButton) {
+
+    saveButton.disabled =
+      true;
+
+    saveButton.textContent =
+      editingStudent
+        ? "UPDATING..."
+        : "SAVING...";
+  }
+
+
+  try {
+
+    const payload =
+      getFormData();
+
+
+    validateForm(payload);
+
+
+    const photoInput =
+      $("photoInput");
+
+
+    const photoFile =
+      photoInput &&
+      photoInput.files &&
+      photoInput.files[0]
+        ? photoInput.files[0]
+        : null;
+
+
+    if (photoFile) {
+      validatePhoto(photoFile);
+    }
+
+
+    /*
+     EDIT
+    */
+
+    if (editingStudent) {
+
+      const result =
+        await updateStudent(
+          editingStudent.id,
+          payload,
+          photoFile
+        );
+
+
+      if (
+        result &&
+        result.photoError
+      ) {
+
+        showMessage(
+          "STUDENT DATA UPDATED. Photo upload failed: " +
+          getErrorMessage(
+            result.photoError
+          ),
+          "error",
+          9000
+        );
+
+      } else {
+
+        showMessage(
+          "STUDENT DATA UPDATED SUCCESSFULLY.",
+          "success"
+        );
+      }
+
+    }
+
+    /*
+     CREATE
+    */
+
+    else {
+
+      const result =
+        await createStudent(
+          payload,
+          photoFile
+        );
+
+
+      if (
+        result &&
+        result.photoError
+      ) {
+
+        showMessage(
+          "STUDENT SAVED SUCCESSFULLY. Photo upload failed: " +
+          getErrorMessage(
+            result.photoError
+          ),
+          "error",
+          9000
+        );
+
+      } else {
+
+        showMessage(
+          photoFile
+            ? "STUDENT SAVED SUCCESSFULLY. Photo uploaded successfully."
+            : "STUDENT SAVED SUCCESSFULLY.",
+          "success"
+        );
+      }
+    }
+
+
+    /*
+     Refresh table.
+    */
+
+    await loadStudents();
+
+
+    /*
+     Reset form.
+    */
+
+    resetStudentForm();
+
+
+  } catch (error) {
+
+    console.error(
+      "Student save error:",
+      error
+    );
+
+    showMessage(
+      getErrorMessage(error),
+      "error",
+      9000
+    );
+
+  } finally {
+
+    isSaving = false;
+
+    hideProgress();
+
+    if (saveButton) {
+
+      saveButton.disabled =
+        false;
+
+      saveButton.textContent =
+        "SAVE STUDENT";
+    }
+  }
+}
+
+
+/* =========================================================
+   RESET FORM
    ========================================================= */
 
 function resetStudentForm() {
+
+  editingStudent = null;
+
 
   const form =
     $("studentForm");
@@ -1317,384 +1766,501 @@ function resetStudentForm() {
     form.reset();
   }
 
-  if ($("editStudentDbId")) {
 
-    $("editStudentDbId")
-      .value = "";
+  const editId =
+    $("editStudentDbId");
+
+  if (editId) {
+    editId.value = "";
   }
 
-  editingStudent =
-    null;
 
-  selectedPhotoFile =
-    null;
+  const formTitle =
+    $("formTitle");
 
-  if ($("formTitle")) {
-
-    $("formTitle")
-      .textContent =
-      "Add Student";
+  if (formTitle) {
+    formTitle.textContent =
+      "Add New Student";
   }
 
-  if ($("photoPreview")) {
 
-    $("photoPreview").src =
-      "";
+  const saveButton =
+    $("saveButton");
 
-    $("photoPreview")
-      .style.display =
+  if (saveButton) {
+    saveButton.textContent =
+      "SAVE STUDENT";
+  }
+
+
+  const preview =
+    $("photoPreview");
+
+  if (preview) {
+    preview.src = "";
+    preview.style.display =
       "none";
   }
 
-  if (
-    !isSuperAdmin() &&
-    currentProfile?.institution_id
-  ) {
 
-    if ($("institutionSelect")) {
+  const placeholder =
+    $("photoPlaceholder");
 
-      $("institutionSelect")
-        .value =
-        currentProfile
-          .institution_id;
-    }
+  if (placeholder) {
+    placeholder.style.display =
+      "flex";
   }
 
-  clearMessage();
+
+  const photoInput =
+    $("photoInput");
+
+  if (photoInput) {
+    photoInput.value = "";
+  }
+
+
+  hideProgress();
+
+
+  /*
+   Restore own institution
+   for non-super-admin.
+  */
+
+  const institutionSelect =
+    $("institutionSelect");
+
+
+  if (
+    institutionSelect &&
+    !isSuperAdmin() &&
+    currentProfile &&
+    currentProfile.institution_id
+  ) {
+
+    institutionSelect.value =
+      currentProfile.institution_id;
+  }
+
+
+  /*
+   Default status.
+  */
+
+  const status =
+    $("status");
+
+  if (status) {
+    status.value = "active";
+  }
+
+
+  /*
+   Default admission date = today
+   only if empty.
+  */
+
+  const admissionDate =
+    $("admissionDate");
+
+
+  if (
+    admissionDate &&
+    !admissionDate.value
+  ) {
+
+    admissionDate.value =
+      new Date()
+        .toISOString()
+        .split("T")[0];
+  }
 }
 
 
 /* =========================================================
-   25. EDIT STUDENT
+   EDIT STUDENT
    ========================================================= */
 
-window.editStudent =
-  function(studentDbId) {
+function editStudent(studentDbId) {
 
-    const student =
-      students.find(
-        item =>
-          item.id ===
-          studentDbId
-      );
+  const student =
+    students.find(
+      s => s.id === studentDbId
+    );
 
-    if (!student) {
 
-      showMessage(
-        "Student-ka lama helin.",
-        "error"
-      );
+  if (!student) {
 
-      return;
-    }
+    showMessage(
+      "Student record was not found.",
+      "error"
+    );
 
-    editingStudent =
-      student;
+    return;
+  }
 
-    if ($("editStudentDbId")) {
 
-      $("editStudentDbId")
-        .value =
-        student.id;
-    }
+  editingStudent =
+    student;
 
-    if ($("institutionSelect")) {
 
-      $("institutionSelect")
-        .value =
-        student.institution_id ||
-        "";
-    }
+  const editId =
+    $("editStudentDbId");
 
-    if ($("studentId")) {
+  if (editId) {
+    editId.value =
+      student.id;
+  }
 
-      $("studentId")
-        .value =
-        student.student_id ||
-        "";
-    }
 
-    if ($("fullName")) {
+  const institution =
+    $("institutionSelect");
 
-      $("fullName")
-        .value =
-        student.full_name ||
-        "";
-    }
+  if (institution) {
+    institution.value =
+      student.institution_id || "";
+  }
 
-    if ($("gender")) {
 
-      $("gender")
-        .value =
-        student.gender ||
-        "";
-    }
+  const fields = {
 
-    if ($("dateOfBirth")) {
+    studentId:
+      student.student_id || "",
 
-      $("dateOfBirth")
-        .value =
-        student.date_of_birth ||
-        "";
-    }
+    fullName:
+      student.full_name || "",
 
-    if ($("phone")) {
+    gender:
+      student.gender || "",
 
-      $("phone")
-        .value =
-        student.phone ||
-        "";
-    }
+    dateOfBirth:
+      student.date_of_birth || "",
 
-    if ($("email")) {
+    phone:
+      student.phone || "",
 
-      $("email")
-        .value =
-        student.email ||
-        "";
-    }
+    email:
+      student.email || "",
 
-    if ($("admissionDate")) {
+    address:
+      student.address || "",
 
-      $("admissionDate")
-        .value =
-        student.admission_date ||
-        "";
-    }
+    admissionDate:
+      student.admission_date || "",
 
-    if ($("address")) {
-
-      $("address")
-        .value =
-        student.address ||
-        "";
-    }
-
-    if ($("status")) {
-
-      $("status")
-        .value =
-        student.status ||
-        "active";
-    }
-
-    selectedPhotoFile =
-      null;
-
-    if ($("photoInput")) {
-
-      $("photoInput")
-        .value =
-        "";
-    }
-
-    if ($("photoPreview")) {
-
-      if (student.photo_url) {
-
-        $("photoPreview")
-          .src =
-          student.photo_url;
-
-        $("photoPreview")
-          .style.display =
-          "block";
-
-      } else {
-
-        $("photoPreview").src =
-          "";
-
-        $("photoPreview")
-          .style.display =
-          "none";
-      }
-    }
-
-    if ($("formTitle")) {
-
-      $("formTitle")
-        .textContent =
-        "Edit Student";
-    }
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
+    status:
+      student.status || "active"
   };
 
 
+  Object.entries(fields)
+    .forEach(([id, value]) => {
+
+      const element =
+        $(id);
+
+      if (element) {
+        element.value =
+          value;
+      }
+    });
+
+
+  /*
+   Existing photo preview
+  */
+
+  const preview =
+    $("photoPreview");
+
+  const placeholder =
+    $("photoPlaceholder");
+
+
+  if (
+    preview &&
+    student.photo_url
+  ) {
+
+    preview.src =
+      student.photo_url;
+
+    preview.style.display =
+      "block";
+
+    if (placeholder) {
+      placeholder.style.display =
+        "none";
+    }
+
+  } else {
+
+    if (preview) {
+      preview.src = "";
+      preview.style.display =
+        "none";
+    }
+
+    if (placeholder) {
+      placeholder.style.display =
+        "flex";
+    }
+  }
+
+
+  const formTitle =
+    $("formTitle");
+
+  if (formTitle) {
+    formTitle.textContent =
+      "Edit Student";
+  }
+
+
+  const saveButton =
+    $("saveButton");
+
+  if (saveButton) {
+    saveButton.textContent =
+      "UPDATE STUDENT";
+  }
+
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+
+
 /* =========================================================
-   26. VIEW STUDENT
+   VIEW STUDENT
    ========================================================= */
 
-window.viewStudent =
-  function(studentDbId) {
+function viewStudent(studentDbId) {
 
-    const student =
-      students.find(
-        item =>
-          item.id ===
-          studentDbId
-      );
+  const student =
+    students.find(
+      s => s.id === studentDbId
+    );
 
-    if (!student) {
 
-      showMessage(
-        "Student-ka lama helin.",
-        "error"
-      );
+  if (!student) {
 
-      return;
-    }
+    showMessage(
+      "Student record was not found.",
+      "error"
+    );
 
-    const modal =
-      $("profileModal");
+    return;
+  }
 
-    const content =
-      $("profileContent");
 
-    if (!modal || !content) {
-      return;
-    }
+  const modal =
+    $("profileModal");
 
-    const photo =
-      student.photo_url
+  const content =
+    $("profileContent");
 
-        ? `
-          <img
-            src="${escapeHTML(
-              student.photo_url
-            )}"
-            alt="Student"
-            style="
-              width:120px;
-              height:120px;
-              object-fit:cover;
-              border-radius:50%;
-              border:3px solid #D4AF37;
-            "
-          >
-        `
 
-        : `
-          <div
-            style="
-              width:120px;
-              height:120px;
-              margin:auto;
-              border-radius:50%;
-              background:#e5e7eb;
-              display:flex;
-              align-items:center;
-              justify-content:center;
-              font-size:45px;
-            "
-          >
-            👤
-          </div>
-        `;
+  if (!modal || !content) {
 
-    content.innerHTML = `
+    console.error(
+      "Profile modal DOM elements are missing."
+    );
 
-      <div
-        style="
-          text-align:center;
-          margin-bottom:20px;
-        "
-      >
+    return;
+  }
 
-        ${photo}
 
-        <h2>
-          ${escapeHTML(
+  const institution =
+    institutions.find(
+      i =>
+        i.id ===
+        student.institution_id
+    );
+
+
+  const photoHtml =
+    student.photo_url
+      ? `
+        <img
+          class="profile-photo"
+          src="${escapeHtml(student.photo_url)}"
+          alt="${escapeHtml(student.full_name)}"
+        />
+      `
+      : `
+        <div
+          class="profile-photo"
+          style="
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:#0B1E63;
+            color:white;
+            font-weight:800;
+            font-size:25px;
+          "
+        >
+          ${escapeHtml(
+            getInitials(student.full_name)
+          )}
+        </div>
+      `;
+
+
+  content.innerHTML = `
+
+    <div class="profile-top">
+
+      ${photoHtml}
+
+      <div>
+
+        <div class="profile-name">
+          ${escapeHtml(
             student.full_name
           )}
-        </h2>
+        </div>
 
-        <p>
-          ${escapeHTML(
-            student.student_id
-          )}
-        </p>
+        <div class="profile-id">
+          Student ID:
+          <strong>
+            ${escapeHtml(
+              student.student_id
+            )}
+          </strong>
+        </div>
 
       </div>
 
-      <p>
-        <strong>Gender:</strong>
-        ${escapeHTML(
-          student.gender || "-"
-        )}
-      </p>
+    </div>
 
-      <p>
-        <strong>Date of Birth:</strong>
-        ${escapeHTML(
-          student.date_of_birth || "-"
-        )}
-      </p>
 
-      <p>
-        <strong>Phone:</strong>
-        ${escapeHTML(
-          student.phone || "-"
-        )}
-      </p>
+    <div class="profile-grid">
 
-      <p>
-        <strong>Email:</strong>
-        ${escapeHTML(
-          student.email || "-"
-        )}
-      </p>
+      <div class="profile-item">
+        <small>Institution</small>
+        <strong>
+          ${escapeHtml(
+            institution
+              ? institution.name
+              : "—"
+          )}
+        </strong>
+      </div>
 
-      <p>
-        <strong>Address:</strong>
-        ${escapeHTML(
-          student.address || "-"
-        )}
-      </p>
+      <div class="profile-item">
+        <small>Status</small>
+        <strong>
+          ${statusHtml(
+            student.status
+          )}
+        </strong>
+      </div>
 
-      <p>
-        <strong>Admission Date:</strong>
-        ${escapeHTML(
-          student.admission_date || "-"
-        )}
-      </p>
+      <div class="profile-item">
+        <small>Gender</small>
+        <strong>
+          ${escapeHtml(
+            student.gender || "—"
+          )}
+        </strong>
+      </div>
 
-      <p>
-        <strong>Status:</strong>
-        ${escapeHTML(
-          student.status || "-"
-        )}
-      </p>
+      <div class="profile-item">
+        <small>Date of Birth</small>
+        <strong>
+          ${formatDate(
+            student.date_of_birth
+          )}
+        </strong>
+      </div>
 
-      <p>
-        <strong>Emergency Contact:</strong>
-        ${escapeHTML(
-          student.emergency_contact_name ||
-          "-"
-        )}
-      </p>
+      <div class="profile-item">
+        <small>Phone</small>
+        <strong>
+          ${escapeHtml(
+            student.phone || "—"
+          )}
+        </strong>
+      </div>
 
-      <p>
-        <strong>Emergency Phone:</strong>
-        ${escapeHTML(
-          student.emergency_contact_phone ||
-          "-"
-        )}
-      </p>
+      <div class="profile-item">
+        <small>Email</small>
+        <strong>
+          ${escapeHtml(
+            student.email || "—"
+          )}
+        </strong>
+      </div>
 
-    `;
+      <div class="profile-item">
+        <small>Admission Date</small>
+        <strong>
+          ${formatDate(
+            student.admission_date
+          )}
+        </strong>
+      </div>
 
-    modal.style.display =
-      "flex";
-  };
+      <div class="profile-item">
+        <small>Created</small>
+        <strong>
+          ${formatDate(
+            student.created_at
+          )}
+        </strong>
+      </div>
+
+      <div class="profile-item">
+        <small>Emergency Contact</small>
+        <strong>
+          ${escapeHtml(
+            student.emergency_contact_name ||
+            "—"
+          )}
+        </strong>
+      </div>
+
+      <div class="profile-item">
+        <small>Emergency Phone</small>
+        <strong>
+          ${escapeHtml(
+            student.emergency_contact_phone ||
+            "—"
+          )}
+        </strong>
+      </div>
+
+      <div
+        class="profile-item"
+        style="grid-column:1/-1"
+      >
+        <small>Address</small>
+        <strong>
+          ${escapeHtml(
+            student.address || "—"
+          )}
+        </strong>
+      </div>
+
+    </div>
+  `;
+
+
+  modal.classList.add("show");
+  modal.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+}
 
 
 /* =========================================================
-   27. CLOSE PROFILE MODAL
+   CLOSE PROFILE MODAL
    ========================================================= */
 
 function closeProfileModal() {
@@ -1702,808 +2268,431 @@ function closeProfileModal() {
   const modal =
     $("profileModal");
 
-  if (modal) {
+  if (!modal) return;
 
-    modal.style.display =
-      "none";
-  }
+  modal.classList.remove("show");
+
+  modal.setAttribute(
+    "aria-hidden",
+    "true"
+  );
 }
 
 
 /* =========================================================
-   28. SAVE STUDENT
+   DELETE STUDENT
    ========================================================= */
 
-async function saveStudent(
-  event
-) {
+async function deleteStudent(studentDbId) {
 
-  event.preventDefault();
+  const student =
+    students.find(
+      s => s.id === studentDbId
+    );
 
-  if (savingStudent) {
+
+  if (!student) {
+
+    showMessage(
+      "Student record was not found.",
+      "error"
+    );
+
     return;
   }
 
-  clearMessage();
 
-  savingStudent =
-    true;
+  const confirmed =
+    window.confirm(
+      `Are you sure you want to delete "${student.full_name}"?\n\nThis action cannot be undone.`
+    );
 
-  setSaveLoading(
-    true,
-    editingStudent
-      ? "Updating..."
-      : "Saving..."
-  );
+
+  if (!confirmed) {
+    return;
+  }
+
 
   try {
 
-    /* -----------------------------------------------------
-       FORM VALUES
-       ----------------------------------------------------- */
+    showMessage(
+      "Deleting student...",
+      "info",
+      0
+    );
 
-    const institutionId =
-      $("institutionSelect")
-        ?.value ||
-      "";
 
-    const studentId =
-      $("studentId")
-        ?.value
-        ?.trim() ||
-      "";
+    const {
+      error
+    } = await supabaseClient
+      .from("students")
+      .delete()
+      .eq("id", studentDbId);
 
-    const fullName =
-      $("fullName")
-        ?.value
-        ?.trim() ||
-      "";
 
-    if (!institutionId) {
-
-      throw new Error(
-        "Please select an institution."
-      );
+    if (error) {
+      throw error;
     }
 
-    if (!studentId) {
-
-      throw new Error(
-        "Student ID waa required."
-      );
-    }
-
-    if (!fullName) {
-
-      throw new Error(
-        "Full name waa required."
-      );
-    }
-
-    if (
-      !isSuperAdmin() &&
-      institutionId !==
-        currentProfile.institution_id
-    ) {
-
-      throw new Error(
-        "Ma kaydin kartid student ka tirsan institution kale."
-      );
-    }
-
-
-    /* -----------------------------------------------------
-       PHOTO
-       ----------------------------------------------------- */
-
-    const photoFile =
-      selectedPhotoFile ||
-      $("photoInput")
-        ?.files?.[0] ||
-      null;
-
-    if (
-      photoFile &&
-      !validatePhoto(
-        photoFile
-      )
-    ) {
-
-      throw new Error(
-        "Photo-ga aad dooratay ma saxna."
-      );
-    }
-
-
-    /* -----------------------------------------------------
-       PAYLOAD
-       ----------------------------------------------------- */
-
-    const payload = {
-
-      institution_id:
-        institutionId,
-
-      student_id:
-        studentId,
-
-      full_name:
-        fullName,
-
-      gender:
-        $("gender")
-          ?.value ||
-        null,
-
-      date_of_birth:
-        $("dateOfBirth")
-          ?.value ||
-        null,
-
-      phone:
-        $("phone")
-          ?.value
-          ?.trim() ||
-        null,
-
-      email:
-        $("email")
-          ?.value
-          ?.trim() ||
-        null,
-
-      address:
-        $("address")
-          ?.value
-          ?.trim() ||
-        null,
-
-      admission_date:
-        $("admissionDate")
-          ?.value ||
-        null,
-
-      status:
-        $("status")
-          ?.value ||
-        "active",
-
-      updated_at:
-        new Date()
-          .toISOString()
-    };
-
-
-    /* =====================================================
-       UPDATE
-       ===================================================== */
-
-    if (editingStudent) {
-
-      console.log(
-        "UPDATE STUDENT:",
-        editingStudent.id
-      );
-
-      const {
-        data,
-        error
-      } =
-        await supabaseClient
-          .from("students")
-          .update(payload)
-          .eq(
-            "id",
-            editingStudent.id
-          )
-          .select(`
-            id,
-            institution_id,
-            student_id,
-            full_name,
-            photo_url
-          `)
-          .single();
-
-      if (error) {
-        throw error;
-      }
-
-      console.log(
-        "STUDENT UPDATE SUCCESS:",
-        data
-      );
-
-
-      /* ---------------------------------------------------
-         NEW PHOTO
-         --------------------------------------------------- */
-
-      if (photoFile) {
-
-        showMessage(
-          "Student-ka waa la update-gareeyey. Photo-ga waa la upload-gareynayaa...",
-          "info"
-        );
-
-        const photoUrl =
-          await uploadStudentPhoto(
-            photoFile,
-            editingStudent.id
-          );
-
-        const {
-          error:
-            photoDatabaseError
-        } =
-          await supabaseClient
-            .from("students")
-            .update({
-              photo_url:
-                photoUrl,
-
-              updated_at:
-                new Date()
-                  .toISOString()
-            })
-            .eq(
-              "id",
-              editingStudent.id
-            );
-
-        if (
-          photoDatabaseError
-        ) {
-
-          throw photoDatabaseError;
-        }
-      }
-
-      showMessage(
-        photoFile
-          ? "STUDENT DATA UPDATED. Photo-gana waa la kaydiyey."
-          : "STUDENT DATA UPDATED.",
-        "success"
-      );
-
-    }
-
-
-    /* =====================================================
-       INSERT
-       ===================================================== */
-
-    else {
-
-      console.log(
-        "CREATE STUDENT"
-      );
-
-      const {
-        data,
-        error
-      } =
-        await supabaseClient
-          .from("students")
-          .insert(payload)
-          .select(`
-            id,
-            institution_id,
-            student_id,
-            full_name,
-            photo_url
-          `)
-          .single();
-
-      if (error) {
-        throw error;
-      }
-
-      console.log(
-        "STUDENT INSERT SUCCESS:",
-        data
-      );
-
-
-      /* ---------------------------------------------------
-         PHOTO
-         --------------------------------------------------- */
-
-      if (photoFile) {
-
-        showMessage(
-          "STUDENT SAVED SUCCESSFULLY. Photo-ga waa la upload-gareynayaa...",
-          "info"
-        );
-
-        const photoUrl =
-          await uploadStudentPhoto(
-            photoFile,
-            data.id
-          );
-
-        const {
-          error:
-            photoDatabaseError
-        } =
-          await supabaseClient
-            .from("students")
-            .update({
-              photo_url:
-                photoUrl,
-
-              updated_at:
-                new Date()
-                  .toISOString()
-            })
-            .eq(
-              "id",
-              data.id
-            );
-
-        if (
-          photoDatabaseError
-        ) {
-
-          throw photoDatabaseError;
-        }
-
-        showMessage(
-          "STUDENT SAVED SUCCESSFULLY. Photo-gana waa la kaydiyey.",
-          "success"
-        );
-
-      } else {
-
-        showMessage(
-          "STUDENT SAVED SUCCESSFULLY.",
-          "success"
-        );
-      }
-    }
-
-
-    /* =====================================================
-       RESET + REFRESH
-       ===================================================== */
-
-    resetStudentForm();
 
     await loadStudents();
+
+
+    showMessage(
+      "STUDENT DELETED SUCCESSFULLY.",
+      "success"
+    );
+
 
   } catch (error) {
 
     console.error(
-      "SAVE STUDENT ERROR:",
+      "Delete student error:",
       error
     );
 
     showMessage(
+      "Delete failed: " +
       getErrorMessage(error),
-      "error"
-    );
-
-  } finally {
-
-    savingStudent =
-      false;
-
-    setSaveLoading(
-      false
+      "error",
+      9000
     );
   }
 }
 
 
 /* =========================================================
-   29. DELETE STUDENT
+   TABLE ACTION HANDLER
    ========================================================= */
 
-window.deleteStudent =
-  async function(studentDbId) {
+function handleTableClick(event) {
 
-    const student =
-      students.find(
-        item =>
-          item.id ===
-          studentDbId
-      );
+  const button =
+    event.target.closest(
+      "button[data-action]"
+    );
 
-    if (!student) {
 
-      showMessage(
-        "Student-ka lama helin.",
-        "error"
-      );
+  if (!button) {
+    return;
+  }
 
-      return;
-    }
 
-    const confirmed =
-      window.confirm(
-        `Delete student "${student.full_name}"?`
-      );
+  const action =
+    button.dataset.action;
 
-    if (!confirmed) {
-      return;
-    }
+  const id =
+    button.dataset.id;
 
-    try {
 
-      showMessage(
-        "Deleting student...",
-        "info"
-      );
+  if (!id) {
+    return;
+  }
 
-      const {
-        error
-      } =
-        await supabaseClient
-          .from("students")
-          .delete()
-          .eq(
-            "id",
-            studentDbId
-          );
 
-      if (error) {
-        throw error;
-      }
+  if (action === "view") {
 
-      showMessage(
-        "STUDENT DELETED SUCCESSFULLY.",
-        "success"
-      );
+    viewStudent(id);
 
-      await loadStudents();
+  } else if (action === "edit") {
 
-    } catch (error) {
+    editStudent(id);
 
-      console.error(
-        "DELETE ERROR:",
-        error
-      );
+  } else if (action === "delete") {
 
-      showMessage(
-        `Delete failed: ${getErrorMessage(
-          error
-        )}`,
-        "error"
-      );
-    }
-  };
+    deleteStudent(id);
+  }
+}
 
 
 /* =========================================================
-   30. EVENTS
+   EVENT LISTENERS
    ========================================================= */
 
-function setupEvents() {
-
-  console.log(
-    "Setting up Students events..."
-  );
-
-
-  /* FORM */
+function setupEventListeners() {
 
   const form =
     $("studentForm");
 
-  if (
-    form &&
-    !form.dataset.studentsEvents
-  ) {
+  if (form) {
 
     form.addEventListener(
       "submit",
-      saveStudent
+      handleStudentSubmit
     );
-
-    form.dataset.studentsEvents =
-      "true";
   }
 
 
-  /* PHOTO */
+  const resetButton =
+    $("resetFormButton");
+
+  if (resetButton) {
+
+    resetButton.addEventListener(
+      "click",
+      resetStudentForm
+    );
+  }
+
+
+  const addButton =
+    $("addStudentButton");
+
+  if (addButton) {
+
+    addButton.addEventListener(
+      "click",
+      () => {
+
+        resetStudentForm();
+
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+      }
+    );
+  }
+
 
   const photoInput =
     $("photoInput");
 
-  if (
-    photoInput &&
-    !photoInput.dataset.studentsEvents
-  ) {
+  if (photoInput) {
 
     photoInput.addEventListener(
       "change",
       handlePhotoPreview
     );
-
-    photoInput.dataset.studentsEvents =
-      "true";
   }
 
-
-  /* SEARCH */
 
   const searchInput =
     $("searchInput");
 
-  if (
-    searchInput &&
-    !searchInput.dataset.studentsEvents
-  ) {
+  if (searchInput) {
 
     searchInput.addEventListener(
       "input",
       renderStudents
     );
-
-    searchInput.dataset.studentsEvents =
-      "true";
   }
 
-
-  /* STATUS FILTER */
 
   const statusFilter =
     $("statusFilter");
 
-  if (
-    statusFilter &&
-    !statusFilter.dataset.studentsEvents
-  ) {
+  if (statusFilter) {
 
     statusFilter.addEventListener(
       "change",
       renderStudents
     );
-
-    statusFilter.dataset.studentsEvents =
-      "true";
   }
 
 
-  /* CLOSE MODAL */
+  const tableBody =
+    $("studentsTableBody");
 
-  document
-    .querySelectorAll(
-      "[data-close-profile-modal]"
-    )
-    .forEach(
-      button => {
+  if (tableBody) {
 
-        if (
-          button.dataset.studentsEvents
-        ) {
-          return;
-        }
-
-        button.addEventListener(
-          "click",
-          closeProfileModal
-        );
-
-        button.dataset.studentsEvents =
-          "true";
-      }
+    tableBody.addEventListener(
+      "click",
+      handleTableClick
     );
+  }
 
 
-  /* MODAL OUTSIDE CLICK */
+  const closeModal =
+    $("closeProfileModal");
 
-  if (
-    !window.__studentsModalClick
-  ) {
+  if (closeModal) {
 
-    window.__studentsModalClick =
-      true;
+    closeModal.addEventListener(
+      "click",
+      closeProfileModal
+    );
+  }
 
-    window.addEventListener(
+
+  const modal =
+    $("profileModal");
+
+  if (modal) {
+
+    modal.addEventListener(
       "click",
       event => {
 
-        const modal =
-          $("profileModal");
-
         if (
-          modal &&
-          event.target ===
-            modal
+          event.target === modal
         ) {
-
           closeProfileModal();
         }
       }
     );
   }
-}
 
 
-/* =========================================================
-   31. RESET BUTTON
-   ========================================================= */
+  document.addEventListener(
+    "keydown",
+    event => {
 
-function setupResetButton() {
-
-  document
-    .querySelectorAll(
-      "[data-reset-student-form]"
-    )
-    .forEach(
-      button => {
-
-        if (
-          button.dataset.studentsReset
-        ) {
-          return;
-        }
-
-        button.addEventListener(
-          "click",
-          resetStudentForm
-        );
-
-        button.dataset.studentsReset =
-          "true";
+      if (
+        event.key === "Escape"
+      ) {
+        closeProfileModal();
       }
-    );
+    }
+  );
 }
 
 
 /* =========================================================
-   32. GLOBAL FUNCTIONS
+   INITIALIZATION
    ========================================================= */
 
-window.loadStudents =
-  loadStudents;
-
-window.resetStudentForm =
-  resetStudentForm;
-
-window.closeProfileModal =
-  closeProfileModal;
-
-window.saveStudent =
-  saveStudent;
-
-
-/* =========================================================
-   33. INITIALIZATION
-   ========================================================= */
-
-async function initializeStudentsPage() {
-
-  if (initialized) {
-
-    console.warn(
-      "Students V3.4 is already initialized."
-    );
-
-    return;
-  }
-
-  initialized =
-    true;
+async function initStudentsPage() {
 
   console.log(
-    "======================================"
-  );
-
-  console.log(
-    "GAAWOW EMS — STUDENTS V3.4 FINAL"
-  );
-
-  console.log(
-    "Initialization started"
-  );
-
-  console.log(
-    "======================================"
+    "GAAWOW EMS Students V3.5 starting..."
   );
 
 
   try {
 
-    clearMessage();
+    /*
+     Basic DOM verification
+    */
+
+    const requiredIds = [
+      "message",
+      "totalStudents",
+      "activeStudents",
+      "graduatedStudents",
+      "otherStudents",
+      "studentForm",
+      "institutionSelect",
+      "studentId",
+      "fullName",
+      "studentsTableBody"
+    ];
 
 
-    /* STEP 1 */
+    const missingIds =
+      requiredIds.filter(
+        id => !$(id)
+      );
 
-    showMessage(
-      "Connecting to Supabase...",
-      "info"
+
+    if (missingIds.length) {
+
+      console.error(
+        "Missing DOM elements:",
+        missingIds
+      );
+
+      throw new Error(
+        "Students page HTML is incomplete. Missing: " +
+        missingIds.join(", ")
+      );
+    }
+
+
+    /*
+     Test connection
+    */
+
+    const connected =
+      await checkSupabaseConnection();
+
+
+    if (!connected) {
+
+      console.warn(
+        "Supabase connection test failed, continuing with auth."
+      );
+    }
+
+
+    /*
+     Authentication
+    */
+
+    await loadCurrentUser();
+
+
+    /*
+     Profile
+    */
+
+    await loadCurrentProfile();
+
+
+    console.log(
+      "Logged user:",
+      currentUser.email
     );
 
-    await testSupabaseConnection();
-
-
-    /* STEP 2 */
-
-    showMessage(
-      "Checking authentication...",
-      "info"
-    );
-
-    await getCurrentUser();
-
-
-    /* STEP 3 */
-
-    showMessage(
-      "Loading profile...",
-      "info"
-    );
-
-    await loadCurrentProfile(
-      currentUser.id
+    console.log(
+      "Profile:",
+      currentProfile
     );
 
 
-    /* STEP 4 */
+    /*
+     Event listeners
+    */
 
-    showMessage(
-      "Loading institutions...",
-      "info"
-    );
+    setupEventListeners();
+
+
+    /*
+     Institutions
+    */
 
     await loadInstitutions();
 
 
-    /* EVENTS */
-
-    setupEvents();
-
-    setupResetButton();
-
-
-    /* STEP 5 */
-
-    showMessage(
-      "Loading students...",
-      "info"
-    );
+    /*
+     Students
+    */
 
     await loadStudents();
 
 
-    /* COMPLETE */
+    /*
+     Form defaults
+    */
 
-    showMessage(
-      "Students module loaded successfully.",
-      "success"
-    );
+    resetStudentForm();
 
-    console.log(
-      "======================================"
-    );
 
     console.log(
-      "STUDENTS V3.4 READY ✓"
+      "GAAWOW EMS Students V3.5 loaded successfully."
     );
 
-    console.log(
-      "======================================"
-    );
 
   } catch (error) {
 
     console.error(
-      "STUDENTS INITIALIZATION FAILED:",
+      "Students initialization failed:",
       error
     );
 
+
     showMessage(
+      "Students module error: " +
       getErrorMessage(error),
-      "error"
+      "error",
+      0
     );
   }
 }
 
 
 /* =========================================================
-   34. START ONLY ONCE
+   START ONLY AFTER DOM READY
    ========================================================= */
 
 if (
@@ -2513,7 +2702,7 @@ if (
 
   document.addEventListener(
     "DOMContentLoaded",
-    initializeStudentsPage,
+    initStudentsPage,
     {
       once: true
     }
@@ -2521,10 +2710,27 @@ if (
 
 } else {
 
-  initializeStudentsPage();
+  initStudentsPage();
 }
 
 
 /* =========================================================
-   END — GAAWOW EMS STUDENTS V3.4
+   OPTIONAL GLOBAL FUNCTIONS
+   Useful if another existing dashboard/page
+   calls these names.
    ========================================================= */
+
+window.viewStudent =
+  viewStudent;
+
+window.editStudent =
+  editStudent;
+
+window.deleteStudent =
+  deleteStudent;
+
+window.closeProfileModal =
+  closeProfileModal;
+
+window.resetStudentForm =
+  resetStudentForm;
