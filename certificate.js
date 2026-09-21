@@ -926,6 +926,18 @@ async function renderCertificate() {
   return true;
 }
 
+/* The database only accepts these certificate_type values
+   (constraint certificates_certificate_type_check). */
+const CERTIFICATE_TYPES = ["certificate", "diploma", "authentication_letter"];
+
+function normalizeCertificateType(value) {
+  const v = String(value || "").toLowerCase().trim().replace(/[\s-]+/g, "_");
+  if (CERTIFICATE_TYPES.includes(v)) return v;
+  if (v.includes("diploma")) return "diploma";
+  if (v.includes("auth")) return "authentication_letter";
+  return "certificate";   // "Certificate of Completion" and anything else
+}
+
 /* ---------------- SAVE ---------------- */
 
 async function saveCertificate() {
@@ -982,7 +994,7 @@ async function saveCertificate() {
     student_name_snapshot: student.full_name || "",
     course_name_snapshot: course.name || "",
     issued_by: currentUser.id,
-    certificate_type: $("certificateType").value || "Certificate of Completion",
+    certificate_type: normalizeCertificateType($("certificateType")?.value),
     template_url: new URL(loadedTemplateName, window.location.href).href,
     student_photo_url: student.photo_url || null,
     verification_url: verificationUrl
