@@ -139,30 +139,46 @@ async function loadProfile() {
 
 /* ---------------- TEMPLATE ---------------- */
 
-function loadImage(url) {
+function loadImage(url, crossOrigin = false) {
   return new Promise((resolve, reject) => {
     const img = new Image();
+    if (crossOrigin) img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Template not found: ${url}`));
-    img.src = `${url}?v=${Date.now()}`;
+    img.onerror = () => reject(new Error(`Image could not be loaded: ${url}`));
+    img.src = url;
   });
 }
 
 async function loadOfficialTemplate() {
   let lastError = null;
 
-  for (const url of TEMPLATE_CANDIDATES) {
+  for (const path of TEMPLATE_CANDIDATES) {
     try {
-      const img = await loadImage(url);
+      const url = new URL(path, document.baseURI).href;
+      const img = await loadImage(url, false);
       templateImage = img;
-      setPreviewStatus(`Official template loaded: ${url.replace("./", "")}`);
+      setPreviewStatus(`Official template loaded: ${path.replace("./", "")}`);
+      drawTemplateOnly();
       return;
     } catch (e) {
+      console.warn("Template load failed:", path, e);
       lastError = e;
     }
   }
 
-  throw lastError || new Error("certificate-template.png was not found in the root.");
+  throw lastError || new Error("certificate-template.png was not found in the GAAWOW-EMS root.");
+}
+
+function drawTemplateOnly() {
+  if (!templateImage) return;
+  const canvas = $("certificateCanvas");
+  if (!canvas) return;
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d", { alpha: false });
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(templateImage, 0, 0, W, H);
 }
 
 /* ---------------- DATA ---------------- */
@@ -247,33 +263,51 @@ function populateStudentSelect() {
 
 async function loadCourses(institutionId) {
   const select = $("courseSelect");
+  if (!select) return;
+
   select.innerHTML = `<option value="">Loading courses...</option>`;
+  select.disabled = true;
 
-  let query = supabaseClient
-    .from("courses")
-    .select("id,institution_id,name,code,description,is_active")
-    .order("name", { ascending: true });
+  try {
+    let query = supabaseClient
+      .from("courses")
+      .select("id,institution_id,name,code,description,is_active")
+      .order("name", { ascending: true });
 
-  if (institutionId) {
-    query = query.eq("institution_id", institutionId);
-  } else if (!isSuperAdmin() && currentProfile?.institution_id) {
-    query = query.eq("institution_id", currentProfile.institution_id);
-  }
+    // Only restrict by institution when a concrete institution is selected.
+    if (institutionId) {
+      query = query.eq("institution_id", institutionId);
+    }
 
-  const { data, error } = await query;
-  if (error) throw new Error(`Courses database error: ${error.message}`);
+    const { data, error } = await query;
+    if (error) throw new Error(`Courses database error: ${error.message}`);
 
-  courses = (data || []).filter(c => c.is_active !== false);
+    courses = (data || []).filter(c => c.is_active !== false);
 
-  select.innerHTML = `<option value="">Select course</option>`;
+    select.innerHTML = `<option value="">${courses.length ? "Select course" : "No active courses found"}</option>`;
 
-  for (const course of courses) {
-    const opt = document.createElement("option");
-    opt.value = course.id;
-    opt.textContent = course.code
-      ? `${course.name} (${course.code})`
-      : course.name;
-    select.appendChild(opt);
+    for (const course of courses) {
+      const opt = document.createElement("option");
+      opt.value = course.id;
+      opt.textContent = course.code ? `${course.name} (${course.code})` : course.name;
+      select.appendChild(opt);
+    }
+
+    select.disabled = false;
+
+    if (!courses.length) {
+      showMessage(
+        institutionId
+          ? "No active courses were found for the selected institution."
+          : "No active courses were found.",
+        "info"
+      );
+    }
+  } catch (e) {
+    courses = [];
+    select.innerHTML = `<option value="">Course loading failed</option>`;
+    select.disabled = false;
+    throw e;
   }
 }
 
@@ -343,9 +377,14 @@ function syncStudent() {
     $("photoBox").style.display = "none";
   }
 
-  if (student.institution_id && isSuperAdmin()) {
-    $("institutionSelect").value = student.institution_id;
-    loadCourses(student.institution_id).catch(e => showMessage(e.message, "error"));
+  if (student.institution_id) {
+    if (isSuperAdmin()) {
+      $("institutionSelect").value = student.institution_id;
+    }
+    loadCourses(student.institution_id).catch(e => {
+      console.error("Student course load failed:", e);
+      showMessage(e.message || "Unable to load courses for this student.", "error");
+    });
   }
 }
 
@@ -401,18 +440,76 @@ function drawLeft(ctx, text, x, y, size, font, color, weight = "400") {
   ctx.fillText(text, x, y);
 }
 
-function clearDarkTextRegion(ctx, x, y, w, h, bg = "#f7f3ee") {
+function isDarkPlaceholderPixel(r, g, b) {
+  const avg = (r + g + b) / 3;
+  return avg < 175 && r < 150 && g < 160 && b < 185;
+}
+
+function eraseTextByInpainting(ctx, x, y, w, h) {
   const image = ctx.getImageData(x, y, w, h);
   const d = image.data;
+  const original = new Uint8ClampedArray(d);
 
-  for (let i = 0; i < d.length; i += 4) {
-    const r = d[i], g = d[i + 1], b = d[i + 2];
-    /* Remove only dark placeholder text.
-       Gold decorative lines and light laurel remain. */
-    if (r < 105 && g < 115 && b < 135) {
-      d[i] = 247;
-      d[i + 1] = 243;
-      d[i + 2] = 238;
+  const get = (px, py) => {
+    if (px < 0 || py < 0 || px >= w || py >= h) return null;
+    const i = (py * w + px) * 4;
+    return [original[i], original[i + 1], original[i + 2]];
+  };
+
+  for (let py = 0; py < h; py++) {
+    for (let px = 0; px < w; px++) {
+      const i = (py * w + px) * 4;
+      const r = original[i], g = original[i + 1], b = original[i + 2];
+
+      if (!isDarkPlaceholderPixel(r, g, b)) continue;
+
+      let replacement = null;
+
+      // Find clean background vertically. This preserves the template's
+      // subtle paper texture/graphics instead of painting a flat rectangle.
+      for (let distance = 2; distance <= 55 && !replacement; distance++) {
+        const candidates = [get(px, py - distance), get(px, py + distance)];
+        for (const c of candidates) {
+          if (!c) continue;
+          if (!isDarkPlaceholderPixel(c[0], c[1], c[2])) {
+            replacement = c;
+            break;
+          }
+        }
+      }
+
+      if (!replacement) replacement = [246, 243, 237];
+
+      d[i] = replacement[0];
+      d[i + 1] = replacement[1];
+      d[i + 2] = replacement[2];
+      d[i + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(image, x, y);
+}
+
+function eraseRegionWithPaper(ctx, x, y, w, h) {
+  // Used only for the status value and the verification URL, where the
+  // original template contains a fixed sample value that must disappear.
+  const image = ctx.getImageData(x, y, w, h);
+  const d = image.data;
+  const original = new Uint8ClampedArray(d);
+
+  for (let py = 0; py < h; py++) {
+    for (let px = 0; px < w; px++) {
+      const i = (py * w + px) * 4;
+      const r = original[i], g = original[i + 1], b = original[i + 2];
+      const avg = (r + g + b) / 3;
+
+      // Preserve the white/cream paper and remove colored/black sample text.
+      if (avg < 210 || (g > r * 0.9 && g > b * 0.9 && g > 125 && r < 230)) {
+        d[i] = 246;
+        d[i + 1] = 243;
+        d[i + 2] = 237;
+        d[i + 3] = 255;
+      }
     }
   }
 
@@ -423,7 +520,7 @@ async function drawStudentPhoto(ctx, url) {
   if (!url) return;
 
   try {
-    const img = await loadImage(url);
+    const img = await loadImage(url, true);
     const x = 96, y = 183, size = 230;
 
     ctx.save();
@@ -513,35 +610,47 @@ async function renderCertificate() {
      Icons, borders, gold lines and background remain.
      ------------------------------------------------------- */
 
-  clearDarkTextRegion(ctx, 495, 478, 650, 105);
-  clearDarkTextRegion(ctx, 585, 648, 470, 75);
+  // Main dynamic text: remove the sample text already printed in the PNG.
+  eraseTextByInpainting(ctx, 490, 470, 665, 105);
+  eraseTextByInpainting(ctx, 585, 642, 480, 78);
 
-  clearDarkTextRegion(ctx, 110, 440, 240, 40);
-  clearDarkTextRegion(ctx, 110, 505, 245, 40);
-  clearDarkTextRegion(ctx, 110, 570, 245, 40);
-  clearDarkTextRegion(ctx, 110, 635, 245, 40);
-  clearDarkTextRegion(ctx, 110, 700, 245, 40);
-  clearDarkTextRegion(ctx, 110, 805, 245, 55);
+  // Left information values only — labels/icons/gold separators remain untouched.
+  eraseTextByInpainting(ctx, 112, 458, 245, 38);   // Student ID
+  eraseTextByInpainting(ctx, 112, 523, 245, 38);   // Certificate ID
+  eraseTextByInpainting(ctx, 112, 588, 245, 38);   // Course
+  eraseTextByInpainting(ctx, 112, 653, 245, 38);   // Date Started
+  eraseTextByInpainting(ctx, 112, 718, 245, 38);   // Date Completed
+  eraseTextByInpainting(ctx, 112, 783, 245, 38);   // Date Issued
+
+  // The template contains a sample green status pill/value. Clear its inner text
+  // while keeping the original icon and surrounding layout.
+  ctx.fillStyle = "#f7f5ef";
+  ctx.fillRect(120, 843, 148, 31);
+
+  // The template also contains a sample verification URL. It is replaced below
+  // with the actual verification URL for the generated certificate.
+  ctx.fillStyle = "#f7f5ef";
+  ctx.fillRect(1230, 642, 270, 38);
 
   /* Student photo */
   await drawStudentPhoto(ctx, student.photo_url);
 
   /* Left information */
-  drawLeft(ctx, student.student_id || "—", 120, 484, 17, "Arial", ink, "400");
-  drawLeft(ctx, $("certificateId").value || "—", 120, 548, 16, "Arial", ink, "400");
-  drawLeft(ctx, course.name || "—", 120, 613, 16, "Arial", ink, "400");
-  drawLeft(ctx, formatDate($("dateStarted").value), 120, 678, 16, "Arial", ink, "400");
-  drawLeft(ctx, formatDate($("dateCompleted").value), 120, 743, 16, "Arial", ink, "400");
+  drawLeft(ctx, student.student_id || "—", 120, 477, 17, "Arial", ink, "400");
+  drawLeft(ctx, $("certificateId").value || "—", 120, 542, 16, "Arial", ink, "400");
+  drawLeft(ctx, course.name || "—", 120, 607, 16, "Arial", ink, "400");
+  drawLeft(ctx, formatDate($("dateStarted").value), 120, 672, 16, "Arial", ink, "400");
+  drawLeft(ctx, formatDate($("dateCompleted").value), 120, 737, 16, "Arial", ink, "400");
 
   /* Status pill */
   const statusText = String($("status").value || "valid").toUpperCase();
-  roundedRect(ctx, 120, 858, 145, 34, 5);
+  roundedRect(ctx, 120, 846, 145, 34, 5);
   ctx.fillStyle = "#f7fbf7";
   ctx.fill();
   ctx.strokeStyle = "#16A34A";
   ctx.lineWidth = 2;
   ctx.stroke();
-  drawCentered(ctx, statusText, 192, 875, 130, 15, "Arial", "#166534", "700");
+  drawCentered(ctx, statusText, 192, 863, 130, 15, "Arial", "#166534", "700");
 
   /* Main student name */
   drawCentered(
@@ -570,10 +679,15 @@ async function renderCertificate() {
   );
 
   /* Date issued */
-  drawLeft(ctx, formatDate($("issueDate").value), 120, 808, 16, "Arial", ink, "400");
+  drawLeft(ctx, formatDate($("issueDate").value), 120, 802, 16, "Arial", ink, "400");
 
   /* QR */
   await drawQR(ctx, $("verifyCode").value);
+
+  /* Dynamic verification URL — same visual area as the template sample URL. */
+  const verificationUrl =
+    `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}verify.html?code=${encodeURIComponent($("verifyCode").value)}`;
+  drawCentered(ctx, verificationUrl, 1365, 661, 260, 13, "Arial", ink, "400");
 
   generated = true;
   saved = false;
