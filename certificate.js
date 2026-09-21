@@ -1,13 +1,16 @@
 /* =========================================================
    GAAWOW EMS
-   CERTIFICATE GENERATOR V8.0
-   TEMPLATE-SAFE / DATABASE-SAFE
+   CERTIFICATE GENERATOR V9.0
+   CLEAN-TEMPLATE / DATABASE-SAFE
 
-   Template:
-   ./certificate-template.png
+   Template (placeholder text already removed):
+   ./certificate-template-clean.png
 
-   Uses existing certificates schema only.
-   No schema changes.
+   V9 no longer erases anything at runtime. The template ships
+   with empty fields, so every value is drawn on clean paper and
+   nothing looks patched or "edited".
+
+   Uses existing certificates schema only. No schema changes.
    ========================================================= */
 
 const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
@@ -18,14 +21,62 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_KEY
 );
 
+const TEMPLATE_FILE = "certificate-template-clean.png";
 const TEMPLATE_CANDIDATES = [
-  "./certificate-template.png",
-  "./Certificate.template.png",
-  "./Certificate-template.png"
+  `./${TEMPLATE_FILE}`,
+  `./Certificate-template-clean.png`
 ];
 
+/* Layout coordinates are in the 1536x1024 template space.
+   The canvas is rendered at SCALE x for a sharper HD export. */
 const W = 1536;
 const H = 1024;
+const SCALE = 2;
+
+const NAVY = "#0A1A44";
+const INK = "#111827";
+const SANS = "Arial, Helvetica, sans-serif";
+const SCRIPT = '"Great Vibes", "Snell Roundhand", cursive';
+const SERIF = '"Cinzel", Georgia, "Times New Roman", serif';
+
+const LAYOUT = {
+  // left information column (baseline y)
+  fieldX: 120,
+  fieldSize: 18,
+  fieldMaxWidth: 255,
+  studentIdY: 488,
+  certificateIdY: 558,
+  courseY: 627,
+  dateStartedY: 692,
+  dateCompletedY: 755,
+  dateIssuedY: 818,
+
+  // status pill
+  pill: { x: 120, y: 866, w: 145, h: 31, r: 4 },
+
+  // centre block
+  centerX: 812,
+  nameY: 550,
+  nameSize: 78,
+  nameMaxWidth: 610,
+  courseMainY: 691,
+  courseMainSize: 40,
+  courseMainMaxWidth: 425,
+
+  // student photo (circle inside the gold ring, cut by the ribbon)
+  photo: { cx: 211, cy: 299, r: 109, cutY: 386, x: 102, y: 190, w: 218, h: 196 },
+
+  // QR (inside the gold frame, above the VERIFY CERTIFICATE button)
+  qr: { x: 1284, y: 424, size: 158 }
+};
+
+const STATUS_STYLES = {
+  valid:     { text: "VALID",     color: "#166534", border: "#1D8B33" },
+  graduated: { text: "GRADUATED", color: "#166534", border: "#1D8B33" },
+  pending:   { text: "PENDING",   color: "#92400E", border: "#D97706" },
+  expired:   { text: "EXPIRED",   color: "#4B5563", border: "#6B7280" },
+  revoked:   { text: "REVOKED",   color: "#991B1B", border: "#DC2626" }
+};
 
 let currentUser = null;
 let currentProfile = null;
@@ -58,15 +109,6 @@ function setPreviewStatus(text) {
   if (el) el.textContent = text;
 }
 
-function escapeHTML(v) {
-  return String(v ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 function todayISO() {
   const d = new Date();
   const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
@@ -74,7 +116,7 @@ function todayISO() {
 }
 
 function formatDate(value) {
-  if (!value) return "DD/MM/YYYY";
+  if (!value) return "—";
   const d = new Date(`${value}T00:00:00`);
   if (Number.isNaN(d.getTime())) return value;
   return d.toLocaleDateString("en-GB", {
@@ -101,6 +143,11 @@ function isSuperAdmin() {
 
 function canGenerate() {
   return ["super_admin", "school_admin"].includes(role());
+}
+
+function verificationUrlFor(code) {
+  const base = `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}`;
+  return `${base}verify.html?code=${encodeURIComponent(code)}`;
 }
 
 /* ---------------- AUTH ---------------- */
@@ -137,7 +184,7 @@ async function loadProfile() {
   }
 }
 
-/* ---------------- TEMPLATE ---------------- */
+/* ---------------- TEMPLATE + FONTS ---------------- */
 
 function loadImage(url, crossOrigin = false) {
   return new Promise((resolve, reject) => {
@@ -155,8 +202,7 @@ async function loadOfficialTemplate() {
   for (const path of TEMPLATE_CANDIDATES) {
     try {
       const url = new URL(path, document.baseURI).href;
-      const img = await loadImage(url, false);
-      templateImage = img;
+      templateImage = await loadImage(url, false);
       setPreviewStatus(`Official template loaded: ${path.replace("./", "")}`);
       drawTemplateOnly();
       return;
@@ -166,19 +212,46 @@ async function loadOfficialTemplate() {
     }
   }
 
-  throw lastError || new Error("certificate-template.png was not found in the GAAWOW-EMS root.");
+  throw new Error(
+    `${TEMPLATE_FILE} was not found in the GAAWOW-EMS root. ` +
+    `Upload it next to certificate.html. (${lastError?.message || ""})`
+  );
 }
 
-function drawTemplateOnly() {
-  if (!templateImage) return;
+/* Canvas does not download web fonts by itself. Without this the name and
+   course are drawn in a fallback font on the first render. */
+async function ensureFonts() {
+  if (!document.fonts || !document.fonts.load) return;
+  try {
+    await Promise.all([
+      document.fonts.load('400 78px "Great Vibes"', "Student Name"),
+      document.fonts.load('700 40px "Cinzel"', "COURSE NAME"),
+      document.fonts.load('500 40px "Cinzel"', "COURSE NAME")
+    ]);
+    await document.fonts.ready;
+  } catch (e) {
+    console.warn("Font preload failed, fallback fonts will be used:", e);
+  }
+}
+
+function prepareCanvas() {
   const canvas = $("certificateCanvas");
-  if (!canvas) return;
-  canvas.width = W;
-  canvas.height = H;
+  canvas.width = W * SCALE;
+  canvas.height = H * SCALE;
+
   const ctx = canvas.getContext("2d", { alpha: false });
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, W, H);
   ctx.drawImage(templateImage, 0, 0, W, H);
+  return { canvas, ctx };
+}
+
+function drawTemplateOnly() {
+  if (!templateImage || !$("certificateCanvas")) return;
+  prepareCanvas();
 }
 
 /* ---------------- DATA ---------------- */
@@ -274,7 +347,6 @@ async function loadCourses(institutionId) {
       .select("id,institution_id,name,code,description,is_active")
       .order("name", { ascending: true });
 
-    // Only restrict by institution when a concrete institution is selected.
     if (institutionId) {
       query = query.eq("institution_id", institutionId);
     }
@@ -413,183 +485,121 @@ function roundedRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function fitText(ctx, text, maxWidth, startSize, fontFamily, weight = "400") {
+function fitSize(ctx, text, maxWidth, startSize, family, weight, minSize = 12) {
   let size = startSize;
-  while (size > 12) {
-    ctx.font = `${weight} ${size}px ${fontFamily}`;
+  while (size > minSize) {
+    ctx.font = `${weight} ${size}px ${family}`;
     if (ctx.measureText(text).width <= maxWidth) return size;
     size -= 1;
   }
   return size;
 }
 
-function drawCentered(ctx, text, x, y, maxWidth, size, font, color, weight = "400") {
-  const actual = fitText(ctx, text, maxWidth, size, font, weight);
-  ctx.font = `${weight} ${actual}px ${font}`;
+/* All text is drawn on the ALPHABETIC baseline so it sits on the same
+   line as the template labels. */
+function drawText(ctx, text, x, baselineY, opts) {
+  const {
+    size, family, color, weight = "400", align = "left",
+    maxWidth = null, minSize = 12
+  } = opts;
+
+  const finalSize = maxWidth
+    ? fitSize(ctx, text, maxWidth, size, family, weight, minSize)
+    : size;
+
+  ctx.font = `${weight} ${finalSize}px ${family}`;
   ctx.fillStyle = color;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, x, y);
+  ctx.textAlign = align;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, baselineY);
 }
 
-function drawLeft(ctx, text, x, y, size, font, color, weight = "400") {
-  ctx.font = `${weight} ${size}px ${font}`;
-  ctx.fillStyle = color;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, x, y);
+function drawField(ctx, text, baselineY) {
+  drawText(ctx, text || "—", LAYOUT.fieldX, baselineY, {
+    size: LAYOUT.fieldSize,
+    family: SANS,
+    color: INK,
+    maxWidth: LAYOUT.fieldMaxWidth
+  });
 }
 
-function isDarkPlaceholderPixel(r, g, b) {
-  const avg = (r + g + b) / 3;
-  return avg < 175 && r < 150 && g < 160 && b < 185;
+function drawStatusPill(ctx, statusValue) {
+  const style = STATUS_STYLES[String(statusValue || "valid").toLowerCase()]
+    || STATUS_STYLES.valid;
+  const p = LAYOUT.pill;
+
+  roundedRect(ctx, p.x + 1, p.y + 1, p.w - 2, p.h - 2, p.r);
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = style.border;
+  ctx.stroke();
+
+  drawText(ctx, style.text, p.x + p.w / 2, p.y + p.h / 2 + 6, {
+    size: 18,
+    family: SANS,
+    color: style.color,
+    weight: "700",
+    align: "center",
+    maxWidth: p.w - 20
+  });
 }
 
-function eraseTextByInpainting(ctx, x, y, w, h) {
-  const image = ctx.getImageData(x, y, w, h);
-  const d = image.data;
-  const original = new Uint8ClampedArray(d);
-
-  const get = (px, py) => {
-    if (px < 0 || py < 0 || px >= w || py >= h) return null;
-    const i = (py * w + px) * 4;
-    return [original[i], original[i + 1], original[i + 2]];
-  };
-
-  for (let py = 0; py < h; py++) {
-    for (let px = 0; px < w; px++) {
-      const i = (py * w + px) * 4;
-      const r = original[i], g = original[i + 1], b = original[i + 2];
-
-      if (!isDarkPlaceholderPixel(r, g, b)) continue;
-
-      let replacement = null;
-
-      // Find clean background vertically. This preserves the template's
-      // subtle paper texture/graphics instead of painting a flat rectangle.
-      for (let distance = 2; distance <= 55 && !replacement; distance++) {
-        const candidates = [get(px, py - distance), get(px, py + distance)];
-        for (const c of candidates) {
-          if (!c) continue;
-          if (!isDarkPlaceholderPixel(c[0], c[1], c[2])) {
-            replacement = c;
-            break;
-          }
-        }
-      }
-
-      if (!replacement) replacement = [246, 243, 237];
-
-      d[i] = replacement[0];
-      d[i + 1] = replacement[1];
-      d[i + 2] = replacement[2];
-      d[i + 3] = 255;
-    }
-  }
-
-  ctx.putImageData(image, x, y);
-}
-
-function eraseRegionWithPaper(ctx, x, y, w, h) {
-  // Used only for the status value and the verification URL, where the
-  // original template contains a fixed sample value that must disappear.
-  const image = ctx.getImageData(x, y, w, h);
-  const d = image.data;
-  const original = new Uint8ClampedArray(d);
-
-  for (let py = 0; py < h; py++) {
-    for (let px = 0; px < w; px++) {
-      const i = (py * w + px) * 4;
-      const r = original[i], g = original[i + 1], b = original[i + 2];
-      const avg = (r + g + b) / 3;
-
-      // Preserve the white/cream paper and remove colored/black sample text.
-      if (avg < 210 || (g > r * 0.9 && g > b * 0.9 && g > 125 && r < 230)) {
-        d[i] = 246;
-        d[i + 1] = 243;
-        d[i + 2] = 237;
-        d[i + 3] = 255;
-      }
-    }
-  }
-
-  ctx.putImageData(image, x, y);
-}
-
+/* Returns true when the photo was drawn. The ribbon of the template stays
+   on top because the photo is cut at cutY. */
 async function drawStudentPhoto(ctx, url) {
-  if (!url) return;
+  if (!url) return false;
 
   try {
     const img = await loadImage(url, true);
-    const x = 96, y = 183, size = 230;
+    const P = LAYOUT.photo;
 
     ctx.save();
     ctx.beginPath();
-    ctx.arc(x + size / 2, y + size / 2, 106, 0, Math.PI * 2);
+    ctx.arc(P.cx, P.cy, P.r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, P.cutY);
     ctx.clip();
 
-    const ratio = Math.max(size / img.naturalWidth, size / img.naturalHeight);
+    // "cover" fit, keeping the face (upper part of the picture) visible
+    const ratio = Math.max(P.w / img.naturalWidth, P.h / img.naturalHeight);
     const sw = img.naturalWidth * ratio;
     const sh = img.naturalHeight * ratio;
+    const dx = P.x + (P.w - sw) / 2;
+    const dy = P.y - (sh - P.h) * 0.25;
 
-    ctx.drawImage(
-      img,
-      x + (size - sw) / 2,
-      y + (size - sh) / 2,
-      sw,
-      sh
-    );
-
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(P.cx - P.r, P.cy - P.r, P.r * 2, P.r * 2);
+    ctx.drawImage(img, dx, dy, sw, sh);
     ctx.restore();
-
-    /* Keep the original gold circular frame visually intact. */
-    ctx.save();
-    ctx.strokeStyle = "#D4AF37";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(x + size / 2, y + size / 2, 106, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
+    return true;
   } catch (e) {
     console.warn("Student photo could not be loaded:", e);
+    return false;
   }
 }
 
 async function drawQR(ctx, code) {
   if (!code || !window.QRCode) return;
 
-  const verifyUrl =
-    `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}verify.html?code=${encodeURIComponent(code)}`;
-
+  const Q = LAYOUT.qr;
   const qrCanvas = document.createElement("canvas");
 
-  await QRCode.toCanvas(qrCanvas, verifyUrl, {
-    width: 190,
-    margin: 0,
+  await QRCode.toCanvas(qrCanvas, verificationUrlFor(code), {
+    width: Q.size * SCALE,
+    margin: 1,
     errorCorrectionLevel: "H",
-    color: {
-      dark: "#111111",
-      light: "#ffffff"
-    }
+    color: { dark: "#111111", light: "#ffffff" }
   });
 
-  /* Exact QR zone from the supplied 1536x1024 template. */
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(1260, 402, 210, 210);
-  ctx.drawImage(qrCanvas, 1270, 410, 190, 190);
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;   // keep QR modules razor sharp
+  ctx.drawImage(qrCanvas, Q.x, Q.y, Q.size, Q.size);
+  ctx.restore();
 }
 
 /* ---------------- RENDER ---------------- */
-
-function valueOf(id, fallback = "") {
-  return $(id)?.value?.trim() || fallback;
-}
-
-function clearDynamicArea(ctx, x, y, w, h) {
-  // Soft paper cleanup for dynamic text only. It intentionally does not
-  // touch fixed icons, labels, borders, signatures or artwork.
-  eraseTextByInpainting(ctx, x, y, w, h);
-}
 
 async function renderCertificate() {
   if (!templateImage) {
@@ -602,127 +612,63 @@ async function renderCertificate() {
   if (!student) throw new Error("Please select a student.");
   if (!course) throw new Error("Please select a course.");
 
-  const canvas = $("certificateCanvas");
-  const ctx = canvas.getContext("2d", { alpha: false });
+  await ensureFonts();
 
-  canvas.width = W;
-  canvas.height = H;
+  // The template is clean, so we simply draw on top of it.
+  const { ctx } = prepareCanvas();
 
-  ctx.clearRect(0, 0, W, H);
-  ctx.drawImage(templateImage, 0, 0, W, H);
+  /* Student photo (ribbon stays visible) */
+  const photoOk = await drawStudentPhoto(ctx, student.photo_url);
 
-  const navy = "#0B1E63";
-  const gold = "#B98216";
-  const ink = "#111827";
+  /* Left information column */
+  drawField(ctx, student.student_id, LAYOUT.studentIdY);
+  drawField(ctx, $("certificateId").value, LAYOUT.certificateIdY);
+  drawField(ctx, course.name, LAYOUT.courseY);
+  drawField(ctx, formatDate($("dateStarted").value), LAYOUT.dateStartedY);
+  drawField(ctx, formatDate($("dateCompleted").value), LAYOUT.dateCompletedY);
+  drawField(ctx, formatDate($("issueDate").value), LAYOUT.dateIssuedY);
 
-  /* -------------------------------------------------------
-     Remove only the template placeholder text.
-     Icons, borders, gold lines and background remain.
-     ------------------------------------------------------- */
+  /* Status */
+  drawStatusPill(ctx, $("status").value);
 
-  // Clean ONLY the areas containing replaceable sample values.
-  // Fixed labels/icons/gold rules/background remain untouched.
-  clearDynamicArea(ctx, 112, 452, 255, 48);   // Student ID value
-  clearDynamicArea(ctx, 112, 517, 255, 48);   // Certificate ID value
-  clearDynamicArea(ctx, 112, 582, 255, 48);   // Course value
-  clearDynamicArea(ctx, 112, 647, 255, 48);   // Date Started value
-  clearDynamicArea(ctx, 112, 712, 255, 48);   // Date Completed value
-  clearDynamicArea(ctx, 112, 777, 255, 48);   // Date Issued value
-
-  // Main name/course placeholders.
-  clearDynamicArea(ctx, 480, 466, 700, 120);
-  clearDynamicArea(ctx, 560, 638, 520, 86);
-
-  // Status sample text only; preserve the green border/pill.
-  clearDynamicArea(ctx, 125, 844, 138, 28);
-
-  // Old verification URL only.
-  clearDynamicArea(ctx, 1225, 642, 285, 38);
-
-  /* Student photo */
-  await drawStudentPhoto(ctx, student.photo_url);
-
-  /* Left information */
-  drawLeft(ctx, student.student_id || "—", 120, 477, 17, "Arial", ink, "400");
-  drawLeft(ctx, $("certificateId").value || "—", 120, 542, 16, "Arial", ink, "400");
-  drawLeft(ctx, course.name || "—", 120, 607, 16, "Arial", ink, "400");
-  drawLeft(ctx, formatDate($("dateStarted").value), 120, 672, 16, "Arial", ink, "400");
-  drawLeft(ctx, formatDate($("dateCompleted").value), 120, 737, 16, "Arial", ink, "400");
-
-  /* Status pill */
-  const statusText = String($("status").value || "valid").toUpperCase();
-  roundedRect(ctx, 120, 846, 145, 34, 5);
-  ctx.fillStyle = "#f7fbf7";
-  ctx.fill();
-  ctx.strokeStyle = "#16A34A";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  drawCentered(ctx, statusText, 192, 863, 130, 15, "Arial", "#166534", "700");
-
-  /* Main student name */
-  drawCentered(
-    ctx,
-    student.full_name || "Student Name",
-    800,
-    529,
-    650,
-    73,
-    '"Great Vibes", cursive',
-    navy,
-    "400"
-  );
+  /* Student name */
+  drawText(ctx, student.full_name || "Student Name", LAYOUT.centerX, LAYOUT.nameY, {
+    size: LAYOUT.nameSize,
+    family: SCRIPT,
+    color: NAVY,
+    align: "center",
+    maxWidth: LAYOUT.nameMaxWidth,
+    minSize: 34
+  });
 
   /* Course name */
-  drawCentered(
-    ctx,
-    course.name || "Course Name",
-    800,
-    680,
-    510,
-    38,
-    '"Cinzel", Georgia, serif',
-    navy,
-    "700"
-  );
+  drawText(ctx, (course.name || "Course Name").toUpperCase(), LAYOUT.centerX, LAYOUT.courseMainY, {
+    size: LAYOUT.courseMainSize,
+    family: SERIF,
+    color: NAVY,
+    weight: "700",
+    align: "center",
+    maxWidth: LAYOUT.courseMainMaxWidth,
+    minSize: 20
+  });
 
-  /* Date issued */
-  drawLeft(ctx, formatDate($("issueDate").value), 120, 802, 16, "Arial", ink, "400");
-
-  /* Optional Grade / Score. The field is deliberately optional and is not
-     written to the existing certificates table because that column does not
-     exist in the current schema. It is rendered only when supplied. */
-  const gradeScore = valueOf("gradeScore");
-  if (gradeScore) {
-    drawCentered(ctx, `GRADE / SCORE: ${gradeScore}`, 1365, 792, 290, 15, "Arial", ink, "700");
-  }
-
-  /* Authority / signatory text uses the existing signature positions. */
-  const authority = valueOf("awardingAuthority", "Gaawow Academy");
-  const director = valueOf("directorName", "Abdirahman H. Mohamed");
-  const academicHead = valueOf("academicHeadName", "Hodan Yusuf");
-
-  // The template already contains the signature artwork/lines. These values
-  // replace only the editable names beneath those fixed signature areas.
-  clearDynamicArea(ctx, 405, 832, 260, 48);
-  clearDynamicArea(ctx, 995, 832, 260, 48);
-  drawCentered(ctx, director, 530, 855, 250, 24, '"Great Vibes", cursive', navy, "400");
-  drawCentered(ctx, academicHead, 1120, 855, 250, 24, '"Great Vibes", cursive', navy, "400");
-  drawCentered(ctx, "DIRECTOR", 530, 895, 220, 15, "Arial", ink, "700");
-  drawCentered(ctx, "ACADEMIC HEAD", 1120, 895, 220, 15, "Arial", ink, "700");
-  drawCentered(ctx, authority, 530, 922, 220, 13, "Arial", ink, "400");
-  drawCentered(ctx, authority, 1120, 922, 220, 13, "Arial", ink, "400");
-
-  /* QR */
+  /* QR code */
   await drawQR(ctx, $("verifyCode").value);
-
-  /* Dynamic verification URL — same visual area as the template sample URL. */
-  const verificationUrl =
-    `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}verify.html?code=${encodeURIComponent($("verifyCode").value)}`;
-  drawCentered(ctx, verificationUrl, 1365, 661, 260, 13, "Arial", ink, "400");
 
   generated = true;
   saved = false;
-  setPreviewStatus("Certificate preview generated successfully.");
+
+  if (student.photo_url && !photoOk) {
+    setPreviewStatus("Preview generated, but the student photo could not be loaded.");
+    showMessage(
+      "The student photo could not be loaded (check the photo link or storage access). The certificate was generated without it.",
+      "info"
+    );
+  } else {
+    setPreviewStatus("Certificate preview generated successfully.");
+  }
+
+  return photoOk || !student.photo_url;
 }
 
 /* ---------------- SAVE ---------------- */
@@ -748,8 +694,7 @@ async function saveCertificate() {
   const certificateId = $("certificateId").value;
   const verifyCode = $("verifyCode").value;
 
-  const verificationUrl =
-    `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}verify.html?code=${encodeURIComponent(verifyCode)}`;
+  const verificationUrl = verificationUrlFor(verifyCode);
 
   const hashSource = [
     certificateNo,
@@ -783,7 +728,7 @@ async function saveCertificate() {
     course_name_snapshot: course.name || "",
     issued_by: currentUser.id,
     certificate_type: $("certificateType").value || "Certificate of Completion",
-    template_url: new URL("certificate-template.png", window.location.href).href,
+    template_url: new URL(TEMPLATE_FILE, window.location.href).href,
     student_photo_url: student.photo_url || null,
     verification_url: verificationUrl
   };
@@ -811,6 +756,11 @@ async function saveCertificate() {
 
 /* ---------------- DOWNLOAD ---------------- */
 
+/* The template is 3:2 (1536x1024), so the PDF/print page uses the same
+   ratio (297 x 198 mm). A4 (297 x 210) would stretch the design. */
+const PAGE_W_MM = 297;
+const PAGE_H_MM = 198;
+
 function downloadCanvas(filename = "GAAWOW-Certificate.png") {
   const canvas = $("certificateCanvas");
 
@@ -830,11 +780,11 @@ async function downloadPDF() {
   const pdf = new jsPDF({
     orientation: "landscape",
     unit: "mm",
-    format: "a4",
-    compress: false
+    format: [PAGE_W_MM, PAGE_H_MM],
+    compress: true
   });
 
-  pdf.addImage(image, "PNG", 0, 0, 297, 210, undefined, "FAST");
+  pdf.addImage(image, "PNG", 0, 0, PAGE_W_MM, PAGE_H_MM, undefined, "FAST");
   pdf.save(
     `${safeFileName($("studentName").value)}-${safeFileName($("courseName").value)}.pdf`
   );
@@ -861,9 +811,9 @@ function printCertificate() {
     <head>
       <title>GAAWOW Certificate</title>
       <style>
-        @page{size:A4 landscape;margin:0}
+        @page{size:${PAGE_W_MM}mm ${PAGE_H_MM}mm;margin:0}
         html,body{margin:0;padding:0;background:#fff}
-        img{display:block;width:297mm;height:210mm;object-fit:fill}
+        img{display:block;width:${PAGE_W_MM}mm;height:${PAGE_H_MM}mm}
       </style>
     </head>
     <body>
@@ -891,38 +841,50 @@ function verifyOnline() {
 
 /* ---------------- EVENTS ---------------- */
 
+function markDirty() {
+  generated = false;
+}
+
 function setupEvents() {
-  $("studentSelect").addEventListener("change", async () => {
+  $("studentSelect").addEventListener("change", () => {
     hideMessage();
     syncStudent();
-    generated = false;
+    markDirty();
   });
 
   $("institutionSelect").addEventListener("change", async () => {
     if (isSuperAdmin()) {
-      await loadCourses($("institutionSelect").value);
-      generated = false;
+      try {
+        await loadCourses($("institutionSelect").value);
+      } catch (e) {
+        showMessage(e.message || "Unable to load courses.", "error");
+      }
+      markDirty();
     }
   });
 
   $("courseSelect").addEventListener("change", () => {
     syncCourse();
-    generated = false;
+    markDirty();
   });
 
   $("issueDate").addEventListener("change", () => {
     if (!$("dateCompleted").value) {
       $("dateCompleted").value = $("issueDate").value;
     }
-    generated = false;
+    markDirty();
   });
+
+  // Anything that appears on the certificate invalidates the preview.
+  ["dateStarted", "dateCompleted", "status", "expiryDate", "certificateType"]
+    .forEach(id => $(id)?.addEventListener("change", markDirty));
 
   $("generateBtn").addEventListener("click", async () => {
     try {
       hideMessage();
       setPreviewStatus("Generating HD certificate...");
-      await renderCertificate();
-      showMessage("Certificate preview generated successfully.", "success");
+      const ok = await renderCertificate();
+      if (ok) showMessage("Certificate preview generated successfully.", "success");
     } catch (e) {
       console.error(e);
       showMessage(e.message || "Unable to generate certificate.", "error");
@@ -1000,6 +962,7 @@ async function init() {
     generateCertificateNumbers();
     setDefaultDates();
     setupEvents();
+    ensureFonts();   // warm the web fonts while the user picks a student
 
     hideMessage();
     setPreviewStatus("Ready. Select a student and course, then Generate Preview.");
