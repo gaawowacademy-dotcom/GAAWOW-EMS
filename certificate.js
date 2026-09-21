@@ -581,6 +581,16 @@ async function drawQR(ctx, code) {
 
 /* ---------------- RENDER ---------------- */
 
+function valueOf(id, fallback = "") {
+  return $(id)?.value?.trim() || fallback;
+}
+
+function clearDynamicArea(ctx, x, y, w, h) {
+  // Soft paper cleanup for dynamic text only. It intentionally does not
+  // touch fixed icons, labels, borders, signatures or artwork.
+  eraseTextByInpainting(ctx, x, y, w, h);
+}
+
 async function renderCertificate() {
   if (!templateImage) {
     throw new Error("Certificate template is not loaded.");
@@ -610,27 +620,24 @@ async function renderCertificate() {
      Icons, borders, gold lines and background remain.
      ------------------------------------------------------- */
 
-  // Main dynamic text: remove the sample text already printed in the PNG.
-  eraseTextByInpainting(ctx, 490, 470, 665, 105);
-  eraseTextByInpainting(ctx, 585, 642, 480, 78);
+  // Clean ONLY the areas containing replaceable sample values.
+  // Fixed labels/icons/gold rules/background remain untouched.
+  clearDynamicArea(ctx, 112, 452, 255, 48);   // Student ID value
+  clearDynamicArea(ctx, 112, 517, 255, 48);   // Certificate ID value
+  clearDynamicArea(ctx, 112, 582, 255, 48);   // Course value
+  clearDynamicArea(ctx, 112, 647, 255, 48);   // Date Started value
+  clearDynamicArea(ctx, 112, 712, 255, 48);   // Date Completed value
+  clearDynamicArea(ctx, 112, 777, 255, 48);   // Date Issued value
 
-  // Left information values only — labels/icons/gold separators remain untouched.
-  eraseTextByInpainting(ctx, 112, 458, 245, 38);   // Student ID
-  eraseTextByInpainting(ctx, 112, 523, 245, 38);   // Certificate ID
-  eraseTextByInpainting(ctx, 112, 588, 245, 38);   // Course
-  eraseTextByInpainting(ctx, 112, 653, 245, 38);   // Date Started
-  eraseTextByInpainting(ctx, 112, 718, 245, 38);   // Date Completed
-  eraseTextByInpainting(ctx, 112, 783, 245, 38);   // Date Issued
+  // Main name/course placeholders.
+  clearDynamicArea(ctx, 480, 466, 700, 120);
+  clearDynamicArea(ctx, 560, 638, 520, 86);
 
-  // The template contains a sample green status pill/value. Clear its inner text
-  // while keeping the original icon and surrounding layout.
-  ctx.fillStyle = "#f7f5ef";
-  ctx.fillRect(120, 843, 148, 31);
+  // Status sample text only; preserve the green border/pill.
+  clearDynamicArea(ctx, 125, 844, 138, 28);
 
-  // The template also contains a sample verification URL. It is replaced below
-  // with the actual verification URL for the generated certificate.
-  ctx.fillStyle = "#f7f5ef";
-  ctx.fillRect(1230, 642, 270, 38);
+  // Old verification URL only.
+  clearDynamicArea(ctx, 1225, 642, 285, 38);
 
   /* Student photo */
   await drawStudentPhoto(ctx, student.photo_url);
@@ -680,6 +687,30 @@ async function renderCertificate() {
 
   /* Date issued */
   drawLeft(ctx, formatDate($("issueDate").value), 120, 802, 16, "Arial", ink, "400");
+
+  /* Optional Grade / Score. The field is deliberately optional and is not
+     written to the existing certificates table because that column does not
+     exist in the current schema. It is rendered only when supplied. */
+  const gradeScore = valueOf("gradeScore");
+  if (gradeScore) {
+    drawCentered(ctx, `GRADE / SCORE: ${gradeScore}`, 1365, 792, 290, 15, "Arial", ink, "700");
+  }
+
+  /* Authority / signatory text uses the existing signature positions. */
+  const authority = valueOf("awardingAuthority", "Gaawow Academy");
+  const director = valueOf("directorName", "Abdirahman H. Mohamed");
+  const academicHead = valueOf("academicHeadName", "Hodan Yusuf");
+
+  // The template already contains the signature artwork/lines. These values
+  // replace only the editable names beneath those fixed signature areas.
+  clearDynamicArea(ctx, 405, 832, 260, 48);
+  clearDynamicArea(ctx, 995, 832, 260, 48);
+  drawCentered(ctx, director, 530, 855, 250, 24, '"Great Vibes", cursive', navy, "400");
+  drawCentered(ctx, academicHead, 1120, 855, 250, 24, '"Great Vibes", cursive', navy, "400");
+  drawCentered(ctx, "DIRECTOR", 530, 895, 220, 15, "Arial", ink, "700");
+  drawCentered(ctx, "ACADEMIC HEAD", 1120, 895, 220, 15, "Arial", ink, "700");
+  drawCentered(ctx, authority, 530, 922, 220, 13, "Arial", ink, "400");
+  drawCentered(ctx, authority, 1120, 922, 220, 13, "Arial", ink, "400");
 
   /* QR */
   await drawQR(ctx, $("verifyCode").value);
