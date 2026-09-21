@@ -1,94 +1,65 @@
 /* =========================================================
    GAAWOW EMS
-   CERTIFICATES MANAGEMENT V6
-   FINAL SCHEMA-SAFE VERSION
+   CERTIFICATE GENERATOR V8.0
+   TEMPLATE-SAFE / DATABASE-SAFE
 
-   REAL certificates TABLE SCHEMA:
+   Template:
+   ./certificate-template.png
 
-   id
-   institution_id
-   student_id
-   course_id
-   certificate_no
-   certificate_id
-   verify_code
-   hash_code
-   issue_date
-   expiry_date
-   status
-   certificate_url
-   pdf_url
-   qr_url
-   student_name_snapshot
-   course_name_snapshot
-   issued_by
-   created_at
-   updated_at
-   certificate_type
-   template_url
-   student_photo_url
-   verification_url
-
-   IMPORTANT:
-   - enrollment_id DOES NOT EXIST
-   - student_name DOES NOT EXIST
-   - course_name DOES NOT EXIST
+   Uses existing certificates schema only.
+   No schema changes.
    ========================================================= */
 
+const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-/* =========================================================
-   1. SUPABASE
-   ========================================================= */
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
 
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+const TEMPLATE_CANDIDATES = [
+  "./certificate-template.png",
+  "./Certificate.template.png",
+  "./Certificate-template.png"
+];
 
-const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
-
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
-
-
-/* =========================================================
-   2. GLOBAL STATE
-   ========================================================= */
+const W = 1536;
+const H = 1024;
 
 let currentUser = null;
 let currentProfile = null;
-
-let certificates = [];
 let institutions = [];
+let students = [];
+let courses = [];
+let templateImage = null;
+let generated = false;
+let saved = false;
 
-let isLoading = false;
+const $ = id => document.getElementById(id);
 
-
-/* =========================================================
-   3. DOM HELPER
-   ========================================================= */
-
-function $(id) {
-  return document.getElementById(id);
+function showMessage(text, type = "info") {
+  const el = $("message");
+  if (!el) return;
+  el.textContent = text;
+  el.className = `message ${type}`;
 }
 
-
-/* =========================================================
-   4. ESCAPE HTML
-   ========================================================= */
-
-function escapeHTML(value) {
-
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "";
+function hideMessage() {
+  const el = $("message");
+  if (el) {
+    el.textContent = "";
+    el.className = "message";
   }
+}
 
-  return String(value)
+function setPreviewStatus(text) {
+  const el = $("previewStatus");
+  if (el) el.textContent = text;
+}
+
+function escapeHTML(v) {
+  return String(v ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -96,1772 +67,802 @@ function escapeHTML(value) {
     .replace(/'/g, "&#039;");
 }
 
-
-/* =========================================================
-   5. MESSAGE
-   ========================================================= */
-
-function showMessage(
-  message,
-  type = "info"
-) {
-
-  const element = $("message");
-
-  if (!element) {
-    console.log(message);
-    return;
-  }
-
-  element.textContent = message;
-
-  element.className =
-    `message ${type}`;
-
-  element.style.display =
-    "block";
+function todayISO() {
+  const d = new Date();
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
 }
-
-
-function hideMessage() {
-
-  const element = $("message");
-
-  if (!element) return;
-
-  element.style.display =
-    "none";
-}
-
-
-/* =========================================================
-   6. LOADING
-   ========================================================= */
-
-function setLoading(value) {
-
-  isLoading = value;
-
-  const loading =
-    $("loading");
-
-  if (loading) {
-
-    loading.style.display =
-      value ? "block" : "none";
-  }
-
-  const refresh =
-    $("refreshBtn");
-
-  if (refresh) {
-
-    refresh.disabled =
-      value;
-  }
-}
-
-
-/* =========================================================
-   7. DATE FORMAT
-   ========================================================= */
 
 function formatDate(value) {
-
-  if (!value) {
-    return "—";
-  }
-
-  const date =
-    new Date(value);
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return escapeHTML(value);
-  }
-
-  return date.toLocaleDateString(
-    "en-GB",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    }
-  );
+  if (!value) return "DD/MM/YYYY";
+  const d = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  });
 }
 
-
-/* =========================================================
-   8. STATUS
-   ========================================================= */
-
-function normalizeStatus(status) {
-
-  return String(
-    status || ""
-  )
-    .trim()
-    .toLowerCase();
+function safeFileName(value) {
+  return String(value || "certificate")
+    .replace(/[^\w\-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 100);
 }
 
-
-function getStatusClass(status) {
-
-  switch (
-    normalizeStatus(status)
-  ) {
-
-    case "valid":
-      return "valid";
-
-    case "pending":
-      return "pending";
-
-    case "revoked":
-      return "revoked";
-
-    case "expired":
-      return "expired";
-
-    default:
-      return "inactive";
-  }
+function role() {
+  return String(currentProfile?.role || "").toLowerCase().trim();
 }
 
-
-function statusBadge(status) {
-
-  return `
-    <span class="status-badge ${getStatusClass(status)}">
-      ${escapeHTML(
-        status || "Unknown"
-      )}
-    </span>
-  `;
+function isSuperAdmin() {
+  return role() === "super_admin";
 }
 
+function canGenerate() {
+  return ["super_admin", "school_admin"].includes(role());
+}
 
-/* =========================================================
-   9. AUTHENTICATION
-   ========================================================= */
+/* ---------------- AUTH ---------------- */
 
-async function loadCurrentUser() {
+async function loadAuth() {
+  const { data, error } = await supabaseClient.auth.getUser();
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.auth.getUser();
+  if (error) throw new Error(`Authentication error: ${error.message}`);
 
-
-  if (error) {
-
-    console.error(
-      "Authentication error:",
-      error
-    );
-
-    throw new Error(
-      `Authentication error: ${error.message}`
-    );
-  }
-
-
-  if (
-    !data ||
-    !data.user
-  ) {
-
-    window.location.href =
-      "index.html";
-
+  if (!data?.user) {
+    window.location.href = "index.html";
     return false;
   }
 
-
-  currentUser =
-    data.user;
-
+  currentUser = data.user;
   return true;
 }
 
+async function loadProfile() {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("id,full_name,role,institution_id,is_active")
+    .eq("id", currentUser.id)
+    .maybeSingle();
 
-/* =========================================================
-   10. PROFILE
-   ========================================================= */
+  if (error) throw new Error(`Profile database error: ${error.message}`);
+  if (!data) throw new Error("Your EMS profile was not found.");
+  if (data.is_active === false) throw new Error("Your EMS account is inactive.");
 
-async function loadCurrentProfile() {
+  currentProfile = data;
 
-  if (!currentUser) {
+  if (!canGenerate()) {
+    throw new Error("You do not have permission to generate certificates.");
+  }
+}
 
-    throw new Error(
-      "Authenticated user not found."
-    );
+/* ---------------- TEMPLATE ---------------- */
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Template not found: ${url}`));
+    img.src = `${url}?v=${Date.now()}`;
+  });
+}
+
+async function loadOfficialTemplate() {
+  let lastError = null;
+
+  for (const url of TEMPLATE_CANDIDATES) {
+    try {
+      const img = await loadImage(url);
+      templateImage = img;
+      setPreviewStatus(`Official template loaded: ${url.replace("./", "")}`);
+      return;
+    } catch (e) {
+      lastError = e;
+    }
   }
 
+  throw lastError || new Error("certificate-template.png was not found in the root.");
+}
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("profiles")
-      .select(`
-        id,
-        full_name,
-        role,
-        institution_id,
-        is_active
-      `)
-      .eq(
-        "id",
-        currentUser.id
-      )
-      .maybeSingle();
+/* ---------------- DATA ---------------- */
 
+async function loadInstitutions() {
+  const select = $("institutionSelect");
+  select.innerHTML = `<option value="">Select institution</option>`;
+
+  let query = supabaseClient
+    .from("institutions")
+    .select("id,name")
+    .order("name", { ascending: true });
+
+  if (!isSuperAdmin() && currentProfile?.institution_id) {
+    query = query.eq("id", currentProfile.institution_id);
+  }
+
+  const { data, error } = await query;
+  if (error) throw new Error(`Institutions database error: ${error.message}`);
+
+  institutions = data || [];
+
+  for (const item of institutions) {
+    const opt = document.createElement("option");
+    opt.value = item.id;
+    opt.textContent = item.name;
+    select.appendChild(opt);
+  }
+
+  if (currentProfile?.institution_id) {
+    select.value = currentProfile.institution_id;
+  }
+
+  select.disabled = !isSuperAdmin();
+}
+
+async function loadStudents() {
+  const select = $("studentSelect");
+  select.innerHTML = `<option value="">Loading students...</option>`;
+
+  let query = supabaseClient
+    .from("students")
+    .select(`
+      id,
+      institution_id,
+      profile_id,
+      student_id,
+      full_name,
+      gender,
+      date_of_birth,
+      phone,
+      email,
+      address,
+      photo_url,
+      admission_date,
+      status
+    `)
+    .order("full_name", { ascending: true });
+
+  if (!isSuperAdmin() && currentProfile?.institution_id) {
+    query = query.eq("institution_id", currentProfile.institution_id);
+  }
+
+  const { data, error } = await query;
+  if (error) throw new Error(`Students database error: ${error.message}`);
+
+  students = data || [];
+  populateStudentSelect();
+}
+
+function populateStudentSelect() {
+  const select = $("studentSelect");
+  select.innerHTML = `<option value="">Select student</option>`;
+
+  for (const student of students) {
+    const opt = document.createElement("option");
+    opt.value = student.id;
+    opt.textContent = `${student.full_name || "Unnamed"} — ${student.student_id || student.id}`;
+    select.appendChild(opt);
+  }
+}
+
+async function loadCourses(institutionId) {
+  const select = $("courseSelect");
+  select.innerHTML = `<option value="">Loading courses...</option>`;
+
+  let query = supabaseClient
+    .from("courses")
+    .select("id,institution_id,name,code,description,is_active")
+    .order("name", { ascending: true });
+
+  if (institutionId) {
+    query = query.eq("institution_id", institutionId);
+  } else if (!isSuperAdmin() && currentProfile?.institution_id) {
+    query = query.eq("institution_id", currentProfile.institution_id);
+  }
+
+  const { data, error } = await query;
+  if (error) throw new Error(`Courses database error: ${error.message}`);
+
+  courses = (data || []).filter(c => c.is_active !== false);
+
+  select.innerHTML = `<option value="">Select course</option>`;
+
+  for (const course of courses) {
+    const opt = document.createElement("option");
+    opt.value = course.id;
+    opt.textContent = course.code
+      ? `${course.name} (${course.code})`
+      : course.name;
+    select.appendChild(opt);
+  }
+}
+
+/* ---------------- ID GENERATION ---------------- */
+
+function randomCode(length = 6) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  const bytes = crypto.getRandomValues(new Uint8Array(length));
+  for (let i = 0; i < length; i++) {
+    out += chars[bytes[i] % chars.length];
+  }
+  return out;
+}
+
+async function sha256(text) {
+  const data = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function generateCertificateNumbers() {
+  const year = new Date().getFullYear();
+  const stamp = String(Date.now()).slice(-6);
+
+  $("certificateNo").value = `CERT-${year}-${stamp}`;
+  $("certificateId").value = `CERT_GA_${year}_${stamp}_${randomCode(5)}`;
+  $("verifyCode").value = `GAW-${year}-${randomCode(8)}`;
+}
+
+/* ---------------- FORM ---------------- */
+
+function selectedStudent() {
+  return students.find(s => s.id === $("studentSelect").value) || null;
+}
+
+function selectedCourse() {
+  return courses.find(c => c.id === $("courseSelect").value) || null;
+}
+
+function institutionForCertificate() {
+  const selected = $("institutionSelect").value;
+  if (selected) return selected;
+  return currentProfile?.institution_id || null;
+}
+
+function syncStudent() {
+  const student = selectedStudent();
+
+  if (!student) {
+    $("studentName").value = "";
+    $("dateStarted").value = "";
+    $("photoBox").style.display = "none";
+    $("studentPhotoPreview").removeAttribute("src");
+    return;
+  }
+
+  $("studentName").value = student.full_name || "";
+  $("dateStarted").value = student.admission_date || "";
+
+  if (student.photo_url) {
+    $("studentPhotoPreview").src = student.photo_url;
+    $("photoBox").style.display = "block";
+  } else {
+    $("photoBox").style.display = "none";
+  }
+
+  if (student.institution_id && isSuperAdmin()) {
+    $("institutionSelect").value = student.institution_id;
+    loadCourses(student.institution_id).catch(e => showMessage(e.message, "error"));
+  }
+}
+
+function syncCourse() {
+  const course = selectedCourse();
+  $("courseName").value = course?.name || "";
+}
+
+function setDefaultDates() {
+  const today = todayISO();
+  if (!$("issueDate").value) $("issueDate").value = today;
+  if (!$("dateCompleted").value) $("dateCompleted").value = $("issueDate").value || today;
+  if (!$("status").value) $("status").value = "valid";
+}
+
+/* ---------------- CANVAS HELPERS ---------------- */
+
+function roundedRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function fitText(ctx, text, maxWidth, startSize, fontFamily, weight = "400") {
+  let size = startSize;
+  while (size > 12) {
+    ctx.font = `${weight} ${size}px ${fontFamily}`;
+    if (ctx.measureText(text).width <= maxWidth) return size;
+    size -= 1;
+  }
+  return size;
+}
+
+function drawCentered(ctx, text, x, y, maxWidth, size, font, color, weight = "400") {
+  const actual = fitText(ctx, text, maxWidth, size, font, weight);
+  ctx.font = `${weight} ${actual}px ${font}`;
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x, y);
+}
+
+function drawLeft(ctx, text, x, y, size, font, color, weight = "400") {
+  ctx.font = `${weight} ${size}px ${font}`;
+  ctx.fillStyle = color;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x, y);
+}
+
+function clearDarkTextRegion(ctx, x, y, w, h, bg = "#f7f3ee") {
+  const image = ctx.getImageData(x, y, w, h);
+  const d = image.data;
+
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    /* Remove only dark placeholder text.
+       Gold decorative lines and light laurel remain. */
+    if (r < 105 && g < 115 && b < 135) {
+      d[i] = 247;
+      d[i + 1] = 243;
+      d[i + 2] = 238;
+    }
+  }
+
+  ctx.putImageData(image, x, y);
+}
+
+async function drawStudentPhoto(ctx, url) {
+  if (!url) return;
+
+  try {
+    const img = await loadImage(url);
+    const x = 96, y = 183, size = 230;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, 106, 0, Math.PI * 2);
+    ctx.clip();
+
+    const ratio = Math.max(size / img.naturalWidth, size / img.naturalHeight);
+    const sw = img.naturalWidth * ratio;
+    const sh = img.naturalHeight * ratio;
+
+    ctx.drawImage(
+      img,
+      x + (size - sw) / 2,
+      y + (size - sh) / 2,
+      sw,
+      sh
+    );
+
+    ctx.restore();
+
+    /* Keep the original gold circular frame visually intact. */
+    ctx.save();
+    ctx.strokeStyle = "#D4AF37";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, 106, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  } catch (e) {
+    console.warn("Student photo could not be loaded:", e);
+  }
+}
+
+async function drawQR(ctx, code) {
+  if (!code || !window.QRCode) return;
+
+  const verifyUrl =
+    `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}verify.html?code=${encodeURIComponent(code)}`;
+
+  const qrCanvas = document.createElement("canvas");
+
+  await QRCode.toCanvas(qrCanvas, verifyUrl, {
+    width: 190,
+    margin: 0,
+    errorCorrectionLevel: "H",
+    color: {
+      dark: "#111111",
+      light: "#ffffff"
+    }
+  });
+
+  /* Exact QR zone from the supplied 1536x1024 template. */
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(1260, 402, 210, 210);
+  ctx.drawImage(qrCanvas, 1270, 410, 190, 190);
+}
+
+/* ---------------- RENDER ---------------- */
+
+async function renderCertificate() {
+  if (!templateImage) {
+    throw new Error("Certificate template is not loaded.");
+  }
+
+  const student = selectedStudent();
+  const course = selectedCourse();
+
+  if (!student) throw new Error("Please select a student.");
+  if (!course) throw new Error("Please select a course.");
+
+  const canvas = $("certificateCanvas");
+  const ctx = canvas.getContext("2d", { alpha: false });
+
+  canvas.width = W;
+  canvas.height = H;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(templateImage, 0, 0, W, H);
+
+  const navy = "#0B1E63";
+  const gold = "#B98216";
+  const ink = "#111827";
+
+  /* -------------------------------------------------------
+     Remove only the template placeholder text.
+     Icons, borders, gold lines and background remain.
+     ------------------------------------------------------- */
+
+  clearDarkTextRegion(ctx, 495, 478, 650, 105);
+  clearDarkTextRegion(ctx, 585, 648, 470, 75);
+
+  clearDarkTextRegion(ctx, 110, 440, 240, 40);
+  clearDarkTextRegion(ctx, 110, 505, 245, 40);
+  clearDarkTextRegion(ctx, 110, 570, 245, 40);
+  clearDarkTextRegion(ctx, 110, 635, 245, 40);
+  clearDarkTextRegion(ctx, 110, 700, 245, 40);
+  clearDarkTextRegion(ctx, 110, 805, 245, 55);
+
+  /* Student photo */
+  await drawStudentPhoto(ctx, student.photo_url);
+
+  /* Left information */
+  drawLeft(ctx, student.student_id || "—", 120, 484, 17, "Arial", ink, "400");
+  drawLeft(ctx, $("certificateId").value || "—", 120, 548, 16, "Arial", ink, "400");
+  drawLeft(ctx, course.name || "—", 120, 613, 16, "Arial", ink, "400");
+  drawLeft(ctx, formatDate($("dateStarted").value), 120, 678, 16, "Arial", ink, "400");
+  drawLeft(ctx, formatDate($("dateCompleted").value), 120, 743, 16, "Arial", ink, "400");
+
+  /* Status pill */
+  const statusText = String($("status").value || "valid").toUpperCase();
+  roundedRect(ctx, 120, 858, 145, 34, 5);
+  ctx.fillStyle = "#f7fbf7";
+  ctx.fill();
+  ctx.strokeStyle = "#16A34A";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  drawCentered(ctx, statusText, 192, 875, 130, 15, "Arial", "#166534", "700");
+
+  /* Main student name */
+  drawCentered(
+    ctx,
+    student.full_name || "Student Name",
+    800,
+    529,
+    650,
+    73,
+    '"Great Vibes", cursive',
+    navy,
+    "400"
+  );
+
+  /* Course name */
+  drawCentered(
+    ctx,
+    course.name || "Course Name",
+    800,
+    680,
+    510,
+    38,
+    '"Cinzel", Georgia, serif',
+    navy,
+    "700"
+  );
+
+  /* Date issued */
+  drawLeft(ctx, formatDate($("issueDate").value), 120, 808, 16, "Arial", ink, "400");
+
+  /* QR */
+  await drawQR(ctx, $("verifyCode").value);
+
+  generated = true;
+  saved = false;
+  setPreviewStatus("Certificate preview generated successfully.");
+}
+
+/* ---------------- SAVE ---------------- */
+
+async function saveCertificate() {
+  if (!generated) await renderCertificate();
+
+  const student = selectedStudent();
+  const course = selectedCourse();
+  const institutionId = institutionForCertificate();
+
+  if (!student || !course) {
+    throw new Error("Student and course are required.");
+  }
+
+  if (!institutionId) {
+    throw new Error("Institution is required.");
+  }
+
+  const issueDate = $("issueDate").value || todayISO();
+  const expiryDate = $("expiryDate").value || null;
+  const certificateNo = $("certificateNo").value;
+  const certificateId = $("certificateId").value;
+  const verifyCode = $("verifyCode").value;
+
+  const verificationUrl =
+    `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}verify.html?code=${encodeURIComponent(verifyCode)}`;
+
+  const hashSource = [
+    certificateNo,
+    certificateId,
+    verifyCode,
+    student.id,
+    student.student_id || "",
+    course.id,
+    issueDate,
+    expiryDate || "",
+    institutionId
+  ].join("|");
+
+  const hashCode = await sha256(hashSource);
+
+  const payload = {
+    institution_id: institutionId,
+    student_id: student.id,
+    course_id: course.id,
+    certificate_no: certificateNo,
+    certificate_id: certificateId,
+    verify_code: verifyCode,
+    hash_code: hashCode,
+    issue_date: issueDate,
+    expiry_date: expiryDate,
+    status: $("status").value,
+    certificate_url: null,
+    pdf_url: null,
+    qr_url: verificationUrl,
+    student_name_snapshot: student.full_name || "",
+    course_name_snapshot: course.name || "",
+    issued_by: currentUser.id,
+    certificate_type: $("certificateType").value || "Certificate of Completion",
+    template_url: new URL("certificate-template.png", window.location.href).href,
+    student_photo_url: student.photo_url || null,
+    verification_url: verificationUrl
+  };
+
+  const { data, error } = await supabaseClient
+    .from("certificates")
+    .insert(payload)
+    .select("*")
+    .single();
 
   if (error) {
-
-    console.error(
-      "Profile error:",
-      error
-    );
-
-    throw new Error(
-      `Profile database error: ${error.message}`
-    );
+    console.error("Certificate save error:", error);
+    throw new Error(`Certificate save failed: ${error.message}`);
   }
 
-
-  if (!data) {
-
-    throw new Error(
-      "Your EMS profile was not found."
-    );
-  }
-
-
-  currentProfile =
-    data;
-
-
-  if (
-    data.is_active === false
-  ) {
-
-    throw new Error(
-      "Your EMS account is inactive."
-    );
-  }
-
+  saved = true;
+  showMessage(
+    `Certificate saved successfully — ${data.certificate_no || certificateNo}`,
+    "success"
+  );
+  setPreviewStatus("Certificate saved to Supabase successfully.");
 
   return data;
 }
 
+/* ---------------- DOWNLOAD ---------------- */
 
-/* =========================================================
-   11. ROLE
-   ========================================================= */
+function downloadCanvas(filename = "GAAWOW-Certificate.png") {
+  const canvas = $("certificateCanvas");
 
-function getUserRole() {
-
-  return String(
-    currentProfile?.role || ""
-  )
-    .trim()
-    .toLowerCase();
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = canvas.toDataURL("image/png", 1.0);
+  link.click();
 }
 
+async function downloadPDF() {
+  if (!generated) await renderCertificate();
 
-function isSuperAdmin() {
+  const canvas = $("certificateCanvas");
+  const image = canvas.toDataURL("image/png", 1.0);
 
-  return (
-    getUserRole() ===
-    "super_admin"
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+    compress: false
+  });
+
+  pdf.addImage(image, "PNG", 0, 0, 297, 210, undefined, "FAST");
+  pdf.save(
+    `${safeFileName($("studentName").value)}-${safeFileName($("courseName").value)}.pdf`
   );
 }
 
-
-function canManageCertificates() {
-
-  return [
-    "super_admin",
-    "school_admin"
-  ].includes(
-    getUserRole()
-  );
-}
-
-
-/* =========================================================
-   12. INSTITUTIONS
-   ========================================================= */
-
-async function loadInstitutions() {
-
-  const filter =
-    $("institutionFilter");
-
-  if (!filter) {
+function printCertificate() {
+  if (!generated) {
+    showMessage("Generate the certificate first.", "error");
     return;
   }
 
-
-  filter.innerHTML =
-    `<option value="">All Institutions</option>`;
-
-
-  let query =
-    supabaseClient
-      .from("institutions")
-      .select(`
-        id,
-        name
-      `)
-      .order(
-        "name",
-        {
-          ascending: true
-        }
-      );
-
-
-  if (
-    !isSuperAdmin() &&
-    currentProfile?.institution_id
-  ) {
-
-    query =
-      query.eq(
-        "id",
-        currentProfile.institution_id
-      );
-  }
-
-
-  const {
-    data,
-    error
-  } = await query;
-
-
-  if (error) {
-
-    console.error(
-      "Institutions error:",
-      error
-    );
-
-    throw new Error(
-      `Institutions database error: ${error.message}`
-    );
-  }
-
-
-  institutions =
-    data || [];
-
-
-  institutions.forEach(
-    institution => {
-
-      const option =
-        document.createElement(
-          "option"
-        );
-
-      option.value =
-        institution.id;
-
-      option.textContent =
-        institution.name;
-
-      filter.appendChild(
-        option
-      );
-    }
-  );
-
-
-  if (
-    !isSuperAdmin() &&
-    currentProfile?.institution_id
-  ) {
-
-    filter.value =
-      currentProfile.institution_id;
-  }
-}
-
-
-/* =========================================================
-   13. LOAD CERTIFICATES
-   ========================================================= */
-
-async function loadCertificates() {
-
-  setLoading(true);
-  hideMessage();
-
-
-  try {
-
-    /*
-      THIS IS THE REAL DATABASE QUERY.
-
-      NO:
-      enrollment_id
-      student_name
-      course_name
-    */
-
-    let query =
-      supabaseClient
-        .from("certificates")
-        .select(`
-          id,
-          institution_id,
-          student_id,
-          course_id,
-          certificate_no,
-          certificate_id,
-          verify_code,
-          hash_code,
-          issue_date,
-          expiry_date,
-          status,
-          certificate_url,
-          pdf_url,
-          qr_url,
-          student_name_snapshot,
-          course_name_snapshot,
-          issued_by,
-          created_at,
-          updated_at,
-          certificate_type,
-          template_url,
-          student_photo_url,
-          verification_url
-        `)
-        .order(
-          "created_at",
-          {
-            ascending: false
-          }
-        );
-
-
-    /*
-      Institution restriction.
-
-      RLS remains the real security layer.
-    */
-
-    if (
-      !isSuperAdmin() &&
-      currentProfile?.institution_id
-    ) {
-
-      query =
-        query.eq(
-          "institution_id",
-          currentProfile.institution_id
-        );
-    }
-
-
-    const {
-      data,
-      error
-    } = await query;
-
-
-    if (error) {
-
-      console.error(
-        "Certificates query error:",
-        error
-      );
-
-      throw new Error(
-        `Certificates database error: ${error.message}`
-      );
-    }
-
-
-    certificates =
-      data || [];
-
-
-    updateStatistics(
-      certificates
-    );
-
-
-    applyFilters();
-
-
-  } catch (error) {
-
-    console.error(
-      "Certificates loading failed:",
-      error
-    );
-
-
-    certificates = [];
-
-
-    updateStatistics([]);
-
-
-    renderCertificates([]);
-
-
-    showMessage(
-      error.message ||
-      "Unable to load certificates.",
-      "error"
-    );
-
-
-  } finally {
-
-    setLoading(false);
-  }
-}
-
-
-/* =========================================================
-   14. SEARCH + FILTER
-   ========================================================= */
-
-function getFilteredCertificates() {
-
-  const searchInput =
-    $("searchInput");
-
-  const statusFilter =
-    $("statusFilter");
-
-  const institutionFilter =
-    $("institutionFilter");
-
-
-  const search =
-    String(
-      searchInput?.value || ""
-    )
-      .trim()
-      .toLowerCase();
-
-
-  const status =
-    String(
-      statusFilter?.value || ""
-    )
-      .trim()
-      .toLowerCase();
-
-
-  const institutionId =
-    String(
-      institutionFilter?.value || ""
-    )
-      .trim();
-
-
-  return certificates.filter(
-    certificate => {
-
-      const matchesSearch =
-        !search ||
-
-        String(
-          certificate.student_name_snapshot || ""
-        )
-          .toLowerCase()
-          .includes(search) ||
-
-        String(
-          certificate.student_id || ""
-        )
-          .toLowerCase()
-          .includes(search) ||
-
-        String(
-          certificate.course_name_snapshot || ""
-        )
-          .toLowerCase()
-          .includes(search) ||
-
-        String(
-          certificate.certificate_no || ""
-        )
-          .toLowerCase()
-          .includes(search) ||
-
-        String(
-          certificate.certificate_id || ""
-        )
-          .toLowerCase()
-          .includes(search) ||
-
-        String(
-          certificate.verify_code || ""
-        )
-          .toLowerCase()
-          .includes(search);
-
-
-      const matchesStatus =
-        !status ||
-        normalizeStatus(
-          certificate.status
-        ) === status;
-
-
-      const matchesInstitution =
-        !institutionId ||
-        certificate.institution_id ===
-          institutionId;
-
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesInstitution
-      );
-    }
-  );
-}
-
-
-/* =========================================================
-   15. APPLY FILTERS
-   ========================================================= */
-
-function applyFilters() {
-
-  const filtered =
-    getFilteredCertificates();
-
-  renderCertificates(
-    filtered
-  );
-}
-
-
-/* =========================================================
-   16. RENDER TABLE
-   ========================================================= */
-
-function renderCertificates(
-  data
-) {
-
-  const body =
-    $("certificatesBody");
-
-
-  if (!body) {
+  const canvas = $("certificateCanvas");
+  const image = canvas.toDataURL("image/png", 1.0);
+
+  const win = window.open("", "_blank", "noopener,noreferrer");
+  if (!win) {
+    showMessage("Popup blocked. Please allow popups for printing.", "error");
     return;
   }
 
-
-  if (
-    !data ||
-    data.length === 0
-  ) {
-
-    body.innerHTML = `
-      <tr>
-        <td
-          colspan="100%"
-          style="
-            text-align:center;
-            padding:40px;
-          "
-        >
-          No certificates found.
-        </td>
-      </tr>
-    `;
-
-    return;
-  }
-
-
-  body.innerHTML =
-    data.map(
-      certificate => {
-
-        return `
-          <tr>
-
-            <td>
-              <strong>
-                ${escapeHTML(
-                  certificate.certificate_no ||
-                  "—"
-                )}
-              </strong>
-            </td>
-
-
-            <td>
-              ${escapeHTML(
-                certificate.student_name_snapshot ||
-                "—"
-              )}
-            </td>
-
-
-            <td>
-              ${escapeHTML(
-                certificate.course_name_snapshot ||
-                "—"
-              )}
-            </td>
-
-
-            <td>
-              ${escapeHTML(
-                certificate.certificate_id ||
-                "—"
-              )}
-            </td>
-
-
-            <td>
-              ${escapeHTML(
-                certificate.verify_code ||
-                "—"
-              )}
-            </td>
-
-
-            <td>
-              ${formatDate(
-                certificate.issue_date
-              )}
-            </td>
-
-
-            <td>
-              ${statusBadge(
-                certificate.status
-              )}
-            </td>
-
-
-            <td>
-
-              <div class="action-buttons">
-
-                <button
-                  type="button"
-                  class="btn btn-view"
-                  onclick="viewCertificate('${certificate.id}')"
-                >
-                  View
-                </button>
-
-
-                <button
-                  type="button"
-                  class="btn btn-verify"
-                  onclick="verifyCertificate('${escapeHTML(
-                    certificate.verify_code ||
-                    ""
-                  )}')"
-                >
-                  Verify
-                </button>
-
-
-                ${
-                  canManageCertificates()
-                    ? `
-                      <button
-                        type="button"
-                        class="btn btn-delete"
-                        onclick="deleteCertificate('${certificate.id}')"
-                      >
-                        Delete
-                      </button>
-                    `
-                    : ""
-                }
-
-              </div>
-
-            </td>
-
-          </tr>
-        `;
-      }
-    )
-    .join("");
+  win.document.write(`
+    <!doctype html>
+    <html>
+    <head>
+      <title>GAAWOW Certificate</title>
+      <style>
+        @page{size:A4 landscape;margin:0}
+        html,body{margin:0;padding:0;background:#fff}
+        img{display:block;width:297mm;height:210mm;object-fit:fill}
+      </style>
+    </head>
+    <body>
+      <img src="${image}" alt="GAAWOW Certificate">
+      <script>
+        window.onload=function(){
+          setTimeout(function(){window.print();},400);
+        };
+      <\/script>
+    </body>
+    </html>
+  `);
+  win.document.close();
 }
 
-
-/* =========================================================
-   17. STATISTICS
-   ========================================================= */
-
-function updateStatistics(
-  data
-) {
-
-  const list =
-    Array.isArray(data)
-      ? data
-      : [];
-
-
-  const total =
-    list.length;
-
-
-  const valid =
-    list.filter(
-      item =>
-        normalizeStatus(
-          item.status
-        ) === "valid"
-    ).length;
-
-
-  const pending =
-    list.filter(
-      item =>
-        normalizeStatus(
-          item.status
-        ) === "pending"
-    ).length;
-
-
-  const revoked =
-    list.filter(
-      item =>
-        normalizeStatus(
-          item.status
-        ) === "revoked"
-    ).length;
-
-
-  if ($("totalCount")) {
-    $("totalCount")
-      .textContent = total;
-  }
-
-
-  if ($("validCount")) {
-    $("validCount")
-      .textContent = valid;
-  }
-
-
-  if ($("pendingCount")) {
-    $("pendingCount")
-      .textContent = pending;
-  }
-
-
-  if ($("revokedCount")) {
-    $("revokedCount")
-      .textContent = revoked;
-  }
-}
-
-
-/* =========================================================
-   18. CLEAR FILTERS
-   ========================================================= */
-
-function clearFilters() {
-
-  if ($("searchInput")) {
-    $("searchInput").value = "";
-  }
-
-
-  if ($("statusFilter")) {
-    $("statusFilter").value = "";
-  }
-
-
-  if ($("institutionFilter")) {
-
-    if (
-      !isSuperAdmin() &&
-      currentProfile?.institution_id
-    ) {
-
-      $("institutionFilter").value =
-        currentProfile.institution_id;
-
-    } else {
-
-      $("institutionFilter").value =
-        "";
-    }
-  }
-
-
-  applyFilters();
-}
-
-
-/* =========================================================
-   19. INSTITUTION NAME
-   ========================================================= */
-
-function getInstitutionName(
-  institutionId
-) {
-
-  if (!institutionId) {
-    return "—";
-  }
-
-
-  const institution =
-    institutions.find(
-      item =>
-        item.id === institutionId
-    );
-
-
-  return institution
-    ? institution.name
-    : institutionId;
-}
-
-
-/* =========================================================
-   20. VIEW CERTIFICATE
-   ========================================================= */
-
-function viewCertificate(
-  id
-) {
-
-  const certificate =
-    certificates.find(
-      item =>
-        item.id === id
-    );
-
-
-  if (!certificate) {
-
-    showMessage(
-      "Certificate not found.",
-      "error"
-    );
-
-    return;
-  }
-
-
-  const modal =
-    $("viewModal");
-
-  const modalBody =
-    $("modalBody");
-
-
-  if (
-    !modal ||
-    !modalBody
-  ) {
-
-    alert(
-      [
-        `Certificate No: ${certificate.certificate_no || "—"}`,
-        `Certificate ID: ${certificate.certificate_id || "—"}`,
-        `Student: ${certificate.student_name_snapshot || "—"}`,
-        `Course: ${certificate.course_name_snapshot || "—"}`,
-        `Verify Code: ${certificate.verify_code || "—"}`,
-        `Issue Date: ${formatDate(certificate.issue_date)}`,
-        `Expiry Date: ${formatDate(certificate.expiry_date)}`,
-        `Status: ${certificate.status || "—"}`
-      ].join("\n")
-    );
-
-    return;
-  }
-
-
-  modalBody.innerHTML = `
-
-    <div class="certificate-details">
-
-      <div class="detail-row">
-        <strong>Student</strong>
-        <span>
-          ${escapeHTML(
-            certificate.student_name_snapshot ||
-            "—"
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Student UUID</strong>
-        <span>
-          ${escapeHTML(
-            certificate.student_id ||
-            "—"
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Course</strong>
-        <span>
-          ${escapeHTML(
-            certificate.course_name_snapshot ||
-            "—"
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Course UUID</strong>
-        <span>
-          ${escapeHTML(
-            certificate.course_id ||
-            "—"
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Institution</strong>
-        <span>
-          ${escapeHTML(
-            getInstitutionName(
-              certificate.institution_id
-            )
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Certificate No</strong>
-        <span>
-          ${escapeHTML(
-            certificate.certificate_no ||
-            "—"
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Certificate ID</strong>
-        <span>
-          ${escapeHTML(
-            certificate.certificate_id ||
-            "—"
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Certificate Type</strong>
-        <span>
-          ${escapeHTML(
-            certificate.certificate_type ||
-            "—"
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Verify Code</strong>
-        <span>
-          ${escapeHTML(
-            certificate.verify_code ||
-            "—"
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Issue Date</strong>
-        <span>
-          ${formatDate(
-            certificate.issue_date
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Expiry Date</strong>
-        <span>
-          ${formatDate(
-            certificate.expiry_date
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Status</strong>
-        <span>
-          ${statusBadge(
-            certificate.status
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Student Photo</strong>
-        <span>
-          ${
-            certificate.student_photo_url
-              ? `
-                <a
-                  href="${escapeHTML(
-                    certificate.student_photo_url
-                  )}"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  View Photo
-                </a>
-              `
-              : "—"
-          }
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Certificate URL</strong>
-        <span>
-          ${
-            certificate.certificate_url
-              ? `
-                <a
-                  href="${escapeHTML(
-                    certificate.certificate_url
-                  )}"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Open Certificate
-                </a>
-              `
-              : "—"
-          }
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>PDF</strong>
-        <span>
-          ${
-            certificate.pdf_url
-              ? `
-                <a
-                  href="${escapeHTML(
-                    certificate.pdf_url
-                  )}"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Open PDF
-                </a>
-              `
-              : "—"
-          }
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Verification URL</strong>
-        <span>
-          ${
-            certificate.verification_url
-              ? `
-                <a
-                  href="${escapeHTML(
-                    certificate.verification_url
-                  )}"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Verify Online
-                </a>
-              `
-              : "—"
-          }
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>QR URL</strong>
-        <span>
-          ${
-            certificate.qr_url
-              ? `
-                <a
-                  href="${escapeHTML(
-                    certificate.qr_url
-                  )}"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Open QR
-                </a>
-              `
-              : "—"
-          }
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Template</strong>
-        <span>
-          ${
-            certificate.template_url
-              ? `
-                <a
-                  href="${escapeHTML(
-                    certificate.template_url
-                  )}"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Open Template
-                </a>
-              `
-              : "—"
-          }
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Verification Hash</strong>
-        <span
-          style="word-break:break-all;"
-        >
-          ${escapeHTML(
-            certificate.hash_code ||
-            "—"
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Issued By</strong>
-        <span>
-          ${escapeHTML(
-            certificate.issued_by ||
-            "—"
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Created</strong>
-        <span>
-          ${formatDate(
-            certificate.created_at
-          )}
-        </span>
-      </div>
-
-
-      <div class="detail-row">
-        <strong>Updated</strong>
-        <span>
-          ${formatDate(
-            certificate.updated_at
-          )}
-        </span>
-      </div>
-
-    </div>
-
-  `;
-
-
-  modal.style.display =
-    "flex";
-}
-
-
-/* =========================================================
-   21. CLOSE MODAL
-   ========================================================= */
-
-function closeModal() {
-
-  const modal =
-    $("viewModal");
-
-
-  if (modal) {
-
-    modal.style.display =
-      "none";
-  }
-}
-
-
-/* =========================================================
-   22. VERIFY CERTIFICATE
-   ========================================================= */
-
-function verifyCertificate(
-  code
-) {
-
+function verifyOnline() {
+  const code = $("verifyCode").value;
   if (!code) {
-
-    showMessage(
-      "Verification code is missing.",
-      "error"
-    );
-
+    showMessage("Verify code is missing.", "error");
     return;
   }
-
-
   window.location.href =
     `verify.html?code=${encodeURIComponent(code)}`;
 }
 
-
-/* =========================================================
-   23. DELETE
-   ========================================================= */
-
-async function deleteCertificate(
-  id
-) {
-
-  if (
-    !canManageCertificates()
-  ) {
-
-    showMessage(
-      "You do not have permission to delete certificates.",
-      "error"
-    );
-
-    return;
-  }
-
-
-  const certificate =
-    certificates.find(
-      item =>
-        item.id === id
-    );
-
-
-  if (!certificate) {
-
-    showMessage(
-      "Certificate not found.",
-      "error"
-    );
-
-    return;
-  }
-
-
-  const confirmed =
-    window.confirm(
-      `Delete certificate ${
-        certificate.certificate_no ||
-        ""
-      }?\n\nThis action cannot be undone.`
-    );
-
-
-  if (!confirmed) {
-    return;
-  }
-
-
-  try {
-
-    setLoading(true);
-    hideMessage();
-
-
-    const {
-      error
-    } =
-      await supabaseClient
-        .from("certificates")
-        .delete()
-        .eq(
-          "id",
-          id
-        );
-
-
-    if (error) {
-
-      console.error(
-        "Delete certificate error:",
-        error
-      );
-
-      throw new Error(
-        `Unable to delete certificate: ${error.message}`
-      );
-    }
-
-
-    showMessage(
-      "Certificate deleted successfully.",
-      "success"
-    );
-
-
-    await loadCertificates();
-
-
-  } catch (error) {
-
-    console.error(
-      "Delete failed:",
-      error
-    );
-
-
-    showMessage(
-      error.message ||
-      "Unable to delete certificate.",
-      "error"
-    );
-
-
-  } finally {
-
-    setLoading(false);
-  }
-}
-
-
-/* =========================================================
-   24. REFRESH
-   ========================================================= */
-
-async function refreshCertificates() {
-
-  if (isLoading) {
-    return;
-  }
-
-  await loadCertificates();
-}
-
-
-/* =========================================================
-   25. NAVIGATION
-   ========================================================= */
-
-function openGenerator() {
-
-  window.location.href =
-    "certificate.html";
-}
-
-
-function openDashboard() {
-
-  window.location.href =
-    "dashboard.html";
-}
-
-
-/* =========================================================
-   26. EVENTS
-   ========================================================= */
+/* ---------------- EVENTS ---------------- */
 
 function setupEvents() {
+  $("studentSelect").addEventListener("change", async () => {
+    hideMessage();
+    syncStudent();
+    generated = false;
+  });
 
-  const searchInput =
-    $("searchInput");
-
-  const statusFilter =
-    $("statusFilter");
-
-  const institutionFilter =
-    $("institutionFilter");
-
-  const clearFiltersButton =
-    $("clearFiltersBtn");
-
-  const refreshButton =
-    $("refreshBtn");
-
-  const closeModalButton =
-    $("closeModalBtn");
-
-  const generateButton =
-    $("generateCertificateBtn");
-
-  const backDashboardButton =
-    $("backDashboardBtn");
-
-
-  if (searchInput) {
-
-    searchInput.addEventListener(
-      "input",
-      applyFilters
-    );
-  }
-
-
-  if (statusFilter) {
-
-    statusFilter.addEventListener(
-      "change",
-      applyFilters
-    );
-  }
-
-
-  if (institutionFilter) {
-
-    institutionFilter.addEventListener(
-      "change",
-      applyFilters
-    );
-  }
-
-
-  if (clearFiltersButton) {
-
-    clearFiltersButton.addEventListener(
-      "click",
-      clearFilters
-    );
-  }
-
-
-  if (refreshButton) {
-
-    refreshButton.addEventListener(
-      "click",
-      refreshCertificates
-    );
-  }
-
-
-  if (closeModalButton) {
-
-    closeModalButton.addEventListener(
-      "click",
-      closeModal
-    );
-  }
-
-
-  if (generateButton) {
-
-    generateButton.addEventListener(
-      "click",
-      openGenerator
-    );
-  }
-
-
-  if (backDashboardButton) {
-
-    backDashboardButton.addEventListener(
-      "click",
-      openDashboard
-    );
-  }
-
-
-  const modal =
-    $("viewModal");
-
-
-  if (modal) {
-
-    modal.addEventListener(
-      "click",
-      event => {
-
-        if (
-          event.target === modal
-        ) {
-
-          closeModal();
-        }
-      }
-    );
-  }
-
-
-  document.addEventListener(
-    "keydown",
-    event => {
-
-      if (
-        event.key === "Escape"
-      ) {
-
-        closeModal();
-      }
+  $("institutionSelect").addEventListener("change", async () => {
+    if (isSuperAdmin()) {
+      await loadCourses($("institutionSelect").value);
+      generated = false;
     }
-  );
+  });
+
+  $("courseSelect").addEventListener("change", () => {
+    syncCourse();
+    generated = false;
+  });
+
+  $("issueDate").addEventListener("change", () => {
+    if (!$("dateCompleted").value) {
+      $("dateCompleted").value = $("issueDate").value;
+    }
+    generated = false;
+  });
+
+  $("generateBtn").addEventListener("click", async () => {
+    try {
+      hideMessage();
+      setPreviewStatus("Generating HD certificate...");
+      await renderCertificate();
+      showMessage("Certificate preview generated successfully.", "success");
+    } catch (e) {
+      console.error(e);
+      showMessage(e.message || "Unable to generate certificate.", "error");
+      setPreviewStatus("Certificate generation failed.");
+    }
+  });
+
+  $("saveBtn").addEventListener("click", async () => {
+    try {
+      hideMessage();
+      await saveCertificate();
+    } catch (e) {
+      console.error(e);
+      showMessage(e.message || "Unable to save certificate.", "error");
+    }
+  });
+
+  $("pngBtn").addEventListener("click", async () => {
+    try {
+      hideMessage();
+      if (!generated) await renderCertificate();
+      downloadCanvas(
+        `${safeFileName($("studentName").value)}-${safeFileName($("courseName").value)}.png`
+      );
+      showMessage("HD PNG downloaded.", "success");
+    } catch (e) {
+      showMessage(e.message || "PNG download failed.", "error");
+    }
+  });
+
+  $("pdfBtn").addEventListener("click", async () => {
+    try {
+      hideMessage();
+      await downloadPDF();
+      showMessage("HD PDF downloaded.", "success");
+    } catch (e) {
+      console.error(e);
+      showMessage(e.message || "PDF download failed.", "error");
+    }
+  });
+
+  $("printBtn").addEventListener("click", () => {
+    printCertificate();
+  });
+
+  $("verifyBtn").addEventListener("click", verifyOnline);
+
+  $("backBtn").addEventListener("click", () => {
+    window.location.href = "certificates.html";
+  });
 }
 
+/* ---------------- INIT ---------------- */
 
-/* =========================================================
-   27. INITIALIZE
-   ========================================================= */
-
-async function initCertificatesPage() {
-
+async function init() {
   try {
+    showMessage("Loading Certificate Generator...", "info");
 
-    setLoading(true);
-    hideMessage();
+    const authenticated = await loadAuth();
+    if (!authenticated) return;
 
-
-    /*
-      STEP 1
-      Authentication
-    */
-
-    const authenticated =
-      await loadCurrentUser();
-
-
-    if (!authenticated) {
-      return;
-    }
-
-
-    /*
-      STEP 2
-      Profile / Role
-    */
-
-    await loadCurrentProfile();
-
-
-    /*
-      STEP 3
-      Institutions
-    */
-
+    await loadProfile();
+    await loadOfficialTemplate();
     await loadInstitutions();
 
+    await loadStudents();
 
-    /*
-      STEP 4
-      UI events
-    */
+    const initialInstitution =
+      $("institutionSelect").value ||
+      currentProfile?.institution_id ||
+      "";
 
+    await loadCourses(initialInstitution);
+
+    generateCertificateNumbers();
+    setDefaultDates();
     setupEvents();
 
-
-    /*
-      STEP 5
-      Certificates
-    */
-
-    await loadCertificates();
-
-
-  } catch (error) {
-
-    console.error(
-      "Certificates initialization error:",
-      error
-    );
-
-
-    showMessage(
-      error.message ||
-      "Unable to initialize Certificates Management.",
-      "error"
-    );
-
-
-  } finally {
-
-    setLoading(false);
+    hideMessage();
+    setPreviewStatus("Ready. Select a student and course, then Generate Preview.");
+  } catch (e) {
+    console.error("Certificate Generator initialization error:", e);
+    showMessage(e.message || "Unable to initialize Certificate Generator.", "error");
+    setPreviewStatus("Generator initialization failed.");
   }
 }
 
-
-/* =========================================================
-   28. GLOBAL FUNCTIONS
-   ========================================================= */
-
-window.viewCertificate =
-  viewCertificate;
-
-window.verifyCertificate =
-  verifyCertificate;
-
-window.deleteCertificate =
-  deleteCertificate;
-
-window.closeModal =
-  closeModal;
-
-window.clearFilters =
-  clearFilters;
-
-window.applyFilters =
-  applyFilters;
-
-window.refreshCertificates =
-  refreshCertificates;
-
-window.openGenerator =
-  openGenerator;
-
-window.openDashboard =
-  openDashboard;
-
-
-/* =========================================================
-   29. START
-   ========================================================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  initCertificatesPage
-);
+document.addEventListener("DOMContentLoaded", init);
