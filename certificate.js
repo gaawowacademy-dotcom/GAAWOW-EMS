@@ -24,8 +24,10 @@ const supabaseClient = window.supabase.createClient(
 const TEMPLATE_FILE = "certificate-template-clean.png";
 const TEMPLATE_CANDIDATES = [
   `./${TEMPLATE_FILE}`,
-  `./Certificate-template-clean.png`
+  "./certificate-template-clean-2.png",
+  "./Certificate-template-clean.png"
 ];
+let loadedTemplateName = TEMPLATE_FILE;
 
 /* Layout coordinates are in the 1536x1024 template space.
    The canvas is rendered at SCALE x for a sharper HD export. */
@@ -203,6 +205,7 @@ async function loadOfficialTemplate() {
     try {
       const url = new URL(path, document.baseURI).href;
       templateImage = await loadImage(url, false);
+      loadedTemplateName = path.replace("./", "");
       setPreviewStatus(`Official template loaded: ${path.replace("./", "")}`);
       drawTemplateOnly();
       return;
@@ -728,7 +731,7 @@ async function saveCertificate() {
     course_name_snapshot: course.name || "",
     issued_by: currentUser.id,
     certificate_type: $("certificateType").value || "Certificate of Completion",
-    template_url: new URL(TEMPLATE_FILE, window.location.href).href,
+    template_url: new URL(loadedTemplateName, window.location.href).href,
     student_photo_url: student.photo_url || null,
     verification_url: verificationUrl
   };
