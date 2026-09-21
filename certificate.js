@@ -1,10 +1,10 @@
 /* =========================================================
    GAAWOW EMS
-   CERTIFICATE GENERATOR V9.0
+   CERTIFICATE GENERATOR V9.1
    CLEAN-TEMPLATE / DATABASE-SAFE
 
    Template (placeholder text already removed):
-   ./certificate-template-clean.png
+   ./certificate-template-v9.png
 
    V9 no longer erases anything at runtime. The template ships
    with empty fields, so every value is drawn on clean paper and
@@ -21,13 +21,28 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_KEY
 );
 
-const TEMPLATE_FILE = "certificate-template-clean.png";
-const TEMPLATE_CANDIDATES = [
-  `./${TEMPLATE_FILE}`,
-  "./certificate-template-clean-2.png",
-  "./Certificate-template-clean.png"
-];
+/* V9.1 template: student values, signature names and footer contact
+   text are ALL removed, so they are drawn by this script. Do not point
+   this at an older clean template (the footer text would print twice). */
+const TEMPLATE_FILE = "certificate-template-v9.png";
+const TEMPLATE_CANDIDATES = [`./${TEMPLATE_FILE}`];
 let loadedTemplateName = TEMPLATE_FILE;
+
+/* Optional: full public site address used inside the QR code, e.g.
+   "https://gaawowacademy.com/". Leave "" to use the folder this page is in. */
+const VERIFY_BASE_URL = "";
+
+/* Footer + signature defaults (director / academic head can also be typed
+   in the form fields directorName / academicHeadName). */
+const CONTACT = {
+  address: "Burhakaba, Bay, Somalia",
+  phones: ["+252 615 228 824", "+252 625 228 824"]
+};
+const DEFAULT_DIRECTOR = "Abdirahman H. Mohamed";
+const DEFAULT_ACADEMIC_HEAD = "Hodan Yusuf";
+
+/* Supabase storage buckets tried when photo_url is only a file path. */
+const PHOTO_BUCKETS = ["student-photos", "student_photos", "students", "photos", "avatars", "profile-photos", "uploads"];
 
 /* Layout coordinates are in the 1536x1024 template space.
    The canvas is rendered at SCALE x for a sharper HD export. */
@@ -69,7 +84,25 @@ const LAYOUT = {
   photo: { cx: 211, cy: 299, r: 109, cutY: 386, x: 102, y: 190, w: 218, h: 196 },
 
   // QR (inside the gold frame, above the VERIFY CERTIFICATE button)
-  qr: { x: 1284, y: 424, size: 158 }
+  qr: { x: 1284, y: 424, size: 158 },
+
+  // signatures (names sit on the gold line, labels stay in the template)
+  directorX: 528,
+  academicHeadX: 1080,
+  signatureY: 858,
+  signatureSize: 32,
+  directorMaxWidth: 240,
+  academicHeadMaxWidth: 190,
+
+  // footer (white text on the navy bar)
+  footerSize: 15,
+  addressX: 149,
+  addressY: 997,
+  addressMaxWidth: 190,
+  phoneX: 437,
+  phoneY1: 987,
+  phoneY2: 1005,
+  phoneMaxWidth: 185
 };
 
 const STATUS_STYLES = {
@@ -148,7 +181,9 @@ function canGenerate() {
 }
 
 function verificationUrlFor(code) {
-  const base = `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}`;
+  let base = VERIFY_BASE_URL
+    ? VERIFY_BASE_URL.replace(/\/?$/, "/")
+    : `${window.location.origin}${window.location.pathname.replace(/[^/]+$/, "")}`;
   return `${base}verify.html?code=${encodeURIComponent(code)}`;
 }
 
@@ -517,6 +552,10 @@ function drawText(ctx, text, x, baselineY, opts) {
   ctx.fillText(text, x, baselineY);
 }
 
+function valueOf(id, fallback = "") {
+  return $(id)?.value?.trim() || fallback;
+}
+
 function drawField(ctx, text, baselineY) {
   drawText(ctx, text || "—", LAYOUT.fieldX, baselineY, {
     size: LAYOUT.fieldSize,
@@ -548,53 +587,221 @@ function drawStatusPill(ctx, statusValue) {
   });
 }
 
-/* Returns true when the photo was drawn. The ribbon of the template stays
-   on top because the photo is cut at cutY. */
-async function drawStudentPhoto(ctx, url) {
-  if (!url) return false;
+/* ---------------- STUDENT PHOTO ---------------- */
+
+function storageRefFromUrl(url) {
+  const m = String(url).match(/\/storage\/v1\/object\/(?:public|sign|authenticated)?\/?([^/]+)\/([^?]+)/);
+  if (!m) return null;
+  return { bucket: m[1], path: decodeURIComponent(m[2]) };
+}
+
+/* Fetch as a blob so the canvas never gets tainted, then decode. */
+async function loadPhotoFromUrl(url) {
+  let blobError = null;
 
   try {
-    const img = await loadImage(url, true);
-    const P = LAYOUT.photo;
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(P.cx, P.cy, P.r, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.beginPath();
-    ctx.rect(0, 0, W, P.cutY);
-    ctx.clip();
-
-    // "cover" fit, keeping the face (upper part of the picture) visible
-    const ratio = Math.max(P.w / img.naturalWidth, P.h / img.naturalHeight);
-    const sw = img.naturalWidth * ratio;
-    const sh = img.naturalHeight * ratio;
-    const dx = P.x + (P.w - sw) / 2;
-    const dy = P.y - (sh - P.h) * 0.25;
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(P.cx - P.r, P.cy - P.r, P.r * 2, P.r * 2);
-    ctx.drawImage(img, dx, dy, sw, sh);
-    ctx.restore();
-    return true;
+    const res = await fetch(url, { mode: "cors", credentials: "omit" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    if (blob.type && !blob.type.startsWith("image/")) {
+      throw new Error(`not an image (${blob.type})`);
+    }
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      return await loadImage(objectUrl, false);
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+    }
   } catch (e) {
-    console.warn("Student photo could not be loaded:", e);
-    return false;
+    blobError = e;
+  }
+
+  // Second chance: plain CORS image element.
+  try {
+    return await loadImage(url, true);
+  } catch (e) {
+    const reason = String(blobError?.message || "");
+    throw new Error(
+      /HTTP \d+/.test(reason) ? reason : `blocked or unreachable (${reason || "CORS/network"})`
+    );
   }
 }
 
+/* Builds every address worth trying for a stored photo value. */
+async function photoCandidates(raw) {
+  const value = String(raw || "").trim();
+  const out = [];
+  const add = u => { if (u && !out.includes(u)) out.push(u); };
+
+  if (/^(https?:|data:|blob:)/i.test(value)) {
+    add(value);
+    if (/\s/.test(value)) add(encodeURI(value));
+    if (value.includes("/storage/v1/object/") &&
+        !/\/storage\/v1\/object\/(public|sign|authenticated)\//.test(value)) {
+      add(value.replace("/storage/v1/object/", "/storage/v1/object/public/"));
+    }
+    const ref = storageRefFromUrl(value);
+    if (ref) {
+      try {
+        const { data } = await supabaseClient.storage
+          .from(ref.bucket).createSignedUrl(ref.path, 600);
+        if (data?.signedUrl) add(data.signedUrl);
+      } catch (e) { /* ignore */ }
+    }
+    return out;
+  }
+
+  // Only a storage path was saved (e.g. "student-photos/abc.jpg" or "abc.jpg").
+  const path = value.replace(/^\/+/, "");
+  const parts = path.split("/");
+  const guesses = [];
+  if (parts.length > 1) guesses.push({ bucket: parts[0], path: parts.slice(1).join("/") });
+  for (const b of PHOTO_BUCKETS) guesses.push({ bucket: b, path });
+
+  for (const g of guesses) {
+    try {
+      const { data } = supabaseClient.storage.from(g.bucket).getPublicUrl(g.path);
+      add(data?.publicUrl);
+    } catch (e) { /* ignore */ }
+  }
+  for (const g of guesses.slice(0, 3)) {
+    try {
+      const { data } = await supabaseClient.storage
+        .from(g.bucket).createSignedUrl(g.path, 600);
+      if (data?.signedUrl) add(data.signedUrl);
+    } catch (e) { /* ignore */ }
+  }
+  return out;
+}
+
+/* Returns { img } on success or { error } with a readable reason. */
+async function loadStudentPhoto(rawUrl) {
+  if (!rawUrl) return { img: null, error: null };
+
+  const candidates = await photoCandidates(rawUrl);
+  let lastReason = "no usable address";
+
+  for (const url of candidates) {
+    try {
+      return { img: await loadPhotoFromUrl(url), error: null };
+    } catch (e) {
+      lastReason = e.message || String(e);
+      console.warn("Photo attempt failed:", url, lastReason);
+    }
+  }
+  return { img: null, error: lastReason };
+}
+
+/* The photo is cut at cutY so the template ribbon stays visible. */
+function drawStudentPhoto(ctx, img) {
+  if (!img) return;
+  const P = LAYOUT.photo;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(P.cx, P.cy, P.r, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.beginPath();
+  ctx.rect(0, 0, W, P.cutY);
+  ctx.clip();
+
+  // "cover" fit, keeping the face (upper part of the picture) visible
+  const ratio = Math.max(P.w / img.naturalWidth, P.h / img.naturalHeight);
+  const sw = img.naturalWidth * ratio;
+  const sh = img.naturalHeight * ratio;
+  const dx = P.x + (P.w - sw) / 2;
+  const dy = P.y - (sh - P.h) * 0.25;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(P.cx - P.r, P.cy - P.r, P.r * 2, P.r * 2);
+  ctx.drawImage(img, dx, dy, sw, sh);
+  ctx.restore();
+}
+
+/* ---------------- QR CODE ---------------- */
+
+const QR_FALLBACK_SCRIPTS = [
+  "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js",
+  "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js",
+  "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"
+];
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement("script");
+    el.src = src;
+    el.onload = () => resolve();
+    el.onerror = () => reject(new Error(`Script failed: ${src}`));
+    document.head.appendChild(el);
+  });
+}
+
+/* Returns "qrcode" (qrcode@1.5.3), "generator" (qrcode-generator) or null. */
+async function ensureQRLibrary() {
+  const which = () => {
+    if (window.QRCode && typeof window.QRCode.toCanvas === "function") return "qrcode";
+    if (typeof window.qrcode === "function") return "generator";
+    return null;
+  };
+
+  if (which()) return which();
+
+  for (const src of QR_FALLBACK_SCRIPTS) {
+    try {
+      await loadScript(src);
+      if (which()) return which();
+    } catch (e) {
+      console.warn(e.message);
+    }
+  }
+  return null;
+}
+
+/* Draws the QR on a private canvas with a whole number of pixels per module,
+   so it is perfectly sharp and scannable at any zoom. */
+async function makeQRCanvas(text, targetPx) {
+  const lib = await ensureQRLibrary();
+  if (!lib) {
+    throw new Error("QR code library could not be loaded. Check the internet connection and try again.");
+  }
+
+  const canvas = document.createElement("canvas");
+
+  if (lib === "qrcode") {
+    await QRCode.toCanvas(canvas, text, {
+      width: targetPx,
+      margin: 2,
+      errorCorrectionLevel: "M",
+      color: { dark: "#000000", light: "#ffffff" }
+    });
+    return canvas;
+  }
+
+  const qr = window.qrcode(0, "M");
+  qr.addData(text);
+  qr.make();
+  const n = qr.getModuleCount();
+  const quiet = 2;
+  const cell = Math.max(1, Math.floor(targetPx / (n + quiet * 2)));
+  const size = cell * (n + quiet * 2);
+  canvas.width = canvas.height = size;
+  const c = canvas.getContext("2d");
+  c.fillStyle = "#ffffff";
+  c.fillRect(0, 0, size, size);
+  c.fillStyle = "#000000";
+  for (let r = 0; r < n; r++) {
+    for (let col = 0; col < n; col++) {
+      if (qr.isDark(r, col)) c.fillRect((col + quiet) * cell, (r + quiet) * cell, cell, cell);
+    }
+  }
+  return canvas;
+}
+
 async function drawQR(ctx, code) {
-  if (!code || !window.QRCode) return;
+  if (!code) throw new Error("Verify code is missing, QR code cannot be created.");
 
   const Q = LAYOUT.qr;
-  const qrCanvas = document.createElement("canvas");
-
-  await QRCode.toCanvas(qrCanvas, verificationUrlFor(code), {
-    width: Q.size * SCALE,
-    margin: 1,
-    errorCorrectionLevel: "H",
-    color: { dark: "#111111", light: "#ffffff" }
-  });
+  const qrCanvas = await makeQRCanvas(verificationUrlFor(code), Q.size * SCALE);
 
   ctx.save();
   ctx.imageSmoothingEnabled = false;   // keep QR modules razor sharp
@@ -621,7 +828,8 @@ async function renderCertificate() {
   const { ctx } = prepareCanvas();
 
   /* Student photo (ribbon stays visible) */
-  const photoOk = await drawStudentPhoto(ctx, student.photo_url);
+  const photo = await loadStudentPhoto(student.photo_url);
+  drawStudentPhoto(ctx, photo.img);
 
   /* Left information column */
   drawField(ctx, student.student_id, LAYOUT.studentIdY);
@@ -655,23 +863,61 @@ async function renderCertificate() {
     minSize: 20
   });
 
-  /* QR code */
-  await drawQR(ctx, $("verifyCode").value);
+  /* Signatures */
+  drawText(ctx, valueOf("directorName", DEFAULT_DIRECTOR), LAYOUT.directorX, LAYOUT.signatureY, {
+    size: LAYOUT.signatureSize, family: SCRIPT, color: NAVY, align: "center",
+    maxWidth: LAYOUT.directorMaxWidth, minSize: 18
+  });
+  drawText(ctx, valueOf("academicHeadName", DEFAULT_ACADEMIC_HEAD), LAYOUT.academicHeadX, LAYOUT.signatureY, {
+    size: LAYOUT.signatureSize, family: SCRIPT, color: NAVY, align: "center",
+    maxWidth: LAYOUT.academicHeadMaxWidth, minSize: 18
+  });
 
-  generated = true;
-  saved = false;
-
-  if (student.photo_url && !photoOk) {
-    setPreviewStatus("Preview generated, but the student photo could not be loaded.");
-    showMessage(
-      "The student photo could not be loaded (check the photo link or storage access). The certificate was generated without it.",
-      "info"
-    );
-  } else {
-    setPreviewStatus("Certificate preview generated successfully.");
+  /* Footer contact (white on the navy bar) */
+  drawText(ctx, CONTACT.address, LAYOUT.addressX, LAYOUT.addressY, {
+    size: LAYOUT.footerSize, family: SANS, color: "#ffffff",
+    maxWidth: LAYOUT.addressMaxWidth
+  });
+  drawText(ctx, CONTACT.phones[0], LAYOUT.phoneX, LAYOUT.phoneY1, {
+    size: LAYOUT.footerSize, family: SANS, color: "#ffffff",
+    maxWidth: LAYOUT.phoneMaxWidth
+  });
+  if (CONTACT.phones[1]) {
+    drawText(ctx, CONTACT.phones[1], LAYOUT.phoneX, LAYOUT.phoneY2, {
+      size: LAYOUT.footerSize, family: SANS, color: "#ffffff",
+      maxWidth: LAYOUT.phoneMaxWidth
+    });
   }
 
-  return photoOk || !student.photo_url;
+  /* QR code */
+  let qrError = null;
+  try {
+    await drawQR(ctx, $("verifyCode").value);
+  } catch (e) {
+    console.error("QR error:", e);
+    qrError = e.message || "QR code could not be created.";
+  }
+
+  generated = !qrError;
+  saved = false;
+
+  if (qrError) {
+    setPreviewStatus("QR code failed.");
+    throw new Error(qrError);
+  }
+
+  if (student.photo_url && !photo.img) {
+    setPreviewStatus("Preview generated, but the student photo could not be loaded.");
+    showMessage(
+      `Student photo could not be loaded: ${photo.error}. ` +
+      `Stored value: ${String(student.photo_url).slice(0, 90)}`,
+      "error"
+    );
+    return false;
+  }
+
+  setPreviewStatus("Certificate preview generated successfully.");
+  return true;
 }
 
 /* ---------------- SAVE ---------------- */
