@@ -25,7 +25,13 @@ const supabaseClient = window.supabase.createClient(
    text are ALL removed, so they are drawn by this script. Do not point
    this at an older clean template (the footer text would print twice). */
 const TEMPLATE_FILE = "certificate-template-v9.png";
-const TEMPLATE_CANDIDATES = [`./${TEMPLATE_FILE}`];
+/* Same V9 image; extra names cover GitHub adding "-1" / "-2" to a re-upload. */
+const TEMPLATE_CANDIDATES = [
+  `./${TEMPLATE_FILE}`,
+  "./certificate-template-v9-1.png",
+  "./certificate-template-v9-2.png",
+  "./certificate-template-v9 (1).png"
+];
 let loadedTemplateName = TEMPLATE_FILE;
 
 /* Optional: full public site address used inside the QR code, e.g.
