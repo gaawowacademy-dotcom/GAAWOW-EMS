@@ -3,160 +3,199 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GAAWOW EMS — Certificates</title>
+<title>GAAWOW EMS — Generate Certificate</title>
 
 <style>
-:root{
-  --blue:#0B4DA2; --navy:#0B1E63; --gold:#D4AF37; --white:#F5F7FA;
-  --dark:#1F2937; --green:#16A34A; --red:#DC2626; --border:#dbe3ef;
-  --shadow:0 8px 25px rgba(11,30,99,.10); --radius:16px;
-}
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Great+Vibes&display=swap');
+
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--white);color:var(--dark)}
-header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;padding:15px 22px;box-shadow:0 4px 15px rgba(0,0,0,.15)}
-.header-inner{max-width:1450px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:13px}
-.brand img{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:12px;padding:4px}
-.brand h1{margin:0;font-size:20px}
-.brand p{margin:4px 0 0;color:#f4d97a;font-size:12px;font-weight:bold}
-.dashboard-link{text-decoration:none;color:#fff;border:1px solid rgba(255,255,255,.35);padding:9px 14px;border-radius:10px;font-weight:bold;white-space:nowrap}
-.dashboard-link:hover{background:rgba(255,255,255,.12)}
-main{max-width:1450px;margin:22px auto;padding:0 18px 40px}
-.message{display:none;padding:12px 15px;border-radius:12px;margin-bottom:16px;font-weight:bold;line-height:1.5}
-.message.success{display:block;background:#dcfce7;color:#166534;border:1px solid #86efac}
-.message.error{display:block;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
-.message.info{display:block;background:#dbeafe;color:#1e40af;border:1px solid #93c5fd}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-.stat-card{background:#fff;border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid var(--border)}
-.stat-title{font-size:12px;color:#64748b;font-weight:bold;text-transform:uppercase}
-.stat-value{margin-top:6px;font-size:26px;font-weight:800;color:var(--navy)}
-.card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
-.card-header{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.card-header h2{margin:0;color:var(--navy);font-size:18px}
-button{border:0;border-radius:10px;padding:10px 13px;font-weight:bold;cursor:pointer;font:inherit}
-.btn-primary{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff}
-.btn-secondary{background:#e2e8f0;color:#334155;text-decoration:none;display:inline-flex;align-items:center;padding:10px 13px;border-radius:10px}
-.btn-small{padding:6px 9px;font-size:12px;border-radius:8px}
-.toolbar{padding:14px 18px;display:grid;grid-template-columns:1fr 170px auto;gap:10px;border-bottom:1px solid var(--border)}
-.toolbar input,.toolbar select{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:10px 11px;font:inherit}
-.toolbar button{background:var(--gold);color:#172554}
-.table-wrap{overflow:auto}
-table{width:100%;border-collapse:collapse;min-width:900px}
-th,td{padding:11px 10px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:13px;vertical-align:middle}
-th{background:#f8fafc;color:var(--navy);font-weight:800;white-space:nowrap}
-tbody tr:hover{background:#f8fbff}
-.sub{font-size:11px;color:#64748b;margin-top:2px}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
-.status{display:inline-block;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800}
-.status-valid,.status-graduated{background:#dcfce7;color:#166534}
-.status-pending{background:#fef3c7;color:#92400e}
-.status-expired{background:#f1f5f9;color:#475569}
-.status-revoked{background:#fee2e2;color:#991b1b}
-.actions{display:flex;gap:5px;flex-wrap:wrap}
-.action-view{background:#dbeafe;color:#1e40af}
-.action-regen{background:#fef3c7;color:#92400e}
-.action-verify{background:#e2e8f0;color:#334155}
-.empty{padding:32px 15px;text-align:center;color:#64748b}
-.modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);z-index:1000;padding:20px;overflow:auto}
-.modal.show{display:flex;align-items:center;justify-content:center}
-.modal-box{width:min(650px,100%);background:#fff;border-radius:18px;box-shadow:0 25px 70px rgba(0,0,0,.25);overflow:hidden}
-.modal-header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
-.modal-header h3{margin:0}
-.modal-close{background:transparent;color:#fff;font-size:24px;padding:0 5px}
-.profile{padding:20px}
-.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.profile-item{background:#f8fafc;border-radius:10px;padding:12px}
-.profile-item strong{display:block;color:#64748b;font-size:11px;text-transform:uppercase;margin-bottom:4px}
-.profile-item span{color:#1e293b;font-weight:600;word-break:break-word}
-.modal-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
-footer{text-align:center;color:#64748b;font-size:12px;margin-top:22px}
-@media(max-width:1050px){.stats{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:650px){
-  header{padding:12px} .brand h1{font-size:16px} .brand img{width:44px;height:44px}
-  main{margin-top:14px;padding:0 10px 30px} .stats{grid-template-columns:1fr 1fr;gap:10px}
-  .stat-card{padding:13px} .stat-value{font-size:22px}
-  .toolbar{grid-template-columns:1fr} .profile-grid{grid-template-columns:1fr}
-}
+body{margin:0;background:#f5f7fa;color:#1f2937;font-family:Arial,Helvetica,sans-serif}
+.topbar{min-height:64px;background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 22px;box-shadow:0 3px 10px rgba(0,0,0,.15)}
+.brand{display:flex;align-items:center;gap:12px}.brand img{width:42px;height:42px;object-fit:contain}.brand-title{font-size:19px;font-weight:800}.brand-subtitle{font-size:11px;opacity:.85}
+.back-btn{border:0;background:rgba(255,255,255,.12);color:#fff;padding:10px 15px;border-radius:8px;cursor:pointer;font-weight:700}
+.container{max-width:1550px;margin:auto;padding:22px}
+.grid{display:grid;grid-template-columns:360px minmax(0,1fr);gap:20px;align-items:start}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.06);overflow:hidden}
+.card-head{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:15px 17px;font-weight:800}
+.card-body{padding:17px}
+label{display:block;font-size:11px;font-weight:800;color:#374151;text-transform:uppercase;margin:0 0 6px}
+.field{margin-bottom:13px}
+input,select{width:100%;padding:10px 11px;border:1px solid #d1d5db;border-radius:7px;background:#fff;outline:none;font-size:13px}
+input:focus,select:focus{border-color:#0B4DA2;box-shadow:0 0 0 2px rgba(11,77,162,.1)}
+.readonly{background:#f8fafc}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}
+.btn{border:0;border-radius:7px;padding:10px 12px;cursor:pointer;font-weight:800;font-size:12px}
+.btn-primary{background:#0B4DA2;color:#fff}.btn-gold{background:#D4AF37;color:#111827}.btn-light{background:#e5e7eb;color:#111827}.btn-green{background:#16A34A;color:#fff}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.message{display:none;margin:0 0 14px;padding:11px;border-radius:7px;font-size:12px;font-weight:700}.message.success{display:block;background:#dcfce7;color:#166534}.message.error{display:block;background:#fee2e2;color:#991b1b}.message.info{display:block;background:#dbeafe;color:#1e40af}
+.photo-preview{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid #D4AF37;background:#f3f4f6;display:block;margin:0 auto 10px}
+.help{font-size:10px;color:#6b7280;line-height:1.45;margin-top:4px}
+.preview-card{background:#111827;border-radius:12px;padding:14px;box-shadow:0 4px 18px rgba(0,0,0,.12)}
+.preview-wrap{width:100%;background:#fff;overflow:hidden;display:flex;justify-content:center}
+#certificateCanvas{width:100%;height:auto;display:block;max-width:1536px}
+.preview-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.preview-actions .btn{flex:1;min-width:120px}
+.small-status{font-size:11px;color:#d1d5db;margin-top:9px}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}.preview-card{order:-1}}
+@media(max-width:600px){.container{padding:12px}.topbar{padding:10px 14px}.brand-title{font-size:16px}.actions{grid-template-columns:1fr}.preview-card{padding:7px}}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="header-inner">
-    <div class="brand">
-      <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy Logo">
-      <div>
-        <h1>GAAWOW EMS — Certificates</h1>
-        <p>Ilayska Aqoonta iyo Xirfadda</p>
-      </div>
+<header class="topbar">
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+    <div>
+      <div class="brand-title">GAAWOW EMS</div>
+      <div class="brand-subtitle" id="formTitle">Certificate Generator</div>
     </div>
-    <a class="dashboard-link" href="dashboard.html">← Dashboard</a>
   </div>
+  <button type="button" class="back-btn" id="backBtn">← Back to Certificates</button>
 </header>
 
-<main>
+<main class="container">
   <div id="message" class="message"></div>
 
-  <section class="stats">
-    <div class="stat-card"><div class="stat-title">Total Certificates</div><div id="totalCerts" class="stat-value">0</div></div>
-    <div class="stat-card"><div class="stat-title">Valid</div><div id="validCerts" class="stat-value">0</div></div>
-    <div class="stat-card"><div class="stat-title">Expired</div><div id="expiredCerts" class="stat-value">0</div></div>
-    <div class="stat-card"><div class="stat-title">Revoked</div><div id="revokedCerts" class="stat-value">0</div></div>
-  </section>
+  <div class="grid">
+    <section class="card">
+      <div class="card-head">Generate Certificate</div>
+      <div class="card-body">
 
-  <section class="card">
-    <div class="card-header">
-      <h2>Issued Certificates</h2>
-      <button id="newCertBtn" type="button" class="btn-primary">+ New Certificate</button>
-    </div>
+        <div class="field">
+          <label for="institutionSelect">Institution</label>
+          <select id="institutionSelect">
+            <option value="">Loading...</option>
+          </select>
+        </div>
 
-    <div class="toolbar">
-      <input id="searchInput" type="search" placeholder="Search student, course, certificate no, verify code...">
-      <select id="statusFilter">
-        <option value="">All Status</option>
-        <option value="valid">Valid</option>
-        <option value="graduated">Graduated</option>
-        <option value="pending">Pending</option>
-        <option value="expired">Expired</option>
-        <option value="revoked">Revoked</option>
-      </select>
-      <button id="refreshBtn" type="button">↻ Refresh</button>
-    </div>
+        <div class="field">
+          <label for="studentSelect">Student</label>
+          <select id="studentSelect">
+            <option value="">Select student</option>
+          </select>
+        </div>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Certificate</th>
-            <th>Student</th>
-            <th>Course</th>
-            <th>Issued</th>
-            <th>Status</th>
-            <th>Verify Code</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="certTableBody">
-          <tr><td colspan="7" class="empty">Loading certificates...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+        <div id="photoBox" style="display:none">
+          <img id="studentPhotoPreview" class="photo-preview" alt="Student Photo">
+        </div>
 
-  <footer>GAAWOW EMS — GAAWOW Academy • Burhakaba, Bay, Somalia</footer>
+        <div class="field">
+          <label for="courseSelect">Course</label>
+          <select id="courseSelect">
+            <option value="">Select course</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="certificateNo">Certificate No</label>
+          <input id="certificateNo" class="readonly" readonly>
+        </div>
+
+        <div class="field">
+          <label for="certificateId">Certificate ID</label>
+          <input id="certificateId" class="readonly" readonly>
+        </div>
+
+        <div class="field">
+          <label for="verifyCode">Verify Code</label>
+          <input id="verifyCode" class="readonly" readonly>
+        </div>
+
+        <div class="field">
+          <label for="dateStarted">Date Started</label>
+          <input id="dateStarted" type="date">
+        </div>
+
+        <div class="field">
+          <label for="dateCompleted">Date Completed</label>
+          <input id="dateCompleted" type="date">
+        </div>
+
+        <div class="field">
+          <label for="issueDate">Date Issued</label>
+          <input id="issueDate" type="date">
+        </div>
+
+        <div class="field">
+          <label for="expiryDate">Expiry Date</label>
+          <input id="expiryDate" type="date">
+        </div>
+
+        <div class="field">
+          <label for="status">Status</label>
+          <select id="status">
+            <option value="valid">VALID</option>
+            <option value="graduated">GRADUATED</option>
+            <option value="pending">PENDING</option>
+            <option value="expired">EXPIRED</option>
+            <option value="revoked">REVOKED</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="certificateType">Certificate Type</label>
+          <select id="certificateType">
+            <option value="certificate">Certificate</option>
+            <option value="diploma">Diploma</option>
+            <option value="authentication_letter">Authentication Letter</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="directorName">Director Name</label>
+          <input id="directorName" type="text" placeholder="Abdirahman H. Mohamed">
+        </div>
+
+        <div class="field">
+          <label for="academicHeadName">Academic Head Name</label>
+          <input id="academicHeadName" type="text" placeholder="Hodan Yusuf">
+        </div>
+
+        <div class="field">
+          <label for="studentName">Student Name</label>
+          <input id="studentName" class="readonly" readonly>
+        </div>
+
+        <div class="field">
+          <label for="courseName">Course Name</label>
+          <input id="courseName" class="readonly" readonly>
+        </div>
+
+        <div class="help">
+          Template-ka rasmiga ah waa <strong>certificate-template-v9.png</strong>
+          oo ku jira root-ka GAAWOW-EMS. Design, icons, fonts, borders,
+          signatures iyo background lama beddelayo.
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="generateBtn" type="button">Generate Preview</button>
+          <button class="btn btn-gold" id="saveBtn" type="button">Save Certificate</button>
+          <button class="btn btn-green" id="pngBtn" type="button">Download PNG</button>
+          <button class="btn btn-light" id="pdfBtn" type="button">Download PDF</button>
+          <button class="btn btn-light" id="printBtn" type="button">Print HD</button>
+          <button class="btn btn-light" id="verifyBtn" type="button">Verify Online</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="preview-card">
+      <div class="preview-wrap">
+        <canvas id="certificateCanvas" width="1536" height="1024"></canvas>
+      </div>
+      <div class="small-status" id="previewStatus">Loading official certificate template...</div>
+    </section>
+  </div>
 </main>
 
-<div id="certModal" class="modal" aria-hidden="true">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h3>Certificate Details</h3>
-      <button id="closeCertModal" type="button" class="modal-close">×</button>
-    </div>
-    <div id="certModalContent" class="profile"></div>
-  </div>
-</div>
-
+<!-- Supabase MUST load before certificate.js, which calls
+     window.supabase.createClient(...) as soon as it runs. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="certificates.js?v=100"></script>
+
+<!-- QR library preload (optional: certificate.js also loads a fallback
+     from a CDN automatically if this one fails or is blocked). -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+<!-- GAAWOW Certificate Generator. Must load LAST. -->
+<script src="certificate.js?v=908"></script>
 </body>
 </html>
