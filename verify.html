@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify Certificate — GAAWOW Academy</title>
+
+<style>
+:root{
+  --navy:#0B1E63; --blue:#0B4DA2; --gold:#D4AF37; --white:#F5F7FA; --dark:#1F2937;
+  --green:#16A34A; --amber:#D97706; --red:#DC2626; --border:#dbe3ef;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;font-family:Arial,Helvetica,sans-serif;color:var(--dark);
+  background:linear-gradient(135deg,var(--navy),var(--blue));
+  display:flex;flex-direction:column;align-items:center;padding:26px 16px 50px;
+}
+.brand{display:flex;flex-direction:column;align-items:center;gap:10px;color:#fff;text-align:center;margin-bottom:22px}
+.brand img{width:64px;height:64px;object-fit:contain;background:#fff;border-radius:14px;padding:6px}
+.brand h1{margin:0;font-size:22px}
+.brand p{margin:0;color:#f4d97a;font-size:12px;font-weight:bold;letter-spacing:.3px}
+
+.card{
+  width:100%;max-width:560px;background:#fff;border-radius:18px;
+  box-shadow:0 25px 60px rgba(0,0,0,.25);padding:22px;
+}
+
+form{display:flex;gap:8px;margin-bottom:18px}
+input[type="text"]{
+  flex:1;border:1px solid #cbd5e1;border-radius:10px;padding:12px 13px;
+  font:inherit;outline:none;text-transform:uppercase;letter-spacing:.5px;
+}
+input[type="text"]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(11,77,162,.12)}
+button{
+  border:0;border-radius:10px;padding:12px 18px;font-weight:800;cursor:pointer;
+  background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;font-size:14px;
+}
+
+.panel{text-align:center;padding:6px 4px}
+.panel .icon{font-size:44px;line-height:1;margin-bottom:6px}
+.panel h2{margin:6px 0 10px;font-size:21px;color:var(--navy)}
+.panel p{color:#475569;line-height:1.55;margin:0 0 6px}
+.panel.ok .icon{color:var(--green)}
+.panel.warn .icon{color:var(--amber)}
+.panel.bad .icon{color:var(--red)}
+.panel.neutral .icon{color:#64748b}
+
+.badge{
+  display:inline-block;margin:6px 0 18px;padding:7px 16px;border-radius:999px;
+  font-weight:800;font-size:13px;letter-spacing:.5px;
+}
+.badge.ok{background:#dcfce7;color:#166534}
+.badge.warn{background:#fef3c7;color:#92400e}
+.badge.bad{background:#fee2e2;color:#991b1b}
+
+.cert-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;margin-top:4px;
+}
+.cert-item{background:#f8fafc;border-radius:10px;padding:11px 12px}
+.cert-item strong{display:block;font-size:10.5px;color:#64748b;text-transform:uppercase;margin-bottom:4px;letter-spacing:.3px}
+.cert-item span{color:#1e293b;font-weight:700;word-break:break-word;font-size:13.5px}
+
+.code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef2ff;color:var(--navy);
+  padding:2px 7px;border-radius:6px;font-size:12.5px;
+}
+
+.footnote{margin-top:16px;font-size:12px;color:#94a3b8;text-align:center}
+.tech{font-size:11px;color:#94a3b8;word-break:break-all}
+
+.spinner{
+  width:34px;height:34px;border:4px solid #e2e8f0;border-top-color:var(--blue);
+  border-radius:50%;margin:4px auto 12px;animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+footer{margin-top:22px;color:#e5e7eb;font-size:12px;text-align:center;opacity:.85}
+
+@media(max-width:480px){
+  .cert-grid{grid-template-columns:1fr}
+  form{flex-direction:column}
+  button{width:100%}
+}
+</style>
+</head>
+<body>
+
+<div class="brand">
+  <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+  <h1>GAAWOW Academy</h1>
+  <p>CERTIFICATE VERIFICATION</p>
+</div>
+
+<div class="card">
+  <form id="verifyForm">
+    <input id="codeInput" type="text" placeholder="e.g. GAW-2026-XXXXXXXX" autocomplete="off">
+    <button type="submit">Verify</button>
+  </form>
+
+  <div id="result"></div>
+</div>
+
+<footer>GAAWOW Academy • Burhakaba, Bay, Somalia • www.gaawowacademy.com</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="verify.js?v=100"></script>
+</body>
+</html>
