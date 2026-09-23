@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GAAWOW EMS — Authentication Letter</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg,#F5F7FA,#EEF3FA,#FFFFFF);
+      color: #1F2937;
+      min-height: 100vh;
+    }
+    .topbar {
+      background: linear-gradient(135deg,#0B1E63,#0B4DA2);
+      color: #fff; padding: 18px 24px;
+      display:flex; align-items:center; justify-content:space-between;
+      box-shadow:0 6px 20px rgba(11,30,99,.2);
+    }
+    .brand { display:flex; align-items:center; gap:14px; }
+    .brand img { width:52px; height:52px; object-fit:contain; background:#fff; border-radius:10px; padding:4px; }
+    .brand h1 { font-size:20px; }
+    .brand p { font-size:12px; opacity:.85; margin-top:3px; }
+    .back {
+      color:#0B1E63; background:#D4AF37; border:0; border-radius:999px;
+      padding:9px 16px; font-weight:800; cursor:pointer;
+    }
+    main { width:min(1050px,94%); margin:0 auto; padding:30px 0 45px; }
+    .panel {
+      background:#fff; border:1px solid #E5E7EB; border-radius:20px;
+      padding:26px; box-shadow:0 10px 30px rgba(11,30,99,.08);
+    }
+    .panel h2 { color:#0B1E63; margin-bottom:8px; }
+    .panel p { color:#64748B; font-size:13px; margin-bottom:22px; }
+    .form-grid {
+      display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px;
+    }
+    label { display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:6px; }
+    input, select {
+      width:100%; padding:11px 12px; border:1px solid #CBD5E1; border-radius:10px;
+      background:#F8FAFC; outline:none;
+    }
+    input:focus, select:focus { border-color:#0B4DA2; background:#fff; }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+    button.action {
+      border:0; border-radius:10px; padding:11px 16px; font-weight:800; cursor:pointer;
+      background:#0B1E63; color:#fff;
+    }
+    button.gold { background:#D4AF37; color:#0B1E63; }
+    #letterPreview {
+      margin-top:25px; min-height:420px; border:1px dashed #CBD5E1; border-radius:15px;
+      display:flex; align-items:center; justify-content:center; color:#64748B; background:#FAFBFC;
+      text-align:center; padding:25px;
+    }
+    @media(max-width:650px) { .form-grid { grid-template-columns:1fr; } .topbar { padding:14px; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+      <div>
+        <h1>GAAWOW ACADEMY</h1>
+        <p>Ilayska Aqoonta iyo Xirfadda — Authentication Letter</p>
+      </div>
+    </div>
+    <button class="back" onclick="history.back()">← Back</button>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Authentication Letter</h2>
+      <p>Official academic authentication and verification document.</p>
+
+      <div class="form-grid">
+        <div><label>Student Name</label><input id="studentName"></div>
+        <div><label>Course / Program</label><input id="courseName"></div>
+        <div><label>Certificate Number</label><input id="certificateNo"></div>
+        <div><label>Verification Code</label><input id="verifyCode"></div>
+        <div><label>Start Date</label><input id="dateStarted" type="date"></div>
+        <div><label>Completion Date</label><input id="dateCompleted" type="date"></div>
+        <div><label>Issue Date</label><input id="issueDate" type="date"></div>
+        <div><label>Status</label><input id="status"></div>
+        <div><label>Director</label><input id="directorName"></div>
+        <div><label>Academic Head</label><input id="academicHeadName"></div>
+      </div>
+
+      <div class="actions">
+        <button class="action gold" onclick="generateAuthenticationLetter()">Generate</button>
+        <button class="action" onclick="printAuthenticationLetter()">Print</button>
+        <button class="action" onclick="window.history.back()">Back to Dashboard</button>
+      </div>
+
+      <div id="letterPreview">
+        Authentication Letter preview will appear here.
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./authentication-letter.js"></script>
+  <script>
+    function generateAuthenticationLetter() {
+      const preview = document.getElementById("letterPreview");
+      const student = document.getElementById("studentName").value || "Student";
+      const course = document.getElementById("courseName").value || "Academic Program";
+      const number = document.getElementById("certificateNo").value || "—";
+      const code = document.getElementById("verifyCode").value || "—";
+
+      preview.innerHTML = `
+        <div>
+          <h2 style="color:#0B1E63;margin-bottom:12px;">GAAWOW ACADEMY</h2>
+          <h3 style="color:#D4AF37;margin-bottom:20px;">AUTHENTICATION LETTER</h3>
+          <p style="color:#334155;line-height:1.8;">
+            This letter authenticates the academic record of
+            <strong>${escapeHtml(student)}</strong>
+            for <strong>${escapeHtml(course)}</strong>.
+          </p>
+          <p style="margin-top:15px;">Certificate No: <strong>${escapeHtml(number)}</strong></p>
+          <p>Verification Code: <strong>${escapeHtml(code)}</strong></p>
+        </div>`;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, ch => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[ch]));
+    }
+
+    function printAuthenticationLetter() {
+      window.print();
+    }
+  </script>
+</body>
+</html>
