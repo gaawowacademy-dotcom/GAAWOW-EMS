@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GAAWOW EMS — Super Admin</title>
+<meta name="theme-color" content="#0B1E63">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:linear-gradient(135deg,#F5F7FA,#EEF3FA 50%,#FFF);color:#1F2937;min-height:100vh}
+.topbar{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 6px 20px rgba(11,30,99,.2);position:sticky;top:0;z-index:100}
+.brand{display:flex;align-items:center;gap:14px}.brand img,footer img{width:58px;height:58px;object-fit:contain;background:#fff;border-radius:12px;padding:5px}
+.brand h1{font-size:20px;font-weight:800}.brand p{font-size:12px;opacity:.88;margin-top:3px}
+.admin-badge{background:#D4AF37;color:#0B1E63;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800}
+.container{width:min(1250px,94%);margin:auto;padding:32px 0 45px}
+.welcome{background:#fff;border-radius:20px;padding:28px;border:1px solid #E5E7EB;box-shadow:0 10px 30px rgba(11,30,99,.08);margin-bottom:25px}
+.welcome h2{color:#0B1E63;font-size:28px;margin-bottom:8px}.welcome p{color:#64748B;font-size:14px}
+.status{display:inline-flex;align-items:center;gap:7px;margin-top:15px;background:#ECFDF5;color:#15803D;padding:7px 12px;border-radius:999px;font-size:12px;font-weight:700}
+.status-dot{width:8px;height:8px;background:#16A34A;border-radius:50%}
+.stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-bottom:35px}
+.stat-card{background:#fff;border-radius:18px;padding:22px;border:1px solid #E5E7EB;box-shadow:0 8px 25px rgba(15,23,42,.07);position:relative;overflow:hidden}
+.stat-card:before{content:"";position:absolute;top:0;left:0;width:100%;height:4px;background:#0B4DA2}.stat-card.gold:before{background:#D4AF37}
+.stat-icon{font-size:27px;margin-bottom:12px}.stat-number{font-size:30px;font-weight:800;color:#0B1E63}.stat-label{color:#64748B;font-size:13px;margin-top:4px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.section-header h3{font-size:21px;color:#0B1E63}
+.module-count{background:#E8EEF8;color:#0B4DA2;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:800}
+.menu-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.menu-card{background:#fff;border-radius:18px;padding:22px;border:1px solid #E5E7EB;box-shadow:0 7px 22px rgba(15,23,42,.06);cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+.menu-card:hover{transform:translateY(-5px);box-shadow:0 14px 30px rgba(11,30,99,.13);border-color:#D4AF37}
+.menu-icon{width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#EEF4FF,#F8FAFC);border-radius:14px;font-size:25px;margin-bottom:15px}
+.menu-card h4{color:#0B1E63;font-size:16px;margin-bottom:7px}.menu-card p{color:#64748B;font-size:12px;line-height:1.5}
+.certificate-generate-card{border-top:4px solid #D4AF37}.verify-card{border-top:4px solid #16A34A}
+footer{margin-top:45px;background:#0B1E63;color:#fff;padding:25px 20px;text-align:center;border-radius:20px 20px 0 0}
+footer img{width:55px;height:55px;margin-bottom:10px}footer h4{font-size:15px;margin-bottom:5px}footer p{font-size:12px;opacity:.8;margin-bottom:16px}
+.logout-btn{border:1px solid #D4AF37;background:transparent;color:#D4AF37;padding:9px 18px;border-radius:999px;font-weight:700;cursor:pointer}.logout-btn:hover{background:#D4AF37;color:#0B1E63}
+@media(max-width:1000px){.menu-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.topbar{padding:14px 15px}.brand h1{font-size:16px}.brand p{font-size:10px}.brand img{width:48px;height:48px}.admin-badge{font-size:10px;padding:7px 10px}.container{width:92%;padding-top:22px}.welcome{padding:22px}.welcome h2{font-size:23px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stat-card{padding:17px}.stat-number{font-size:25px}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.menu-card{padding:17px}.menu-icon{width:45px;height:45px;font-size:22px}.menu-card h4{font-size:14px}.menu-card p{font-size:11px}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy Logo">
+    <div><h1>GAAWOW EMS</h1><p>Education Management &amp; Verification System</p></div>
+  </div>
+  <div class="admin-badge">SUPER ADMIN</div>
+</header>
+
+<main class="container">
+<section class="welcome">
+  <h2 id="superAdminWelcome">Welcome, GAAWOW Academy</h2>
+  <p>Manage institutions, students, teachers, academic records, certificates and the complete GAAWOW EMS system.</p>
+  <div class="status"><span class="status-dot"></span>System Online</div>
+</section>
+
+<section class="stats-grid">
+  <div class="stat-card gold"><div class="stat-icon">🏫</div><div class="stat-number" id="institutionCount">0</div><div class="stat-label">Institutions</div></div>
+  <div class="stat-card"><div class="stat-icon">👨‍🎓</div><div class="stat-number" id="studentCount">0</div><div class="stat-label">Students</div></div>
+  <div class="stat-card gold"><div class="stat-icon">👨‍🏫</div><div class="stat-number" id="teacherCount">0</div><div class="stat-label">Teachers</div></div>
+  <div class="stat-card"><div class="stat-icon">🎓</div><div class="stat-number" id="certificateCount">0</div><div class="stat-label">Certificates</div></div>
+</section>
+
+<div class="section-header"><h3>System Management</h3><span class="module-count">19 Core EMS Modules</span></div>
+
+<section class="menu-grid">
+  <div class="menu-card" onclick="openPage('institutions.html')"><div class="menu-icon">🏫</div><h4>Institutions</h4><p>Manage schools and educational institutions.</p></div>
+  <div class="menu-card" onclick="openPage('students.html')"><div class="menu-icon">👨‍🎓</div><h4>Students</h4><p>Add, edit, search and manage students.</p></div>
+  <div class="menu-card" onclick="openPage('parents.html')"><div class="menu-icon">👨‍👩‍👧</div><h4>Parents</h4><p>Manage parent accounts and student links.</p></div>
+  <div class="menu-card" onclick="openPage('teachers.html')"><div class="menu-icon">👨‍🏫</div><h4>Teachers</h4><p>Manage teachers and institutional assignments.</p></div>
+  <div class="menu-card" onclick="openPage('departments.html')"><div class="menu-icon">🏢</div><h4>Departments</h4><p>Organize academic departments.</p></div>
+  <div class="menu-card" onclick="openPage('courses.html')"><div class="menu-icon">📚</div><h4>Courses</h4><p>Create and manage academic courses.</p></div>
+  <div class="menu-card" onclick="openPage('classes.html')"><div class="menu-icon">🧑‍🏫</div><h4>Classes</h4><p>Manage classes and student enrollment.</p></div>
+  <div class="menu-card" onclick="openPage('exams.html')"><div class="menu-icon">📝</div><h4>Exams</h4><p>Manage examinations and assessments.</p></div>
+  <div class="menu-card" onclick="openPage('grades.html')"><div class="menu-icon">📊</div><h4>Grades</h4><p>Record and manage student grades.</p></div>
+  <div class="menu-card" onclick="openPage('certificates.html')"><div class="menu-icon">🏆</div><h4>Certificates</h4><p>View and manage issued certificates.</p></div>
+  <div class="menu-card certificate-generate-card" onclick="openPage('certificate.html')"><div class="menu-icon">🎓</div><h4>Certificate Generate</h4><p>Generate certificates, diplomas and authentication letters.</p></div>
+  <div class="menu-card verify-card" onclick="openPage('authentication-letter.html')"><div class="menu-icon">📜</div><h4>Authentication Letter</h4><p>Generate and verify official student authentication letters.</p></div>
+  <div class="menu-card verify-card" onclick="openPage('verify.html')"><div class="menu-icon">✅</div><h4>Verify</h4><p>Public certificate verification system.</p></div>
+  <div class="menu-card" onclick="openPage('audit-logs.html')"><div class="menu-icon">🔐</div><h4>Audit Logs</h4><p>Monitor important system activities.</p></div>
+  <div class="menu-card" onclick="openPage('subjects.html')"><div class="menu-icon">📖</div><h4>Subjects</h4><p>Manage academic subjects.</p></div>
+  <div class="menu-card" onclick="openPage('payments.html')"><div class="menu-icon">💳</div><h4>Payments</h4><p>Manage student and institutional payments.</p></div>
+  <div class="menu-card" onclick="openPage('mobile-money.html')"><div class="menu-icon">📱</div><h4>Mobile Money</h4><p>Manage mobile money transactions.</p></div>
+  <div class="menu-card" onclick="openPage('invoices.html')"><div class="menu-icon">🧾</div><h4>Invoices</h4><p>Create and manage invoices.</p></div>
+  <div class="menu-card" onclick="openPage('reports.html')"><div class="menu-icon">📈</div><h4>Reports</h4><p>View system and academic reports.</p></div>
+</section>
+
+<footer>
+  <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+  <h4>GAAWOW ACADEMY</h4><p>Ilayska Aqoonta iyo Xirfadda</p>
+  <button class="logout-btn" id="logoutBtn">Logout</button>
+</footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./dashboard.js"></script>
+</body>
+</html>

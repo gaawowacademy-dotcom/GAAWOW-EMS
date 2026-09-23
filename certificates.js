@@ -172,7 +172,7 @@ function openDocument(id,type) {
   } else if (type === "diploma") {
     window.location.href = `certificate.html?regen=${encodedId}&type=diploma`;
   } else if (type === "authentication_letter") {
-    window.location.href = `Authentication Letter.html?regen=${encodedId}`;
+    window.location.href = `authentication-letter.html?regen=${encodedId}`;
   }
 }
 
