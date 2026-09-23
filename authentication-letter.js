@@ -3,7 +3,7 @@
   "use strict";
 
   const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-  const SUPABASE_KEY = window.GAAWOW_SUPABASE_KEY || "PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY_HERE";
+  const SUPABASE_KEY = window.GAAWOW_SUPABASE_KEY || "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
   const TEMPLATE_CANDIDATES = ["./Authentication Letter.png", "./authentication-letter.png", "./certificate-template-v9.png"];
   const W = 1200, H = 1697;
   const $ = id => document.getElementById(id);
