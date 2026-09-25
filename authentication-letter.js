@@ -43,11 +43,11 @@
       const img=await loadImage(founderPhoto);
       ctx.save();
       // Founder portrait replaces the template's generic founder icon without disturbing the name/signature.
-      ctx.beginPath(); ctx.arc(103,1006,31,0,Math.PI*2); ctx.clip();
-      const scale=Math.max(62/img.width,62/img.height); const iw=img.width*scale, ih=img.height*scale;
-      ctx.drawImage(img,103-iw/2,1006-ih/2,iw,ih);
+      ctx.beginPath(); ctx.arc(82,1030,22,0,Math.PI*2); ctx.clip();
+      const scale=Math.max(44/img.width,44/img.height); const iw=img.width*scale, ih=img.height*scale;
+      ctx.drawImage(img,82-iw/2,1030-ih/2,iw,ih);
       ctx.restore();
-      ctx.save(); ctx.strokeStyle="#d4a72c"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(103,1006,31,0,Math.PI*2); ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.strokeStyle="#d4a72c"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(82,1030,22,0,Math.PI*2); ctx.stroke(); ctx.restore();
     }catch(e){console.warn('Founder photo',e);}
   }
   async function loadTemplate(){template=await loadImage(TEMPLATE);status("GAAWOW template loaded.");}
@@ -138,9 +138,9 @@
     wrap(body, 112, 760, 825, 23, 6);
     await drawFounderPhoto();
     // Verification section: move every value lower into its own field.
-    drawText(val("verifyCode"), 760, 1180, 405, 22, {size:14,min:8,align:"right"});
-    drawText(stat.toUpperCase(), 760, 1237, 405, 22, {size:14,min:8,align:"right"});
-    drawText(verifyUrl(), 960, 1294, 650, 22, {size:9,min:6,align:"right",weight:500});
+    drawText(val("verifyCode"), 760, 1229, 405, 22, {size:14,min:8,align:"right"});
+    drawText(stat.toUpperCase(), 760, 1274, 405, 22, {size:14,min:8,align:"right"});
+    drawText(verifyUrl(), 960, 1325, 650, 22, {size:9,min:6,align:"right",weight:500});
     try { const q=await qrData(verifyUrl()); const qi=await loadImage(q); ctx.drawImage(qi, 76, 1180, 126, 126); } catch(e){ console.warn("QR",e); }
     status("Authentication Letter preview ready.");
   }
