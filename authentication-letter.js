@@ -36,7 +36,7 @@
     if(!val("authorityName")) setv("authorityName", "GAAWOW ACADEMY");
   }
 
-  async function loadImage(src){return new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error(`Sawirka lama soo rareen (image failed to load): ${src}`));i.src=src;});}
+  async function loadImage(src){return new Promise((resolve,reject)=>{const i=new Image();if(/^https?:/i.test(src))i.crossOrigin="anonymous";i.onload=()=>resolve(i);i.onerror=()=>reject(new Error(`Sawirka lama soo rareen (image failed to load): ${src}`));i.src=src;});}
   function fileToDataURL(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});}
   async function drawFounderPhoto(){
     if(!founderPhoto) return;
@@ -52,6 +52,22 @@
     }catch(e){console.warn('Founder photo',e);}
   }
   async function loadTemplate(){template=await loadImage(TEMPLATE);status("GAAWOW template loaded.");}
+  async function drawStudentPhoto(){
+    const photo = studentOption()?.dataset.photo;
+    if(!photo) return;
+    try{
+      const img=await loadImage(photo);
+      // Student photo box: measured from the template (rounded rect, left of Student Information fields).
+      const bx=40, by=440, bw=204, bh=237, r=10;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(bx+r,by); ctx.arcTo(bx+bw,by,bx+bw,by+bh,r); ctx.arcTo(bx+bw,by+bh,bx,by+bh,r);
+      ctx.arcTo(bx,by+bh,bx,by,r); ctx.arcTo(bx,by,bx+bw,by,r); ctx.closePath(); ctx.clip();
+      const scale=Math.max(bw/img.width, bh/img.height); const iw=img.width*scale, ih=img.height*scale;
+      ctx.drawImage(img, bx+(bw-iw)/2, by+(bh-ih)/2, iw, ih);
+      ctx.restore();
+    }catch(e){ console.warn("Student photo",e); }
+  }
   async function auth(){
     if(!window.supabase) throw Error("Supabase library lama load-gareyn.");
     db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
@@ -107,10 +123,33 @@
   }
   function syncCourse(){setv("courseName",courseName());setv("courseCode",courseCode());}
 
-  async function qrData(url){
-    if(window.QRCode?.toDataURL) return new Promise((res,rej)=>QRCode.toDataURL(url,{width:220,margin:1,errorCorrectionLevel:"M"},(e,u)=>e?rej(e):res(u)));
-    if(window.qrcode?.toDataURL) return window.qrcode.toDataURL(url,{width:220,margin:1,errorCorrectionLevel:"M"});
-    throw Error("QR library lama load-gareyn.");
+  async function drawQR(x,y,size){
+    const url = verifyUrl();
+    try{
+      if(window.QRCode?.toCanvas){
+        const off=document.createElement("canvas");
+        await new Promise((res,rej)=>QRCode.toCanvas(off,url,{width:size*2,margin:1,errorCorrectionLevel:"M"},e=>e?rej(e):res()));
+        ctx.drawImage(off,x,y,size,size); return;
+      }
+      if(window.QRCode?.toDataURL){
+        const dataUrl=await new Promise((res,rej)=>QRCode.toDataURL(url,{width:size*2,margin:1,errorCorrectionLevel:"M"},(e,u)=>e?rej(e):res(u)));
+        const img=await loadImage(dataUrl); ctx.drawImage(img,x,y,size,size); return;
+      }
+      if(window.qrcode?.toDataURL){
+        const dataUrl=await window.qrcode.toDataURL(url,{width:size*2,margin:1,errorCorrectionLevel:"M"});
+        const img=await loadImage(dataUrl); ctx.drawImage(img,x,y,size,size); return;
+      }
+      throw new Error("QR library (window.QRCode) lama helin — hubi in qrcode@1.5.3 script-ku uu ka horreeyo authentication-letter.js.");
+    }catch(e){
+      console.warn("QR render failed:",e);
+      ctx.save();
+      ctx.fillStyle="#fff5f5"; ctx.fillRect(x,y,size,size);
+      ctx.strokeStyle="#c0392b"; ctx.lineWidth=1.5; ctx.strokeRect(x,y,size,size);
+      ctx.fillStyle="#c0392b"; ctx.font="bold 10px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle";
+      ctx.fillText("QR error", x+size/2, y+size/2);
+      ctx.restore();
+      msg(`QR code lama sameyn karin: ${errText(e)}`,"error");
+    }
   }
   function fit(text,max,start,min=10){let n=start;while(n>min){ctx.font=`700 ${n}px Arial`;if(ctx.measureText(text).width<=max)break;n--;}return n;}
   function drawText(t,x,y,w,h,{size=16,min=9,weight=600,align="left",color="#10204f"}={}){if(!t)return;const n=fit(String(t),w,size,min);ctx.save();ctx.font=`${weight} ${n}px Arial`;ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline="middle";ctx.fillText(String(t),align==="center"?x:x,y);ctx.restore();}
@@ -137,12 +176,13 @@
     drawText(grade, 976, 593, 295, 25, {size:17,min:10,align:"right"});
     drawText(stat.toUpperCase(), 976, 654, 295, 25, {size:17,min:10,align:"right"});
     wrap(body, 112, 760, 825, 23, 6);
+    await drawStudentPhoto();
     await drawFounderPhoto();
     // Verification section: move every value lower into its own field.
     drawText(val("verifyCode"), 760, 1229, 405, 22, {size:14,min:8,align:"right"});
     drawText(stat.toUpperCase(), 760, 1274, 405, 22, {size:14,min:8,align:"right"});
     drawText(verifyUrl(), 960, 1325, 650, 22, {size:9,min:6,align:"right",weight:500});
-    try { const q=await qrData(verifyUrl()); const qi=await loadImage(q); ctx.drawImage(qi, 91, 1195, 100, 100); } catch(e){ console.warn("QR",e); }
+    await drawQR(91, 1195, 100);
     status("Authentication Letter preview ready.");
   }
 
