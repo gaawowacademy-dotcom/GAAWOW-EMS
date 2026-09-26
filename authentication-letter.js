@@ -4,7 +4,7 @@
   const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
   const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
   const W = 1055, H = 1491;
-  const TEMPLATE = "./Authentication Letter.png";
+  const TEMPLATE = "./Authentication_Letter.png";
   const $ = id => document.getElementById(id);
   const canvas = $("certificateCanvas"), ctx = canvas?.getContext("2d");
   let db, user, profile, template, founderPhoto=null;
@@ -15,6 +15,7 @@
   const rand = (n=8) => { const c="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let s=""; for(let i=0;i<n;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; };
   const dateText = s => { if(!s) return ""; const d=new Date(`${s}T00:00:00`); return Number.isNaN(d.getTime())?s:d.toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"}); };
   const msg = (t,type="info") => { const e=$("message"); if(e){e.textContent=t;e.className=`message ${type}`;} };
+  const errText = e => { if(!e) return "Unknown error"; if(typeof e==="string") return e; if(e.message) return e.message; if(typeof Event!=="undefined" && e instanceof Event) return "Resource lama soo rareen (load failed) — hubi in filename-ka sax yahay."; return String(e); };
   const status = t => { const e=$("previewStatus"); if(e)e.textContent=t; };
   const institutionName = () => $("institutionSelect")?.selectedOptions?.[0]?.textContent?.trim() || "";
   const studentOption = () => $("studentSelect")?.selectedOptions?.[0];
@@ -35,7 +36,7 @@
     if(!val("authorityName")) setv("authorityName", "GAAWOW ACADEMY");
   }
 
-  async function loadImage(src){return new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=src;});}
+  async function loadImage(src){return new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error(`Sawirka lama soo rareen (image failed to load): ${src}`));i.src=src;});}
   function fileToDataURL(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});}
   async function drawFounderPhoto(){
     if(!founderPhoto) return;
@@ -192,6 +193,6 @@
   }
   async function init(){try{canvas.width=W;canvas.height=H;await auth();await loadProfile();await loadTemplate();await loadInstitutions();await loadStudents();await loadCourses();events();identifiers();
     try{ founderPhoto=localStorage.getItem("gaawow_founder_photo")||null; if(founderPhoto){const img=$("founderPhotoPreview"),box=$("founderPhotoBox");if(img)img.src=founderPhoto;if(box)box.style.display="block";} }catch(_){}
-    if(regenId())await loadExisting(regenId());else await draw();}catch(e){console.error(e);msg(`System error: ${e.message||e}`,"error");status("Authentication Letter failed to initialize.");}}
+    if(regenId())await loadExisting(regenId());else await draw();}catch(e){console.error(e);msg(`System error: ${errText(e)}`,"error");status("Authentication Letter failed to initialize.");}}
   init();
 })();
