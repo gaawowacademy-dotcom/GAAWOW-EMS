@@ -1270,8 +1270,18 @@ function setupEvents() {
   });
 
   // Anything that appears on the certificate invalidates the preview.
-  ["dateStarted", "dateCompleted", "status", "expiryDate", "certificateType"]
-    .forEach(id => $(id)?.addEventListener("change", markDirty));
+[
+  "dateStarted",
+  "dateCompleted",
+  "status",
+  "expiryDate",
+  "certificateType",
+  "directorName",
+  "academicHeadName"
+].forEach(id => {
+  $(id)?.addEventListener("input", markDirty);
+  $(id)?.addEventListener("change", markDirty);
+});
 
   $("generateBtn").addEventListener("click", async () => {
     try {
