@@ -941,15 +941,47 @@ async function renderCertificate() {
     minSize: 20
   });
 
-  /* Signatures */
-  drawText(ctx, valueOf("directorName", DEFAULT_DIRECTOR), LAYOUT.directorX, LAYOUT.signatureY, {
-    size: LAYOUT.signatureSize, family: SCRIPT, color: NAVY, align: "center",
-    maxWidth: LAYOUT.directorMaxWidth, minSize: 18
-  });
-  drawText(ctx, valueOf("academicHeadName", DEFAULT_ACADEMIC_HEAD), LAYOUT.academicHeadX, LAYOUT.signatureY, {
-    size: LAYOUT.signatureSize, family: SCRIPT, color: NAVY, align: "center",
-    maxWidth: LAYOUT.academicHeadMaxWidth, minSize: 18
-  });
+  /* ---------------- OFFICIAL DIGITAL SIGNATURES ---------------- */
+
+const directorSignatureName =
+  valueOf("directorName", DEFAULT_DIRECTOR);
+
+const academicHeadSignatureName =
+  valueOf("academicHeadName", DEFAULT_ACADEMIC_HEAD);
+
+/* Founder & Director signature */
+drawText(
+  ctx,
+  directorSignatureName,
+  LAYOUT.directorX,
+  LAYOUT.signatureY,
+  {
+    size: 36,
+    family: SCRIPT,
+    color: NAVY,
+    weight: "400",
+    align: "center",
+    maxWidth: LAYOUT.directorMaxWidth,
+    minSize: 20
+  }
+);
+
+/* Academic Head signature */
+drawText(
+  ctx,
+  academicHeadSignatureName,
+  LAYOUT.academicHeadX,
+  LAYOUT.signatureY,
+  {
+    size: 36,
+    family: SCRIPT,
+    color: NAVY,
+    weight: "400",
+    align: "center",
+    maxWidth: LAYOUT.academicHeadMaxWidth,
+    minSize: 20
+  }
+);
 
   /* Footer contact (white on the navy bar) */
   drawText(ctx, CONTACT.address, LAYOUT.addressX, LAYOUT.addressY, {
