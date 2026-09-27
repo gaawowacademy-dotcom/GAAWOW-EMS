@@ -701,15 +701,31 @@
             </div>
 
             <div>
-              <label for="studentId">Student ID *</label>
+  <label for="studentId">Student ID</label>
 
-              <input
-                id="studentId"
-                type="text"
-                placeholder="e.g. GA-2026-001"
-                required
-              >
-            </div>
+  <input
+    id="studentId"
+    type="text"
+    placeholder="Automatic Student ID"
+    readonly
+    style="
+      background:#f8fafc;
+      color:#0B1E63;
+      font-weight:800;
+      cursor:not-allowed;
+      letter-spacing:.4px;
+    "
+  >
+
+  <small style="
+    display:block;
+    margin-top:5px;
+    color:#64748b;
+    font-size:11px;
+  ">
+    Student ID is generated automatically by GAAWOW EMS.
+  </small>
+</div>
 
             <div>
               <label for="fullName">Full Name *</label>
