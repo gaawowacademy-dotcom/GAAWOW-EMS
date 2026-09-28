@@ -78,10 +78,149 @@ button{
 footer{margin-top:22px;color:#e5e7eb;font-size:12px;text-align:center;opacity:.85}
 
 @media(max-width:480px){
-  .cert-grid{grid-template-columns:1fr}
-  form{flex-direction:column}
-  button{width:100%}
+/* ============================================================
+   GAAWOW ACADEMIC RESULTS
+   ============================================================ */
+
+.academic-section{
+  margin-top:22px;
+  text-align:left;
+  border-top:1px solid var(--border);
+  padding-top:18px;
 }
+
+.academic-section h3{
+  margin:0 0 12px;
+  color:var(--navy);
+  font-size:17px;
+  text-align:center;
+}
+
+.academic-table-wrapper{
+  width:100%;
+  overflow-x:auto;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:#fff;
+}
+
+.academic-table{
+  width:100%;
+  min-width:560px;
+  border-collapse:collapse;
+  font-size:12.5px;
+}
+
+.academic-table th{
+  background:var(--navy);
+  color:#fff;
+  padding:10px 8px;
+  text-align:center;
+  font-size:10.5px;
+  text-transform:uppercase;
+  letter-spacing:.25px;
+  white-space:nowrap;
+}
+
+.academic-table td{
+  padding:10px 8px;
+  border-bottom:1px solid #e5e7eb;
+  color:#334155;
+  text-align:center;
+  vertical-align:middle;
+}
+
+.academic-table td:nth-child(2){
+  text-align:left;
+}
+
+.academic-table tbody tr:last-child td{
+  border-bottom:0;
+}
+
+.academic-table tbody tr:nth-child(even){
+  background:#f8fafc;
+}
+
+
+/* ============================================================
+   ACADEMIC SUMMARY
+   ============================================================ */
+
+.academic-summary{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:14px;
+}
+
+.summary-card{
+  background:#f8fafc;
+  border:1px solid var(--border);
+  border-radius:11px;
+  padding:12px;
+  text-align:center;
+}
+
+.summary-card span{
+  display:block;
+  color:#64748b;
+  font-size:10.5px;
+  text-transform:uppercase;
+  letter-spacing:.3px;
+  margin-bottom:5px;
+}
+
+.summary-card strong{
+  display:block;
+  color:var(--navy);
+  font-size:17px;
+}
+
+.summary-card.ok{
+  background:#f0fdf4;
+  border-color:#bbf7d0;
+}
+
+.summary-card.ok strong{
+  color:#166534;
+}
+
+.summary-card.bad{
+  background:#fef2f2;
+  border-color:#fecaca;
+}
+
+.summary-card.bad strong{
+  color:#991b1b;
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media(max-width:480px){
+
+  .cert-grid{
+    grid-template-columns:1fr;
+  }
+
+  form{
+    flex-direction:column;
+  }
+
+  button{
+    width:100%;
+  }
+
+  .academic-summary{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .academic-table{
+    min-width:560px;
+  }
 </style>
 </head>
 <body>
