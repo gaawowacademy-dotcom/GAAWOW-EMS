@@ -1,28 +1,28 @@
-/*
-  GAAWOW ACADEMY - Authentication Letter
-  This file is ready for GitHub Pages.
-  Replace demo data with your Supabase/EMS record when connecting the system.
-*/
+"use strict";
 
 const EMS_VERIFY_BASE =
-  "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify.html";
+  "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify-auth.html";
 
-const demoRecord = {
-  status: "VALID",
-  documentId: "AUTH-00001",
-  issueDate: "29 September 2026",
-  studentName: "Student Full Name",
-  studentId: "STU-00001",
-  admissionDate: "01 January 2026",
-  course: "General Health",
-  courseId: "GH-001",
-  completionDate: "30 June 2026"
-};
+const SUPABASE_URL =
+  "https://mytyvqwrxnxpxnxpiic5.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+const supabaseClient = window.supabase
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
 
 function formatDate(value) {
   if (!value) return "";
-  const date = new Date(value);
+
+  const raw = String(value);
+  const date = new Date(
+    raw.length === 10 ? raw + "T00:00:00" : raw
+  );
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "long",
@@ -31,16 +31,28 @@ function formatDate(value) {
 }
 
 function setText(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = value ?? "";
+  const element = document.getElementById(id);
+
+  if (element) {
+    element.textContent = value ?? "";
+  }
 }
 
-function buildVerificationUrl(code) {
-  return `${EMS_VERIFY_BASE}?code=${encodeURIComponent(code)}`;
+function buildVerificationUrl(code, id) {
+  const params = new URLSearchParams();
+
+  params.set("code", code);
+
+  if (id) {
+    params.set("id", id);
+  }
+
+  return EMS_VERIFY_BASE + "?" + params.toString();
 }
 
 function createQRCode(url) {
   const box = document.getElementById("qrcode");
+
   if (!box) return;
 
   box.innerHTML = "";
@@ -60,69 +72,190 @@ function createQRCode(url) {
   });
 }
 
-function renderAuthenticationLetter(record) {
-  const data = { ...demoRecord, ...record };
+function renderAuthenticationLetter(data) {
 
-  setText("status", data.status || "VALID");
-  setText("documentId", data.documentId);
-  setText("issueDate", formatDate(data.issueDate));
+  setText(
+    "status",
+    String(data.status || "VALID").toUpperCase()
+  );
 
-  setText("studentName", data.studentName);
-  setText("studentId", data.studentId);
-  setText("admissionDate", formatDate(data.admissionDate));
+  setText(
+    "documentId",
+    data.documentId || ""
+  );
 
-  setText("course", data.course);
-  setText("courseId", data.courseId);
-  setText("completionDate", formatDate(data.completionDate));
+  setText(
+    "issueDate",
+    formatDate(data.issueDate)
+  );
 
-  setText("authenticatedOn", formatDate(data.issueDate));
+  setText(
+    "studentName",
+    data.studentName || ""
+  );
+
+  setText(
+    "studentId",
+    data.studentId || ""
+  );
+
+  setText(
+    "admissionDate",
+    formatDate(data.admissionDate)
+  );
+
+  setText(
+    "course",
+    data.course || ""
+  );
+
+  setText(
+    "courseId",
+    data.courseId || ""
+  );
+
+  setText(
+    "completionDate",
+    formatDate(data.completionDate)
+  );
+
+  setText(
+    "authenticatedOn",
+    formatDate(data.issueDate)
+  );
 
   const verificationCode =
-    data.verificationCode || data.documentId || data.certificateId;
+    data.verificationCode ||
+    data.verifyCode ||
+    data.documentId;
 
-  const verifyUrl = buildVerificationUrl(verificationCode);
-  setText("verifyUrl", verifyUrl);
+  const verifyUrl =
+    buildVerificationUrl(
+      verificationCode,
+      data.recordId
+    );
+
+  setText(
+    "verifyUrl",
+    verifyUrl
+  );
+
   createQRCode(verifyUrl);
 
   document.title =
-    `Authentication Letter - ${data.studentName || "GAAWOW ACADEMY"}`;
+    "Authentication Letter - " +
+    (data.studentName || "GAAWOW ACADEMY");
 }
 
-function loadDemo() {
-  renderAuthenticationLetter(demoRecord);
-}
+async function loadAuthenticationLetter() {
 
-function clearLetter() {
-  const ids = [
-    "status", "documentId", "issueDate", "studentName", "studentId",
-    "admissionDate", "course", "courseId", "completionDate",
-    "authenticatedOn", "verifyUrl"
-  ];
+  if (!supabaseClient) {
+    throw new Error(
+      "Supabase library lama helin."
+    );
+  }
 
-  ids.forEach(id => setText(id, ""));
-  const qr = document.getElementById("qrcode");
-  if (qr) qr.innerHTML = "";
-}
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
 
-/*
-  EMS/Supabase integration point.
+  const recordId =
+    params.get("regen");
 
-  Example:
-  const { data, error } = await supabase
-    .from("certificates")
-    .select("*")
-    .eq("certificate_id", certificateId)
-    .single();
+  if (!recordId) {
+    throw new Error(
+      "Authentication Letter record ID lama helin."
+    );
+  }
 
-  Then:
+  const { data, error } =
+    await supabaseClient
+      .from("certificates")
+      .select("*")
+      .eq("id", recordId)
+      .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      "Supabase error: " + error.message
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "Authentication Letter record lama helin."
+    );
+  }
+
   renderAuthenticationLetter({
-    documentId: data.certificate_id,
-    studentName: data.student_name,
-    course: data.course,
-    ...
-  });
-*/
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadDemo();
-});
+    recordId: data.id,
+
+    status:
+      data.status || "valid",
+
+    documentId:
+      data.certificate_no ||
+      data.certificate_id ||
+      "",
+
+    issueDate:
+      data.issue_date,
+
+    studentName:
+      data.student_name_snapshot ||
+      "",
+
+    studentId:
+      data.student_id ||
+      "",
+
+    admissionDate:
+      data.admission_date,
+
+    course:
+      data.course_name_snapshot ||
+      "",
+
+    courseId:
+      data.course_id ||
+      "",
+
+    completionDate:
+      data.date_completed ||
+      data.issue_date,
+
+    verificationCode:
+      data.verify_code ||
+      data.certificate_id ||
+      data.certificate_no ||
+      ""
+  });
+}
+
+document.addEventListener(
+  "DOMContentLoaded",
+  async function () {
+
+    try {
+
+      await loadAuthenticationLetter();
+
+    } catch (error) {
+
+      console.error(error);
+
+      setText(
+        "status",
+        "ERROR"
+      );
+
+      setText(
+        "documentId",
+        error.message
+      );
+    }
+
+  }
+);
