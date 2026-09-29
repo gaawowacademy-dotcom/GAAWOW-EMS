@@ -2,27 +2,16 @@
    GAAWOW EMS
    PUBLIC CERTIFICATE VERIFICATION
    + ACADEMIC RESULTS
-   V3.0
-   ------------------------------------------------------------
-   Features:
-   - Verify code
-   - Full verification URL support
-   - QR URL support
-   - Supabase RPC verification
-   - Certificate status
-   - Student information
-   - Academic results
-   - 8 subjects
-   - Total / Average / Grade / PASS-FAIL
-   - Published results only
-   - Mobile friendly
+   VERSION 102
    ============================================================ */
 
 (() => {
+
   "use strict";
 
+
   /* ==========================================================
-     SUPABASE CONFIG
+     SUPABASE
      ========================================================== */
 
   const SUPABASE_URL =
@@ -31,10 +20,16 @@
   const SUPABASE_KEY =
     "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
+
   if (!window.supabase) {
-    console.error("Supabase library was not loaded.");
+
+    console.error(
+      "Supabase library was not loaded."
+    );
+
     return;
   }
+
 
   const supabaseClient =
     window.supabase.createClient(
@@ -44,14 +39,15 @@
 
 
   /* ==========================================================
-     DOM HELPER
+     DOM
      ========================================================== */
 
-  const $ = (id) => document.getElementById(id);
+  const $ = (id) =>
+    document.getElementById(id);
 
 
   /* ==========================================================
-     STATUS INFORMATION
+     STATUS
      ========================================================== */
 
   const STATUS_INFO = {
@@ -95,7 +91,7 @@
 
 
   /* ==========================================================
-     8 OFFICIAL SUBJECTS
+     SUBJECT ORDER
      ========================================================== */
 
   const SUBJECT_ORDER = [
@@ -149,7 +145,7 @@
 
 
   /* ==========================================================
-     DATE FORMAT
+     DATE
      ========================================================== */
 
   function formatDate(value) {
@@ -161,18 +157,20 @@
     const raw =
       String(value).trim();
 
-    const d =
-      new Date(`${raw}T00:00:00`);
+    const date =
+      new Date(
+        `${raw}T00:00:00`
+      );
 
     if (
       Number.isNaN(
-        d.getTime()
+        date.getTime()
       )
     ) {
       return escapeHtml(raw);
     }
 
-    return d.toLocaleDateString(
+    return date.toLocaleDateString(
       "en-GB",
       {
         day: "2-digit",
@@ -185,30 +183,45 @@
 
   /* ==========================================================
      NORMALIZE VERIFY CODE
-     ----------------------------------------------------------
+
      Accepts:
 
-     1. GAW-2026-V8AN5Q2F
+     GAW-2026-V8AN5Q2F
 
-     2. https://gaawowacademy-dotcom.github.io/
-        GAAWOW-EMS/verify.html?code=GAW-2026-V8AN5Q2F
+     OR:
 
-     3. URL encoded verification links
+     https://.../verify.html?code=GAW-2026-V8AN5Q2F
+
+     OR:
+
+     verify.html?code=GAW-2026-V8AN5Q2F
      ========================================================== */
 
   function normalizeVerifyCode(value) {
 
-    const raw =
+    let raw =
       String(value || "").trim();
+
 
     if (!raw) {
       return "";
     }
 
-    /* ----------------------------------------------
-       CASE 1:
-       Full URL
-       ---------------------------------------------- */
+
+    /*
+     * Remove accidental surrounding quotes.
+     */
+
+    raw =
+      raw.replace(
+        /^["']|["']$/g,
+        ""
+      ).trim();
+
+
+    /*
+     * Full URL
+     */
 
     try {
 
@@ -216,29 +229,32 @@
         new URL(raw);
 
       const code =
-        parsed.searchParams.get("code");
+        parsed.searchParams.get(
+          "code"
+        );
 
       if (code) {
 
         return decodeURIComponent(
           code
-        ).trim();
+        )
+        .trim()
+        .toUpperCase();
+
       }
 
     } catch (_) {
 
-      /* Not a URL.
-         Continue as normal code. */
+      /*
+       * It is not a complete URL.
+       */
 
     }
 
 
-    /* ----------------------------------------------
-       CASE 2:
-       Sometimes user pastes:
-
-       verify.html?code=GAW-2026-XXXX
-       ---------------------------------------------- */
+    /*
+     * Partial URL containing code=
+     */
 
     const lower =
       raw.toLowerCase();
@@ -249,15 +265,19 @@
     const position =
       lower.indexOf(marker);
 
+
     if (position !== -1) {
 
       let extracted =
         raw.substring(
-          position + marker.length
+          position +
+          marker.length
         );
+
 
       extracted =
         extracted.split("&")[0];
+
 
       try {
 
@@ -268,24 +288,29 @@
 
       } catch (_) {}
 
-      if (extracted.trim()) {
 
-        return extracted.trim();
+      if (
+        extracted.trim()
+      ) {
+
+        return extracted
+          .trim()
+          .toUpperCase();
+
       }
     }
 
 
-    /* ----------------------------------------------
-       CASE 3:
-       Normal code
-       ---------------------------------------------- */
+    /*
+     * Normal code
+     */
 
-    return raw;
+    return raw.toUpperCase();
   }
 
 
   /* ==========================================================
-     GET CODE FROM PAGE URL
+     READ CODE FROM PAGE URL
      ========================================================== */
 
   function codeFromUrl() {
@@ -297,11 +322,13 @@
           window.location.search
         );
 
-      const rawCode =
+
+      const raw =
         params.get("code") || "";
 
+
       return normalizeVerifyCode(
-        rawCode
+        raw
       );
 
     } catch (_) {
@@ -312,7 +339,7 @@
 
 
   /* ==========================================================
-     SHOW RESULT
+     WRITE RESULT
      ========================================================== */
 
   function setResultView(html) {
@@ -320,15 +347,48 @@
     const result =
       $("result");
 
+
     if (!result) {
       return;
     }
 
+
     result.innerHTML =
       html;
 
+
     result.style.display =
       "block";
+  }
+
+
+  /* ==========================================================
+     EMPTY
+     ========================================================== */
+
+  function showEmptyCode() {
+
+    setResultView(`
+
+      <div class="panel neutral">
+
+        <div class="icon">
+          🔍
+        </div>
+
+        <h2>
+          Enter a Verify Code
+        </h2>
+
+        <p>
+          Scan the QR code on a GAAWOW Academy
+          certificate, or enter the verification
+          code below.
+        </p>
+
+      </div>
+
+    `);
   }
 
 
@@ -360,37 +420,7 @@
 
 
   /* ==========================================================
-     EMPTY CODE
-     ========================================================== */
-
-  function showEmptyCode() {
-
-    setResultView(`
-
-      <div class="panel neutral">
-
-        <div class="icon">
-          🔍
-        </div>
-
-        <h2>
-          Enter a Verify Code
-        </h2>
-
-        <p>
-          Scan the QR code on a GAAWOW Academy
-          certificate or enter the verification
-          code below.
-        </p>
-
-      </div>
-
-    `);
-  }
-
-
-  /* ==========================================================
-     CERTIFICATE NOT FOUND
+     NOT FOUND
      ========================================================== */
 
   function showNotFound(code) {
@@ -410,13 +440,15 @@
         <p>
           No certificate matches the code
           <span class="code">
-            ${escapeHtml(code || "(empty)")}
+            ${escapeHtml(
+              code || "(empty)"
+            )}
           </span>.
         </p>
 
         <p>
-          Please check the QR code or
-          verification code and try again.
+          Check the QR code or verification
+          code and try again.
         </p>
 
       </div>
@@ -426,10 +458,10 @@
 
 
   /* ==========================================================
-     DATABASE / SERVER ERROR
+     SERVER ERROR
      ========================================================== */
 
-  function showBlocked(errorMessage) {
+  function showBlocked(message) {
 
     setResultView(`
 
@@ -444,13 +476,13 @@
         </h2>
 
         <p>
-          The certificate verification service
-          could not be reached right now.
+          The certificate database could not
+          be reached right now.
         </p>
 
         <p class="tech">
           ${escapeHtml(
-            errorMessage ||
+            message ||
             "Unknown verification error."
           )}
         </p>
@@ -462,13 +494,14 @@
 
 
   /* ==========================================================
-     GRADE CALCULATOR
+     GRADE
      ========================================================== */
 
   function calculateGrade(value) {
 
     const percentage =
       Number(value);
+
 
     if (
       Number.isNaN(
@@ -477,6 +510,7 @@
     ) {
       return "—";
     }
+
 
     if (percentage >= 90) {
       return "A+";
@@ -536,10 +570,6 @@
     }
 
 
-    /* ----------------------------------------------
-       Sort according to official subject order
-       ---------------------------------------------- */
-
     const sortedResults =
       [...results].sort(
         (a, b) => {
@@ -551,6 +581,7 @@
             .trim()
             .toLowerCase();
 
+
           const bName =
             String(
               b.subject_name || ""
@@ -558,41 +589,45 @@
             .trim()
             .toLowerCase();
 
+
           const ai =
             SUBJECT_ORDER.indexOf(
               aName
             );
+
 
           const bi =
             SUBJECT_ORDER.indexOf(
               bName
             );
 
+
           if (
             ai === -1 &&
             bi === -1
           ) {
+
             return aName.localeCompare(
               bName
             );
+
           }
+
 
           if (ai === -1) {
             return 1;
           }
 
+
           if (bi === -1) {
             return -1;
           }
+
 
           return ai - bi;
         }
       );
 
-
-    /* ----------------------------------------------
-       Create rows
-       ---------------------------------------------- */
 
     const rows =
       sortedResults
@@ -605,11 +640,13 @@
                 ? Number(result.score)
                 : 0;
 
+
             const maxScore =
               result.max_score !== null &&
               result.max_score !== undefined
                 ? Number(result.max_score)
                 : 100;
+
 
             let percentage =
               result.percentage !== null &&
@@ -624,6 +661,7 @@
                       : 0
                   );
 
+
             if (
               Number.isNaN(
                 percentage
@@ -632,15 +670,12 @@
               percentage = 0;
             }
 
+
             const grade =
               result.grade ||
               calculateGrade(
                 percentage
               );
-
-            const remarks =
-              result.remarks ||
-              "";
 
 
             return `
@@ -652,14 +687,12 @@
                 </td>
 
                 <td>
-
                   <strong>
                     ${escapeHtml(
                       result.subject_name ||
                       "—"
                     )}
                   </strong>
-
                 </td>
 
                 <td>
@@ -681,18 +714,17 @@
                 </td>
 
                 <td>
-
                   <strong>
                     ${escapeHtml(
                       grade
                     )}
                   </strong>
-
                 </td>
 
                 <td>
                   ${escapeHtml(
-                    remarks || "—"
+                    result.remarks ||
+                    "—"
                   )}
                 </td>
 
@@ -751,9 +783,7 @@
             </thead>
 
             <tbody>
-
               ${rows}
-
             </tbody>
 
           </table>
@@ -767,7 +797,7 @@
 
 
   /* ==========================================================
-     ACADEMIC SUMMARY
+     SUMMARY
      ========================================================== */
 
   function renderAcademicSummary(summary) {
@@ -776,20 +806,24 @@
       return "";
     }
 
+
     const totalScore =
       Number(
         summary.total_score || 0
       );
+
 
     const totalMax =
       Number(
         summary.total_max_score || 0
       );
 
+
     const average =
       Number(
         summary.average || 0
       );
+
 
     const grade =
       summary.overall_grade ||
@@ -797,11 +831,13 @@
         average
       );
 
+
     const finalResult =
       String(
         summary.final_result ||
         "FAIL"
       ).toUpperCase();
+
 
     const resultClass =
       finalResult === "PASS"
@@ -854,7 +890,10 @@
         </div>
 
 
-        <div class="summary-card ${resultClass}">
+        <div class="
+          summary-card
+          ${resultClass}
+        ">
 
           <span>
             Final Result
@@ -875,7 +914,7 @@
 
 
   /* ==========================================================
-     CERTIFICATE VIEW
+     CERTIFICATE
      ========================================================== */
 
   function showCertificate(payload) {
@@ -884,22 +923,24 @@
       payload.certificate ||
       {};
 
+
     const student =
       payload.student ||
       {};
 
+
     const academicResults =
-      payload.academic_results ||
-      [];
+      Array.isArray(
+        payload.academic_results
+      )
+        ? payload.academic_results
+        : [];
+
 
     const summary =
       payload.summary ||
       {};
 
-
-    /* ----------------------------------------------
-       Status
-       ---------------------------------------------- */
 
     const statusKey =
       String(
@@ -907,5 +948,606 @@
         "valid"
       ).toLowerCase();
 
+
     const info =
       STATUS_INFO[
+        statusKey
+      ] ||
+      STATUS_INFO.valid;
+
+
+    const today =
+      new Date()
+        .toISOString()
+        .slice(0, 10);
+
+
+    const pastExpiry =
+      cert.expiry_date &&
+      cert.expiry_date < today &&
+      statusKey !== "revoked";
+
+
+    const effective =
+      pastExpiry
+        ? STATUS_INFO.expired
+        : info;
+
+
+    const studentName =
+      student.full_name ||
+      cert.student_name ||
+      "—";
+
+
+    const courseName =
+      cert.course_name ||
+      "—";
+
+
+    setResultView(`
+
+      <div class="panel ${effective.cls}">
+
+        <div class="icon">
+          ${effective.icon}
+        </div>
+
+
+        <h2>
+          ${effective.heading}
+        </h2>
+
+
+        <div class="badge ${effective.cls}">
+
+          ${escapeHtml(
+            pastExpiry
+              ? "EXPIRED"
+              : effective.label
+          )}
+
+        </div>
+
+
+        <div class="cert-grid">
+
+
+          <div class="cert-item">
+
+            <strong>
+              Student Name
+            </strong>
+
+            <span>
+              ${escapeHtml(
+                studentName
+              )}
+            </span>
+
+          </div>
+
+
+          <div class="cert-item">
+
+            <strong>
+              Student ID
+            </strong>
+
+            <span>
+              ${escapeHtml(
+                student.student_id ||
+                "—"
+              )}
+            </span>
+
+          </div>
+
+
+          <div class="cert-item">
+
+            <strong>
+              Course / Program
+            </strong>
+
+            <span>
+              ${escapeHtml(
+                courseName
+              )}
+            </span>
+
+          </div>
+
+
+          <div class="cert-item">
+
+            <strong>
+              Certificate No
+            </strong>
+
+            <span>
+              ${escapeHtml(
+                cert.certificate_no ||
+                "—"
+              )}
+            </span>
+
+          </div>
+
+
+          <div class="cert-item">
+
+            <strong>
+              Certificate ID
+            </strong>
+
+            <span>
+              ${escapeHtml(
+                cert.certificate_id ||
+                "—"
+              )}
+            </span>
+
+          </div>
+
+
+          <div class="cert-item">
+
+            <strong>
+              Certificate Type
+            </strong>
+
+            <span>
+              ${escapeHtml(
+                cert.certificate_type ||
+                "—"
+              )}
+            </span>
+
+          </div>
+
+
+          <div class="cert-item">
+
+            <strong>
+              Issue Date
+            </strong>
+
+            <span>
+              ${formatDate(
+                cert.issue_date
+              )}
+            </span>
+
+          </div>
+
+
+          <div class="cert-item">
+
+            <strong>
+              Expiry Date
+            </strong>
+
+            <span>
+              ${formatDate(
+                cert.expiry_date
+              )}
+            </span>
+
+          </div>
+
+
+        </div>
+
+
+        ${renderAcademicResults(
+          academicResults
+        )}
+
+
+        ${renderAcademicSummary(
+          summary
+        )}
+
+
+        <p class="footnote">
+
+          Issued by GAAWOW Academy
+          • Verify Code
+
+          <span class="code">
+
+            ${escapeHtml(
+              cert.verify_code ||
+              ""
+            )}
+
+          </span>
+
+        </p>
+
+
+      </div>
+
+    `);
+  }
+
+
+  /* ==========================================================
+     URL UPDATE
+     ========================================================== */
+
+  function updateBrowserUrl(code) {
+
+    try {
+
+      const url =
+        new URL(
+          window.location.href
+        );
+
+
+      if (code) {
+
+        url.searchParams.set(
+          "code",
+          code
+        );
+
+      } else {
+
+        url.searchParams.delete(
+          "code"
+        );
+
+      }
+
+
+      /*
+       * replaceState does NOT reload the page.
+       */
+
+      window.history.replaceState(
+        {
+          verifyCode: code
+        },
+        "",
+        url.pathname +
+        url.search +
+        url.hash
+      );
+
+
+    } catch (error) {
+
+      console.warn(
+        "Could not update browser URL:",
+        error
+      );
+
+    }
+  }
+
+
+  /* ==========================================================
+     VERIFY
+     ========================================================== */
+
+  async function verify(inputValue) {
+
+    const code =
+      normalizeVerifyCode(
+        inputValue
+      );
+
+
+    if (!code) {
+
+      showEmptyCode();
+
+      return;
+    }
+
+
+    const input =
+      $("codeInput");
+
+
+    if (input) {
+
+      input.value =
+        code;
+
+    }
+
+
+    /*
+     * Keep code in browser URL.
+     * This makes refresh safe.
+     */
+
+    updateBrowserUrl(
+      code
+    );
+
+
+    showLoading();
+
+
+    try {
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient.rpc(
+
+          "verify_certificate_with_results",
+
+          {
+            p_verify_code:
+              code
+          }
+
+        );
+
+
+      if (error) {
+
+        console.error(
+          "Supabase RPC error:",
+          error
+        );
+
+        throw error;
+      }
+
+
+      if (!data) {
+
+        showNotFound(
+          code
+        );
+
+        return;
+      }
+
+
+      if (
+        data.success === false
+      ) {
+
+        const message =
+          String(
+            data.message ||
+            ""
+          );
+
+
+        if (
+          message
+            .toLowerCase()
+            .includes(
+              "not found"
+            )
+        ) {
+
+          showNotFound(
+            code
+          );
+
+        } else {
+
+          showBlocked(
+            message ||
+            "Verification failed."
+          );
+        }
+
+        return;
+      }
+
+
+      if (
+        !data.certificate
+      ) {
+
+        showNotFound(
+          code
+        );
+
+        return;
+      }
+
+
+      showCertificate(
+        data
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "Certificate verification error:",
+        error
+      );
+
+
+      showBlocked(
+
+        error &&
+        error.message
+
+          ? error.message
+
+          : String(
+              error ||
+              "Unknown error"
+            )
+
+      );
+
+    }
+
+  }
+
+
+  /* ==========================================================
+     FORM
+     ========================================================== */
+
+  function setupForm() {
+
+    const form =
+      $("verifyForm");
+
+
+    const input =
+      $("codeInput");
+
+
+    if (
+      !form ||
+      !input
+    ) {
+
+      console.error(
+        "Verification form not found."
+      );
+
+      return;
+    }
+
+
+    form.addEventListener(
+      "submit",
+      (event) => {
+
+        event.preventDefault();
+
+
+        const code =
+          normalizeVerifyCode(
+            input.value
+          );
+
+
+        if (!code) {
+
+          showEmptyCode();
+
+          return;
+        }
+
+
+        input.value =
+          code;
+
+
+        verify(
+          code
+        );
+
+      }
+    );
+
+
+    /*
+     * If a complete QR URL is pasted,
+     * normalize it immediately.
+     */
+
+    input.addEventListener(
+      "blur",
+      () => {
+
+        const value =
+          normalizeVerifyCode(
+            input.value
+          );
+
+
+        if (value) {
+
+          input.value =
+            value;
+
+        }
+
+      }
+    );
+
+  }
+
+
+  /* ==========================================================
+     INITIALIZE
+     ========================================================== */
+
+  function init() {
+
+    const code =
+      codeFromUrl();
+
+
+    const input =
+      $("codeInput");
+
+
+    if (input) {
+
+      input.value =
+        code;
+
+    }
+
+
+    setupForm();
+
+
+    /*
+     * IMPORTANT:
+     * If URL contains ?code=...
+     * automatically verify.
+     */
+
+    if (code) {
+
+      verify(
+        code
+      );
+
+    } else {
+
+      showEmptyCode();
+
+    }
+
+  }
+
+
+  /* ==========================================================
+     START
+     ========================================================== */
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      init,
+      {
+        once:true
+      }
+    );
+
+  } else {
+
+    init();
+
+  }
+
+
+})();
