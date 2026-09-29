@@ -1,1139 +1,911 @@
-/* =========================================================
+/* ============================================================
    GAAWOW EMS
-   DASHBOARD.JS
-   Super Admin Dashboard + Academic Results
-   ========================================================= */
+   PUBLIC CERTIFICATE VERIFICATION
+   + ACADEMIC RESULTS
+   V3.0
+   ------------------------------------------------------------
+   Features:
+   - Verify code
+   - Full verification URL support
+   - QR URL support
+   - Supabase RPC verification
+   - Certificate status
+   - Student information
+   - Academic results
+   - 8 subjects
+   - Total / Average / Grade / PASS-FAIL
+   - Published results only
+   - Mobile friendly
+   ============================================================ */
 
-"use strict";
+(() => {
+  "use strict";
 
-/* =========================================================
-   SUPABASE CONFIG
-   ========================================================= */
+  /* ==========================================================
+     SUPABASE CONFIG
+     ========================================================== */
 
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+  const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  const SUPABASE_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
-
-
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
-
-function openPage(page) {
-  if (!page) return;
-
-  window.location.href = page;
-}
-
-
-/* =========================================================
-   HTML ESCAPE
-   ========================================================= */
-
-function escapeHtml(value) {
-
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "";
+  if (!window.supabase) {
+    console.error("Supabase library was not loaded.");
+    return;
   }
 
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+  const supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
 
 
-/* =========================================================
-   SUPER ADMIN CHECK
-   ========================================================= */
+  /* ==========================================================
+     DOM HELPER
+     ========================================================== */
 
-async function checkSuperAdmin() {
+  const $ = (id) => document.getElementById(id);
 
-  try {
 
-    const {
-      data,
-      error
-    } =
-      await supabaseClient.auth.getSession();
+  /* ==========================================================
+     STATUS INFORMATION
+     ========================================================== */
 
+  const STATUS_INFO = {
+
+    valid: {
+      label: "VALID",
+      icon: "✔",
+      cls: "ok",
+      heading: "Authentic Certificate"
+    },
+
+    graduated: {
+      label: "GRADUATED",
+      icon: "✔",
+      cls: "ok",
+      heading: "Authentic Certificate"
+    },
+
+    pending: {
+      label: "PENDING",
+      icon: "⏳",
+      cls: "warn",
+      heading: "Certificate Pending"
+    },
+
+    expired: {
+      label: "EXPIRED",
+      icon: "⚠",
+      cls: "warn",
+      heading: "Certificate Expired"
+    },
+
+    revoked: {
+      label: "REVOKED",
+      icon: "✖",
+      cls: "bad",
+      heading: "Certificate Revoked"
+    }
+
+  };
+
+
+  /* ==========================================================
+     8 OFFICIAL SUBJECTS
+     ========================================================== */
+
+  const SUBJECT_ORDER = [
+
+    "first aid",
+
+    "anatomy & physiology",
+    "anatomy and physiology",
+
+    "epidemiology",
+    "epi",
+
+    "parasitology",
+
+    "pathology",
+
+    "nutrition",
+
+    "pharmacology",
+
+    "practice"
+
+  ];
+
+
+  /* ==========================================================
+     HTML SECURITY
+     ========================================================== */
+
+  function escapeHtml(value) {
 
     if (
-      error ||
-      !data ||
-      !data.session
+      value === null ||
+      value === undefined
     ) {
+      return "";
+    }
 
-      window.location.href =
-        "index.html";
+    return String(value)
 
-      return false;
+      .replace(/&/g, "&amp;")
+
+      .replace(/</g, "&lt;")
+
+      .replace(/>/g, "&gt;")
+
+      .replace(/"/g, "&quot;")
+
+      .replace(/'/g, "&#039;");
+  }
+
+
+  /* ==========================================================
+     DATE FORMAT
+     ========================================================== */
+
+  function formatDate(value) {
+
+    if (!value) {
+      return "—";
+    }
+
+    const raw =
+      String(value).trim();
+
+    const d =
+      new Date(`${raw}T00:00:00`);
+
+    if (
+      Number.isNaN(
+        d.getTime()
+      )
+    ) {
+      return escapeHtml(raw);
+    }
+
+    return d.toLocaleDateString(
+      "en-GB",
+      {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      }
+    );
+  }
+
+
+  /* ==========================================================
+     NORMALIZE VERIFY CODE
+     ----------------------------------------------------------
+     Accepts:
+
+     1. GAW-2026-V8AN5Q2F
+
+     2. https://gaawowacademy-dotcom.github.io/
+        GAAWOW-EMS/verify.html?code=GAW-2026-V8AN5Q2F
+
+     3. URL encoded verification links
+     ========================================================== */
+
+  function normalizeVerifyCode(value) {
+
+    const raw =
+      String(value || "").trim();
+
+    if (!raw) {
+      return "";
+    }
+
+    /* ----------------------------------------------
+       CASE 1:
+       Full URL
+       ---------------------------------------------- */
+
+    try {
+
+      const parsed =
+        new URL(raw);
+
+      const code =
+        parsed.searchParams.get("code");
+
+      if (code) {
+
+        return decodeURIComponent(
+          code
+        ).trim();
+      }
+
+    } catch (_) {
+
+      /* Not a URL.
+         Continue as normal code. */
+
     }
 
 
-    const user =
-      data.session.user;
+    /* ----------------------------------------------
+       CASE 2:
+       Sometimes user pastes:
+
+       verify.html?code=GAW-2026-XXXX
+       ---------------------------------------------- */
+
+    const lower =
+      raw.toLowerCase();
+
+    const marker =
+      "code=";
+
+    const position =
+      lower.indexOf(marker);
+
+    if (position !== -1) {
+
+      let extracted =
+        raw.substring(
+          position + marker.length
+        );
+
+      extracted =
+        extracted.split("&")[0];
+
+      try {
+
+        extracted =
+          decodeURIComponent(
+            extracted
+          );
+
+      } catch (_) {}
+
+      if (extracted.trim()) {
+
+        return extracted.trim();
+      }
+    }
 
 
-    const {
-      data: profile,
-      error: profileError
-    } =
-      await supabaseClient
-        .from("profiles")
-        .select(
-          "full_name, role, institution_id, is_active"
+    /* ----------------------------------------------
+       CASE 3:
+       Normal code
+       ---------------------------------------------- */
+
+    return raw;
+  }
+
+
+  /* ==========================================================
+     GET CODE FROM PAGE URL
+     ========================================================== */
+
+  function codeFromUrl() {
+
+    try {
+
+      const params =
+        new URLSearchParams(
+          window.location.search
+        );
+
+      const rawCode =
+        params.get("code") || "";
+
+      return normalizeVerifyCode(
+        rawCode
+      );
+
+    } catch (_) {
+
+      return "";
+    }
+  }
+
+
+  /* ==========================================================
+     SHOW RESULT
+     ========================================================== */
+
+  function setResultView(html) {
+
+    const result =
+      $("result");
+
+    if (!result) {
+      return;
+    }
+
+    result.innerHTML =
+      html;
+
+    result.style.display =
+      "block";
+  }
+
+
+  /* ==========================================================
+     LOADING
+     ========================================================== */
+
+  function showLoading() {
+
+    setResultView(`
+
+      <div class="panel neutral">
+
+        <div class="spinner"></div>
+
+        <h2>
+          Checking Certificate
+        </h2>
+
+        <p>
+          Please wait while GAAWOW Academy
+          verifies the certificate.
+        </p>
+
+      </div>
+
+    `);
+  }
+
+
+  /* ==========================================================
+     EMPTY CODE
+     ========================================================== */
+
+  function showEmptyCode() {
+
+    setResultView(`
+
+      <div class="panel neutral">
+
+        <div class="icon">
+          🔍
+        </div>
+
+        <h2>
+          Enter a Verify Code
+        </h2>
+
+        <p>
+          Scan the QR code on a GAAWOW Academy
+          certificate or enter the verification
+          code below.
+        </p>
+
+      </div>
+
+    `);
+  }
+
+
+  /* ==========================================================
+     CERTIFICATE NOT FOUND
+     ========================================================== */
+
+  function showNotFound(code) {
+
+    setResultView(`
+
+      <div class="panel bad">
+
+        <div class="icon">
+          ✖
+        </div>
+
+        <h2>
+          Certificate Not Found
+        </h2>
+
+        <p>
+          No certificate matches the code
+          <span class="code">
+            ${escapeHtml(code || "(empty)")}
+          </span>.
+        </p>
+
+        <p>
+          Please check the QR code or
+          verification code and try again.
+        </p>
+
+      </div>
+
+    `);
+  }
+
+
+  /* ==========================================================
+     DATABASE / SERVER ERROR
+     ========================================================== */
+
+  function showBlocked(errorMessage) {
+
+    setResultView(`
+
+      <div class="panel bad">
+
+        <div class="icon">
+          ⚠
+        </div>
+
+        <h2>
+          Verification Unavailable
+        </h2>
+
+        <p>
+          The certificate verification service
+          could not be reached right now.
+        </p>
+
+        <p class="tech">
+          ${escapeHtml(
+            errorMessage ||
+            "Unknown verification error."
+          )}
+        </p>
+
+      </div>
+
+    `);
+  }
+
+
+  /* ==========================================================
+     GRADE CALCULATOR
+     ========================================================== */
+
+  function calculateGrade(value) {
+
+    const percentage =
+      Number(value);
+
+    if (
+      Number.isNaN(
+        percentage
+      )
+    ) {
+      return "—";
+    }
+
+    if (percentage >= 90) {
+      return "A+";
+    }
+
+    if (percentage >= 80) {
+      return "A";
+    }
+
+    if (percentage >= 70) {
+      return "B";
+    }
+
+    if (percentage >= 60) {
+      return "C";
+    }
+
+    if (percentage >= 50) {
+      return "D";
+    }
+
+    return "F";
+  }
+
+
+  /* ==========================================================
+     ACADEMIC RESULTS
+     ========================================================== */
+
+  function renderAcademicResults(results) {
+
+    if (
+      !Array.isArray(results) ||
+      results.length === 0
+    ) {
+
+      return `
+
+        <div class="academic-section">
+
+          <h3>
+            Academic Results
+          </h3>
+
+          <div class="panel neutral">
+
+            <p>
+              Academic results have not yet
+              been published.
+            </p>
+
+          </div>
+
+        </div>
+
+      `;
+    }
+
+
+    /* ----------------------------------------------
+       Sort according to official subject order
+       ---------------------------------------------- */
+
+    const sortedResults =
+      [...results].sort(
+        (a, b) => {
+
+          const aName =
+            String(
+              a.subject_name || ""
+            )
+            .trim()
+            .toLowerCase();
+
+          const bName =
+            String(
+              b.subject_name || ""
+            )
+            .trim()
+            .toLowerCase();
+
+          const ai =
+            SUBJECT_ORDER.indexOf(
+              aName
+            );
+
+          const bi =
+            SUBJECT_ORDER.indexOf(
+              bName
+            );
+
+          if (
+            ai === -1 &&
+            bi === -1
+          ) {
+            return aName.localeCompare(
+              bName
+            );
+          }
+
+          if (ai === -1) {
+            return 1;
+          }
+
+          if (bi === -1) {
+            return -1;
+          }
+
+          return ai - bi;
+        }
+      );
+
+
+    /* ----------------------------------------------
+       Create rows
+       ---------------------------------------------- */
+
+    const rows =
+      sortedResults
+        .map(
+          (result, index) => {
+
+            const score =
+              result.score !== null &&
+              result.score !== undefined
+                ? Number(result.score)
+                : 0;
+
+            const maxScore =
+              result.max_score !== null &&
+              result.max_score !== undefined
+                ? Number(result.max_score)
+                : 100;
+
+            let percentage =
+              result.percentage !== null &&
+              result.percentage !== undefined
+                ? Number(result.percentage)
+                : (
+                    maxScore > 0
+                      ? (
+                          score /
+                          maxScore
+                        ) * 100
+                      : 0
+                  );
+
+            if (
+              Number.isNaN(
+                percentage
+              )
+            ) {
+              percentage = 0;
+            }
+
+            const grade =
+              result.grade ||
+              calculateGrade(
+                percentage
+              );
+
+            const remarks =
+              result.remarks ||
+              "";
+
+
+            return `
+
+              <tr>
+
+                <td>
+                  ${index + 1}
+                </td>
+
+                <td>
+
+                  <strong>
+                    ${escapeHtml(
+                      result.subject_name ||
+                      "—"
+                    )}
+                  </strong>
+
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    result.score ??
+                    "—"
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    result.max_score ??
+                    100
+                  )}
+                </td>
+
+                <td>
+                  ${percentage.toFixed(2)}%
+                </td>
+
+                <td>
+
+                  <strong>
+                    ${escapeHtml(
+                      grade
+                    )}
+                  </strong>
+
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    remarks || "—"
+                  )}
+                </td>
+
+              </tr>
+
+            `;
+          }
         )
-        .eq(
-          "id",
-          user.id
-        )
-        .single();
+        .join("");
 
 
-    if (
-      profileError ||
-      !profile
-    ) {
+    return `
 
-      console.error(
-        "Profile error:",
-        profileError
-      );
+      <div class="academic-section">
 
-      alert(
-        "Unable to load your profile."
-      );
+        <h3>
+          Academic Results
+        </h3>
 
-      return false;
-    }
+        <div class="academic-table-wrapper">
 
+          <table class="academic-table">
 
-    if (
-      profile.role !==
-      "super_admin"
-    ) {
+            <thead>
 
-      alert(
-        "Access denied. Super Admin only."
-      );
+              <tr>
 
-      window.location.href =
-        "index.html";
+                <th>#</th>
 
-      return false;
-    }
-
-
-    if (
-      profile.is_active === false
-    ) {
-
-      alert(
-        "Your account is inactive."
-      );
-
-      await supabaseClient
-        .auth
-        .signOut();
-
-      window.location.href =
-        "index.html";
-
-      return false;
-    }
-
-
-    const welcome =
-      document.getElementById(
-        "superAdminWelcome"
-      );
-
-
-    if (
-      welcome &&
-      profile.full_name
-    ) {
-
-      welcome.textContent =
-        "Welcome, " +
-        profile.full_name;
-    }
-
-
-    return true;
-
-  } catch (error) {
-
-    console.error(
-      "Super Admin Check Error:",
-      error
-    );
+                <th>
+                  Subject
+                </th>
 
-    return false;
-  }
-}
+                <th>
+                  Score
+                </th>
 
+                <th>
+                  Max
+                </th>
 
-/* =========================================================
-   MAIN DASHBOARD COUNTS
-   ========================================================= */
+                <th>
+                  Percentage
+                </th>
 
-async function loadCounts() {
+                <th>
+                  Grade
+                </th>
 
-  try {
+                <th>
+                  Remarks
+                </th>
 
-    const [
-      institutions,
-      students,
-      teachers,
-      certificates
-    ] =
-      await Promise.all([
-
-        supabaseClient
-          .from("institutions")
-          .select(
-            "id",
-            {
-              count: "exact",
-              head: true
-            }
-          ),
-
-        supabaseClient
-          .from("students")
-          .select(
-            "id",
-            {
-              count: "exact",
-              head: true
-            }
-          ),
-
-        supabaseClient
-          .from("profiles")
-          .select(
-            "id",
-            {
-              count: "exact",
-              head: true
-            }
-          )
-          .eq(
-            "role",
-            "teacher"
-          ),
-
-        supabaseClient
-          .from("certificates")
-          .select(
-            "id",
-            {
-              count: "exact",
-              head: true
-            }
-          )
-
-      ]);
-
-
-    const institutionEl =
-      document.getElementById(
-        "institutionCount"
-      );
-
-    const studentEl =
-      document.getElementById(
-        "studentCount"
-      );
-
-    const teacherEl =
-      document.getElementById(
-        "teacherCount"
-      );
-
-    const certificateEl =
-      document.getElementById(
-        "certificateCount"
-      );
-
-
-    if (institutionEl) {
-
-      institutionEl.textContent =
-        institutions.count ?? "0";
-    }
-
-
-    if (studentEl) {
-
-      studentEl.textContent =
-        students.count ?? "0";
-    }
-
-
-    if (teacherEl) {
-
-      teacherEl.textContent =
-        teachers.count ?? "0";
-    }
-
-
-    if (certificateEl) {
-
-      certificateEl.textContent =
-        certificates.count ?? "0";
-    }
-
-
-    if (institutions.error) {
-      console.error(
-        "Institutions count error:",
-        institutions.error
-      );
-    }
-
-    if (students.error) {
-      console.error(
-        "Students count error:",
-        students.error
-      );
-    }
-
-    if (teachers.error) {
-      console.error(
-        "Teachers count error:",
-        teachers.error
-      );
-    }
+              </tr>
 
-    if (certificates.error) {
-      console.error(
-        "Certificates count error:",
-        certificates.error
-      );
-    }
+            </thead>
 
-  } catch (error) {
+            <tbody>
 
-    console.error(
-      "Dashboard Counts Error:",
-      error
-    );
-  }
-}
+              ${rows}
 
+            </tbody>
 
-/* =========================================================
-   RESULT PERCENTAGE
-   ========================================================= */
+          </table>
 
-function getResultPercentage(result) {
+        </div>
 
-  if (
-    result.percentage !== null &&
-    result.percentage !== undefined &&
-    !isNaN(
-      Number(result.percentage)
-    )
-  ) {
+      </div>
 
-    return Number(
-      result.percentage
-    );
-  }
-
-
-  const score =
-    Number(result.score);
-
-  const maxScore =
-    Number(result.max_score);
-
-
-  if (
-    !isNaN(score) &&
-    !isNaN(maxScore) &&
-    maxScore > 0
-  ) {
-
-    return (
-      score /
-      maxScore
-    ) * 100;
-  }
-
-
-  return 0;
-}
-
-
-/* =========================================================
-   PASS / FAIL
-   ========================================================= */
-
-function isResultPassed(result) {
-
-  const grade =
-    String(
-      result.grade || ""
-    )
-      .trim()
-      .toUpperCase();
-
-
-  if (
-    grade === "F"
-  ) {
-
-    return false;
-  }
-
-
-  return (
-    getResultPercentage(result) >=
-    50
-  );
-}
-
-
-/* =========================================================
-   SUBJECT ORDER
-   ========================================================= */
-
-const ACADEMIC_SUBJECT_ORDER = [
-
-  "first aid",
-
-  "anatomy & physiology",
-
-  "anatomy and physiology",
-
-  "epidemiology",
-
-  "epi",
-
-  "parasitology",
-
-  "pathology",
-
-  "nutrition",
-
-  "pharmacology",
-
-  "practice"
-
-];
-
-
-/* =========================================================
-   ACADEMIC RESULTS
-   ========================================================= */
-
-async function loadDashboardAcademicResults() {
-
-  const statusEl =
-    document.getElementById(
-      "academicResultsStatus"
-    );
-
-  const rowsEl =
-    document.getElementById(
-      "academicSubjectRows"
-    );
-
-
-  if (statusEl) {
-
-    statusEl.textContent =
-      "Loading...";
-  }
-
-
-  if (rowsEl) {
-
-    rowsEl.innerHTML = `
-      <tr>
-        <td
-          colspan="5"
-          class="academic-loading"
-        >
-          Loading academic results...
-        </td>
-      </tr>
     `;
   }
 
 
-  try {
+  /* ==========================================================
+     ACADEMIC SUMMARY
+     ========================================================== */
 
-    /* -----------------------------------------
-       GET RESULTS
-       ----------------------------------------- */
+  function renderAcademicSummary(summary) {
 
-    const resultsResponse =
-      await supabaseClient
-        .from("results")
-        .select(`
-          id,
-          student_id,
-          subject_id,
-          score,
-          max_score,
-          percentage,
-          grade,
-          is_published
-        `);
-
-
-    if (
-      resultsResponse.error
-    ) {
-
-      throw resultsResponse.error;
+    if (!summary) {
+      return "";
     }
 
-
-    /* -----------------------------------------
-       GET SUBJECTS
-       ----------------------------------------- */
-
-    const subjectsResponse =
-      await supabaseClient
-        .from("subjects")
-        .select(`
-          id,
-          name,
-          code,
-          is_active
-        `);
-
-
-    if (
-      subjectsResponse.error
-    ) {
-
-      throw subjectsResponse.error;
-    }
-
-
-    const results =
-      resultsResponse.data || [];
-
-
-    let subjects =
-      subjectsResponse.data || [];
-
-
-    /* -----------------------------------------
-       ACTIVE SUBJECTS
-       ----------------------------------------- */
-
-    const activeSubjects =
-      subjects.filter(
-        subject =>
-          subject.is_active !== false
+    const totalScore =
+      Number(
+        summary.total_score || 0
       );
 
-
-    if (
-      activeSubjects.length > 0
-    ) {
-
-      subjects =
-        activeSubjects;
-    }
-
-
-    /* -----------------------------------------
-       TOTAL
-       ----------------------------------------- */
-
-    const totalResults =
-      results.length;
-
-
-    /* -----------------------------------------
-       PUBLISHED
-       ----------------------------------------- */
-
-    const publishedResults =
-      results.filter(
-        result =>
-          result.is_published === true
-      ).length;
-
-
-    /* -----------------------------------------
-       PENDING
-       ----------------------------------------- */
-
-    const pendingResults =
-      totalResults -
-      publishedResults;
-
-
-    /* -----------------------------------------
-       PASSED
-       ----------------------------------------- */
-
-    const passedResults =
-      results.filter(
-        isResultPassed
-      ).length;
-
-
-    /* -----------------------------------------
-       FAILED
-       ----------------------------------------- */
-
-    const failedResults =
-      totalResults -
-      passedResults;
-
-
-    /* -----------------------------------------
-       AVERAGE
-       ----------------------------------------- */
-
-    const percentages =
-      results.map(
-        getResultPercentage
+    const totalMax =
+      Number(
+        summary.total_max_score || 0
       );
-
 
     const average =
-      percentages.length > 0
-
-        ? percentages.reduce(
-            (
-              sum,
-              value
-            ) =>
-              sum + value,
-            0
-          ) /
-          percentages.length
-
-        : 0;
-
-
-    /* -----------------------------------------
-       STUDENTS WITH RESULTS
-       ----------------------------------------- */
-
-    const studentsWithResults =
-      new Set(
-
-        results
-          .map(
-            result =>
-              result.student_id
-          )
-          .filter(Boolean)
-
-      ).size;
-
-
-    /* -----------------------------------------
-       UPDATE CARDS
-       ----------------------------------------- */
-
-    function setValue(
-      id,
-      value
-    ) {
-
-      const element =
-        document.getElementById(
-          id
-        );
-
-
-      if (element) {
-
-        element.textContent =
-          value;
-      }
-    }
-
-
-    setValue(
-      "academicTotalResults",
-      totalResults
-    );
-
-
-    setValue(
-      "academicPublishedResults",
-      publishedResults
-    );
-
-
-    setValue(
-      "academicPendingResults",
-      pendingResults
-    );
-
-
-    setValue(
-      "academicPassedResults",
-      passedResults
-    );
-
-
-    setValue(
-      "academicFailedResults",
-      failedResults
-    );
-
-
-    setValue(
-      "academicAverage",
-      average.toFixed(2) +
-      "%"
-    );
-
-
-    setValue(
-      "academicStudentsWithResults",
-      studentsWithResults
-    );
-
-
-    setValue(
-      "academicSubjectCount",
-      subjects.length
-    );
-
-
-    /* -----------------------------------------
-       SORT SUBJECTS
-       ----------------------------------------- */
-
-    subjects.sort(
-      (
-        a,
-        b
-      ) => {
-
-        const aName =
-          String(
-            a.name || ""
-          )
-            .trim()
-            .toLowerCase();
-
-
-        const bName =
-          String(
-            b.name || ""
-          )
-            .trim()
-            .toLowerCase();
-
-
-        const aIndex =
-          ACADEMIC_SUBJECT_ORDER
-            .indexOf(
-              aName
-            );
-
-
-        const bIndex =
-          ACADEMIC_SUBJECT_ORDER
-            .indexOf(
-              bName
-            );
-
-
-        if (
-          aIndex === -1 &&
-          bIndex === -1
-        ) {
-
-          return aName.localeCompare(
-            bName
-          );
-        }
-
-
-        if (
-          aIndex === -1
-        ) {
-
-          return 1;
-        }
-
-
-        if (
-          bIndex === -1
-        ) {
-
-          return -1;
-        }
-
-
-        return (
-          aIndex -
-          bIndex
-        );
-      }
-    );
-
-
-    /* -----------------------------------------
-       SUBJECT TABLE
-       ----------------------------------------- */
-
-    if (!rowsEl) {
-
-      return;
-    }
-
-
-    if (
-      subjects.length === 0
-    ) {
-
-      rowsEl.innerHTML = `
-        <tr>
-          <td
-            colspan="5"
-            class="academic-loading"
-          >
-            No subjects found.
-          </td>
-        </tr>
-      `;
-
-    } else {
-
-      rowsEl.innerHTML =
-        subjects
-          .map(
-            (
-              subject,
-              index
-            ) => {
-
-              const subjectResults =
-                results.filter(
-                  result =>
-                    result.subject_id ===
-                    subject.id
-                );
-
-
-              const published =
-                subjectResults.filter(
-                  result =>
-                    result.is_published ===
-                    true
-                ).length;
-
-
-              const subjectPercentages =
-                subjectResults.map(
-                  getResultPercentage
-                );
-
-
-              const subjectAverage =
-                subjectPercentages.length > 0
-
-                  ? subjectPercentages.reduce(
-                      (
-                        sum,
-                        value
-                      ) =>
-                        sum + value,
-                      0
-                    ) /
-                    subjectPercentages.length
-
-                  : 0;
-
-
-              return `
-                <tr>
-
-                  <td>
-                    ${index + 1}
-                  </td>
-
-                  <td>
-
-                    <strong>
-                      ${escapeHtml(
-                        subject.name ||
-                        "Unknown Subject"
-                      )}
-                    </strong>
-
-                    ${
-                      subject.code
-                        ? `
-                          <span
-                            style="
-                              display:block;
-                              color:#94A3B8;
-                              font-size:10px;
-                              font-weight:400;
-                              margin-top:2px;
-                            "
-                          >
-                            ${escapeHtml(
-                              subject.code
-                            )}
-                          </span>
-                        `
-                        : ""
-                    }
-
-                  </td>
-
-                  <td>
-                    ${subjectResults.length}
-                  </td>
-
-                  <td>
-                    ${published}
-                  </td>
-
-                  <td>
-                    <strong>
-                      ${subjectAverage.toFixed(2)}%
-                    </strong>
-                  </td>
-
-                </tr>
-              `;
-            }
-          )
-          .join("");
-    }
-
-
-    /* -----------------------------------------
-       STATUS
-       ----------------------------------------- */
-
-    if (statusEl) {
-
-      statusEl.textContent =
-        totalResults +
-        " result(s)";
-    }
-
-
-  } catch (error) {
-
-    console.error(
-      "Academic Results Dashboard Error:",
-      error
-    );
-
-
-    const ids = [
-
-      "academicTotalResults",
-
-      "academicPublishedResults",
-
-      "academicPendingResults",
-
-      "academicPassedResults",
-
-      "academicFailedResults",
-
-      "academicStudentsWithResults",
-
-      "academicSubjectCount"
-
-    ];
-
-
-    ids.forEach(
-      id => {
-
-        const element =
-          document.getElementById(
-            id
-          );
-
-
-        if (element) {
-
-          element.textContent =
-            "0";
-        }
-      }
-    );
-
-
-    const averageEl =
-      document.getElementById(
-        "academicAverage"
+      Number(
+        summary.average || 0
       );
 
+    const grade =
+      summary.overall_grade ||
+      calculateGrade(
+        average
+      );
 
-    if (averageEl) {
+    const finalResult =
+      String(
+        summary.final_result ||
+        "FAIL"
+      ).toUpperCase();
 
-      averageEl.textContent =
-        "0%";
-    }
-
-
-    if (statusEl) {
-
-      statusEl.textContent =
-        "Could not load";
-    }
+    const resultClass =
+      finalResult === "PASS"
+        ? "ok"
+        : "bad";
 
 
-    if (rowsEl) {
+    return `
 
-      rowsEl.innerHTML = `
-        <tr>
+      <div class="academic-summary">
 
-          <td
-            colspan="5"
-            class="academic-error"
-          >
-            Academic results could not be loaded.
-          </td>
+        <div class="summary-card">
 
-        </tr>
-      `;
-    }
+          <span>
+            Total Score
+          </span>
+
+          <strong>
+            ${totalScore} / ${totalMax}
+          </strong>
+
+        </div>
+
+
+        <div class="summary-card">
+
+          <span>
+            Average
+          </span>
+
+          <strong>
+            ${average.toFixed(2)}%
+          </strong>
+
+        </div>
+
+
+        <div class="summary-card">
+
+          <span>
+            Overall Grade
+          </span>
+
+          <strong>
+            ${escapeHtml(
+              grade
+            )}
+          </strong>
+
+        </div>
+
+
+        <div class="summary-card ${resultClass}">
+
+          <span>
+            Final Result
+          </span>
+
+          <strong>
+            ${escapeHtml(
+              finalResult
+            )}
+          </strong>
+
+        </div>
+
+      </div>
+
+    `;
   }
-}
 
 
-/* =========================================================
-   LOGOUT
-   ========================================================= */
+  /* ==========================================================
+     CERTIFICATE VIEW
+     ========================================================== */
 
-function setupLogout() {
+  function showCertificate(payload) {
 
-  const logoutBtn =
-    document.getElementById(
-      "logoutBtn"
-    );
+    const cert =
+      payload.certificate ||
+      {};
 
+    const student =
+      payload.student ||
+      {};
 
-  if (!logoutBtn) {
+    const academicResults =
+      payload.academic_results ||
+      [];
 
-    return;
-  }
-
-
-  logoutBtn.addEventListener(
-    "click",
-    async function () {
-
-      this.disabled =
-        true;
-
-      this.textContent =
-        "LOGGING OUT...";
+    const summary =
+      payload.summary ||
+      {};
 
 
-      try {
+    /* ----------------------------------------------
+       Status
+       ---------------------------------------------- */
 
-        await supabaseClient
-          .auth
-          .signOut();
+    const statusKey =
+      String(
+        cert.status ||
+        "valid"
+      ).toLowerCase();
 
-      } catch (error) {
-
-        console.error(
-          "Logout error:",
-          error
-        );
-      }
-
-
-      sessionStorage.clear();
-
-
-      window.location.href =
-        "index.html";
-    }
-  );
-}
-
-
-/* =========================================================
-   START DASHBOARD
-   ========================================================= */
-
-async function startDashboard() {
-
-  try {
-
-    const allowed =
-      await checkSuperAdmin();
-
-
-    if (!allowed) {
-
-      return;
-    }
-
-
-    setupLogout();
-
-
-    await Promise.all([
-
-      loadCounts(),
-
-      loadDashboardAcademicResults()
-
-    ]);
-
-
-  } catch (error) {
-
-    console.error(
-      "Dashboard Start Error:",
-      error
-    );
-  }
-}
-
-
-/* =========================================================
-   DOM READY
-   ========================================================= */
-
-if (
-  document.readyState ===
-  "loading"
-) {
-
-  document.addEventListener(
-    "DOMContentLoaded",
-    startDashboard
-  );
-
-} else {
-
-  startDashboard();
-}
+    const info =
+      STATUS_INFO[
