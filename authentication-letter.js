@@ -1,5 +1,11 @@
 "use strict";
 
+/* =========================================================
+   GAAWOW ACADEMY
+   Authentication Letter
+   Student + Certificate Database Connection
+   ========================================================= */
+
 const EMS_VERIFY_BASE =
   "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify-auth.html";
 
@@ -10,18 +16,43 @@ const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
 const supabaseClient = window.supabase
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  ? window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    )
   : null;
+
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function setText(id, value) {
+  const element = document.getElementById(id);
+
+  if (element) {
+    element.textContent =
+      value === null || value === undefined
+        ? ""
+        : String(value);
+  }
+}
+
 
 function formatDate(value) {
   if (!value) return "";
 
   const raw = String(value);
+
   const date = new Date(
-    raw.length === 10 ? raw + "T00:00:00" : raw
+    raw.length === 10
+      ? raw + "T00:00:00"
+      : raw
   );
 
-  if (Number.isNaN(date.getTime())) return value;
+  if (Number.isNaN(date.getTime())) {
+    return raw;
+  }
 
   return date.toLocaleDateString("en-GB", {
     day: "2-digit",
@@ -30,34 +61,43 @@ function formatDate(value) {
   });
 }
 
-function setText(id, value) {
-  const element = document.getElementById(id);
 
-  if (element) {
-    element.textContent = value ?? "";
-  }
-}
+/* =========================================================
+   VERIFICATION URL
+   ========================================================= */
 
-function buildVerificationUrl(code, id) {
+function buildVerificationUrl(code, recordId) {
+
   const params = new URLSearchParams();
 
-  params.set("code", code);
+  if (code) {
+    params.set("code", code);
+  }
 
-  if (id) {
-    params.set("id", id);
+  if (recordId) {
+    params.set("id", recordId);
   }
 
   return EMS_VERIFY_BASE + "?" + params.toString();
 }
 
+
+/* =========================================================
+   QR CODE
+   ========================================================= */
+
 function createQRCode(url) {
-  const box = document.getElementById("qrcode");
+
+  const box =
+    document.getElementById("qrcode");
 
   if (!box) return;
 
   box.innerHTML = "";
 
-  if (typeof QRCode === "undefined") {
+  if (
+    typeof QRCode === "undefined"
+  ) {
     box.textContent = "QR";
     return;
   }
@@ -72,11 +112,18 @@ function createQRCode(url) {
   });
 }
 
+
+/* =========================================================
+   RENDER LETTER
+   ========================================================= */
+
 function renderAuthenticationLetter(data) {
 
   setText(
     "status",
-    String(data.status || "VALID").toUpperCase()
+    String(
+      data.status || "VALID"
+    ).toUpperCase()
   );
 
   setText(
@@ -101,7 +148,9 @@ function renderAuthenticationLetter(data) {
 
   setText(
     "admissionDate",
-    formatDate(data.admissionDate)
+    formatDate(
+      data.admissionDate
+    )
   );
 
   setText(
@@ -116,18 +165,25 @@ function renderAuthenticationLetter(data) {
 
   setText(
     "completionDate",
-    formatDate(data.completionDate)
+    formatDate(
+      data.completionDate
+    )
   );
 
   setText(
     "authenticatedOn",
-    formatDate(data.issueDate)
+    formatDate(
+      data.issueDate
+    )
   );
+
 
   const verificationCode =
     data.verificationCode ||
     data.verifyCode ||
-    data.documentId;
+    data.documentId ||
+    "";
+
 
   const verifyUrl =
     buildVerificationUrl(
@@ -135,104 +191,270 @@ function renderAuthenticationLetter(data) {
       data.recordId
     );
 
+
   setText(
     "verifyUrl",
     verifyUrl
   );
 
-  createQRCode(verifyUrl);
+
+  createQRCode(
+    verifyUrl
+  );
+
 
   document.title =
     "Authentication Letter - " +
-    (data.studentName || "GAAWOW ACADEMY");
+    (
+      data.studentName ||
+      "GAAWOW ACADEMY"
+    );
 }
 
-async function loadAuthenticationLetter() {
 
-  if (!supabaseClient) {
-    throw new Error(
-      "Supabase library lama helin."
-    );
-  }
+/* =========================================================
+   LOAD CERTIFICATE RECORD
+   ========================================================= */
 
-  const params =
-    new URLSearchParams(
-      window.location.search
-    );
+async function loadCertificateRecord(recordId) {
 
-  const recordId =
-    params.get("regen");
-
-  if (!recordId) {
-    throw new Error(
-      "Authentication Letter record ID lama helin."
-    );
-  }
-
-  const { data, error } =
+  const result =
     await supabaseClient
       .from("certificates")
       .select("*")
       .eq("id", recordId)
       .maybeSingle();
 
-  if (error) {
+
+  if (result.error) {
+
     throw new Error(
-      "Supabase error: " + error.message
+      "Certificates database error: " +
+      result.error.message
     );
   }
 
-  if (!data) {
+
+  if (!result.data) {
+
     throw new Error(
-      "Authentication Letter record lama helin."
+      "Certificate record lama helin."
     );
   }
+
+
+  return result.data;
+}
+
+
+/* =========================================================
+   LOAD STUDENT
+   ========================================================= */
+
+async function loadStudent(studentId) {
+
+  if (!studentId) {
+    return null;
+  }
+
+
+  const result =
+    await supabaseClient
+      .from("students")
+      .select("*")
+      .eq("student_id", studentId)
+      .maybeSingle();
+
+
+  if (result.error) {
+
+    console.warn(
+      "Student lookup warning:",
+      result.error.message
+    );
+
+    return null;
+  }
+
+
+  return result.data || null;
+}
+
+
+/* =========================================================
+   MAIN LOADER
+   ========================================================= */
+
+async function loadAuthenticationLetter() {
+
+  if (!supabaseClient) {
+
+    throw new Error(
+      "Supabase library lama helin."
+    );
+  }
+
+
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+
+  const recordId =
+    params.get("regen");
+
+
+  /* -----------------------------------------
+     REQUIRE REAL DATABASE RECORD
+     ----------------------------------------- */
+
+  if (!recordId) {
+
+    throw new Error(
+      "Authentication Letter record ID lama helin."
+    );
+  }
+
+
+  /* -----------------------------------------
+     GET CERTIFICATE
+     ----------------------------------------- */
+
+  const certificate =
+    await loadCertificateRecord(
+      recordId
+    );
+
+
+  /* -----------------------------------------
+     GET STUDENT
+     ----------------------------------------- */
+
+  const student =
+    await loadStudent(
+      certificate.student_id
+    );
+
+
+  /* -----------------------------------------
+     STUDENT DATA
+     Priority:
+     students table first
+     certificate snapshot second
+     ----------------------------------------- */
+
+  const studentName =
+    student?.full_name ||
+    certificate.student_name_snapshot ||
+    "";
+
+
+  const studentId =
+    student?.student_id ||
+    certificate.student_id ||
+    "";
+
+
+  const admissionDate =
+    student?.admission_date ||
+    certificate.admission_date ||
+    "";
+
+
+  /* -----------------------------------------
+     COURSE
+     ----------------------------------------- */
+
+  const courseName =
+    certificate.course_name_snapshot ||
+    certificate.course_name ||
+    "";
+
+
+  const courseId =
+    certificate.course_id ||
+    "";
+
+
+  /* -----------------------------------------
+     COMPLETION DATE
+     ----------------------------------------- */
+
+  const completionDate =
+    certificate.date_completed ||
+    certificate.completion_date ||
+    certificate.issue_date ||
+    "";
+
+
+  /* -----------------------------------------
+     DOCUMENT ID
+     ----------------------------------------- */
+
+  const documentId =
+    certificate.certificate_no ||
+    certificate.certificate_id ||
+    "";
+
+
+  /* -----------------------------------------
+     VERIFICATION CODE
+     ----------------------------------------- */
+
+  const verificationCode =
+    certificate.verify_code ||
+    certificate.certificate_id ||
+    certificate.certificate_no ||
+    "";
+
+
+  /* -----------------------------------------
+     RENDER
+     ----------------------------------------- */
 
   renderAuthenticationLetter({
 
-    recordId: data.id,
+    recordId:
+      certificate.id,
 
     status:
-      data.status || "valid",
+      certificate.status ||
+      "valid",
 
     documentId:
-      data.certificate_no ||
-      data.certificate_id ||
-      "",
+      documentId,
 
     issueDate:
-      data.issue_date,
+      certificate.issue_date,
 
     studentName:
-      data.student_name_snapshot ||
-      "",
+      studentName,
 
     studentId:
-      data.student_id ||
-      "",
+      studentId,
 
     admissionDate:
-      data.admission_date,
+      admissionDate,
 
     course:
-      data.course_name_snapshot ||
-      "",
+      courseName,
 
     courseId:
-      data.course_id ||
-      "",
+      courseId,
 
     completionDate:
-      data.date_completed ||
-      data.issue_date,
+      completionDate,
 
     verificationCode:
-      data.verify_code ||
-      data.certificate_id ||
-      data.certificate_no ||
-      ""
+      verificationCode
   });
 }
+
+
+/* =========================================================
+   PAGE START
+   ========================================================= */
 
 document.addEventListener(
   "DOMContentLoaded",
@@ -244,12 +466,17 @@ document.addEventListener(
 
     } catch (error) {
 
-      console.error(error);
+      console.error(
+        "Authentication Letter Error:",
+        error
+      );
+
 
       setText(
         "status",
         "ERROR"
       );
+
 
       setText(
         "documentId",
