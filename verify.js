@@ -1,13 +1,13 @@
 /* =========================================================
    GAAWOW EMS
-   SUPER ADMIN DASHBOARD
-   COMPLETE DASHBOARD JAVASCRIPT
+   DASHBOARD.JS
+   Super Admin Dashboard + Academic Results
    ========================================================= */
 
 "use strict";
 
 /* =========================================================
-   SUPABASE CONFIGURATION
+   SUPABASE CONFIG
    ========================================================= */
 
 const SUPABASE_URL =
@@ -24,11 +24,30 @@ const supabaseClient =
 
 
 /* =========================================================
-   COMMON HELPERS
+   NAVIGATION
+   ========================================================= */
+
+function openPage(page) {
+  if (!page) return;
+
+  window.location.href = page;
+}
+
+
+/* =========================================================
+   HTML ESCAPE
    ========================================================= */
 
 function escapeHtml(value) {
-  return String(value ?? "")
+
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  return String(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -37,22 +56,8 @@ function escapeHtml(value) {
 }
 
 
-function setText(id, value) {
-  const element = document.getElementById(id);
-
-  if (element) {
-    element.textContent = value;
-  }
-}
-
-
-function openPage(page) {
-  window.location.href = page;
-}
-
-
 /* =========================================================
-   SUPER ADMIN AUTHENTICATION
+   SUPER ADMIN CHECK
    ========================================================= */
 
 async function checkSuperAdmin() {
@@ -60,29 +65,17 @@ async function checkSuperAdmin() {
   try {
 
     const {
-      data: sessionData,
-      error: sessionError
-    } = await supabaseClient.auth.getSession();
+      data,
+      error
+    } =
+      await supabaseClient.auth.getSession();
 
 
-    if (sessionError) {
-
-      console.error(
-        "Session error:",
-        sessionError
-      );
-
-      window.location.href = "index.html";
-
-      return false;
-    }
-
-
-    const session =
-      sessionData?.session;
-
-
-    if (!session) {
+    if (
+      error ||
+      !data ||
+      !data.session
+    ) {
 
       window.location.href =
         "index.html";
@@ -91,17 +84,30 @@ async function checkSuperAdmin() {
     }
 
 
+    const user =
+      data.session.user;
+
+
     const {
       data: profile,
       error: profileError
-    } = await supabaseClient
-      .from("profiles")
-      .select("full_name,role")
-      .eq("id", session.user.id)
-      .single();
+    } =
+      await supabaseClient
+        .from("profiles")
+        .select(
+          "full_name, role, institution_id, is_active"
+        )
+        .eq(
+          "id",
+          user.id
+        )
+        .single();
 
 
-    if (profileError || !profile) {
+    if (
+      profileError ||
+      !profile
+    ) {
 
       console.error(
         "Profile error:",
@@ -109,7 +115,7 @@ async function checkSuperAdmin() {
       );
 
       alert(
-        "Unable to load your EMS profile."
+        "Unable to load your profile."
       );
 
       return false;
@@ -124,6 +130,25 @@ async function checkSuperAdmin() {
       alert(
         "Access denied. Super Admin only."
       );
+
+      window.location.href =
+        "index.html";
+
+      return false;
+    }
+
+
+    if (
+      profile.is_active === false
+    ) {
+
+      alert(
+        "Your account is inactive."
+      );
+
+      await supabaseClient
+        .auth
+        .signOut();
 
       window.location.href =
         "index.html";
@@ -154,12 +179,9 @@ async function checkSuperAdmin() {
   } catch (error) {
 
     console.error(
-      "Authentication error:",
+      "Super Admin Check Error:",
       error
     );
-
-    window.location.href =
-      "index.html";
 
     return false;
   }
@@ -167,153 +189,157 @@ async function checkSuperAdmin() {
 
 
 /* =========================================================
-   SYSTEM MANAGEMENT COUNTS
+   MAIN DASHBOARD COUNTS
    ========================================================= */
 
-async function loadSystemCounts() {
+async function loadCounts() {
 
   try {
 
     const [
-      institutionsResponse,
-      studentsResponse,
-      teachersResponse,
-      certificatesResponse
-    ] = await Promise.all([
+      institutions,
+      students,
+      teachers,
+      certificates
+    ] =
+      await Promise.all([
 
-      supabaseClient
-        .from("institutions")
-        .select("id", {
-          count: "exact",
-          head: true
-        }),
+        supabaseClient
+          .from("institutions")
+          .select(
+            "id",
+            {
+              count: "exact",
+              head: true
+            }
+          ),
 
-      supabaseClient
-        .from("students")
-        .select("id", {
-          count: "exact",
-          head: true
-        }),
+        supabaseClient
+          .from("students")
+          .select(
+            "id",
+            {
+              count: "exact",
+              head: true
+            }
+          ),
 
-      supabaseClient
-        .from("profiles")
-        .select("id", {
-          count: "exact",
-          head: true
-        })
-        .eq("role", "teacher"),
+        supabaseClient
+          .from("profiles")
+          .select(
+            "id",
+            {
+              count: "exact",
+              head: true
+            }
+          )
+          .eq(
+            "role",
+            "teacher"
+          ),
 
-      supabaseClient
-        .from("certificates")
-        .select("id", {
-          count: "exact",
-          head: true
-        })
+        supabaseClient
+          .from("certificates")
+          .select(
+            "id",
+            {
+              count: "exact",
+              head: true
+            }
+          )
 
-    ]);
+      ]);
 
 
-    if (
-      institutionsResponse.error
-    ) {
+    const institutionEl =
+      document.getElementById(
+        "institutionCount"
+      );
 
+    const studentEl =
+      document.getElementById(
+        "studentCount"
+      );
+
+    const teacherEl =
+      document.getElementById(
+        "teacherCount"
+      );
+
+    const certificateEl =
+      document.getElementById(
+        "certificateCount"
+      );
+
+
+    if (institutionEl) {
+
+      institutionEl.textContent =
+        institutions.count ?? "0";
+    }
+
+
+    if (studentEl) {
+
+      studentEl.textContent =
+        students.count ?? "0";
+    }
+
+
+    if (teacherEl) {
+
+      teacherEl.textContent =
+        teachers.count ?? "0";
+    }
+
+
+    if (certificateEl) {
+
+      certificateEl.textContent =
+        certificates.count ?? "0";
+    }
+
+
+    if (institutions.error) {
       console.error(
         "Institutions count error:",
-        institutionsResponse.error
+        institutions.error
       );
     }
 
-
-    if (
-      studentsResponse.error
-    ) {
-
+    if (students.error) {
       console.error(
         "Students count error:",
-        studentsResponse.error
+        students.error
       );
     }
 
-
-    if (
-      teachersResponse.error
-    ) {
-
+    if (teachers.error) {
       console.error(
         "Teachers count error:",
-        teachersResponse.error
+        teachers.error
       );
     }
 
-
-    if (
-      certificatesResponse.error
-    ) {
-
+    if (certificates.error) {
       console.error(
         "Certificates count error:",
-        certificatesResponse.error
+        certificates.error
       );
     }
-
-
-    setText(
-      "institutionCount",
-      institutionsResponse.count ?? 0
-    );
-
-
-    setText(
-      "studentCount",
-      studentsResponse.count ?? 0
-    );
-
-
-    setText(
-      "teacherCount",
-      teachersResponse.count ?? 0
-    );
-
-
-    setText(
-      "certificateCount",
-      certificatesResponse.count ?? 0
-    );
-
 
   } catch (error) {
 
     console.error(
-      "System counts error:",
+      "Dashboard Counts Error:",
       error
-    );
-
-
-    setText(
-      "institutionCount",
-      "0"
-    );
-
-    setText(
-      "studentCount",
-      "0"
-    );
-
-    setText(
-      "teacherCount",
-      "0"
-    );
-
-    setText(
-      "certificateCount",
-      "0"
     );
   }
 }
 
 
 /* =========================================================
-   ACADEMIC RESULT PERCENTAGE
+   RESULT PERCENTAGE
    ========================================================= */
 
 function getResultPercentage(result) {
@@ -335,7 +361,6 @@ function getResultPercentage(result) {
   const score =
     Number(result.score);
 
-
   const maxScore =
     Number(result.max_score);
 
@@ -347,7 +372,8 @@ function getResultPercentage(result) {
   ) {
 
     return (
-      score / maxScore
+      score /
+      maxScore
     ) * 100;
   }
 
@@ -363,18 +389,24 @@ function getResultPercentage(result) {
 function isResultPassed(result) {
 
   const grade =
-    String(result.grade || "")
+    String(
+      result.grade || ""
+    )
       .trim()
       .toUpperCase();
 
 
-  if (grade === "F") {
+  if (
+    grade === "F"
+  ) {
+
     return false;
   }
 
 
   return (
-    getResultPercentage(result) >= 50
+    getResultPercentage(result) >=
+    50
   );
 }
 
@@ -383,85 +415,33 @@ function isResultPassed(result) {
    SUBJECT ORDER
    ========================================================= */
 
-function sortAcademicSubjects(subjects) {
+const ACADEMIC_SUBJECT_ORDER = [
 
-  const order = [
+  "first aid",
 
-    "first aid",
+  "anatomy & physiology",
 
-    "anatomy & physiology",
+  "anatomy and physiology",
 
-    "anatomy and physiology",
+  "epidemiology",
 
-    "epidemiology",
+  "epi",
 
-    "epi",
+  "parasitology",
 
-    "parasitology",
+  "pathology",
 
-    "pathology",
+  "nutrition",
 
-    "nutrition",
+  "pharmacology",
 
-    "pharmacology",
+  "practice"
 
-    "practice"
-
-  ];
-
-
-  return subjects.sort(
-    (a, b) => {
-
-      const aName =
-        String(a.name || "")
-          .trim()
-          .toLowerCase();
-
-
-      const bName =
-        String(b.name || "")
-          .trim()
-          .toLowerCase();
-
-
-      const aIndex =
-        order.indexOf(aName);
-
-
-      const bIndex =
-        order.indexOf(bName);
-
-
-      if (
-        aIndex === -1 &&
-        bIndex === -1
-      ) {
-
-        return aName.localeCompare(
-          bName
-        );
-      }
-
-
-      if (aIndex === -1) {
-        return 1;
-      }
-
-
-      if (bIndex === -1) {
-        return -1;
-      }
-
-
-      return aIndex - bIndex;
-    }
-  );
-}
+];
 
 
 /* =========================================================
-   ACADEMIC RESULTS DASHBOARD
+   ACADEMIC RESULTS
    ========================================================= */
 
 async function loadDashboardAcademicResults() {
@@ -470,7 +450,6 @@ async function loadDashboardAcademicResults() {
     document.getElementById(
       "academicResultsStatus"
     );
-
 
   const rowsEl =
     document.getElementById(
@@ -502,29 +481,23 @@ async function loadDashboardAcademicResults() {
 
   try {
 
-    /* -----------------------------------------------------
-       LOAD RESULTS + SUBJECTS
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       GET RESULTS
+       ----------------------------------------- */
 
-    const [
-      resultsResponse,
-      subjectsResponse
-    ] = await Promise.all([
-
-      supabaseClient
+    const resultsResponse =
+      await supabaseClient
         .from("results")
-        .select(
-          "id,student_id,subject_id,score,max_score,percentage,grade,is_published"
-        ),
-
-      supabaseClient
-        .from("subjects")
-        .select(
-          "id,name,code,is_active"
-        )
-        .order("name")
-
-    ]);
+        .select(`
+          id,
+          student_id,
+          subject_id,
+          score,
+          max_score,
+          percentage,
+          grade,
+          is_published
+        `);
 
 
     if (
@@ -533,6 +506,21 @@ async function loadDashboardAcademicResults() {
 
       throw resultsResponse.error;
     }
+
+
+    /* -----------------------------------------
+       GET SUBJECTS
+       ----------------------------------------- */
+
+    const subjectsResponse =
+      await supabaseClient
+        .from("subjects")
+        .select(`
+          id,
+          name,
+          code,
+          is_active
+        `);
 
 
     if (
@@ -551,9 +539,9 @@ async function loadDashboardAcademicResults() {
       subjectsResponse.data || [];
 
 
-    /* -----------------------------------------------------
+    /* -----------------------------------------
        ACTIVE SUBJECTS
-       ----------------------------------------------------- */
+       ----------------------------------------- */
 
     const activeSubjects =
       subjects.filter(
@@ -562,23 +550,26 @@ async function loadDashboardAcademicResults() {
       );
 
 
-    subjects =
-      activeSubjects.length
-        ? activeSubjects
-        : subjects;
+    if (
+      activeSubjects.length > 0
+    ) {
+
+      subjects =
+        activeSubjects;
+    }
 
 
-    /* -----------------------------------------------------
-       TOTAL RESULTS
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       TOTAL
+       ----------------------------------------- */
 
     const totalResults =
       results.length;
 
 
-    /* -----------------------------------------------------
-       PUBLISHED RESULTS
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       PUBLISHED
+       ----------------------------------------- */
 
     const publishedResults =
       results.filter(
@@ -587,18 +578,18 @@ async function loadDashboardAcademicResults() {
       ).length;
 
 
-    /* -----------------------------------------------------
-       PENDING RESULTS
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       PENDING
+       ----------------------------------------- */
 
     const pendingResults =
       totalResults -
       publishedResults;
 
 
-    /* -----------------------------------------------------
-       PASSED RESULTS
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       PASSED
+       ----------------------------------------- */
 
     const passedResults =
       results.filter(
@@ -606,18 +597,18 @@ async function loadDashboardAcademicResults() {
       ).length;
 
 
-    /* -----------------------------------------------------
-       FAILED RESULTS
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       FAILED
+       ----------------------------------------- */
 
     const failedResults =
       totalResults -
       passedResults;
 
 
-    /* -----------------------------------------------------
+    /* -----------------------------------------
        AVERAGE
-       ----------------------------------------------------- */
+       ----------------------------------------- */
 
     const percentages =
       results.map(
@@ -629,7 +620,10 @@ async function loadDashboardAcademicResults() {
       percentages.length > 0
 
         ? percentages.reduce(
-            (sum, value) =>
+            (
+              sum,
+              value
+            ) =>
               sum + value,
             0
           ) /
@@ -638,88 +632,176 @@ async function loadDashboardAcademicResults() {
         : 0;
 
 
-    /* -----------------------------------------------------
+    /* -----------------------------------------
        STUDENTS WITH RESULTS
-       ----------------------------------------------------- */
+       ----------------------------------------- */
 
     const studentsWithResults =
       new Set(
+
         results
           .map(
             result =>
               result.student_id
           )
           .filter(Boolean)
+
       ).size;
 
 
-    /* -----------------------------------------------------
-       UPDATE ACADEMIC CARDS
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       UPDATE CARDS
+       ----------------------------------------- */
 
-    setText(
+    function setValue(
+      id,
+      value
+    ) {
+
+      const element =
+        document.getElementById(
+          id
+        );
+
+
+      if (element) {
+
+        element.textContent =
+          value;
+      }
+    }
+
+
+    setValue(
       "academicTotalResults",
       totalResults
     );
 
 
-    setText(
+    setValue(
       "academicPublishedResults",
       publishedResults
     );
 
 
-    setText(
+    setValue(
       "academicPendingResults",
       pendingResults
     );
 
 
-    setText(
+    setValue(
       "academicPassedResults",
       passedResults
     );
 
 
-    setText(
+    setValue(
       "academicFailedResults",
       failedResults
     );
 
 
-    setText(
+    setValue(
       "academicAverage",
       average.toFixed(2) +
       "%"
     );
 
 
-    setText(
+    setValue(
       "academicStudentsWithResults",
       studentsWithResults
     );
 
 
-    setText(
+    setValue(
       "academicSubjectCount",
       subjects.length
     );
 
 
-    /* -----------------------------------------------------
+    /* -----------------------------------------
        SORT SUBJECTS
-       ----------------------------------------------------- */
+       ----------------------------------------- */
 
-    sortAcademicSubjects(
-      subjects
+    subjects.sort(
+      (
+        a,
+        b
+      ) => {
+
+        const aName =
+          String(
+            a.name || ""
+          )
+            .trim()
+            .toLowerCase();
+
+
+        const bName =
+          String(
+            b.name || ""
+          )
+            .trim()
+            .toLowerCase();
+
+
+        const aIndex =
+          ACADEMIC_SUBJECT_ORDER
+            .indexOf(
+              aName
+            );
+
+
+        const bIndex =
+          ACADEMIC_SUBJECT_ORDER
+            .indexOf(
+              bName
+            );
+
+
+        if (
+          aIndex === -1 &&
+          bIndex === -1
+        ) {
+
+          return aName.localeCompare(
+            bName
+          );
+        }
+
+
+        if (
+          aIndex === -1
+        ) {
+
+          return 1;
+        }
+
+
+        if (
+          bIndex === -1
+        ) {
+
+          return -1;
+        }
+
+
+        return (
+          aIndex -
+          bIndex
+        );
+      }
     );
 
 
-    /* -----------------------------------------------------
+    /* -----------------------------------------
        SUBJECT TABLE
-       ----------------------------------------------------- */
+       ----------------------------------------- */
 
     if (!rowsEl) {
+
       return;
     }
 
@@ -744,7 +826,10 @@ async function loadDashboardAcademicResults() {
       rowsEl.innerHTML =
         subjects
           .map(
-            (subject, index) => {
+            (
+              subject,
+              index
+            ) => {
 
               const subjectResults =
                 results.filter(
@@ -772,7 +857,10 @@ async function loadDashboardAcademicResults() {
                 subjectPercentages.length > 0
 
                   ? subjectPercentages.reduce(
-                      (sum, value) =>
+                      (
+                        sum,
+                        value
+                      ) =>
                         sum + value,
                       0
                     ) /
@@ -835,16 +923,15 @@ async function loadDashboardAcademicResults() {
 
                 </tr>
               `;
-
             }
           )
           .join("");
     }
 
 
-    /* -----------------------------------------------------
+    /* -----------------------------------------
        STATUS
-       ----------------------------------------------------- */
+       ----------------------------------------- */
 
     if (statusEl) {
 
@@ -862,9 +949,7 @@ async function loadDashboardAcademicResults() {
     );
 
 
-    /* Reset cards if loading fails */
-
-    const resetIds = [
+    const ids = [
 
       "academicTotalResults",
 
@@ -883,22 +968,35 @@ async function loadDashboardAcademicResults() {
     ];
 
 
-    resetIds.forEach(
+    ids.forEach(
       id => {
 
-        setText(
-          id,
-          "0"
-        );
+        const element =
+          document.getElementById(
+            id
+          );
 
+
+        if (element) {
+
+          element.textContent =
+            "0";
+        }
       }
     );
 
 
-    setText(
-      "academicAverage",
-      "0%"
-    );
+    const averageEl =
+      document.getElementById(
+        "academicAverage"
+      );
+
+
+    if (averageEl) {
+
+      averageEl.textContent =
+        "0%";
+    }
 
 
     if (statusEl) {
@@ -912,12 +1010,14 @@ async function loadDashboardAcademicResults() {
 
       rowsEl.innerHTML = `
         <tr>
+
           <td
             colspan="5"
             class="academic-error"
           >
             Academic results could not be loaded.
           </td>
+
         </tr>
       `;
     }
@@ -929,74 +1029,111 @@ async function loadDashboardAcademicResults() {
    LOGOUT
    ========================================================= */
 
-async function logoutDashboard() {
+function setupLogout() {
 
-  try {
-
-    await supabaseClient.auth.signOut();
-
-  } catch (error) {
-
-    console.error(
-      "Logout error:",
-      error
+  const logoutBtn =
+    document.getElementById(
+      "logoutBtn"
     );
 
-  } finally {
 
-    sessionStorage.clear();
+  if (!logoutBtn) {
 
-    window.location.href =
-      "index.html";
+    return;
   }
+
+
+  logoutBtn.addEventListener(
+    "click",
+    async function () {
+
+      this.disabled =
+        true;
+
+      this.textContent =
+        "LOGGING OUT...";
+
+
+      try {
+
+        await supabaseClient
+          .auth
+          .signOut();
+
+      } catch (error) {
+
+        console.error(
+          "Logout error:",
+          error
+        );
+      }
+
+
+      sessionStorage.clear();
+
+
+      window.location.href =
+        "index.html";
+    }
+  );
 }
 
 
 /* =========================================================
-   DASHBOARD INITIALIZATION
+   START DASHBOARD
    ========================================================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  async () => {
+async function startDashboard() {
 
-    /* Logout */
-
-    const logoutButton =
-      document.getElementById(
-        "logoutBtn"
-      );
-
-
-    if (logoutButton) {
-
-      logoutButton.addEventListener(
-        "click",
-        logoutDashboard
-      );
-    }
-
-
-    /* Check Super Admin */
+  try {
 
     const allowed =
       await checkSuperAdmin();
 
 
     if (!allowed) {
+
       return;
     }
 
 
-    /* Load dashboard data */
+    setupLogout();
+
 
     await Promise.all([
 
-      loadSystemCounts(),
+      loadCounts(),
 
       loadDashboardAcademicResults()
 
     ]);
 
+
+  } catch (error) {
+
+    console.error(
+      "Dashboard Start Error:",
+      error
+    );
   }
-);
+}
+
+
+/* =========================================================
+   DOM READY
+   ========================================================= */
+
+if (
+  document.readyState ===
+  "loading"
+) {
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    startDashboard
+  );
+
+} else {
+
+  startDashboard();
+}
