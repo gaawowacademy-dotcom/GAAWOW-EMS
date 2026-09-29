@@ -9,31 +9,23 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,Helvetica,sans-serif;background:linear-gradient(135deg,#F5F7FA,#EEF3FA 50%,#FFF);color:#1F2937;min-height:100vh}
 .topbar{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 6px 20px rgba(11,30,99,.2);position:sticky;top:0;z-index:100}
-.brand{display:flex;align-items:center;gap:14px}.brand img,footer img{width:58px;height:58px;object-fit:contain;background:#fff;border-radius:12px;padding:5px}
-.brand h1{font-size:20px;font-weight:800}.brand p{font-size:12px;opacity:.88;margin-top:3px}
+.brand{display:flex;align-items:center;gap:14px}.brand img,footer img{width:58px;height:58px;object-fit:contain;background:#fff;border-radius:12px;padding:5px}.brand h1{font-size:20px;font-weight:800}.brand p{font-size:12px;opacity:.88;margin-top:3px}
 .admin-badge{background:#D4AF37;color:#0B1E63;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800}
 .container{width:min(1250px,94%);margin:auto;padding:32px 0 45px}
-.welcome{background:#fff;border-radius:20px;padding:28px;border:1px solid #E5E7EB;box-shadow:0 10px 30px rgba(11,30,99,.08);margin-bottom:25px}
-.welcome h2{color:#0B1E63;font-size:28px;margin-bottom:8px}.welcome p{color:#64748B;font-size:14px}
-.status{display:inline-flex;align-items:center;gap:7px;margin-top:15px;background:#ECFDF5;color:#15803D;padding:7px 12px;border-radius:999px;font-size:12px;font-weight:700}
-.status-dot{width:8px;height:8px;background:#16A34A;border-radius:50%}
+.welcome{background:#fff;border-radius:20px;padding:28px;border:1px solid #E5E7EB;box-shadow:0 10px 30px rgba(11,30,99,.08);margin-bottom:25px}.welcome h2{color:#0B1E63;font-size:28px;margin-bottom:8px}.welcome p{color:#64748B;font-size:14px}
+.status{display:inline-flex;align-items:center;gap:7px;margin-top:15px;background:#ECFDF5;color:#15803D;padding:7px 12px;border-radius:999px;font-size:12px;font-weight:700}.status-dot{width:8px;height:8px;background:#16A34A;border-radius:50%}
 .stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-bottom:35px}
-.stat-card{background:#fff;border-radius:18px;padding:22px;border:1px solid #E5E7EB;box-shadow:0 8px 25px rgba(15,23,42,.07);position:relative;overflow:hidden}
-.stat-card:before{content:"";position:absolute;top:0;left:0;width:100%;height:4px;background:#0B4DA2}.stat-card.gold:before{background:#D4AF37}
-.stat-icon{font-size:27px;margin-bottom:12px}.stat-number{font-size:30px;font-weight:800;color:#0B1E63}.stat-label{color:#64748B;font-size:13px;margin-top:4px}
-.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.section-header h3{font-size:21px;color:#0B1E63}
-.module-count{background:#E8EEF8;color:#0B4DA2;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:800}
-.menu-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
-.menu-card{background:#fff;border-radius:18px;padding:22px;border:1px solid #E5E7EB;box-shadow:0 7px 22px rgba(15,23,42,.06);cursor:pointer;transition:.2s;position:relative;overflow:hidden}
-.menu-card:hover{transform:translateY(-5px);box-shadow:0 14px 30px rgba(11,30,99,.13);border-color:#D4AF37}
-.menu-icon{width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#EEF4FF,#F8FAFC);border-radius:14px;font-size:25px;margin-bottom:15px}
-.menu-card h4{color:#0B1E63;font-size:16px;margin-bottom:7px}.menu-card p{color:#64748B;font-size:12px;line-height:1.5}
-.certificate-generate-card{border-top:4px solid #D4AF37}.verify-card{border-top:4px solid #16A34A}
-footer{margin-top:45px;background:#0B1E63;color:#fff;padding:25px 20px;text-align:center;border-radius:20px 20px 0 0}
-footer img{width:55px;height:55px;margin-bottom:10px}footer h4{font-size:15px;margin-bottom:5px}footer p{font-size:12px;opacity:.8;margin-bottom:16px}
-.logout-btn{border:1px solid #D4AF37;background:transparent;color:#D4AF37;padding:9px 18px;border-radius:999px;font-weight:700;cursor:pointer}.logout-btn:hover{background:#D4AF37;color:#0B1E63}
-@media(max-width:1000px){.menu-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.topbar{padding:14px 15px}.brand h1{font-size:16px}.brand p{font-size:10px}.brand img{width:48px;height:48px}.admin-badge{font-size:10px;padding:7px 10px}.container{width:92%;padding-top:22px}.welcome{padding:22px}.welcome h2{font-size:23px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stat-card{padding:17px}.stat-number{font-size:25px}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.menu-card{padding:17px}.menu-icon{width:45px;height:45px;font-size:22px}.menu-card h4{font-size:14px}.menu-card p{font-size:11px}}
+.stat-card{background:#fff;border-radius:18px;padding:22px;border:1px solid #E5E7EB;box-shadow:0 8px 25px rgba(15,23,42,.07);position:relative;overflow:hidden}.stat-card:before{content:"";position:absolute;top:0;left:0;width:100%;height:4px;background:#0B4DA2}.stat-card.gold:before{background:#D4AF37}.stat-icon{font-size:27px;margin-bottom:12px}.stat-number{font-size:30px;font-weight:800;color:#0B1E63}.stat-label{color:#64748B;font-size:13px;margin-top:4px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.section-header h3{font-size:21px;color:#0B1E63}.module-count{background:#E8EEF8;color:#0B4DA2;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:800}
+.academic-results-section{margin-bottom:38px}.academic-results-subtitle{color:#64748B;font-size:12px;margin-top:5px}.results-view-btn{border:0;background:#0B1E63;color:#fff;padding:10px 15px;border-radius:10px;font-weight:800;font-size:12px;cursor:pointer}.results-view-btn:hover{background:#0B4DA2}
+.academic-stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.academic-stat-card{background:#fff;border:1px solid #E5E7EB;border-radius:15px;padding:17px;box-shadow:0 7px 22px rgba(15,23,42,.06);position:relative;overflow:hidden}.academic-stat-card:before{content:"";position:absolute;top:0;left:0;width:100%;height:3px;background:#0B4DA2}.academic-stat-card.green:before{background:#16A34A}.academic-stat-card.gold:before{background:#D4AF37}.academic-stat-card.red:before{background:#DC2626}.academic-stat-card.purple:before{background:#7C3AED}.academic-stat-icon{width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:#F1F5F9;border-radius:11px;font-size:19px;margin-bottom:10px}.academic-stat-number{color:#0B1E63;font-size:25px;font-weight:800}.academic-stat-label{color:#64748B;font-size:11px;margin-top:3px}
+.academic-subject-card{background:#fff;border:1px solid #E5E7EB;border-radius:18px;padding:18px;box-shadow:0 7px 22px rgba(15,23,42,.06)}.academic-subject-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}.academic-subject-title h4{color:#0B1E63;font-size:16px}.academic-subject-title span{color:#64748B;font-size:11px}.academic-table-wrap{width:100%;overflow-x:auto}
+.academic-dashboard-table{width:100%;border-collapse:collapse;min-width:540px;font-size:12px}.academic-dashboard-table th{background:#0B1E63;color:#fff;padding:10px 9px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.25px}.academic-dashboard-table td{padding:10px 9px;border-bottom:1px solid #E5E7EB;color:#334155;text-align:center}.academic-dashboard-table td:nth-child(2){text-align:left;font-weight:700;color:#0B1E63}.academic-dashboard-table tbody tr:nth-child(even){background:#F8FAFC}.academic-dashboard-table tbody tr:last-child td{border-bottom:0}.academic-loading{color:#64748B!important;text-align:center!important;padding:20px!important}.academic-error{color:#991B1B!important;text-align:center!important;padding:20px!important}
+.menu-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.menu-card{background:#fff;border-radius:18px;padding:22px;border:1px solid #E5E7EB;box-shadow:0 7px 22px rgba(15,23,42,.06);cursor:pointer;transition:.2s;position:relative;overflow:hidden}.menu-card:hover{transform:translateY(-5px);box-shadow:0 14px 30px rgba(11,30,99,.13);border-color:#D4AF37}.menu-icon{width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#EEF4FF,#F8FAFC);border-radius:14px;font-size:25px;margin-bottom:15px}.menu-card h4{color:#0B1E63;font-size:16px;margin-bottom:7px}.menu-card p{color:#64748B;font-size:12px;line-height:1.5}.certificate-generate-card{border-top:4px solid #D4AF37}.verify-card{border-top:4px solid #16A34A}
+footer{margin-top:45px;background:#0B1E63;color:#fff;padding:25px 20px;text-align:center;border-radius:20px 20px 0 0}footer img{width:55px;height:55px;margin-bottom:10px}footer h4{font-size:15px;margin-bottom:5px}footer p{font-size:12px;opacity:.8;margin-bottom:16px}.logout-btn{border:1px solid #D4AF37;background:transparent;color:#D4AF37;padding:9px 18px;border-radius:999px;font-weight:700;cursor:pointer}.logout-btn:hover{background:#D4AF37;color:#0B1E63}
+@media(max-width:1000px){.menu-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.academic-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.topbar{padding:14px 15px}.brand h1{font-size:16px}.brand p{font-size:10px}.brand img{width:48px;height:48px}.admin-badge{font-size:10px;padding:7px 10px}.container{width:92%;padding-top:22px}.welcome{padding:22px}.welcome h2{font-size:23px}.stats-grid{gap:12px}.stat-card{padding:17px}.stat-number{font-size:25px}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.menu-card{padding:17px}.menu-icon{width:45px;height:45px;font-size:22px}.menu-card h4{font-size:14px}.menu-card p{font-size:11px}.academic-stats-grid{gap:10px}.academic-stat-card{padding:14px}.academic-stat-number{font-size:21px}.academic-subject-card{padding:13px}.results-view-btn{padding:9px 11px;font-size:10px;white-space:nowrap}}
+@media(max-width:420px){.academic-results-section .section-header{flex-direction:column;align-items:stretch}.results-view-btn{width:100%}}
 </style>
 </head>
 <body>
@@ -57,6 +49,42 @@ footer img{width:55px;height:55px;margin-bottom:10px}footer h4{font-size:15px;ma
   <div class="stat-card"><div class="stat-icon">👨‍🎓</div><div class="stat-number" id="studentCount">0</div><div class="stat-label">Students</div></div>
   <div class="stat-card gold"><div class="stat-icon">👨‍🏫</div><div class="stat-number" id="teacherCount">0</div><div class="stat-label">Teachers</div></div>
   <div class="stat-card"><div class="stat-icon">🎓</div><div class="stat-number" id="certificateCount">0</div><div class="stat-label">Certificates</div></div>
+</section>
+
+<section class="academic-results-section" id="academicResultsSection">
+  <div class="section-header">
+    <div>
+      <h3>Academic Results</h3>
+      <p class="academic-results-subtitle">Live overview of student grades and published academic results.</p>
+    </div>
+    <button class="results-view-btn" type="button" onclick="openPage('grades.html')">View All Results</button>
+  </div>
+
+  <div class="academic-stats-grid">
+    <div class="academic-stat-card"><div class="academic-stat-icon">📝</div><div class="academic-stat-number" id="academicTotalResults">0</div><div class="academic-stat-label">Total Results</div></div>
+    <div class="academic-stat-card green"><div class="academic-stat-icon">✅</div><div class="academic-stat-number" id="academicPublishedResults">0</div><div class="academic-stat-label">Published</div></div>
+    <div class="academic-stat-card gold"><div class="academic-stat-icon">⏳</div><div class="academic-stat-number" id="academicPendingResults">0</div><div class="academic-stat-label">Pending</div></div>
+    <div class="academic-stat-card green"><div class="academic-stat-icon">🎯</div><div class="academic-stat-number" id="academicPassedResults">0</div><div class="academic-stat-label">Passed</div></div>
+    <div class="academic-stat-card red"><div class="academic-stat-icon">❌</div><div class="academic-stat-number" id="academicFailedResults">0</div><div class="academic-stat-label">Failed</div></div>
+    <div class="academic-stat-card"><div class="academic-stat-icon">📈</div><div class="academic-stat-number" id="academicAverage">0%</div><div class="academic-stat-label">Average</div></div>
+    <div class="academic-stat-card purple"><div class="academic-stat-icon">👨‍🎓</div><div class="academic-stat-number" id="academicStudentsWithResults">0</div><div class="academic-stat-label">Students with Results</div></div>
+    <div class="academic-stat-card gold"><div class="academic-stat-icon">📚</div><div class="academic-stat-number" id="academicSubjectCount">0</div><div class="academic-stat-label">Subjects</div></div>
+  </div>
+
+  <div class="academic-subject-card">
+    <div class="academic-subject-title">
+      <h4>Results by Subject</h4>
+      <span id="academicResultsStatus">Loading...</span>
+    </div>
+    <div class="academic-table-wrap">
+      <table class="academic-dashboard-table">
+        <thead><tr><th>#</th><th>Subject</th><th>Results</th><th>Published</th><th>Average</th></tr></thead>
+        <tbody id="academicSubjectRows">
+          <tr><td colspan="5" class="academic-loading">Loading academic results...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </section>
 
 <div class="section-header"><h3>System Management</h3><span class="module-count">19 Core EMS Modules</span></div>
@@ -91,6 +119,6 @@ footer img{width:55px;height:55px;margin-bottom:10px}footer h4{font-size:15px;ma
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./dashboard.js"></script>
+<script src="./dashboard.js?v=200"></script>
 </body>
 </html>
