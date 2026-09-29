@@ -1,107 +1,400 @@
-/* ============================================================
+/* =========================================================
    GAAWOW EMS
-   PUBLIC CERTIFICATE VERIFICATION
-   + ACADEMIC RESULTS
-   VERSION 102
-   ============================================================ */
+   SUPER ADMIN DASHBOARD
+   COMPLETE DASHBOARD JAVASCRIPT
+   ========================================================= */
 
-(() => {
+"use strict";
 
-  "use strict";
+/* =========================================================
+   SUPABASE CONFIGURATION
+   ========================================================= */
+
+const SUPABASE_URL =
+  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 
 
-  /* ==========================================================
-     SUPABASE
-     ========================================================== */
+/* =========================================================
+   COMMON HELPERS
+   ========================================================= */
 
-  const SUPABASE_URL =
-    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
-  const SUPABASE_KEY =
-    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+function setText(id, value) {
+  const element = document.getElementById(id);
+
+  if (element) {
+    element.textContent = value;
+  }
+}
 
 
-  if (!window.supabase) {
+function openPage(page) {
+  window.location.href = page;
+}
+
+
+/* =========================================================
+   SUPER ADMIN AUTHENTICATION
+   ========================================================= */
+
+async function checkSuperAdmin() {
+
+  try {
+
+    const {
+      data: sessionData,
+      error: sessionError
+    } = await supabaseClient.auth.getSession();
+
+
+    if (sessionError) {
+
+      console.error(
+        "Session error:",
+        sessionError
+      );
+
+      window.location.href = "index.html";
+
+      return false;
+    }
+
+
+    const session =
+      sessionData?.session;
+
+
+    if (!session) {
+
+      window.location.href =
+        "index.html";
+
+      return false;
+    }
+
+
+    const {
+      data: profile,
+      error: profileError
+    } = await supabaseClient
+      .from("profiles")
+      .select("full_name,role")
+      .eq("id", session.user.id)
+      .single();
+
+
+    if (profileError || !profile) {
+
+      console.error(
+        "Profile error:",
+        profileError
+      );
+
+      alert(
+        "Unable to load your EMS profile."
+      );
+
+      return false;
+    }
+
+
+    if (
+      profile.role !==
+      "super_admin"
+    ) {
+
+      alert(
+        "Access denied. Super Admin only."
+      );
+
+      window.location.href =
+        "index.html";
+
+      return false;
+    }
+
+
+    const welcome =
+      document.getElementById(
+        "superAdminWelcome"
+      );
+
+
+    if (
+      welcome &&
+      profile.full_name
+    ) {
+
+      welcome.textContent =
+        "Welcome, " +
+        profile.full_name;
+    }
+
+
+    return true;
+
+  } catch (error) {
 
     console.error(
-      "Supabase library was not loaded."
+      "Authentication error:",
+      error
     );
 
-    return;
+    window.location.href =
+      "index.html";
+
+    return false;
+  }
+}
+
+
+/* =========================================================
+   SYSTEM MANAGEMENT COUNTS
+   ========================================================= */
+
+async function loadSystemCounts() {
+
+  try {
+
+    const [
+      institutionsResponse,
+      studentsResponse,
+      teachersResponse,
+      certificatesResponse
+    ] = await Promise.all([
+
+      supabaseClient
+        .from("institutions")
+        .select("id", {
+          count: "exact",
+          head: true
+        }),
+
+      supabaseClient
+        .from("students")
+        .select("id", {
+          count: "exact",
+          head: true
+        }),
+
+      supabaseClient
+        .from("profiles")
+        .select("id", {
+          count: "exact",
+          head: true
+        })
+        .eq("role", "teacher"),
+
+      supabaseClient
+        .from("certificates")
+        .select("id", {
+          count: "exact",
+          head: true
+        })
+
+    ]);
+
+
+    if (
+      institutionsResponse.error
+    ) {
+
+      console.error(
+        "Institutions count error:",
+        institutionsResponse.error
+      );
+    }
+
+
+    if (
+      studentsResponse.error
+    ) {
+
+      console.error(
+        "Students count error:",
+        studentsResponse.error
+      );
+    }
+
+
+    if (
+      teachersResponse.error
+    ) {
+
+      console.error(
+        "Teachers count error:",
+        teachersResponse.error
+      );
+    }
+
+
+    if (
+      certificatesResponse.error
+    ) {
+
+      console.error(
+        "Certificates count error:",
+        certificatesResponse.error
+      );
+    }
+
+
+    setText(
+      "institutionCount",
+      institutionsResponse.count ?? 0
+    );
+
+
+    setText(
+      "studentCount",
+      studentsResponse.count ?? 0
+    );
+
+
+    setText(
+      "teacherCount",
+      teachersResponse.count ?? 0
+    );
+
+
+    setText(
+      "certificateCount",
+      certificatesResponse.count ?? 0
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "System counts error:",
+      error
+    );
+
+
+    setText(
+      "institutionCount",
+      "0"
+    );
+
+    setText(
+      "studentCount",
+      "0"
+    );
+
+    setText(
+      "teacherCount",
+      "0"
+    );
+
+    setText(
+      "certificateCount",
+      "0"
+    );
+  }
+}
+
+
+/* =========================================================
+   ACADEMIC RESULT PERCENTAGE
+   ========================================================= */
+
+function getResultPercentage(result) {
+
+  if (
+    result.percentage !== null &&
+    result.percentage !== undefined &&
+    !isNaN(
+      Number(result.percentage)
+    )
+  ) {
+
+    return Number(
+      result.percentage
+    );
   }
 
 
-  const supabaseClient =
-    window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY
-    );
+  const score =
+    Number(result.score);
 
 
-  /* ==========================================================
-     DOM
-     ========================================================== */
-
-  const $ = (id) =>
-    document.getElementById(id);
+  const maxScore =
+    Number(result.max_score);
 
 
-  /* ==========================================================
-     STATUS
-     ========================================================== */
+  if (
+    !isNaN(score) &&
+    !isNaN(maxScore) &&
+    maxScore > 0
+  ) {
 
-  const STATUS_INFO = {
-
-    valid: {
-      label: "VALID",
-      icon: "✔",
-      cls: "ok",
-      heading: "Authentic Certificate"
-    },
-
-    graduated: {
-      label: "GRADUATED",
-      icon: "✔",
-      cls: "ok",
-      heading: "Authentic Certificate"
-    },
-
-    pending: {
-      label: "PENDING",
-      icon: "⏳",
-      cls: "warn",
-      heading: "Certificate Pending"
-    },
-
-    expired: {
-      label: "EXPIRED",
-      icon: "⚠",
-      cls: "warn",
-      heading: "Certificate Expired"
-    },
-
-    revoked: {
-      label: "REVOKED",
-      icon: "✖",
-      cls: "bad",
-      heading: "Certificate Revoked"
-    }
-
-  };
+    return (
+      score / maxScore
+    ) * 100;
+  }
 
 
-  /* ==========================================================
-     SUBJECT ORDER
-     ========================================================== */
+  return 0;
+}
 
-  const SUBJECT_ORDER = [
+
+/* =========================================================
+   PASS / FAIL
+   ========================================================= */
+
+function isResultPassed(result) {
+
+  const grade =
+    String(result.grade || "")
+      .trim()
+      .toUpperCase();
+
+
+  if (grade === "F") {
+    return false;
+  }
+
+
+  return (
+    getResultPercentage(result) >= 50
+  );
+}
+
+
+/* =========================================================
+   SUBJECT ORDER
+   ========================================================= */
+
+function sortAcademicSubjects(subjects) {
+
+  const order = [
 
     "first aid",
 
     "anatomy & physiology",
+
     "anatomy and physiology",
 
     "epidemiology",
+
     "epi",
 
     "parasitology",
@@ -117,1437 +410,593 @@
   ];
 
 
-  /* ==========================================================
-     HTML SECURITY
-     ========================================================== */
+  return subjects.sort(
+    (a, b) => {
 
-  function escapeHtml(value) {
-
-    if (
-      value === null ||
-      value === undefined
-    ) {
-      return "";
-    }
-
-    return String(value)
-
-      .replace(/&/g, "&amp;")
-
-      .replace(/</g, "&lt;")
-
-      .replace(/>/g, "&gt;")
-
-      .replace(/"/g, "&quot;")
-
-      .replace(/'/g, "&#039;");
-  }
+      const aName =
+        String(a.name || "")
+          .trim()
+          .toLowerCase();
 
 
-  /* ==========================================================
-     DATE
-     ========================================================== */
-
-  function formatDate(value) {
-
-    if (!value) {
-      return "—";
-    }
-
-    const raw =
-      String(value).trim();
-
-    const date =
-      new Date(
-        `${raw}T00:00:00`
-      );
-
-    if (
-      Number.isNaN(
-        date.getTime()
-      )
-    ) {
-      return escapeHtml(raw);
-    }
-
-    return date.toLocaleDateString(
-      "en-GB",
-      {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-      }
-    );
-  }
+      const bName =
+        String(b.name || "")
+          .trim()
+          .toLowerCase();
 
 
-  /* ==========================================================
-     NORMALIZE VERIFY CODE
-
-     Accepts:
-
-     GAW-2026-V8AN5Q2F
-
-     OR:
-
-     https://.../verify.html?code=GAW-2026-V8AN5Q2F
-
-     OR:
-
-     verify.html?code=GAW-2026-V8AN5Q2F
-     ========================================================== */
-
-  function normalizeVerifyCode(value) {
-
-    let raw =
-      String(value || "").trim();
+      const aIndex =
+        order.indexOf(aName);
 
 
-    if (!raw) {
-      return "";
-    }
-
-
-    /*
-     * Remove accidental surrounding quotes.
-     */
-
-    raw =
-      raw.replace(
-        /^["']|["']$/g,
-        ""
-      ).trim();
-
-
-    /*
-     * Full URL
-     */
-
-    try {
-
-      const parsed =
-        new URL(raw);
-
-      const code =
-        parsed.searchParams.get(
-          "code"
-        );
-
-      if (code) {
-
-        return decodeURIComponent(
-          code
-        )
-        .trim()
-        .toUpperCase();
-
-      }
-
-    } catch (_) {
-
-      /*
-       * It is not a complete URL.
-       */
-
-    }
-
-
-    /*
-     * Partial URL containing code=
-     */
-
-    const lower =
-      raw.toLowerCase();
-
-    const marker =
-      "code=";
-
-    const position =
-      lower.indexOf(marker);
-
-
-    if (position !== -1) {
-
-      let extracted =
-        raw.substring(
-          position +
-          marker.length
-        );
-
-
-      extracted =
-        extracted.split("&")[0];
-
-
-      try {
-
-        extracted =
-          decodeURIComponent(
-            extracted
-          );
-
-      } catch (_) {}
+      const bIndex =
+        order.indexOf(bName);
 
 
       if (
-        extracted.trim()
+        aIndex === -1 &&
+        bIndex === -1
       ) {
 
-        return extracted
-          .trim()
-          .toUpperCase();
-
-      }
-    }
-
-
-    /*
-     * Normal code
-     */
-
-    return raw.toUpperCase();
-  }
-
-
-  /* ==========================================================
-     READ CODE FROM PAGE URL
-     ========================================================== */
-
-  function codeFromUrl() {
-
-    try {
-
-      const params =
-        new URLSearchParams(
-          window.location.search
+        return aName.localeCompare(
+          bName
         );
+      }
 
 
-      const raw =
-        params.get("code") || "";
+      if (aIndex === -1) {
+        return 1;
+      }
 
 
-      return normalizeVerifyCode(
-        raw
-      );
+      if (bIndex === -1) {
+        return -1;
+      }
 
-    } catch (_) {
 
-      return "";
+      return aIndex - bIndex;
     }
+  );
+}
+
+
+/* =========================================================
+   ACADEMIC RESULTS DASHBOARD
+   ========================================================= */
+
+async function loadDashboardAcademicResults() {
+
+  const statusEl =
+    document.getElementById(
+      "academicResultsStatus"
+    );
+
+
+  const rowsEl =
+    document.getElementById(
+      "academicSubjectRows"
+    );
+
+
+  if (statusEl) {
+
+    statusEl.textContent =
+      "Loading...";
   }
 
 
-  /* ==========================================================
-     WRITE RESULT
-     ========================================================== */
-
-  function setResultView(html) {
-
-    const result =
-      $("result");
-
-
-    if (!result) {
-      return;
-    }
-
-
-    result.innerHTML =
-      html;
-
-
-    result.style.display =
-      "block";
-  }
-
-
-  /* ==========================================================
-     EMPTY
-     ========================================================== */
-
-  function showEmptyCode() {
-
-    setResultView(`
-
-      <div class="panel neutral">
-
-        <div class="icon">
-          🔍
-        </div>
-
-        <h2>
-          Enter a Verify Code
-        </h2>
-
-        <p>
-          Scan the QR code on a GAAWOW Academy
-          certificate, or enter the verification
-          code below.
-        </p>
-
-      </div>
-
-    `);
-  }
-
-
-  /* ==========================================================
-     LOADING
-     ========================================================== */
-
-  function showLoading() {
-
-    setResultView(`
-
-      <div class="panel neutral">
-
-        <div class="spinner"></div>
-
-        <h2>
-          Checking Certificate
-        </h2>
-
-        <p>
-          Please wait while GAAWOW Academy
-          verifies the certificate.
-        </p>
-
-      </div>
-
-    `);
-  }
-
-
-  /* ==========================================================
-     NOT FOUND
-     ========================================================== */
-
-  function showNotFound(code) {
-
-    setResultView(`
-
-      <div class="panel bad">
-
-        <div class="icon">
-          ✖
-        </div>
-
-        <h2>
-          Certificate Not Found
-        </h2>
-
-        <p>
-          No certificate matches the code
-          <span class="code">
-            ${escapeHtml(
-              code || "(empty)"
-            )}
-          </span>.
-        </p>
-
-        <p>
-          Check the QR code or verification
-          code and try again.
-        </p>
-
-      </div>
-
-    `);
-  }
-
-
-  /* ==========================================================
-     SERVER ERROR
-     ========================================================== */
-
-  function showBlocked(message) {
-
-    setResultView(`
-
-      <div class="panel bad">
-
-        <div class="icon">
-          ⚠
-        </div>
-
-        <h2>
-          Verification Unavailable
-        </h2>
-
-        <p>
-          The certificate database could not
-          be reached right now.
-        </p>
-
-        <p class="tech">
-          ${escapeHtml(
-            message ||
-            "Unknown verification error."
-          )}
-        </p>
-
-      </div>
-
-    `);
-  }
-
-
-  /* ==========================================================
-     GRADE
-     ========================================================== */
-
-  function calculateGrade(value) {
-
-    const percentage =
-      Number(value);
-
-
-    if (
-      Number.isNaN(
-        percentage
-      )
-    ) {
-      return "—";
-    }
-
-
-    if (percentage >= 90) {
-      return "A+";
-    }
-
-    if (percentage >= 80) {
-      return "A";
-    }
-
-    if (percentage >= 70) {
-      return "B";
-    }
-
-    if (percentage >= 60) {
-      return "C";
-    }
-
-    if (percentage >= 50) {
-      return "D";
-    }
-
-    return "F";
-  }
-
-
-  /* ==========================================================
-     ACADEMIC RESULTS
-     ========================================================== */
-
-  function renderAcademicResults(results) {
-
-    if (
-      !Array.isArray(results) ||
-      results.length === 0
-    ) {
-
-      return `
-
-        <div class="academic-section">
-
-          <h3>
-            Academic Results
-          </h3>
-
-          <div class="panel neutral">
-
-            <p>
-              Academic results have not yet
-              been published.
-            </p>
-
-          </div>
-
-        </div>
-
-      `;
-    }
-
-
-    const sortedResults =
-      [...results].sort(
-        (a, b) => {
-
-          const aName =
-            String(
-              a.subject_name || ""
-            )
-            .trim()
-            .toLowerCase();
-
-
-          const bName =
-            String(
-              b.subject_name || ""
-            )
-            .trim()
-            .toLowerCase();
-
-
-          const ai =
-            SUBJECT_ORDER.indexOf(
-              aName
-            );
-
-
-          const bi =
-            SUBJECT_ORDER.indexOf(
-              bName
-            );
-
-
-          if (
-            ai === -1 &&
-            bi === -1
-          ) {
-
-            return aName.localeCompare(
-              bName
-            );
-
-          }
-
-
-          if (ai === -1) {
-            return 1;
-          }
-
-
-          if (bi === -1) {
-            return -1;
-          }
-
-
-          return ai - bi;
-        }
-      );
-
-
-    const rows =
-      sortedResults
-        .map(
-          (result, index) => {
-
-            const score =
-              result.score !== null &&
-              result.score !== undefined
-                ? Number(result.score)
-                : 0;
-
-
-            const maxScore =
-              result.max_score !== null &&
-              result.max_score !== undefined
-                ? Number(result.max_score)
-                : 100;
-
-
-            let percentage =
-              result.percentage !== null &&
-              result.percentage !== undefined
-                ? Number(result.percentage)
-                : (
-                    maxScore > 0
-                      ? (
-                          score /
-                          maxScore
-                        ) * 100
-                      : 0
-                  );
-
-
-            if (
-              Number.isNaN(
-                percentage
-              )
-            ) {
-              percentage = 0;
-            }
-
-
-            const grade =
-              result.grade ||
-              calculateGrade(
-                percentage
-              );
-
-
-            return `
-
-              <tr>
-
-                <td>
-                  ${index + 1}
-                </td>
-
-                <td>
-                  <strong>
-                    ${escapeHtml(
-                      result.subject_name ||
-                      "—"
-                    )}
-                  </strong>
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    result.score ??
-                    "—"
-                  )}
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    result.max_score ??
-                    100
-                  )}
-                </td>
-
-                <td>
-                  ${percentage.toFixed(2)}%
-                </td>
-
-                <td>
-                  <strong>
-                    ${escapeHtml(
-                      grade
-                    )}
-                  </strong>
-                </td>
-
-                <td>
-                  ${escapeHtml(
-                    result.remarks ||
-                    "—"
-                  )}
-                </td>
-
-              </tr>
-
-            `;
-          }
-        )
-        .join("");
-
-
-    return `
-
-      <div class="academic-section">
-
-        <h3>
-          Academic Results
-        </h3>
-
-        <div class="academic-table-wrapper">
-
-          <table class="academic-table">
-
-            <thead>
-
-              <tr>
-
-                <th>#</th>
-
-                <th>
-                  Subject
-                </th>
-
-                <th>
-                  Score
-                </th>
-
-                <th>
-                  Max
-                </th>
-
-                <th>
-                  Percentage
-                </th>
-
-                <th>
-                  Grade
-                </th>
-
-                <th>
-                  Remarks
-                </th>
-
-              </tr>
-
-            </thead>
-
-            <tbody>
-              ${rows}
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-
+  if (rowsEl) {
+
+    rowsEl.innerHTML = `
+      <tr>
+        <td
+          colspan="5"
+          class="academic-loading"
+        >
+          Loading academic results...
+        </td>
+      </tr>
     `;
   }
 
 
-  /* ==========================================================
-     SUMMARY
-     ========================================================== */
+  try {
 
-  function renderAcademicSummary(summary) {
+    /* -----------------------------------------------------
+       LOAD RESULTS + SUBJECTS
+       ----------------------------------------------------- */
 
-    if (!summary) {
-      return "";
+    const [
+      resultsResponse,
+      subjectsResponse
+    ] = await Promise.all([
+
+      supabaseClient
+        .from("results")
+        .select(
+          "id,student_id,subject_id,score,max_score,percentage,grade,is_published"
+        ),
+
+      supabaseClient
+        .from("subjects")
+        .select(
+          "id,name,code,is_active"
+        )
+        .order("name")
+
+    ]);
+
+
+    if (
+      resultsResponse.error
+    ) {
+
+      throw resultsResponse.error;
     }
 
 
-    const totalScore =
-      Number(
-        summary.total_score || 0
+    if (
+      subjectsResponse.error
+    ) {
+
+      throw subjectsResponse.error;
+    }
+
+
+    const results =
+      resultsResponse.data || [];
+
+
+    let subjects =
+      subjectsResponse.data || [];
+
+
+    /* -----------------------------------------------------
+       ACTIVE SUBJECTS
+       ----------------------------------------------------- */
+
+    const activeSubjects =
+      subjects.filter(
+        subject =>
+          subject.is_active !== false
       );
 
 
-    const totalMax =
-      Number(
-        summary.total_max_score || 0
+    subjects =
+      activeSubjects.length
+        ? activeSubjects
+        : subjects;
+
+
+    /* -----------------------------------------------------
+       TOTAL RESULTS
+       ----------------------------------------------------- */
+
+    const totalResults =
+      results.length;
+
+
+    /* -----------------------------------------------------
+       PUBLISHED RESULTS
+       ----------------------------------------------------- */
+
+    const publishedResults =
+      results.filter(
+        result =>
+          result.is_published === true
+      ).length;
+
+
+    /* -----------------------------------------------------
+       PENDING RESULTS
+       ----------------------------------------------------- */
+
+    const pendingResults =
+      totalResults -
+      publishedResults;
+
+
+    /* -----------------------------------------------------
+       PASSED RESULTS
+       ----------------------------------------------------- */
+
+    const passedResults =
+      results.filter(
+        isResultPassed
+      ).length;
+
+
+    /* -----------------------------------------------------
+       FAILED RESULTS
+       ----------------------------------------------------- */
+
+    const failedResults =
+      totalResults -
+      passedResults;
+
+
+    /* -----------------------------------------------------
+       AVERAGE
+       ----------------------------------------------------- */
+
+    const percentages =
+      results.map(
+        getResultPercentage
       );
 
 
     const average =
-      Number(
-        summary.average || 0
-      );
-
-
-    const grade =
-      summary.overall_grade ||
-      calculateGrade(
-        average
-      );
-
-
-    const finalResult =
-      String(
-        summary.final_result ||
-        "FAIL"
-      ).toUpperCase();
-
-
-    const resultClass =
-      finalResult === "PASS"
-        ? "ok"
-        : "bad";
-
-
-    return `
-
-      <div class="academic-summary">
-
-        <div class="summary-card">
-
-          <span>
-            Total Score
-          </span>
-
-          <strong>
-            ${totalScore} / ${totalMax}
-          </strong>
-
-        </div>
-
-
-        <div class="summary-card">
-
-          <span>
-            Average
-          </span>
-
-          <strong>
-            ${average.toFixed(2)}%
-          </strong>
-
-        </div>
-
-
-        <div class="summary-card">
-
-          <span>
-            Overall Grade
-          </span>
-
-          <strong>
-            ${escapeHtml(
-              grade
-            )}
-          </strong>
-
-        </div>
-
-
-        <div class="
-          summary-card
-          ${resultClass}
-        ">
-
-          <span>
-            Final Result
-          </span>
-
-          <strong>
-            ${escapeHtml(
-              finalResult
-            )}
-          </strong>
-
-        </div>
-
-      </div>
-
-    `;
-  }
-
-
-  /* ==========================================================
-     CERTIFICATE
-     ========================================================== */
-
-  function showCertificate(payload) {
-
-    const cert =
-      payload.certificate ||
-      {};
-
-
-    const student =
-      payload.student ||
-      {};
-
-
-    const academicResults =
-      Array.isArray(
-        payload.academic_results
-      )
-        ? payload.academic_results
-        : [];
-
-
-    const summary =
-      payload.summary ||
-      {};
-
-
-    const statusKey =
-      String(
-        cert.status ||
-        "valid"
-      ).toLowerCase();
-
-
-    const info =
-      STATUS_INFO[
-        statusKey
-      ] ||
-      STATUS_INFO.valid;
-
-
-    const today =
-      new Date()
-        .toISOString()
-        .slice(0, 10);
-
-
-    const pastExpiry =
-      cert.expiry_date &&
-      cert.expiry_date < today &&
-      statusKey !== "revoked";
-
-
-    const effective =
-      pastExpiry
-        ? STATUS_INFO.expired
-        : info;
-
-
-    const studentName =
-      student.full_name ||
-      cert.student_name ||
-      "—";
-
-
-    const courseName =
-      cert.course_name ||
-      "—";
-
-
-    setResultView(`
-
-      <div class="panel ${effective.cls}">
-
-        <div class="icon">
-          ${effective.icon}
-        </div>
-
-
-        <h2>
-          ${effective.heading}
-        </h2>
-
-
-        <div class="badge ${effective.cls}">
-
-          ${escapeHtml(
-            pastExpiry
-              ? "EXPIRED"
-              : effective.label
-          )}
-
-        </div>
-
-
-        <div class="cert-grid">
-
-
-          <div class="cert-item">
-
-            <strong>
-              Student Name
-            </strong>
-
-            <span>
-              ${escapeHtml(
-                studentName
-              )}
-            </span>
-
-          </div>
-
-
-          <div class="cert-item">
-
-            <strong>
-              Student ID
-            </strong>
-
-            <span>
-              ${escapeHtml(
-                student.student_id ||
-                "—"
-              )}
-            </span>
-
-          </div>
-
-
-          <div class="cert-item">
-
-            <strong>
-              Course / Program
-            </strong>
-
-            <span>
-              ${escapeHtml(
-                courseName
-              )}
-            </span>
-
-          </div>
-
-
-          <div class="cert-item">
-
-            <strong>
-              Certificate No
-            </strong>
-
-            <span>
-              ${escapeHtml(
-                cert.certificate_no ||
-                "—"
-              )}
-            </span>
-
-          </div>
-
-
-          <div class="cert-item">
-
-            <strong>
-              Certificate ID
-            </strong>
-
-            <span>
-              ${escapeHtml(
-                cert.certificate_id ||
-                "—"
-              )}
-            </span>
-
-          </div>
-
-
-          <div class="cert-item">
-
-            <strong>
-              Certificate Type
-            </strong>
-
-            <span>
-              ${escapeHtml(
-                cert.certificate_type ||
-                "—"
-              )}
-            </span>
-
-          </div>
-
-
-          <div class="cert-item">
-
-            <strong>
-              Issue Date
-            </strong>
-
-            <span>
-              ${formatDate(
-                cert.issue_date
-              )}
-            </span>
-
-          </div>
-
-
-          <div class="cert-item">
-
-            <strong>
-              Expiry Date
-            </strong>
-
-            <span>
-              ${formatDate(
-                cert.expiry_date
-              )}
-            </span>
-
-          </div>
-
-
-        </div>
-
-
-        ${renderAcademicResults(
-          academicResults
-        )}
-
-
-        ${renderAcademicSummary(
-          summary
-        )}
-
-
-        <p class="footnote">
-
-          Issued by GAAWOW Academy
-          • Verify Code
-
-          <span class="code">
-
-            ${escapeHtml(
-              cert.verify_code ||
-              ""
-            )}
-
-          </span>
-
-        </p>
-
-
-      </div>
-
-    `);
-  }
-
-
-  /* ==========================================================
-     URL UPDATE
-     ========================================================== */
-
-  function updateBrowserUrl(code) {
-
-    try {
-
-      const url =
-        new URL(
-          window.location.href
-        );
-
-
-      if (code) {
-
-        url.searchParams.set(
-          "code",
-          code
-        );
-
-      } else {
-
-        url.searchParams.delete(
-          "code"
-        );
-
-      }
-
-
-      /*
-       * replaceState does NOT reload the page.
-       */
-
-      window.history.replaceState(
-        {
-          verifyCode: code
-        },
-        "",
-        url.pathname +
-        url.search +
-        url.hash
-      );
-
-
-    } catch (error) {
-
-      console.warn(
-        "Could not update browser URL:",
-        error
-      );
-
-    }
-  }
-
-
-  /* ==========================================================
-     VERIFY
-     ========================================================== */
-
-  async function verify(inputValue) {
-
-    const code =
-      normalizeVerifyCode(
-        inputValue
-      );
-
-
-    if (!code) {
-
-      showEmptyCode();
-
-      return;
-    }
-
-
-    const input =
-      $("codeInput");
-
-
-    if (input) {
-
-      input.value =
-        code;
-
-    }
-
-
-    /*
-     * Keep code in browser URL.
-     * This makes refresh safe.
-     */
-
-    updateBrowserUrl(
-      code
+      percentages.length > 0
+
+        ? percentages.reduce(
+            (sum, value) =>
+              sum + value,
+            0
+          ) /
+          percentages.length
+
+        : 0;
+
+
+    /* -----------------------------------------------------
+       STUDENTS WITH RESULTS
+       ----------------------------------------------------- */
+
+    const studentsWithResults =
+      new Set(
+        results
+          .map(
+            result =>
+              result.student_id
+          )
+          .filter(Boolean)
+      ).size;
+
+
+    /* -----------------------------------------------------
+       UPDATE ACADEMIC CARDS
+       ----------------------------------------------------- */
+
+    setText(
+      "academicTotalResults",
+      totalResults
     );
 
 
-    showLoading();
+    setText(
+      "academicPublishedResults",
+      publishedResults
+    );
 
 
-    try {
-
-      const {
-        data,
-        error
-      } =
-        await supabaseClient.rpc(
-
-          "verify_certificate_with_results",
-
-          {
-            p_verify_code:
-              code
-          }
-
-        );
+    setText(
+      "academicPendingResults",
+      pendingResults
+    );
 
 
-      if (error) {
-
-        console.error(
-          "Supabase RPC error:",
-          error
-        );
-
-        throw error;
-      }
+    setText(
+      "academicPassedResults",
+      passedResults
+    );
 
 
-      if (!data) {
-
-        showNotFound(
-          code
-        );
-
-        return;
-      }
+    setText(
+      "academicFailedResults",
+      failedResults
+    );
 
 
-      if (
-        data.success === false
-      ) {
-
-        const message =
-          String(
-            data.message ||
-            ""
-          );
+    setText(
+      "academicAverage",
+      average.toFixed(2) +
+      "%"
+    );
 
 
-        if (
-          message
-            .toLowerCase()
-            .includes(
-              "not found"
-            )
-        ) {
-
-          showNotFound(
-            code
-          );
-
-        } else {
-
-          showBlocked(
-            message ||
-            "Verification failed."
-          );
-        }
-
-        return;
-      }
+    setText(
+      "academicStudentsWithResults",
+      studentsWithResults
+    );
 
 
-      if (
-        !data.certificate
-      ) {
-
-        showNotFound(
-          code
-        );
-
-        return;
-      }
+    setText(
+      "academicSubjectCount",
+      subjects.length
+    );
 
 
-      showCertificate(
-        data
-      );
+    /* -----------------------------------------------------
+       SORT SUBJECTS
+       ----------------------------------------------------- */
+
+    sortAcademicSubjects(
+      subjects
+    );
 
 
-    } catch (error) {
+    /* -----------------------------------------------------
+       SUBJECT TABLE
+       ----------------------------------------------------- */
 
-      console.error(
-        "Certificate verification error:",
-        error
-      );
-
-
-      showBlocked(
-
-        error &&
-        error.message
-
-          ? error.message
-
-          : String(
-              error ||
-              "Unknown error"
-            )
-
-      );
-
+    if (!rowsEl) {
+      return;
     }
-
-  }
-
-
-  /* ==========================================================
-     FORM
-     ========================================================== */
-
-  function setupForm() {
-
-    const form =
-      $("verifyForm");
-
-
-    const input =
-      $("codeInput");
 
 
     if (
-      !form ||
-      !input
+      subjects.length === 0
     ) {
 
-      console.error(
-        "Verification form not found."
-      );
+      rowsEl.innerHTML = `
+        <tr>
+          <td
+            colspan="5"
+            class="academic-loading"
+          >
+            No subjects found.
+          </td>
+        </tr>
+      `;
 
-      return;
+    } else {
+
+      rowsEl.innerHTML =
+        subjects
+          .map(
+            (subject, index) => {
+
+              const subjectResults =
+                results.filter(
+                  result =>
+                    result.subject_id ===
+                    subject.id
+                );
+
+
+              const published =
+                subjectResults.filter(
+                  result =>
+                    result.is_published ===
+                    true
+                ).length;
+
+
+              const subjectPercentages =
+                subjectResults.map(
+                  getResultPercentage
+                );
+
+
+              const subjectAverage =
+                subjectPercentages.length > 0
+
+                  ? subjectPercentages.reduce(
+                      (sum, value) =>
+                        sum + value,
+                      0
+                    ) /
+                    subjectPercentages.length
+
+                  : 0;
+
+
+              return `
+                <tr>
+
+                  <td>
+                    ${index + 1}
+                  </td>
+
+                  <td>
+
+                    <strong>
+                      ${escapeHtml(
+                        subject.name ||
+                        "Unknown Subject"
+                      )}
+                    </strong>
+
+                    ${
+                      subject.code
+                        ? `
+                          <span
+                            style="
+                              display:block;
+                              color:#94A3B8;
+                              font-size:10px;
+                              font-weight:400;
+                              margin-top:2px;
+                            "
+                          >
+                            ${escapeHtml(
+                              subject.code
+                            )}
+                          </span>
+                        `
+                        : ""
+                    }
+
+                  </td>
+
+                  <td>
+                    ${subjectResults.length}
+                  </td>
+
+                  <td>
+                    ${published}
+                  </td>
+
+                  <td>
+                    <strong>
+                      ${subjectAverage.toFixed(2)}%
+                    </strong>
+                  </td>
+
+                </tr>
+              `;
+
+            }
+          )
+          .join("");
     }
 
 
-    form.addEventListener(
-      "submit",
-      (event) => {
+    /* -----------------------------------------------------
+       STATUS
+       ----------------------------------------------------- */
 
-        event.preventDefault();
+    if (statusEl) {
 
-
-        const code =
-          normalizeVerifyCode(
-            input.value
-          );
-
-
-        if (!code) {
-
-          showEmptyCode();
-
-          return;
-        }
+      statusEl.textContent =
+        totalResults +
+        " result(s)";
+    }
 
 
-        input.value =
-          code;
+  } catch (error) {
+
+    console.error(
+      "Academic Results Dashboard Error:",
+      error
+    );
 
 
-        verify(
-          code
+    /* Reset cards if loading fails */
+
+    const resetIds = [
+
+      "academicTotalResults",
+
+      "academicPublishedResults",
+
+      "academicPendingResults",
+
+      "academicPassedResults",
+
+      "academicFailedResults",
+
+      "academicStudentsWithResults",
+
+      "academicSubjectCount"
+
+    ];
+
+
+    resetIds.forEach(
+      id => {
+
+        setText(
+          id,
+          "0"
         );
 
       }
     );
 
 
-    /*
-     * If a complete QR URL is pasted,
-     * normalize it immediately.
-     */
-
-    input.addEventListener(
-      "blur",
-      () => {
-
-        const value =
-          normalizeVerifyCode(
-            input.value
-          );
-
-
-        if (value) {
-
-          input.value =
-            value;
-
-        }
-
-      }
+    setText(
+      "academicAverage",
+      "0%"
     );
 
-  }
 
+    if (statusEl) {
 
-  /* ==========================================================
-     INITIALIZE
-     ========================================================== */
-
-  function init() {
-
-    const code =
-      codeFromUrl();
-
-
-    const input =
-      $("codeInput");
-
-
-    if (input) {
-
-      input.value =
-        code;
-
+      statusEl.textContent =
+        "Could not load";
     }
 
 
-    setupForm();
+    if (rowsEl) {
+
+      rowsEl.innerHTML = `
+        <tr>
+          <td
+            colspan="5"
+            class="academic-error"
+          >
+            Academic results could not be loaded.
+          </td>
+        </tr>
+      `;
+    }
+  }
+}
 
 
-    /*
-     * IMPORTANT:
-     * If URL contains ?code=...
-     * automatically verify.
-     */
+/* =========================================================
+   LOGOUT
+   ========================================================= */
 
-    if (code) {
+async function logoutDashboard() {
 
-      verify(
-        code
+  try {
+
+    await supabaseClient.auth.signOut();
+
+  } catch (error) {
+
+    console.error(
+      "Logout error:",
+      error
+    );
+
+  } finally {
+
+    sessionStorage.clear();
+
+    window.location.href =
+      "index.html";
+  }
+}
+
+
+/* =========================================================
+   DASHBOARD INITIALIZATION
+   ========================================================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
+
+    /* Logout */
+
+    const logoutButton =
+      document.getElementById(
+        "logoutBtn"
       );
 
-    } else {
 
-      showEmptyCode();
+    if (logoutButton) {
 
+      logoutButton.addEventListener(
+        "click",
+        logoutDashboard
+      );
     }
 
-  }
+
+    /* Check Super Admin */
+
+    const allowed =
+      await checkSuperAdmin();
 
 
-  /* ==========================================================
-     START
-     ========================================================== */
+    if (!allowed) {
+      return;
+    }
 
-  if (
-    document.readyState ===
-    "loading"
-  ) {
 
-    document.addEventListener(
-      "DOMContentLoaded",
-      init,
-      {
-        once:true
-      }
-    );
+    /* Load dashboard data */
 
-  } else {
+    await Promise.all([
 
-    init();
+      loadSystemCounts(),
+
+      loadDashboardAcademicResults()
+
+    ]);
 
   }
-
-
-})();
+);
