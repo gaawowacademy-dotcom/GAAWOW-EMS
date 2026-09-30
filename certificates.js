@@ -456,15 +456,15 @@ function view(x) {
 
 function openDocumentChoice(x) {
 
-  /*
-    Waxaa muhiim ah:
-    Open hadda si toos ah uma furayo Generate.
+  if (!x || !x.id) {
+    alert("Record ID lama helin.");
+    return;
+  }
 
-    Marka Open la riixo waxaa soo baxaya
-    doorasho:
-      1. Open Certificate / Generate
-      2. Open Authentication Letter
-  */
+  if (x.certificate_type === "authentication_letter") {
+    openAuthenticationLetter(x);
+    return;
+  }
 
   const existing = document.getElementById(
     "gaawowOpenChoice"
