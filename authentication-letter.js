@@ -234,8 +234,7 @@
 
   async function loadCertificate(id) {
     const select =
-      "id,student_id,certificate_no,certificate_id,verify_code,issue_date,expiry_date,status,student_name_snapshot,certificate_type,course_id,course_name,course_name_snapshot,admission_date,date_started,date_completed,completion_date";
-
+  "id,student_id,certificate_no,certificate_id,verify_code,issue_date,expiry_date,status,student_name_snapshot,certificate_type,course_id,course_name_snapshot,student_photo_url,verification_url";
     const url =
       SUPABASE_URL +
       "/rest/v1/certificates" +
