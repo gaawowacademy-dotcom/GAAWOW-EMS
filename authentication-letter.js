@@ -135,18 +135,11 @@ const SUPABASE_KEY =
     }
   }
 
-  function buildVerifyUrl(code, recordId) {
+ function buildVerifyUrl(code) {
     if (!code) return "";
 
-    const params = new URLSearchParams();
-    params.set("code", String(code));
-
-    if (recordId) {
-      params.set("id", String(recordId));
-    }
-
-    return VERIFY_PAGE + "?" + params.toString();
-  }
+    return VERIFY_PAGE + "?code=" + encodeURIComponent(String(code));
+}
 
   function renderQR(url) {
     const box = $("qrcode");
@@ -166,12 +159,12 @@ const SUPABASE_KEY =
 
     new window.QRCode(box, {
       text: url,
-      width: 74,
-      height: 74,
+      width: 110,
+      height: 110,
       colorDark: "#0B1E63",
       colorLight: "#FFFFFF",
       correctLevel:
-        window.QRCode.CorrectLevel.H
+        window.QRCode.CorrectLevel.M
     });
   }
 
@@ -391,10 +384,7 @@ const SUPABASE_KEY =
       verificationCode(certificate);
 
     const verifyUrl =
-      buildVerifyUrl(
-        verifyCode,
-        certificate.id
-      );
+  buildVerifyUrl(verifyCode);
 
     setStatus(
       certificate.status || "valid"
