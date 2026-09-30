@@ -1,233 +1,278 @@
-(() => {
-  "use strict";
+"use strict";
 
-  /* GAAWOW ACADEMY - Authentication Letter */
+const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-  const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
-  const EMS_BASE = "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/";
-  const VERIFY_PAGE = EMS_BASE + "verify-auth.html";
-  const AUTHENTICATION_LETTER_TYPE = "authentication_letter";
+const COLUMNS =
+  "id,student_id,certificate_no,certificate_id,verify_code,issue_date,expiry_date,status,student_name_snapshot,certificate_type";
 
-  const $ = id => document.getElementById(id);
-  let db = null;
-  let currentRecord = null;
+let allCertificates = [];
 
-  function setText(id, value) {
-    const el = $(id);
-    if (!el) return;
-    el.textContent = value == null || String(value).trim() === "" ? "—" : String(value);
-  }
+const $ = id => document.getElementById(id);
 
-  function message(text, type = "info") {
-    const el = $("systemMessage");
-    if (!el) return;
-    el.textContent = text;
-    el.className = "system-message show " + type;
-  }
+function esc(v) {
+  return String(v ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
 
-  function clearMessage() {
-    const el = $("systemMessage");
-    if (!el) return;
-    el.textContent = "";
-    el.className = "system-message no-print";
-  }
+function date(v) {
+  if (!v) return "—";
+  const d = new Date(String(v).length === 10 ? v+"T00:00:00" : v);
+  return Number.isNaN(d.getTime()) ? String(v) :
+    d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+}
 
-  function formatDate(value) {
-    if (!value) return "—";
-    const raw = String(value);
-    const d = new Date(raw.length === 10 ? raw + "T00:00:00" : raw);
-    if (Number.isNaN(d.getTime())) return raw;
-    return d.toLocaleDateString("en-GB", {
-      day: "2-digit", month: "long", year: "numeric"
+function typeName(v) {
+  return v === "authentication_letter" ? "Authentication Letter" :
+         v === "diploma" ? "Diploma" : "Certificate";
+}
+
+function status(v) {
+  return String(v || "valid").toLowerCase();
+}
+
+function errorBox(msg) {
+  if ($("errorTitle")) $("errorTitle").textContent = "Certificates connection error";
+  if ($("errorMessage")) $("errorMessage").textContent = msg;
+  if ($("errorBox")) $("errorBox").style.display = "block";
+}
+
+function stats(rows) {
+  $("totalStat").textContent = rows.length;
+  $("validStat").textContent =
+    rows.filter(x => ["valid","graduated"].includes(status(x.status))).length;
+  $("expiredStat").textContent =
+    rows.filter(x => status(x.status) === "expired").length;
+  $("revokedStat").textContent =
+    rows.filter(x => status(x.status) === "revoked").length;
+}
+
+async function getCertificates() {
+  const url =
+    SUPABASE_URL +
+    "/rest/v1/certificates?select=" +
+    encodeURIComponent(COLUMNS) +
+    "&order=issue_date.desc";
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const r = await fetch(url, {
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": "Bearer " + SUPABASE_KEY,
+        "Accept": "application/json"
+      },
+      cache: "no-store",
+      signal: controller.signal
     });
-  }
 
-  function getRecordId() {
-    const params = new URLSearchParams(window.location.search);
-    const id = (params.get("regen") || "").trim();
-    if (!id || id.length > 120 || !/^[A-Za-z0-9_-]+$/.test(id)) return "";
-    return id;
-  }
+    const text = await r.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch (_) {}
 
-  function setStatus(status) {
-    const el = $("status");
-    if (!el) return;
-    const value = String(status || "VALID").trim().toUpperCase();
-    el.textContent = value;
-    el.className = "";
-    if (value === "PENDING") el.classList.add("status-pending");
-    else if (value === "EXPIRED" || value === "REVOKED") el.classList.add("status-" + value.toLowerCase());
-    else if (value === "ERROR") el.classList.add("status-error");
-  }
-
-  /* IMPORTANT: public verification requires both code and record id. */
-  function buildVerifyUrl(code, recordId) {
-    if (!code) return "";
-    const params = new URLSearchParams();
-    params.set("code", String(code));
-    if (recordId) params.set("id", String(recordId));
-    return VERIFY_PAGE + "?" + params.toString();
-  }
-
-  function renderQR(url) {
-    const box = $("qrcode");
-    if (!box) return;
-    box.innerHTML = "";
-    if (!url) { box.textContent = "QR"; return; }
-    if (typeof window.QRCode === "undefined") { box.textContent = "QR unavailable"; return; }
-
-    new window.QRCode(box, {
-      text: url,
-      width: 130,
-      height: 130,
-      colorDark: "#0B1E63",
-      colorLight: "#FFFFFF",
-      correctLevel: window.QRCode.CorrectLevel.M
-    });
-  }
-
-  async function createClient() {
-    if (!window.supabase) throw new Error("Supabase library lama soo dejin.");
-    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-    });
-    const { data, error } = await db.auth.getUser();
-    if (error) throw new Error("Authentication error: " + error.message);
-    if (!data?.user) throw new Error("EMS login ayaa loo baahan yahay.");
-  }
-
-  async function loadCertificate(recordId) {
-    const { data, error } = await db.from("certificates").select("*").eq("id", recordId).maybeSingle();
-    if (error) throw new Error("Certificate database error: " + error.message);
-    if (!data) throw new Error("Authentication Letter record lama helin.");
-    return data;
-  }
-
-  async function loadStudent(studentReference) {
-    if (!studentReference) return null;
-    const byId = await db.from("students").select("*").eq("id", studentReference).maybeSingle();
-    if (!byId.error && byId.data) return byId.data;
-    const byStudentId = await db.from("students").select("*").eq("student_id", studentReference).maybeSingle();
-    if (!byStudentId.error && byStudentId.data) return byStudentId.data;
-    return null;
-  }
-
-  async function loadCourse(courseReference) {
-    if (!courseReference) return null;
-    const byId = await db.from("courses").select("*").eq("id", courseReference).maybeSingle();
-    if (!byId.error && byId.data) return byId.data;
-    const byCourseId = await db.from("courses").select("*").eq("course_id", courseReference).maybeSingle();
-    if (!byCourseId.error && byCourseId.data) return byCourseId.data;
-    return null;
-  }
-
-  function studentName(student, certificate) {
-    return student?.full_name || student?.student_name || certificate?.student_name_snapshot || certificate?.student_name || "—";
-  }
-
-  function studentPublicId(student, certificate) {
-    return student?.student_id || certificate?.student_id || "—";
-  }
-
-  function admissionDate(student, certificate) {
-    return student?.admission_date || certificate?.admission_date || certificate?.date_started || "";
-  }
-
-  function courseName(course, certificate) {
-    return certificate?.course_name_snapshot || certificate?.course_name || course?.name || course?.course_name || course?.title || "—";
-  }
-
-  function courseId(course, certificate) {
-    return certificate?.course_id_public || course?.course_id || certificate?.course_id || "—";
-  }
-
-  function completionDate(certificate) {
-    return certificate?.date_completed || certificate?.completion_date || certificate?.issue_date || "";
-  }
-
-  function documentId(certificate) {
-    return certificate?.certificate_no || certificate?.certificate_id || certificate?.id || "—";
-  }
-
-  function verificationCode(certificate) {
-    return certificate?.verify_code || certificate?.certificate_id || certificate?.certificate_no || "";
-  }
-
-  function renderLetter(certificate, student, course) {
-    currentRecord = certificate;
-    const name = studentName(student, certificate);
-    const publicStudentId = studentPublicId(student, certificate);
-    const verifyCode = verificationCode(certificate);
-
-    /* FIX: QR/public URL contains both verification code and database record id. */
-    const verifyUrl = buildVerifyUrl(verifyCode, certificate.id);
-
-    setStatus(certificate.status || "valid");
-    setText("documentId", documentId(certificate));
-    setText("issueDate", formatDate(certificate.issue_date));
-    setText("studentName", name);
-    setText("studentId", publicStudentId);
-    setText("admissionDate", formatDate(admissionDate(student, certificate)));
-    setText("course", courseName(course, certificate));
-    setText("courseId", courseId(course, certificate));
-    setText("completionDate", formatDate(completionDate(certificate)));
-    setText("authenticatedOn", formatDate(certificate.issue_date));
-    setText("verifyUrl", verifyUrl);
-    renderQR(verifyUrl);
-    document.title = "Authentication Letter - " + name;
-    clearMessage();
-  }
-
-  function showError(error) {
-    console.error("GAAWOW Authentication Letter:", error);
-    setStatus("ERROR");
-    setText("documentId", error?.message || "Unable to load record.");
-    ["issueDate","studentName","studentId","admissionDate","course","courseId","completionDate","authenticatedOn","verifyUrl"].forEach(id => setText(id, "—"));
-    const qr = $("qrcode");
-    if (qr) { qr.innerHTML = ""; qr.textContent = "—"; }
-    message(error?.message || "Authentication Letter lama furin.", "error");
-  }
-
-  async function load() {
-    try {
-      clearMessage();
-      const recordId = getRecordId();
-      if (!recordId) {
-        throw new Error("Record ID lama helin. Ka fur Authentication Letter gudaha Certificates.");
-      }
-      await createClient();
-      const certificate = await loadCertificate(recordId);
-      const type = String(certificate.certificate_type || "").toLowerCase();
-      if (type && type !== AUTHENTICATION_LETTER_TYPE) {
-        throw new Error("Record-kan ma aha Authentication Letter.");
-      }
-      const [student, course] = await Promise.all([
-        loadStudent(certificate.student_id),
-        loadCourse(certificate.course_id)
-      ]);
-      renderLetter(certificate, student, course);
-    } catch (error) {
-      showError(error);
+    if (!r.ok) {
+      throw new Error(
+        "HTTP " + r.status + ": " +
+        (data?.message || data?.hint || data?.error || text)
+      );
     }
+
+    if (!Array.isArray(data))
+      throw new Error("Supabase returned unexpected data.");
+
+    return data;
+  } catch (e) {
+    if (e.name === "AbortError")
+      throw new Error("Supabase timeout after 12 seconds.");
+    throw e;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function filtered() {
+  const q = ($("searchInput")?.value || "").toLowerCase().trim();
+  const s = $("statusFilter")?.value || "";
+  const t = $("typeFilter")?.value || "";
+
+  return allCertificates.filter(x => {
+    const hay = [
+      x.student_name_snapshot, x.student_id, x.certificate_no,
+      x.certificate_id, x.verify_code, x.certificate_type
+    ].join(" ").toLowerCase();
+
+    return (!q || hay.includes(q)) &&
+           (!s || status(x.status) === s) &&
+           (!t || x.certificate_type === t);
+  });
+}
+
+function render() {
+  const body = $("certBody");
+  if (!body) return;
+
+  const rows = filtered();
+  body.innerHTML = "";
+
+  if (!rows.length) {
+    $("certTable").style.display = "none";
+    $("empty").style.display = "block";
+    $("empty").textContent =
+      allCertificates.length ?
+      "No records match your search/filter." :
+      "No certificate records found.";
+    return;
   }
 
-  function printLetter() {
-    if (!currentRecord) {
-      message("Record-ka lama load-gareyn. Print lama bilaabi karo.", "error");
+  $("empty").style.display = "none";
+  $("certTable").style.display = "table";
+
+  rows.forEach(x => {
+    const tr = document.createElement("tr");
+    const st = status(x.status);
+    const isAuth = x.certificate_type === "authentication_letter";
+
+    tr.innerHTML = `
+      <td>
+        <div class="name">${esc(x.student_name_snapshot || "Unknown student")}</div>
+        <div class="code">${esc(x.student_id || "")}</div>
+      </td>
+      <td><span class="type">${esc(typeName(x.certificate_type))}</span></td>
+      <td><span class="code">${esc(x.certificate_no || "—")}</span></td>
+      <td><span class="code">${esc(x.certificate_id || "—")}</span></td>
+      <td>${esc(date(x.issue_date))}</td>
+      <td><span class="badge ${esc(st)}">${esc(st)}</span></td>
+      <td>
+        <div class="actions">
+          <button class="action view">View</button>
+          <button class="action open">${isAuth ? "Open Authentication Letter" : "Open"}</button>
+          <button class="action verify">Verify</button>
+        </div>
+      </td>`;
+
+    tr.querySelector(".view").onclick = () => view(x);
+
+    // Dedicated Open action. Authentication Letters always use their
+    // record UUID in ?regen= so authentication-letter.js can load the
+    // exact database record.
+    tr.querySelector(".open").onclick = () => openDocument(x);
+
+    tr.querySelector(".verify").onclick = () => {
+      const code = x.verify_code || "";
+      if (x.certificate_type === "authentication_letter") {
+        const id = x.id || "";
+        location.href =
+          "verify-auth.html?code=" + encodeURIComponent(code) +
+          (id ? "&id=" + encodeURIComponent(id) : "");
+      } else {
+        location.href =
+          "verify.html?code=" + encodeURIComponent(code);
+      }
+    };
+
+    body.appendChild(tr);
+  });
+}
+
+function view(x) {
+  if (!$("modalBody")) return;
+
+  $("modalBody").innerHTML = `
+    <div class="detail-grid">
+      <div class="detail"><label>Student</label><div>${esc(x.student_name_snapshot)}</div></div>
+      <div class="detail"><label>Type</label><div>${esc(typeName(x.certificate_type))}</div></div>
+      <div class="detail"><label>Certificate No.</label><div>${esc(x.certificate_no)}</div></div>
+      <div class="detail"><label>Certificate ID</label><div>${esc(x.certificate_id)}</div></div>
+      <div class="detail"><label>Verify Code</label><div>${esc(x.verify_code)}</div></div>
+      <div class="detail"><label>Student ID</label><div>${esc(x.student_id)}</div></div>
+      <div class="detail"><label>Issue Date</label><div>${esc(date(x.issue_date))}</div></div>
+      <div class="detail"><label>Status</label><div>${esc(x.status || "valid")}</div></div>
+    </div>`;
+
+  $("modalOpen").onclick = () => openDocument(x);
+  $("modalBackdrop").style.display = "flex";
+}
+
+function openDocument(x) {
+  const id = encodeURIComponent(x.id || "");
+
+  if (x.certificate_type === "authentication_letter") {
+    if (!x.id) {
+      alert("Authentication Letter Record ID lama helin.");
       return;
     }
-    window.print();
+
+    location.href = "authentication-letter.html?regen=" + id;
+    return;
   }
 
-  function backToCertificates() {
-    window.location.href = "certificates.html";
+  if (x.certificate_type === "diploma") {
+    location.href = "certificate.html?regen=" + id + "&type=diploma";
+    return;
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    $("printBtn")?.addEventListener("click", printLetter);
-    $("refreshBtn")?.addEventListener("click", load);
-    $("backBtn")?.addEventListener("click", backToCertificates);
-    load();
-  });
-})();
+  location.href = "certificate.html?regen=" + id;
+}
+
+function loadCertificates() {
+  if ($("loading")) $("loading").style.display = "block";
+  if ($("certTable")) $("certTable").style.display = "none";
+  if ($("empty")) $("empty").style.display = "none";
+
+  getCertificates()
+    .then(rows => {
+      allCertificates = rows;
+      stats(rows);
+      render();
+      console.log("GAAWOW: loaded", rows.length, "records");
+    })
+    .catch(e => {
+      console.error(e);
+      stats([]);
+      errorBox(e.message || String(e));
+      if ($("empty")) {
+        $("empty").style.display = "block";
+        $("empty").textContent = "Database connection failed.";
+      }
+    })
+    .finally(() => {
+      if ($("loading")) $("loading").style.display = "none";
+    });
+}
+
+function clearFilters() {
+  $("searchInput").value = "";
+  $("statusFilter").value = "";
+  $("typeFilter").value = "";
+  render();
+}
+
+function goGenerate() {
+  location.href = "certificate.html";
+}
+
+function hideModal() {
+  if ($("modalBackdrop")) $("modalBackdrop").style.display = "none";
+}
+
+function closeModal(e) {
+  if (e.target === $("modalBackdrop")) hideModal();
+}
+
+window.loadCertificates = loadCertificates;
+window.clearFilters = clearFilters;
+window.goGenerate = goGenerate;
+window.hideModal = hideModal;
+window.closeModal = closeModal;
+
+document.addEventListener("DOMContentLoaded", () => {
+  $("searchInput")?.addEventListener("input", render);
+  $("statusFilter")?.addEventListener("change", render);
+  $("typeFilter")?.addEventListener("change", render);
+  $("modalBackdrop")?.addEventListener("click", closeModal);
+  loadCertificates();
+});
