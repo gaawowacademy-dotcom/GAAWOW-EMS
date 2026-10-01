@@ -1554,4 +1554,5 @@ function setupPrint() {
 
   button.addEventListener(
     "click",
-    () =>
+    () =>*/
+     <script src="authentication-letter.js?v=20261001-6"></script>
