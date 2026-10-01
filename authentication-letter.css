@@ -1833,3 +1833,89 @@ button {
   }
 
 }
+/* =========================================================
+   OFFICIAL GAAWOW WATERMARK
+   Transparent logo inside the A4 document
+   ========================================================= */
+
+.document-watermark {
+
+  position: absolute;
+
+  top: 50%;
+
+  left: 50%;
+
+  width: 125mm;
+
+  height: 125mm;
+
+  transform:
+    translate(
+      -50%,
+      -50%
+    );
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  pointer-events: none;
+
+  z-index: 0;
+
+  opacity: 0.035;
+
+}
+
+
+.document-watermark img {
+
+  width: 100%;
+
+  height: 100%;
+
+  object-fit: contain;
+
+  display: block;
+
+  filter:
+    grayscale(100%);
+
+}
+
+
+/*
+   Keep all actual document content
+   above the watermark.
+*/
+
+.page > *:not(.document-watermark) {
+
+  position: relative;
+
+  z-index: 2;
+
+}
+
+
+/*
+   Watermark must also appear in
+   Print / PDF.
+*/
+
+@media print {
+
+  .document-watermark {
+
+    opacity: 0.035 !important;
+
+    -webkit-print-color-adjust: exact;
+
+    print-color-adjust: exact;
+
+  }
+
+}
