@@ -1,1053 +1,1318 @@
-/* ============================================================
-   GAAWOW ACADEMY
+/* =========================================================
+   GAAWOW ACADEMY EMS
    AUTHENTICATION LETTER
-   FIXED LOADING VERSION
-============================================================ */
+   authentication-letter.js
+   Version: 20261001-5
+   ========================================================= */
 
-(() => {
+"use strict";
 
-  "use strict";
+/* =========================================================
+   CONFIG
+   ========================================================= */
 
-  const SUPABASE_URL =
-    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+const SUPABASE_URL =
+  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-  const SUPABASE_KEY =
-    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+const SUPABASE_KEY =
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-
-  const $ = (selector) =>
-    document.querySelector(selector);
-
-
-  function firstAvailable(...values) {
-
-    for (const value of values) {
-
-      if (
-        value !== null &&
-        value !== undefined &&
-        String(value).trim() !== ""
-      ) {
-        return value;
-      }
-
-    }
-
-    return null;
-  }
+const PAGE_TIMEOUT = 12000;
 
 
-  function formatDate(value) {
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function $(id) {
+  return document.getElementById(id);
+}
+
+
+function firstAvailable(...values) {
+
+  for (const value of values) {
 
     if (
-      value === null ||
-      value === undefined ||
-      String(value).trim() === ""
+      value !== null &&
+      value !== undefined &&
+      String(value).trim() !== ""
     ) {
-      return "N/A";
-    }
-
-    const d = new Date(value);
-
-    if (Number.isNaN(d.getTime())) {
-      return String(value);
-    }
-
-    return new Intl.DateTimeFormat(
-      "en-GB",
-      {
-        day: "2-digit",
-        month: "long",
-        year: "numeric"
-      }
-    ).format(d);
-
-  }
-
-
-  function normalizeType(value) {
-
-    return String(value || "")
-      .trim()
-      .toLowerCase()
-      .replace(/[\s-]+/g, "_");
-
-  }
-
-
-  function setText(selector, value) {
-
-    const element = $(selector);
-
-    if (!element) return;
-
-    element.textContent =
-      firstAvailable(value, "N/A");
-
-  }
-
-
-  function showPage() {
-
-    const loading = $("#loading");
-    const error = $("#errorState");
-    const page = $("#authenticationLetter");
-
-    if (loading) {
-      loading.hidden = true;
-      loading.style.display = "none";
-    }
-
-    if (error) {
-      error.hidden = true;
-      error.style.display = "none";
-    }
-
-    if (page) {
-      page.hidden = false;
-      page.style.display = "block";
+      return value;
     }
 
   }
 
+  return null;
+}
 
-  function showError(message, details = "") {
 
-    const loading = $("#loading");
-    const error = $("#errorState");
-    const messageBox = $("#errorMessage");
-    const detailsBox = $("#errorDetails");
+function text(value) {
 
-    if (loading) {
-      loading.hidden = true;
-      loading.style.display = "none";
-    }
+  if (
+    value === null ||
+    value === undefined ||
+    String(value).trim() === ""
+  ) {
+    return "N/A";
+  }
 
-    if (error) {
-      error.hidden = false;
-      error.style.display = "flex";
-    }
+  return String(value);
+}
 
-    if (messageBox) {
-      messageBox.textContent = message;
-    }
 
-    if (detailsBox) {
-      detailsBox.textContent = details;
-    }
+function escapeHTML(value) {
+
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+/* =========================================================
+   DATE
+   ========================================================= */
+
+function formatDate(value) {
+
+  if (
+    value === null ||
+    value === undefined ||
+    String(value).trim() === ""
+  ) {
+    return "N/A";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return text(value);
+  }
+
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  });
+}
+
+
+/* =========================================================
+   NORMALIZE TYPE
+   ========================================================= */
+
+function normalizeType(value) {
+
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+}
+
+
+/* =========================================================
+   TIMEOUT
+   ========================================================= */
+
+function timeoutPromise(ms, message) {
+
+  return new Promise((_, reject) => {
+
+    setTimeout(() => {
+      reject(new Error(message));
+    }, ms);
+
+  });
+
+}
+
+
+async function withTimeout(promise, ms, message) {
+
+  return Promise.race([
+    promise,
+    timeoutPromise(ms, message)
+  ]);
+
+}
+
+
+/* =========================================================
+   PAGE STATE
+   ========================================================= */
+
+function showLoading() {
+
+  const loading = $("loading");
+  const error = $("errorState");
+  const documentPage = $("authenticationLetter");
+
+  if (loading) {
+    loading.style.display = "flex";
+  }
+
+  if (error) {
+    error.style.display = "none";
+  }
+
+  if (documentPage) {
+    documentPage.style.display = "none";
+  }
+
+}
+
+
+function showPage() {
+
+  const loading = $("loading");
+  const error = $("errorState");
+  const documentPage = $("authenticationLetter");
+
+  if (loading) {
+    loading.style.display = "none";
+  }
+
+  if (error) {
+    error.style.display = "none";
+  }
+
+  if (documentPage) {
+    documentPage.style.display = "block";
+  }
+
+}
+
+
+function showError(message, details = "") {
+
+  console.error(
+    "[GAAWOW AUTH LETTER ERROR]",
+    message,
+    details
+  );
+
+  const loading = $("loading");
+  const error = $("errorState");
+  const documentPage = $("authenticationLetter");
+  const errorMessage = $("errorMessage");
+  const errorDetails = $("errorDetails");
+
+  if (loading) {
+    loading.style.display = "none";
+  }
+
+  if (documentPage) {
+    documentPage.style.display = "none";
+  }
+
+  if (errorMessage) {
+    errorMessage.textContent =
+      message || "Authentication Letter could not be loaded.";
+  }
+
+  if (errorDetails) {
+
+    errorDetails.textContent =
+      details
+        ? String(details)
+        : "";
 
   }
 
-
-  function getParams() {
-
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
-
-    return {
-
-      regen:
-        params.get("regen"),
-
-      id:
-        params.get("id"),
-
-      record_id:
-        params.get("record_id"),
-
-      code:
-        params.get("code")
-
-    };
-
+  if (error) {
+    error.style.display = "block";
   }
 
+}
 
-  function getSupabase() {
 
-    if (
-      !window.supabase ||
-      typeof window.supabase.createClient !== "function"
-    ) {
+/* =========================================================
+   URL PARAMETERS
+   ========================================================= */
 
-      throw new Error(
-        "Supabase library lama soo dejin."
-      );
+function getParams() {
 
-    }
+  const params = new URLSearchParams(
+    window.location.search
+  );
 
-    return window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY
+  return {
+
+    regen:
+      params.get("regen"),
+
+    id:
+      params.get("id"),
+
+    record_id:
+      params.get("record_id"),
+
+    code:
+      params.get("code")
+
+  };
+
+}
+
+
+/* =========================================================
+   SUPABASE
+   ========================================================= */
+
+function getSupabase() {
+
+  if (
+    typeof window.supabase === "undefined" ||
+    typeof window.supabase.createClient !== "function"
+  ) {
+
+    throw new Error(
+      "Supabase library lama soo load-gareyn."
     );
 
   }
 
+  return window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 
-  /* ==========================================================
-     FETCH RECORD
-  ========================================================== */
-
-  async function getRecord(supabase, params) {
-
-    let result;
-
-    const recordId =
-      firstAvailable(
-        params.regen,
-        params.record_id
-      );
+}
 
 
-    /* --------------------------------------------------------
-       SEARCH BY DATABASE UUID
-    -------------------------------------------------------- */
+/* =========================================================
+   GET CERTIFICATE RECORD
+   ========================================================= */
 
-    if (recordId) {
+async function getRecord(supabase, params) {
 
-      result =
-        await supabase
+  console.log(
+    "[AUTH LETTER] URL parameters:",
+    params
+  );
+
+
+  const recordId =
+    firstAvailable(
+      params.regen,
+      params.record_id
+    );
+
+
+  /* -------------------------------------------------------
+     1. REGEN / RECORD UUID
+     ------------------------------------------------------- */
+
+  if (recordId) {
+
+    console.log(
+      "[AUTH LETTER] Searching certificate by id:",
+      recordId
+    );
+
+
+    const result =
+      await withTimeout(
+
+        supabase
           .from("certificates")
           .select("*")
           .eq("id", recordId)
-          .maybeSingle();
+          .limit(1)
+          .maybeSingle(),
 
-      if (result.error) {
-        throw result.error;
-      }
+        PAGE_TIMEOUT,
 
-      if (result.data) {
-        return result.data;
-      }
+        "Certificates query timeout kadib 12 seconds."
+
+      );
+
+
+    if (result.error) {
+
+      console.error(
+        "[AUTH LETTER] Supabase ID query error:",
+        result.error
+      );
+
+      throw result.error;
 
     }
 
 
-    /* --------------------------------------------------------
-       SEARCH BY CERTIFICATE ID
-    -------------------------------------------------------- */
+    if (result.data) {
 
-    if (params.id) {
+      console.log(
+        "[AUTH LETTER] Record found by UUID:",
+        result.data
+      );
 
-      result =
-        await supabase
+      return result.data;
+
+    }
+
+  }
+
+
+  /* -------------------------------------------------------
+     2. CERTIFICATE ID
+     ------------------------------------------------------- */
+
+  if (params.id) {
+
+    console.log(
+      "[AUTH LETTER] Searching by certificate_id:",
+      params.id
+    );
+
+
+    const result =
+      await withTimeout(
+
+        supabase
           .from("certificates")
           .select("*")
-          .eq(
-            "certificate_id",
-            params.id
-          )
-          .maybeSingle();
+          .eq("certificate_id", params.id)
+          .limit(1)
+          .maybeSingle(),
 
-      if (result.error) {
-        throw result.error;
-      }
+        PAGE_TIMEOUT,
 
-      if (result.data) {
-        return result.data;
-      }
+        "Certificate ID query timeout kadib 12 seconds."
+
+      );
+
+
+    if (result.error) {
+
+      console.error(
+        "[AUTH LETTER] certificate_id query error:",
+        result.error
+      );
+
+      throw result.error;
 
     }
 
 
-    /* --------------------------------------------------------
-       SEARCH BY VERIFICATION CODE
-    -------------------------------------------------------- */
+    if (result.data) {
 
-    if (params.code) {
+      console.log(
+        "[AUTH LETTER] Record found by certificate_id:",
+        result.data
+      );
 
-      result =
-        await supabase
+      return result.data;
+
+    }
+
+  }
+
+
+  /* -------------------------------------------------------
+     3. VERIFICATION CODE
+     ------------------------------------------------------- */
+
+  if (params.code) {
+
+    console.log(
+      "[AUTH LETTER] Searching by verify_code:",
+      params.code
+    );
+
+
+    const result =
+      await withTimeout(
+
+        supabase
           .from("certificates")
           .select("*")
-          .eq(
-            "verify_code",
-            params.code
-          )
-          .maybeSingle();
+          .eq("verify_code", params.code)
+          .limit(1)
+          .maybeSingle(),
 
-      if (result.error) {
-        throw result.error;
-      }
+        PAGE_TIMEOUT,
 
-      if (result.data) {
-        return result.data;
-      }
+        "Verification code query timeout kadib 12 seconds."
+
+      );
+
+
+    if (result.error) {
+
+      console.error(
+        "[AUTH LETTER] verify_code query error:",
+        result.error
+      );
+
+      throw result.error;
 
     }
 
 
-    throw new Error(
-      "Authentication Letter record lama helin."
-    );
+    if (result.data) {
 
-  }
-
-
-  /* ==========================================================
-     CHECK TYPE
-  ========================================================== */
-
-  function checkAuthentication(record) {
-
-    const type =
-      normalizeType(
-        record.certificate_type
+      console.log(
+        "[AUTH LETTER] Record found by verify_code:",
+        result.data
       );
 
+      return result.data;
 
-    const id =
-      String(
-        firstAvailable(
-          record.certificate_id,
-          record.certificate_no
-        ) || ""
-      ).toUpperCase();
-
-
-    return (
-      type === "authentication_letter" ||
-      type.includes("authentication") ||
-      id.startsWith("GAA-AUTH-")
-    );
+    }
 
   }
 
 
-  /* ==========================================================
-     RPC
-  ========================================================== */
+  return null;
 
-  async function getRPCData(
-    supabase,
-    record
+}
+
+
+/* =========================================================
+   AUTHENTICATION LETTER CHECK
+   ========================================================= */
+
+function checkAuthentication(record) {
+
+  if (!record) {
+    return false;
+  }
+
+
+  const type =
+    normalizeType(
+      record.certificate_type
+    );
+
+
+  const certificateId =
+    String(
+      record.certificate_id || ""
+    ).toUpperCase();
+
+
+  const certificateNo =
+    String(
+      record.certificate_no || ""
+    ).toUpperCase();
+
+
+  console.log(
+    "[AUTH LETTER] Type:",
+    type
+  );
+
+
+  console.log(
+    "[AUTH LETTER] Certificate ID:",
+    certificateId
+  );
+
+
+  console.log(
+    "[AUTH LETTER] Certificate No:",
+    certificateNo
+  );
+
+
+  if (
+    type === "authentication_letter" ||
+    type === "authenticationletter"
   ) {
 
-    try {
-
-      const code =
-        firstAvailable(
-          record.verify_code,
-          record.verification_code
-        );
-
-
-      const authId =
-        firstAvailable(
-          record.certificate_id,
-          record.authentication_id
-        );
-
-
-      if (!code) {
-        return null;
-      }
-
-
-      const response =
-        await supabase.rpc(
-          "verify_authentication_letter",
-          {
-            p_code: code,
-            p_id: authId || null
-          }
-        );
-
-
-      if (response.error) {
-
-        console.warn(
-          "RPC warning:",
-          response.error
-        );
-
-        return null;
-
-      }
-
-
-      if (Array.isArray(response.data)) {
-
-        return response.data[0] || null;
-
-      }
-
-
-      return response.data || null;
-
-    } catch (error) {
-
-      console.warn(
-        "RPC failed:",
-        error
-      );
-
-      return null;
-
-    }
+    return true;
 
   }
 
 
-  /* ==========================================================
-     STUDENT
-  ========================================================== */
-
-  async function getStudent(
-    supabase,
-    record
+  if (
+    type.includes("authentication")
   ) {
 
-    if (!record.student_id) {
-      return null;
-    }
-
-
-    try {
-
-      const response =
-        await supabase
-          .from("students")
-          .select("*")
-          .eq(
-            "id",
-            record.student_id
-          )
-          .maybeSingle();
-
-
-      if (response.error) {
-        return null;
-      }
-
-
-      return response.data || null;
-
-    } catch {
-
-      return null;
-
-    }
+    return true;
 
   }
 
 
-  /* ==========================================================
-     RENDER STUDENT
-  ========================================================== */
-
-  function renderStudent(
-    record,
-    rpc,
-    student
+  if (
+    certificateId.startsWith("GAA-AUTH-")
   ) {
 
-    const studentName =
-      firstAvailable(
-
-        rpc?.student_name,
-
-        record.student_name_snapshot,
-
-        student?.full_name,
-
-        student?.student_name,
-
-        student?.name
-
-      );
-
-
-    const courseName =
-      firstAvailable(
-
-        rpc?.course_name,
-
-        record.course_name_snapshot,
-
-        record.course_name,
-
-        student?.course_name,
-
-        student?.program_name
-
-      );
-
-
-    /*
-      IMPORTANT:
-      ONLY real Authentication Letter dates.
-    */
-
-    const dateStarted =
-      firstAvailable(
-
-        rpc?.date_started,
-
-        record.date_started
-
-      );
-
-
-    const dateCompleted =
-      firstAvailable(
-
-        rpc?.date_completed,
-
-        record.date_completed
-
-      );
-
-
-    setText(
-      "#studentName",
-      studentName
-    );
-
-
-    setText(
-      "#courseName",
-      courseName
-    );
-
-
-    setText(
-      "#dateStarted",
-      formatDate(dateStarted)
-    );
-
-
-    setText(
-      "#dateCompleted",
-      formatDate(dateCompleted)
-    );
-
-
-    setText(
-      "#startDate",
-      formatDate(dateStarted)
-    );
-
-
-    setText(
-      "#completionDate",
-      formatDate(dateCompleted)
-    );
-
-
-    /* PHOTO */
-
-    const photo =
-      firstAvailable(
-
-        rpc?.student_photo_url,
-
-        record.student_photo_url,
-
-        student?.student_photo_url,
-
-        student?.photo_url,
-
-        student?.photo
-
-      );
-
-
-    const photoElement =
-      $("#studentPhoto");
-
-
-    const placeholder =
-      $("#photoPlaceholder");
-
-
-    if (
-      photoElement &&
-      photo
-    ) {
-
-      photoElement.src =
-        photo;
-
-      photoElement.style.display =
-        "block";
-
-
-      if (placeholder) {
-        placeholder.style.display =
-          "none";
-      }
-
-    }
+    return true;
 
   }
 
 
-  /* ==========================================================
-     RENDER AUTH INFO
-  ========================================================== */
-
-  function renderAuth(
-    record,
-    rpc
+  if (
+    certificateNo.startsWith("GAA-AUTH-")
   ) {
 
-    setText(
-      "#referenceNo",
-
-      firstAvailable(
-
-        rpc?.reference_no,
-
-        record.certificate_no,
-
-        record.reference_no
-
-      )
-    );
-
-
-    setText(
-      "#authenticationId",
-
-      firstAvailable(
-
-        rpc?.authentication_id,
-
-        record.certificate_id,
-
-        record.authentication_id
-
-      )
-    );
-
-
-    setText(
-      "#verificationCode",
-
-      firstAvailable(
-
-        rpc?.verification_code,
-
-        record.verify_code,
-
-        record.verification_code
-
-      )
-    );
+    return true;
 
   }
 
 
-  /* ==========================================================
-     STATUS
-  ========================================================== */
+  return false;
 
-  function renderStatus(
-    record,
-    rpc
-  ) {
-
-    const status =
-      firstAvailable(
-        rpc?.status,
-        record.status,
-        "valid"
-      );
+}
 
 
-    const element =
-      $("#status");
+/* =========================================================
+   RPC
+   ========================================================= */
 
+async function getRPCData(supabase, record) {
 
-    if (!element) return;
-
-
-    element.textContent =
-      String(status)
-        .toUpperCase();
-
-
-    element.className =
-      "status-badge";
-
-
-    const normalized =
-      String(status)
-        .toLowerCase();
-
-
-    if (
-      normalized === "expired"
-    ) {
-
-      element.classList.add(
-        "expired"
-      );
-
-    }
-
-
-    if (
-      normalized === "revoked" ||
-      normalized === "invalid"
-    ) {
-
-      element.classList.add(
-        "invalid"
-      );
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     DATES
-  ========================================================== */
-
-  function renderDates(
-    record,
-    rpc
-  ) {
-
-    setText(
-      "#issueDate",
-
-      formatDate(
-        firstAvailable(
-          rpc?.issue_date,
-          record.issue_date
-        )
-      )
-    );
-
-
-    setText(
-      "#expiryDate",
-
-      formatDate(
-        firstAvailable(
-          rpc?.expiry_date,
-          record.expiry_date
-        )
-      )
-    );
-
-  }
-
-
-  /* ==========================================================
-     QR
-  ========================================================== */
-
-  function renderQR(
-    record,
-    rpc
-  ) {
-
-    const container =
-      $("#qrcode");
-
-
-    if (!container) return;
-
-
-    container.innerHTML = "";
-
-
-    if (
-      typeof window.QRCode === "undefined"
-    ) {
-
-      container.innerHTML =
-        "<small>QR unavailable</small>";
-
-      return;
-
-    }
-
+  try {
 
     const code =
       firstAvailable(
-        rpc?.verification_code,
         record.verify_code
       );
 
 
-    const authId =
+    const id =
       firstAvailable(
-        rpc?.authentication_id,
         record.certificate_id
       );
 
 
-    let verificationURL =
-      firstAvailable(
-        rpc?.verification_url,
-        record.verification_url
+    if (!code) {
+
+      console.warn(
+        "[AUTH LETTER] No verification code for RPC."
       );
 
-
-    if (!verificationURL) {
-
-      verificationURL =
-        window.location.origin +
-        "/GAAWOW-EMS/verify-auth.html" +
-        "?code=" +
-        encodeURIComponent(
-          code || ""
-        ) +
-        "&id=" +
-        encodeURIComponent(
-          authId || ""
-        );
+      return null;
 
     }
 
 
-    new QRCode(
-      container,
-      {
-        text: verificationURL,
-        width: 116,
-        height: 116
-      }
+    console.log(
+      "[AUTH LETTER] Calling verify_authentication_letter RPC..."
+    );
+
+
+    const result =
+      await withTimeout(
+
+        supabase.rpc(
+          "verify_authentication_letter",
+          {
+            p_code: code,
+            p_id: id || null
+          }
+        ),
+
+        8000,
+
+        "Authentication verification RPC timeout."
+
+      );
+
+
+    if (result.error) {
+
+      console.warn(
+        "[AUTH LETTER] RPC error:",
+        result.error
+      );
+
+      return null;
+
+    }
+
+
+    let data = result.data;
+
+
+    if (Array.isArray(data)) {
+      data = data[0] || null;
+    }
+
+
+    console.log(
+      "[AUTH LETTER] RPC data:",
+      data
+    );
+
+
+    return data || null;
+
+  } catch (error) {
+
+    console.warn(
+      "[AUTH LETTER] RPC failed:",
+      error
+    );
+
+    return null;
+
+  }
+
+}
+
+
+/* =========================================================
+   STUDENT FALLBACK
+   ========================================================= */
+
+async function getStudent(supabase, studentId) {
+
+  if (!studentId) {
+    return null;
+  }
+
+
+  try {
+
+    const result =
+      await withTimeout(
+
+        supabase
+          .from("students")
+          .select("*")
+          .eq("id", studentId)
+          .limit(1)
+          .maybeSingle(),
+
+        6000,
+
+        "Student query timeout."
+
+      );
+
+
+    if (result.error) {
+
+      console.warn(
+        "[AUTH LETTER] Student query error:",
+        result.error
+      );
+
+      return null;
+
+    }
+
+
+    return result.data || null;
+
+  } catch (error) {
+
+    console.warn(
+      "[AUTH LETTER] Student fallback failed:",
+      error
+    );
+
+    return null;
+
+  }
+
+}
+
+
+/* =========================================================
+   STUDENT RENDER
+   ========================================================= */
+
+function renderStudent(record, rpc, student) {
+
+  const studentName =
+    firstAvailable(
+
+      rpc?.student_name,
+
+      record.student_name_snapshot,
+
+      student?.full_name,
+
+      student?.student_name,
+
+      student?.name
+
+    );
+
+
+  const courseName =
+    firstAvailable(
+
+      rpc?.course_name,
+
+      record.course_name_snapshot,
+
+      student?.course_name,
+
+      student?.program_name
+
+    );
+
+
+  const dateStarted =
+    firstAvailable(
+
+      rpc?.date_started,
+
+      record.date_started
+
+    );
+
+
+  const dateCompleted =
+    firstAvailable(
+
+      rpc?.date_completed,
+
+      record.date_completed
+
+    );
+
+
+  const studentPhoto =
+    firstAvailable(
+
+      rpc?.student_photo_url,
+
+      record.student_photo_url,
+
+      student?.photo_url,
+
+      student?.student_photo_url,
+
+      student?.photo
+
+    );
+
+
+  if ($("studentName")) {
+
+    $("studentName").textContent =
+      text(studentName);
+
+  }
+
+
+  if ($("courseName")) {
+
+    $("courseName").textContent =
+      text(courseName);
+
+  }
+
+
+  if ($("dateStarted")) {
+
+    $("dateStarted").textContent =
+      formatDate(dateStarted);
+
+  }
+
+
+  if ($("dateCompleted")) {
+
+    $("dateCompleted").textContent =
+      formatDate(dateCompleted);
+
+  }
+
+
+  if ($("studentPhoto")) {
+
+    if (studentPhoto) {
+
+      $("studentPhoto").src =
+        studentPhoto;
+
+      $("studentPhoto").style.display =
+        "block";
+
+    } else {
+
+      $("studentPhoto").removeAttribute("src");
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   AUTHENTICATION INFORMATION
+   ========================================================= */
+
+function renderAuth(record, rpc) {
+
+  const referenceNo =
+    firstAvailable(
+
+      rpc?.reference_no,
+
+      record.certificate_no
+
+    );
+
+
+  const authenticationId =
+    firstAvailable(
+
+      rpc?.authentication_id,
+
+      record.certificate_id
+
+    );
+
+
+  const verificationCode =
+    firstAvailable(
+
+      rpc?.verification_code,
+
+      record.verify_code
+
+    );
+
+
+  if ($("referenceNo")) {
+
+    $("referenceNo").textContent =
+      text(referenceNo);
+
+  }
+
+
+  if ($("authenticationId")) {
+
+    $("authenticationId").textContent =
+      text(authenticationId);
+
+  }
+
+
+  if ($("verificationCode")) {
+
+    $("verificationCode").textContent =
+      text(verificationCode);
+
+  }
+
+}
+
+
+/* =========================================================
+   STATUS
+   ========================================================= */
+
+function renderStatus(record, rpc) {
+
+  const status =
+    firstAvailable(
+
+      rpc?.status,
+
+      record.status
+
+    );
+
+
+  if (!$("status")) {
+    return;
+  }
+
+
+  const value =
+    String(status || "valid")
+      .trim();
+
+
+  $("status").textContent =
+    value.toUpperCase();
+
+
+  $("status").className =
+    "status " +
+    value.toLowerCase();
+
+}
+
+
+/* =========================================================
+   DATES
+   ========================================================= */
+
+function renderDates(record, rpc) {
+
+  const startDate =
+    firstAvailable(
+
+      rpc?.date_started,
+
+      record.date_started
+
+    );
+
+
+  const completionDate =
+    firstAvailable(
+
+      rpc?.date_completed,
+
+      record.date_completed
+
+    );
+
+
+  const issueDate =
+    firstAvailable(
+
+      rpc?.issue_date,
+
+      record.issue_date
+
+    );
+
+
+  const expiryDate =
+    firstAvailable(
+
+      rpc?.expiry_date,
+
+      record.expiry_date
+
+    );
+
+
+  if ($("startDate")) {
+
+    $("startDate").textContent =
+      formatDate(startDate);
+
+  }
+
+
+  if ($("completionDate")) {
+
+    $("completionDate").textContent =
+      formatDate(completionDate);
+
+  }
+
+
+  if ($("issueDate")) {
+
+    $("issueDate").textContent =
+      formatDate(issueDate);
+
+  }
+
+
+  if ($("expiryDate")) {
+
+    $("expiryDate").textContent =
+      formatDate(expiryDate);
+
+  }
+
+}
+
+
+/* =========================================================
+   QR CODE
+   ========================================================= */
+
+function renderQR(record, rpc) {
+
+  const container =
+    $("qrcode");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  container.innerHTML = "";
+
+
+  const verificationUrl =
+    firstAvailable(
+
+      rpc?.verification_url,
+
+      record.verification_url,
+
+      buildVerificationURL(record)
+
+    );
+
+
+  if (!verificationUrl) {
+
+    console.warn(
+      "[AUTH LETTER] Verification URL missing."
+    );
+
+    return;
+
+  }
+
+
+  console.log(
+    "[AUTH LETTER] QR URL:",
+    verificationUrl
+  );
+
+
+  if (
+    typeof window.QRCode !== "undefined"
+  ) {
+
+    try {
+
+      new QRCode(container, {
+
+        text: verificationUrl,
+
+        width: 145,
+
+        height: 145,
+
+        colorDark: "#0B1E63",
+
+        colorLight: "#FFFFFF",
+
+        correctLevel:
+          QRCode.CorrectLevel.H
+
+      });
+
+      return;
+
+    } catch (error) {
+
+      console.warn(
+        "[AUTH LETTER] QRCode library error:",
+        error
+      );
+
+    }
+
+  }
+
+
+  const img =
+    document.createElement("img");
+
+
+  img.src =
+    "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" +
+    encodeURIComponent(
+      verificationUrl
+    );
+
+
+  img.alt =
+    "Verification QR Code";
+
+
+  img.width = 145;
+  img.height = 145;
+
+
+  container.appendChild(img);
+
+}
+
+
+function buildVerificationURL(record) {
+
+  const code =
+    record?.verify_code;
+
+
+  const id =
+    record?.certificate_id;
+
+
+  if (!code) {
+    return null;
+  }
+
+
+  const base =
+    window.location.origin +
+    "/GAAWOW-EMS/verify-auth.html";
+
+
+  const query =
+    new URLSearchParams();
+
+
+  query.set(
+    "code",
+    code
+  );
+
+
+  if (id) {
+
+    query.set(
+      "id",
+      id
     );
 
   }
 
 
-  /* ==========================================================
-     ACADEMIC RESULTS
-     IMPORTANT:
-     Results failure NEVER blocks document.
-  ========================================================== */
+  return (
+    base +
+    "?" +
+    query.toString()
+  );
 
-  async function renderResults(
-    supabase,
-    record
-  ) {
-
-    const container =
-      $("#academicResults");
+}
 
 
-    if (!container) return;
+/* =========================================================
+   ACADEMIC RESULTS
+   ========================================================= */
+
+async function renderResults(supabase, record) {
+
+  const container =
+    $("academicResults");
 
 
-    if (!record.student_id) {
+  if (!container) {
+    return;
+  }
 
-      container.innerHTML = `
-        <div class="results-empty">
-          No published academic results available.
-        </div>
-      `;
+
+  if (!record.student_id) {
+
+    container.innerHTML =
+      "<div class=\"no-results\">No academic results available.</div>";
+
+    return;
+
+  }
+
+
+  try {
+
+    console.log(
+      "[AUTH LETTER] Loading academic results..."
+    );
+
+
+    const resultsResponse =
+      await withTimeout(
+
+        supabase
+          .from("results")
+          .select("*")
+          .eq("student_id", record.student_id)
+          .eq("is_published", true),
+
+        7000,
+
+        "Academic results query timeout."
+
+      );
+
+
+    if (resultsResponse.error) {
+
+      console.warn(
+        "[AUTH LETTER] Results error:",
+        resultsResponse.error
+      );
+
+      container.innerHTML =
+        "<div class=\"no-results\">Academic results unavailable.</div>";
 
       return;
 
     }
 
 
-    try {
-
-      const response =
-        await supabase
-          .from("results")
-          .select("*")
-          .eq(
-            "student_id",
-            record.student_id
-          )
-          .eq(
-            "is_published",
-            true
-          );
+    const results =
+      resultsResponse.data || [];
 
 
-      if (
-        response.error
-      ) {
+    if (!results.length) {
 
-        throw response.error;
+      container.innerHTML =
+        "<div class=\"no-results\">No published academic results available.</div>";
 
-      }
+      return;
 
-
-      const rows =
-        response.data || [];
+    }
 
 
-      if (!rows.length) {
-
-        container.innerHTML = `
-          <div class="results-empty">
-            No published academic results available.
-          </div>
-        `;
-
-        return;
-
-      }
+    const subjectIds =
+      [
+        ...new Set(
+          results
+            .map(row => row.subject_id)
+            .filter(Boolean)
+        )
+      ];
 
 
-      let subjects = [];
+    let subjects = [];
 
 
-      const ids =
-        [
-          ...new Set(
-            rows
-              .map(
-                r => r.subject_id
-              )
-              .filter(Boolean)
-          )
-        ];
+    if (subjectIds.length) {
 
+      const subjectsResponse =
+        await withTimeout(
 
-      if (ids.length) {
+          supabase
+            .from("subjects")
+            .select("*")
+            .in("id", subjectIds),
 
-        try {
+          6000,
 
-          const subjectResponse =
-            await supabase
-              .from("subjects")
-              .select("*")
-              .in(
-                "id",
-                ids
-              );
+          "Subjects query timeout."
 
-
-          if (
-            !subjectResponse.error
-          ) {
-
-            subjects =
-              subjectResponse.data || [];
-
-          }
-
-        } catch {
-
-          subjects = [];
-
-        }
-
-      }
-
-
-      const subjectMap =
-        new Map();
-
-
-      subjects.forEach(
-        subject => {
-
-          subjectMap.set(
-            String(subject.id),
-            subject
-          );
-
-        }
-      );
-
-
-      const data =
-        rows.map(
-          row => {
-
-            const subject =
-              subjectMap.get(
-                String(
-                  row.subject_id
-                )
-              );
-
-
-            return {
-
-              subject:
-                firstAvailable(
-
-                  row.subject_name,
-
-                  row.name,
-
-                  subject?.name,
-
-                  subject?.subject_name,
-
-                  "N/A"
-
-                ),
-
-              score:
-                firstAvailable(
-
-                  row.score,
-
-                  row.marks,
-
-                  row.mark,
-
-                  row.final_score
-
-                ),
-
-              grade:
-                firstAvailable(
-
-                  row.grade,
-
-                  row.letter_grade
-
-                )
-
-            };
-
-          }
         );
 
 
-      const html =
-        data.map(
-          (row, index) => `
+      if (
+        !subjectsResponse.error
+      ) {
 
-            <tr>
+        subjects =
+          subjectsResponse.data || [];
 
-              <td>
-                ${index + 1}
-              </td>
+      }
 
-              <td>
-                ${escapeHTML(
-                  row.subject
-                )}
-              </td>
-
-              <td class="score">
-                ${escapeHTML(
-                  row.score ?? "N/A"
-                )}
-              </td>
-
-              <td class="grade">
-                ${escapeHTML(
-                  row.grade ?? "N/A"
-                )}
-              </td>
-
-            </tr>
-
-          `
-        ).join("");
+    }
 
 
-      container.innerHTML = `
+    const subjectMap =
+      new Map();
+
+
+    subjects.forEach(subject => {
+
+      subjectMap.set(
+        subject.id,
+        subject
+      );
+
+    });
+
+
+    let html = `
+
+      <div class="results-table-wrapper">
 
         <table class="results-table">
 
@@ -1055,13 +1320,11 @@
 
             <tr>
 
-              <th>#</th>
+              <th>Subject</th>
 
-              <th>SUBJECT</th>
+              <th>Score</th>
 
-              <th>SCORE</th>
-
-              <th>GRADE</th>
+              <th>Grade</th>
 
             </tr>
 
@@ -1069,338 +1332,213 @@
 
           <tbody>
 
-            ${html}
+    `;
+
+
+    results.forEach(row => {
+
+      const subject =
+        subjectMap.get(
+          row.subject_id
+        );
+
+
+      const subjectName =
+        firstAvailable(
+
+          row.subject_name,
+
+          subject?.name,
+
+          subject?.subject_name,
+
+          "Subject"
+
+        );
+
+
+      const score =
+        firstAvailable(
+
+          row.score,
+
+          row.marks,
+
+          row.total_score
+
+        );
+
+
+      const grade =
+        firstAvailable(
+
+          row.grade,
+
+          row.grade_name
+
+        );
+
+
+      html += `
+
+        <tr>
+
+          <td>
+            ${escapeHTML(subjectName)}
+          </td>
+
+          <td>
+            ${escapeHTML(
+              score ?? "N/A"
+            )}
+          </td>
+
+          <td>
+            ${escapeHTML(
+              grade ?? "N/A"
+            )}
+          </td>
+
+        </tr>
+
+      `;
+
+    });
+
+
+    html += `
 
           </tbody>
 
         </table>
 
-      `;
+      </div>
 
-    } catch (error) {
-
-      console.warn(
-        "Results unavailable:",
-        error
-      );
+    `;
 
 
-      container.innerHTML = `
+    container.innerHTML =
+      html;
 
-        <div class="results-empty">
-          Academic results are not available.
-        </div>
-
-      `;
-
-    }
-
-  }
-
-
-  function escapeHTML(value) {
-
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-
-  }
-
-
-  /* ==========================================================
-     REMOVE LOCATION
-  ========================================================== */
-
-  function removeLocation() {
-
-    const selectors = [
-
-      ".founder-location",
-
-      ".g-founder-location",
-
-      ".scc-location",
-
-      "#founderLocation",
-
-      "#gFounderLocation",
-
-      "#g-founder-location",
-
-      "#sccLocation",
-
-      "#scc-location",
-
-      "[data-field='founder-location']",
-
-      "[data-field='g-founder-location']",
-
-      "[data-field='scc-location']"
-
-    ];
-
-
-    selectors.forEach(
-      selector => {
-
-        document
-          .querySelectorAll(selector)
-          .forEach(
-            element =>
-              element.remove()
-          );
-
-      }
-    );
-
-  }
-
-
-  /* ==========================================================
-     PRINT
-  ========================================================== */
-
-  function setupPrint() {
-
-    const button =
-      $("#printButton");
-
-
-    if (!button) return;
-
-
-    button.onclick =
-      () => window.print();
-
-  }
-
-
-  /* ==========================================================
-     MAIN
-  ========================================================== */
-
-  async function start() {
 
     console.log(
-      "GAAWOW Authentication Letter: START"
+      "[AUTH LETTER] Academic results loaded:",
+      results.length
     );
 
 
-    try {
+  } catch (error) {
 
-      const supabase =
-        getSupabase();
+    console.warn(
+      "[AUTH LETTER] Academic results failed:",
+      error
+    );
 
 
-      console.log(
-        "Supabase initialized"
-      );
-
-
-      const params =
-        getParams();
-
-
-      console.log(
-        "URL parameters:",
-        params
-      );
-
-
-      if (
-        !params.regen &&
-        !params.id &&
-        !params.record_id &&
-        !params.code
-      ) {
-
-        throw new Error(
-          "URL-ga record ID ama verification code ma laha."
-        );
-
-      }
-
-
-      console.log(
-        "Fetching certificate..."
-      );
-
-
-      const record =
-        await getRecord(
-          supabase,
-          params
-        );
-
-
-      console.log(
-        "Certificate record:",
-        record
-      );
-
-
-      if (
-        !checkAuthentication(record)
-      ) {
-
-        throw new Error(
-          "Record-kan ma aha Authentication Letter."
-        );
-
-      }
-
-
-      /*
-        SHOW THE DOCUMENT NOW.
-
-        RPC/results must NOT block page.
-      */
-
-      showPage();
-
-
-      /* ------------------------------------------------------
-         Render immediately from certificate row
-      ------------------------------------------------------ */
-
-      renderStudent(
-        record,
-        null,
-        null
-      );
-
-
-      renderAuth(
-        record,
-        null
-      );
-
-
-      renderStatus(
-        record,
-        null
-      );
-
-
-      renderDates(
-        record,
-        null
-      );
-
-
-      renderQR(
-        record,
-        null
-      );
-
-
-      removeLocation();
-
-
-      /* ------------------------------------------------------
-         Load additional data in background
-      ------------------------------------------------------ */
-
-      const rpc =
-        await getRPCData(
-          supabase,
-          record
-        );
-
-
-      const student =
-        await getStudent(
-          supabase,
-          record
-        );
-
-
-      renderStudent(
-        record,
-        rpc,
-        student
-      );
-
-
-      renderAuth(
-        record,
-        rpc
-      );
-
-
-      renderStatus(
-        record,
-        rpc
-      );
-
-
-      renderDates(
-        record,
-        rpc
-      );
-
-
-      renderQR(
-        record,
-        rpc
-      );
-
-
-      /*
-        Academic results are optional.
-        They can never keep the document loading.
-      */
-
-      await renderResults(
-        supabase,
-        record
-      );
-
-
-      removeLocation();
-
-
-      console.log(
-        "GAAWOW Authentication Letter: COMPLETE"
-      );
-
-    } catch (error) {
-
-      console.error(
-        "GAAWOW Authentication Letter ERROR:",
-        error
-      );
-
-
-      showError(
-        error?.message ||
-          "Authentication Letter lama soo bandhigi karin.",
-
-        error?.stack ||
-          ""
-      );
-
-    }
+    container.innerHTML =
+      "<div class=\"no-results\">Academic results unavailable.</div>";
 
   }
 
+}
 
-  /* ==========================================================
-     INIT
-  ========================================================== */
 
-  document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+/* =========================================================
+   REMOVE LOCATION FROM FOUNDER / SIGNATURE
+   ========================================================= */
 
-      setupPrint();
+function removeFounderLocation() {
 
-      start();
+  const selectors = [
 
-    }
-  );
+    ".founder-location",
 
-})();
+    ".g-founder-location",
+
+    ".scc-location",
+
+    "#founderLocation",
+
+    "#gFounderLocation",
+
+    "#g-founder-location",
+
+    "#sccLocation",
+
+    "#scc-location",
+
+    '[data-field="founder-location"]',
+
+    '[data-field="g-founder-location"]',
+
+    '[data-field="scc-location"]'
+
+  ];
+
+
+  selectors.forEach(selector => {
+
+    document
+      .querySelectorAll(selector)
+      .forEach(element => {
+
+        element.remove();
+
+      });
+
+  });
+
+
+  document
+    .querySelectorAll(
+      ".signature, .founder, .g-founder, .director, .scc"
+    )
+    .forEach(block => {
+
+      const elements =
+        block.querySelectorAll(
+          "*"
+        );
+
+
+      elements.forEach(element => {
+
+        const value =
+          String(
+            element.textContent || ""
+          ).trim();
+
+
+        if (
+          /^location\s*:/i.test(value)
+        ) {
+
+          element.remove();
+
+        }
+
+      });
+
+    });
+
+}
+
+
+/* =========================================================
+   PRINT
+   ========================================================= */
+
+function setupPrint() {
+
+  const button =
+    $("printButton");
+
+
+  if (!button) {
+    return;
+  }
+
+
+  button.addEventListener(
+    "click",
+    () =>
