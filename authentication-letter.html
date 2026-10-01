@@ -1,101 +1,637 @@
 <!DOCTYPE html>
-<html lang="so">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Authentication Letter | GAawow Academy</title>
-<link rel="stylesheet" href="authentication-letter.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="description"
+    content="GAawow Academy Authentication Letter - Academic Document Verification"
+  >
+
+  <meta name="theme-color" content="#0B1E63">
+
+  <title>Authentication Letter | GAawow Academy</title>
+
+  <link
+    rel="stylesheet"
+    href="authentication-letter.css"
+  >
 </head>
+
 <body>
-<div class="controls no-print">
-  <button id="printBtn" type="button" disabled>PRINT / PDF</button>
-</div>
 
-<div id="loadingState" class="state" role="status">
-  <div class="spinner"></div>
-  <p>Loading GAAWOW Authentication Letter...</p>
-</div>
+  <!-- =========================================
+       PRINT / PAGE CONTROLS
+  ========================================== -->
 
-<div id="errorState" class="state error" role="alert" hidden>
-  <p id="errorMessage"></p>
-  <small id="errorDetail"></small>
-</div>
+  <div class="controls no-print">
+    <button
+      id="printBtn"
+      type="button"
+      disabled
+      aria-label="Print or save authentication letter as PDF"
+    >
+      PRINT / PDF
+    </button>
+  </div>
 
-<main id="letter" class="page" hidden>
-  <header class="head">
-    <img id="logo" src="logo.png" alt="GAawow Academy logo" onerror="this.style.display='none'">
-    <div>
-      <h1>GAawow Academy</h1>
-      <p class="motto">Ilayska Aqoonta iyo Xirfadda</p>
-      <p class="loc">Burhakaba, Bay, Somalia</p>
+
+  <!-- =========================================
+       LOADING STATE
+  ========================================== -->
+
+  <section
+    id="loadingState"
+    class="state loading-state"
+    role="status"
+    aria-live="polite"
+  >
+
+    <div class="spinner"></div>
+
+    <p>
+      Loading GAAWOW Authentication Letter...
+    </p>
+
+  </section>
+
+
+  <!-- =========================================
+       ERROR STATE
+  ========================================== -->
+
+  <section
+    id="errorState"
+    class="state error-state"
+    role="alert"
+    hidden
+  >
+
+    <div class="error-icon">
+      !
     </div>
-  </header>
 
-  <section class="title">
-    <h2>AUTHENTICATION LETTER</h2>
-    <p>ACADEMIC DOCUMENT VERIFICATION</p>
+    <h2>
+      Authentication Letter
+    </h2>
+
+    <p id="errorMessage">
+      An error occurred.
+    </p>
+
+    <small id="errorDetail"></small>
+
+    <button
+      id="retryBtn"
+      class="retry-btn"
+      type="button"
+    >
+      TRY AGAIN
+    </button>
+
   </section>
 
-  <section class="top">
-    <div class="info">
-      <h3>Student Information</h3>
-      <dl>
-        <dt>Student Name</dt><dd id="studentName">N/A</dd>
-        <dt>Course / Programme</dt><dd id="courseName">N/A</dd>
-        <dt>Institution</dt><dd id="institution">GAawow Academy</dd>
-      </dl>
+
+  <!-- =========================================
+       AUTHENTICATION LETTER
+  ========================================== -->
+
+  <main
+    id="letter"
+    class="page"
+    hidden
+  >
+
+    <!-- Decorative borders -->
+    <div class="page-border page-border-inner"></div>
+
+
+    <!-- =======================================
+         HEADER
+    ======================================== -->
+
+    <header class="head">
+
+      <div class="brand-mark">
+
+        <img
+          id="logo"
+          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+          alt="GAawow Academy logo"
+          onerror="this.style.display='none';"
+        >
+
+      </div>
+
+      <div class="brand-text">
+
+        <h1>
+          GAAWOW ACADEMY
+        </h1>
+
+        <p class="motto">
+          Ilayska Aqoonta iyo Xirfadda
+        </p>
+
+        <p class="loc">
+          Burhakaba, Bay, Somalia
+        </p>
+
+      </div>
+
+      <div class="header-seal">
+        <span>
+          GA
+        </span>
+      </div>
+
+    </header>
+
+
+    <!-- =======================================
+         DOCUMENT TITLE
+    ======================================== -->
+
+    <section class="title">
+
+      <div class="gold-rule"></div>
+
+      <h2>
+        AUTHENTICATION LETTER
+      </h2>
+
+      <p>
+        ACADEMIC DOCUMENT VERIFICATION
+      </p>
+
+      <div class="gold-rule short"></div>
+
+    </section>
+
+
+    <!-- =======================================
+         STUDENT INFORMATION
+    ======================================== -->
+
+    <section class="document-section">
+
+      <div class="section-heading">
+
+        <span class="section-number">
+          01
+        </span>
+
+        <h3>
+          STUDENT INFORMATION
+        </h3>
+
+      </div>
+
+
+      <div class="student-layout">
+
+        <div class="student-information">
+
+          <div class="field large-field">
+
+            <span class="field-label">
+              STUDENT NAME
+            </span>
+
+            <strong id="studentName">
+              N/A
+            </strong>
+
+          </div>
+
+
+          <div class="two-column">
+
+            <div class="field">
+
+              <span class="field-label">
+                COURSE / PROGRAMME
+              </span>
+
+              <strong id="courseName">
+                N/A
+              </strong>
+
+            </div>
+
+
+            <div class="field">
+
+              <span class="field-label">
+                INSTITUTION
+              </span>
+
+              <strong id="institution">
+                GAawow Academy
+              </strong>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- Student Photo -->
+
+        <div
+          id="photoBox"
+          class="photo-box"
+          hidden
+        >
+
+          <img
+            id="photo"
+            src=""
+            alt="Student photograph"
+          >
+
+          <span>
+            STUDENT
+          </span>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================
+         ACADEMIC PERIOD
+    ======================================== -->
+
+    <section class="document-section">
+
+      <div class="section-heading">
+
+        <span class="section-number">
+          02
+        </span>
+
+        <h3>
+          ACADEMIC PERIOD
+        </h3>
+
+      </div>
+
+
+      <div class="period-grid">
+
+        <div class="field">
+
+          <span class="field-label">
+            DATE STARTED
+          </span>
+
+          <strong id="dateStarted">
+            N/A
+          </strong>
+
+        </div>
+
+
+        <div class="field">
+
+          <span class="field-label">
+            DATE COMPLETED
+          </span>
+
+          <strong id="dateCompleted">
+            N/A
+          </strong>
+
+        </div>
+
+
+        <div class="field">
+
+          <span class="field-label">
+            ISSUE DATE
+          </span>
+
+          <strong id="issueDate">
+            N/A
+          </strong>
+
+        </div>
+
+
+        <div class="field">
+
+          <span class="field-label">
+            EXPIRY DATE
+          </span>
+
+          <strong id="expiryDate">
+            N/A
+          </strong>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================
+         ACADEMIC RESULTS
+    ======================================== -->
+
+    <section
+      id="resultsSection"
+      class="document-section results-section"
+    >
+
+      <div class="section-heading">
+
+        <span class="section-number">
+          03
+        </span>
+
+        <h3>
+          ACADEMIC RESULTS
+        </h3>
+
+      </div>
+
+
+      <div class="results-table-wrap">
+
+        <table class="results-table">
+
+          <thead>
+
+            <tr>
+
+              <th>
+                SUBJECT
+              </th>
+
+              <th>
+                MARK
+              </th>
+
+              <th>
+                GRADE
+              </th>
+
+              <th>
+                RESULT
+              </th>
+
+            </tr>
+
+          </thead>
+
+
+          <tbody id="resultsBody">
+          </tbody>
+
+
+          <tfoot id="resultsFoot">
+          </tfoot>
+
+        </table>
+
+      </div>
+
+    </section>
+
+
+    <!-- No Results State -->
+
+    <div
+      id="noResults"
+      class="no-results"
+      hidden
+    >
+
+      Academic results are not available for this record.
+
     </div>
-    <div id="photoBox" class="photo" hidden><img id="photo" alt="Student photo"></div>
-  </section>
 
-  <section>
-    <h3>Academic Period</h3>
-    <dl class="grid">
-      <div><dt>Date Started</dt><dd id="dateStarted">N/A</dd></div>
-      <div><dt>Date Completed</dt><dd id="dateCompleted">N/A</dd></div>
-      <div><dt>Issue Date</dt><dd id="issueDate">N/A</dd></div>
-      <div><dt>Expiry Date</dt><dd id="expiryDate">N/A</dd></div>
-    </dl>
-  </section>
 
-  <section id="resultsSection">
-    <h3>Academic Results</h3>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Subject</th><th>Mark</th><th>Grade</th><th>Result</th></tr></thead>
-        <tbody id="resultsBody"></tbody>
-        <tfoot id="resultsFoot"></tfoot>
-      </table>
+    <!-- =======================================
+         AUTHENTICATION INFORMATION
+    ======================================== -->
+
+    <section class="document-section">
+
+      <div class="section-heading">
+
+        <span class="section-number">
+          04
+        </span>
+
+        <h3>
+          AUTHENTICATION INFORMATION
+        </h3>
+
+      </div>
+
+
+      <div class="authentication-layout">
+
+
+        <div class="authentication-fields">
+
+          <div class="auth-field">
+
+            <span class="field-label">
+              REFERENCE NO
+            </span>
+
+            <strong
+              id="refNo"
+              class="mono"
+            >
+              N/A
+            </strong>
+
+          </div>
+
+
+          <div class="auth-field">
+
+            <span class="field-label">
+              AUTHENTICATION ID
+            </span>
+
+            <strong
+              id="authId"
+              class="mono"
+            >
+              N/A
+            </strong>
+
+          </div>
+
+
+          <div class="auth-field">
+
+            <span class="field-label">
+              VERIFICATION CODE
+            </span>
+
+            <strong
+              id="verifyCode"
+              class="mono"
+            >
+              N/A
+            </strong>
+
+          </div>
+
+
+          <div class="auth-field">
+
+            <span class="field-label">
+              DOCUMENT STATUS
+            </span>
+
+            <span
+              id="status"
+              class="badge"
+            >
+              N/A
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <!-- QR -->
+
+        <div class="qr-area">
+
+          <div
+            id="qrcode"
+            class="qrcode"
+          ></div>
+
+          <p>
+            SCAN TO VERIFY
+          </p>
+
+          <small>
+            Official Verification
+          </small>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================
+         DECLARATION
+    ======================================== -->
+
+    <section class="declaration">
+
+      <p>
+        This document confirms that the academic information
+        presented above has been authenticated through the
+        official GAAWOW Academy Education Management &
+        Verification System.
+      </p>
+
+    </section>
+
+
+    <!-- =======================================
+         SIGNATURE
+    ======================================== -->
+
+    <section class="signature-section">
+
+      <div class="signature">
+
+        <div class="signature-line"></div>
+
+        <strong>
+          G-Founder &amp; Director
+        </strong>
+
+        <span>
+          GAAWOW ACADEMY
+        </span>
+
+      </div>
+
+    </section>
+
+
+    <!-- =======================================
+         FOOTER
+    ======================================== -->
+
+    <footer class="document-footer">
+
+      <div>
+        GAAWOW ACADEMY
+      </div>
+
+      <div>
+        Burhakaba, Bay, Somalia
+      </div>
+
+      <div>
+        Ilayska Aqoonta iyo Xirfadda
+      </div>
+
+    </footer>
+
+
+    <!-- Security strip -->
+
+    <div class="security-strip">
+
+      <span>
+        AUTHENTICATED ACADEMIC DOCUMENT
+      </span>
+
+      <span>
+        •
+      </span>
+
+      <span>
+        VERIFY BEFORE ACCEPTANCE
+      </span>
+
     </div>
-  </section>
-  <p id="noResults" class="muted" hidden>Academic results are not available for this record.</p>
 
-  <section class="bottom">
-    <div>
-      <h3>Authentication Information</h3>
-      <dl>
-        <dt>Reference No</dt><dd id="refNo" class="mono">N/A</dd>
-        <dt>Authentication ID</dt><dd id="authId" class="mono">N/A</dd>
-        <dt>Verification Code</dt><dd id="verifyCode" class="mono">N/A</dd>
-        <dt>Status</dt><dd><span id="status" class="badge">N/A</span></dd>
-      </dl>
-    </div>
-    <div class="qr">
-      <div id="qrcode"></div>
-      <p>SCAN TO VERIFY</p>
-    </div>
-  </section>
+  </main>
 
-  <section class="sign">
-    <div class="line"></div>
-    <strong>G-Founder &amp; Director</strong>
-  </section>
 
-  <footer>GAawow Academy &bull; Burhakaba, Bay, Somalia</footer>
-</main>
+  <!-- =========================================
+       SUPABASE
+  ========================================== -->
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="authentication-letter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+  <!-- =========================================
+       QR CODE
+  ========================================== -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+
+  <!-- =========================================
+       AUTHENTICATION LETTER JS
+  ========================================== -->
+
+  <script src="authentication-letter.js"></script>
+
 </body>
 </html>
