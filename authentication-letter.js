@@ -601,9 +601,9 @@ function firstAvailable(...values) {
 
   }
 
-  /* =======================================================
+/* =======================================================
    STUDENT DATA FALLBACK
-   ======================================================= */
+======================================================= */
 
 async function loadStudentFallback(
   client,
@@ -656,8 +656,6 @@ async function loadStudentFallback(
   }
 
 }
-
-
   /* =======================================================
      RENDER STUDENT INFORMATION
   ======================================================= */
@@ -696,33 +694,64 @@ async function loadStudentFallback(
 
     /* =======================================================
    ACADEMIC PERIOD DATES
-   ======================================================= */
+======================================================= */
 
 const dateStarted =
   firstAvailable(
+
+    /* RPC */
     extras.date_started,
+    extras.start_date,
+    extras.admission_date,
+    extras.date_admitted,
+
+    /* Certificate */
     record.date_started,
     record.start_date,
     record.admission_date,
     record.date_admitted,
+
+    /* Student */
     student.date_started,
     student.start_date,
     student.admission_date,
-    student.date_admitted
+    student.date_admitted,
+
+    /* Other compatible fields */
+    student.enrollment_date,
+    student.enrolled_date,
+    student.join_date,
+    student.start_date_of_study
+
   );
 
 
 const dateCompleted =
   firstAvailable(
+
+    /* RPC */
     extras.date_completed,
+    extras.completion_date,
+    extras.end_date,
+    extras.date_finished,
+
+    /* Certificate */
     record.date_completed,
     record.completion_date,
     record.end_date,
     record.date_finished,
+
+    /* Student */
     student.date_completed,
     student.completion_date,
     student.end_date,
-    student.date_finished
+    student.date_finished,
+
+    /* Other compatible fields */
+    student.graduation_date,
+    student.completed_date,
+    student.completionDate
+
   );
 
 
@@ -750,20 +779,6 @@ $("expiryDate").textContent =
     record.expiry_date ||
     extras.expiry_date
   );
-
-
-    $("issueDate").textContent =
-      formatDate(
-        record.issue_date ||
-        extras.issue_date
-      );
-
-
-    $("expiryDate").textContent =
-      formatDate(
-        record.expiry_date ||
-        extras.expiry_date
-      );
 
 
     /*
