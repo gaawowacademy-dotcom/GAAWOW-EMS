@@ -13,14 +13,20 @@
 
   // Reuse the project's existing Supabase client. Checks the common globals
   // (no new URL/key is invented here).
+  function looksLikeClient(o) {
+    try { return o && typeof o.from === 'function' && typeof o.rpc === 'function' && o.auth; } catch (e) { return false; }
+  }
+
   function getClient() {
     const g = window;
-    const existing = g.supabaseClient || g.sb || g.db || g.supabaseDb ||
-      (g.supabase && typeof g.supabase.from === 'function' ? g.supabase : null);
-    if (existing) return existing;
-    const url = g.SUPABASE_URL || g.supabaseUrl;
-    const key = g.SUPABASE_ANON_KEY || g.supabaseAnonKey || g.SUPABASE_KEY;
-    if (url && key && g.supabase && g.supabase.createClient) return g.supabase.createClient(url, key);
+    const names = ['supabaseClient', 'sb', 'db', 'supabaseDb', 'supabase', 'client', '_supabase', 'supabaseInstance'];
+    for (const n of names) if (looksLikeClient(g[n])) return g[n];
+    // Scan every global for an existing Supabase client created by other EMS scripts
+    for (const k of Object.keys(g)) { try { if (looksLikeClient(g[k])) return g[k]; } catch (e) {} }
+    const url = g.SUPABASE_URL || g.supabaseUrl || g.SUPABASE_PROJECT_URL;
+    const key = g.SUPABASE_ANON_KEY || g.supabaseAnonKey || g.SUPABASE_KEY || g.supabaseKey;
+    const lib = g.supabase && g.supabase.createClient ? g.supabase : null;
+    if (url && key && lib) return lib.createClient(url, key);
     return null;
   }
 
@@ -39,7 +45,10 @@
   const txt = (v) => (v === null || v === undefined || String(v).trim() === '' ? 'N/A' : String(v));
   const normType = (t) => String(t || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
 
-  function handleError(message) {
+  function handleError(message, detail) {
+    if (detail) console.error('[Authentication Letter]', detail);
+    const d = $('errorDetail');
+    if (d) d.textContent = detail ? 'Faahfaahin farsamo: ' + detail : '';
     $('loadingState').hidden = true;
     $('letter').hidden = true;
     $('errorMessage').textContent = message;
@@ -189,9 +198,9 @@
     const id = getRecordIdFromURL();
     if (!id) return handleError(MSG.noId);
     const client = getClient();
-    if (!client) return handleError(MSG.network);
+    if (!client) return handleError(MSG.network, 'Supabase client lama helin (config/script ma dhex jiro boggan).');
     let rec;
-    try { rec = await fetchRecord(client, id); } catch (e) { console.error(e); return handleError(MSG.network); }
+    try { rec = await fetchRecord(client, id); } catch (e) { return handleError(MSG.network, (e && (e.message || e.code)) || String(e)); }
     if (!rec) return handleError(MSG.notFound);
     if (!isAuthRecord(rec)) return handleError(MSG.wrongType);
 
@@ -213,7 +222,7 @@
 
   function initializePage() {
     $('printBtn').addEventListener('click', () => window.print());
-    loadAuthenticationLetter().catch((e) => { console.error(e); handleError(MSG.network); });
+    loadAuthenticationLetter().catch((e) => { handleError(MSG.network, (e && e.message) || String(e)); });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializePage);
