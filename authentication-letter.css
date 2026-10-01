@@ -1302,60 +1302,73 @@ button {
 .signature-section {
   position: relative;
   z-index: 2;
-
   display: flex;
-
   justify-content: flex-end;
-
-  margin-top: 11px;
-
-  padding-top: 3px;
+  margin-top: 10px;
+  padding-right: 4mm;
 }
 
 .signature {
-  width: 48mm;
-
+  width: 62mm;
   text-align: center;
+}
+
+/* meel bannaan oo lagu saxiixo / shaabadeeyo */
+.signature-space {
+  height: 15mm;
 }
 
 .signature-line {
   width: 100%;
+  margin-bottom: 5px;
+  border-top: 1.2px solid var(--gaawow-navy);
+  position: relative;
+}
 
-  margin-bottom: 4px;
-
-  border-top:
-    1px solid
-    var(--gaawow-navy);
+/* dhibic dahab ah oo xariiqda dhexdeeda ah */
+.signature-line::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -3.5px;
+  width: 6px;
+  height: 6px;
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--gaawow-gold);
 }
 
 .signature strong {
   display: block;
-
-  color:
-    var(--gaawow-navy);
-
-  font-family:
-    Georgia,
-    serif;
-
-  font-size: 9px;
-
-  line-height: 1.2;
+  color: var(--gaawow-navy);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 12px;
+  line-height: 1.25;
+  letter-spacing: .02em;
 }
 
 .signature span {
   display: block;
-
   margin-top: 3px;
-
-  color:
-    var(--muted);
-
-  font-size: 6px;
-
-  line-height: 1.2;
-
+  color: var(--gaawow-navy);
+  font-size: 8.5px;
+  font-weight: 700;
   letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.signature em {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 7.5px;
+  font-style: normal;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 820px) {
+  .signature-section { justify-content: center; padding-right: 0; }
+  .signature { width: 70%; }
 }
 
 
