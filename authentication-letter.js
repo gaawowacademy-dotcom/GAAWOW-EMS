@@ -687,79 +687,47 @@ function renderRPC(data) {
    ========================================================= */
 
 function renderQR(record) {
+function renderQR() {
+  const qrBox = document.getElementById("qrCode");
+  if (!qrBox || !record) return;
 
-  const container =
-    $("qrcode");
+  qrBox.innerHTML = "";
 
-  if (!container) {
+  const verifyCode = String(record.verify_code || "").trim();
+  const authenticationId = String(record.certificate_id || "").trim();
+
+  if (!verifyCode || !authenticationId) {
+    qrBox.innerHTML = "<span>QR unavailable</span>";
     return;
   }
 
+  const verifyUrl =
+    `https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify-auth.html` +
+    `?code=${encodeURIComponent(verifyCode)}` +
+    `&id=${encodeURIComponent(authenticationId)}`;
 
-  container.innerHTML = "";
+  if (typeof QRCode !== "undefined") {
+    new QRCode(qrBox, {
+      text: verifyUrl,
+      width: 120,
+      height: 120,
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } else {
+    const img = document.createElement("img");
 
+    img.src =
+      "https://api.qrserver.com/v1/create-qr-code/" +
+      "?size=120x120&data=" +
+      encodeURIComponent(verifyUrl);
 
-  const url =
-    new URL(
-      "verify-auth.html",
-      window.location.href
-    );
+    img.alt = "Authentication Verification QR Code";
+    img.width = 120;
+    img.height = 120;
 
-
-  url.searchParams.set(
-    "code",
-    record.verify_code
-  );
-
-
-  url.searchParams.set(
-    "id",
-    record.certificate_id
-  );
-
-
-  const verificationURL =
-    url.toString();
-
-
-  console.log(
-    "[AUTH LETTER] Verification URL:",
-    verificationURL
-  );
-
-
-  if (
-    window.QRCode &&
-    typeof window.QRCode === "function"
-  ) {
-
-    try {
-
-      new QRCode(
-        container,
-        {
-          text: verificationURL,
-          width: 145,
-          height: 145,
-          colorDark: "#0B1E63",
-          colorLight: "#FFFFFF",
-          correctLevel:
-            QRCode.CorrectLevel.H
-        }
-      );
-
-      return;
-
-    } catch (error) {
-
-      console.warn(
-        "[AUTH LETTER] QR library:",
-        error
-      );
-
-    }
-
+    qrBox.appendChild(img);
   }
+}
 
 
   const image =
