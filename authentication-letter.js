@@ -1,230 +1,2219 @@
-(function () {
-  'use strict';
-  if (window.__gaawowAuthLetterLoaded) return;
-  window.__gaawowAuthLetterLoaded = true;
+/* =========================================================
+   GAAWOW ACADEMY EMS
+   AUTHENTICATION LETTER
+   Complete Production JavaScript
+   ========================================================= */
 
-  const $ = (id) => document.getElementById(id);
-  const MSG = {
-    noId: 'Authentication Letter record ID lama helin.',
-    notFound: 'Authentication Letter record-ka lama helin.',
-    wrongType: 'Record-kan ma aha Authentication Letter.',
-    network: 'Waxaa dhacay cilad marka la soo akhrinayay xogta. Fadlan isku day mar kale.'
+(function () {
+
+  "use strict";
+
+
+  /* =======================================================
+     PREVENT DUPLICATE EXECUTION
+  ======================================================= */
+
+  if (window.__gaawowAuthenticationLetterLoaded) {
+    return;
+  }
+
+  window.__gaawowAuthenticationLetterLoaded = true;
+
+
+  /* =======================================================
+     CONFIGURATION
+     ======================================================= */
+
+  const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
+  const SUPABASE_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+
+  /* =======================================================
+     HELPERS
+  ======================================================= */
+
+  const $ = function (id) {
+    return document.getElementById(id);
   };
 
-  // Reuse the project's existing Supabase client. Checks the common globals
-  // (no new URL/key is invented here).
-  function looksLikeClient(o) {
-    try { return o && typeof o.from === 'function' && typeof o.rpc === 'function' && o.auth; } catch (e) { return false; }
-  }
 
-  function getClient() {
-    const g = window;
-    const names = ['supabaseClient', 'sb', 'db', 'supabaseDb', 'supabase', 'client', '_supabase', 'supabaseInstance'];
-    for (const n of names) if (looksLikeClient(g[n])) return g[n];
-    // Scan every global for an existing Supabase client created by other EMS scripts
-    for (const k of Object.keys(g)) { try { if (looksLikeClient(g[k])) return g[k]; } catch (e) {} }
-    const url = g.SUPABASE_URL || g.supabaseUrl || g.SUPABASE_PROJECT_URL;
-    const key = g.SUPABASE_ANON_KEY || g.supabaseAnonKey || g.SUPABASE_KEY || g.supabaseKey;
-    const lib = g.supabase && g.supabase.createClient ? g.supabase : null;
-    if (url && key && lib) return lib.createClient(url, key);
+  const MSG = {
+
+    noId:
+      "Authentication Letter record ID lama helin.",
+
+    notFound:
+      "Authentication Letter record-ka lama helin.",
+
+    wrongType:
+      "Record-kan ma aha Authentication Letter.",
+
+    network:
+      "Waxaa dhacay cilad marka la soo akhrinayay xogta. Fadlan isku day mar kale."
+
+  };
+
+
+  /* =======================================================
+     SUPABASE CLIENT
+  ======================================================= */
+
+  let db = null;
+
+
+  function createSupabaseClient() {
+
+    /*
+      Reuse an existing EMS client if one is already available.
+      Otherwise use the same public Supabase configuration
+      already used by the existing EMS.
+    */
+
+    const possibleClients = [
+
+      window.supabaseClient,
+
+      window.sb,
+
+      window.db,
+
+      window.supabaseDb,
+
+      window.supabaseInstance,
+
+      window._supabase
+
+    ];
+
+
+    for (const client of possibleClients) {
+
+      try {
+
+        if (
+          client &&
+          typeof client.from === "function" &&
+          typeof client.rpc === "function"
+        ) {
+
+          return client;
+
+        }
+
+      } catch (error) {
+
+        // Ignore invalid global client.
+
+      }
+
+    }
+
+
+    /*
+      window.supabase is normally the Supabase library,
+      not the actual client.
+    */
+
+    if (
+      window.supabase &&
+      typeof window.supabase.createClient === "function"
+    ) {
+
+      return window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
+
+    }
+
+
     return null;
   }
+
+
+  /* =======================================================
+     URL
+  ======================================================= */
 
   function getRecordIdFromURL() {
-    const v = new URLSearchParams(window.location.search).get('regen');
-    return v ? v.trim() : '';
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    const value =
+      params.get("regen");
+
+    return value
+      ? value.trim()
+      : "";
+
   }
 
-  function formatDate(v) {
-    if (!v) return 'N/A';
-    const d = new Date(v);
-    if (isNaN(d.getTime())) return 'N/A';
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+  /* =======================================================
+     NORMALIZATION
+  ======================================================= */
+
+  function normalizeType(value) {
+
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+
   }
 
-  const txt = (v) => (v === null || v === undefined || String(v).trim() === '' ? 'N/A' : String(v));
-  const normType = (t) => String(t || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
 
-  function handleError(message, detail) {
-    if (detail) console.error('[Authentication Letter]', detail);
-    const d = $('errorDetail');
-    if (d) d.textContent = detail ? 'Faahfaahin farsamo: ' + detail : '';
-    $('loadingState').hidden = true;
-    $('letter').hidden = true;
-    $('errorMessage').textContent = message;
-    $('errorState').hidden = false;
-  }
+  function text(value) {
 
-  function isAuthRecord(rec) {
-    if (normType(rec.certificate_type) === 'authentication_letter') return true;
-    // Tolerate type values written differently by the Certificates module
-    // (case, spaces, hyphens) and records identified by their own ID format.
-    const t = normType(rec.certificate_type);
-    if (t.includes('authentication')) return true;
-    return !t && /^GAA-AUTH/i.test(rec.certificate_id || '');
-  }
+    if (
+      value === null ||
+      value === undefined ||
+      String(value).trim() === ""
+    ) {
 
-  async function fetchRecord(client, id) {
-    // Try primary key first, then fall back to other identifiers.
-    let res = await client.from('certificates').select('*').eq('id', id).maybeSingle();
-    if (res.error && !/invalid input syntax/i.test(res.error.message || '')) throw res.error;
-    if (res.data) return res.data;
-    for (const col of ['certificate_id', 'certificate_no', 'verify_code']) {
-      res = await client.from('certificates').select('*').eq(col, id).limit(1);
-      if (!res.error && res.data && res.data.length) return res.data[0];
+      return "N/A";
+
     }
+
+    return String(value);
+
+  }
+
+
+  /* =======================================================
+     HTML ESCAPE
+  ======================================================= */
+
+  function escapeHTML(value) {
+
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  }
+
+
+  /* =======================================================
+     DATE
+  ======================================================= */
+
+  function formatDate(value) {
+
+    if (!value) {
+      return "N/A";
+    }
+
+
+    let dateValue =
+      String(value);
+
+
+    /*
+      Avoid timezone shifting for YYYY-MM-DD.
+    */
+
+    if (
+      /^\d{4}-\d{2}-\d{2}$/.test(
+        dateValue
+      )
+    ) {
+
+      dateValue +=
+        "T00:00:00Z";
+
+    }
+
+
+    const date =
+      new Date(dateValue);
+
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+
+      return text(value);
+
+    }
+
+
+    return date.toLocaleDateString(
+      "en-GB",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC"
+      }
+    );
+
+  }
+
+
+  /* =======================================================
+     ERROR
+  ======================================================= */
+
+  function showError(
+    message,
+    detail = ""
+  ) {
+
+    console.error(
+      "[GAawow Authentication Letter]",
+      detail || message
+    );
+
+
+    const loading =
+      $("loadingState");
+
+    const letter =
+      $("letter");
+
+    const errorState =
+      $("errorState");
+
+    const errorMessage =
+      $("errorMessage");
+
+    const errorDetail =
+      $("errorDetail");
+
+
+    if (loading) {
+      loading.hidden = true;
+    }
+
+
+    if (letter) {
+      letter.hidden = true;
+    }
+
+
+    if (errorMessage) {
+      errorMessage.textContent =
+        message;
+    }
+
+
+    if (errorDetail) {
+
+      errorDetail.textContent =
+        detail
+          ? "Faahfaahin farsamo: " + detail
+          : "";
+
+    }
+
+
+    if (errorState) {
+      errorState.hidden = false;
+    }
+
+  }
+
+
+  /* =======================================================
+     RECORD TYPE
+  ======================================================= */
+
+  function isAuthenticationLetter(
+    record
+  ) {
+
+    const type =
+      normalizeType(
+        record.certificate_type
+      );
+
+
+    /*
+      Primary check.
+    */
+
+    if (
+      type ===
+      "authentication_letter"
+    ) {
+
+      return true;
+
+    }
+
+
+    /*
+      Compatibility with older records.
+    */
+
+    if (
+      type.includes(
+        "authentication"
+      )
+    ) {
+
+      return true;
+
+    }
+
+
+    /*
+      Existing GAawow Authentication IDs
+      are an additional safety fallback.
+    */
+
+    if (
+      !type &&
+      /^GAA-AUTH/i.test(
+        String(
+          record.certificate_id || ""
+        )
+      )
+    ) {
+
+      return true;
+
+    }
+
+
+    return false;
+
+  }
+
+
+  /* =======================================================
+     FETCH CERTIFICATE RECORD
+  ======================================================= */
+
+  async function fetchAuthenticationRecord(
+    client,
+    recordId
+  ) {
+
+    /*
+      PRIMARY:
+      The regen parameter normally contains
+      certificates.id.
+    */
+
+    let response =
+      await client
+        .from("certificates")
+        .select("*")
+        .eq("id", recordId)
+        .maybeSingle();
+
+
+    /*
+      UUID type mismatch can happen if somebody
+      accidentally supplies certificate_id or
+      another identifier.
+
+      Do not let that break the page.
+    */
+
+    if (
+      response.error &&
+      !/invalid input syntax/i.test(
+        response.error.message || ""
+      )
+    ) {
+
+      throw response.error;
+
+    }
+
+
+    if (response.data) {
+
+      return response.data;
+
+    }
+
+
+    /*
+      Compatibility fallback:
+      certificate_id
+    */
+
+    response =
+      await client
+        .from("certificates")
+        .select("*")
+        .eq(
+          "certificate_id",
+          recordId
+        )
+        .limit(1);
+
+
+    if (
+      !response.error &&
+      response.data &&
+      response.data.length
+    ) {
+
+      return response.data[0];
+
+    }
+
+
+    /*
+      Compatibility fallback:
+      certificate_no
+    */
+
+    response =
+      await client
+        .from("certificates")
+        .select("*")
+        .eq(
+          "certificate_no",
+          recordId
+        )
+        .limit(1);
+
+
+    if (
+      !response.error &&
+      response.data &&
+      response.data.length
+    ) {
+
+      return response.data[0];
+
+    }
+
+
+    /*
+      Compatibility fallback:
+      verify_code
+    */
+
+    response =
+      await client
+        .from("certificates")
+        .select("*")
+        .eq(
+          "verify_code",
+          recordId
+        )
+        .limit(1);
+
+
+    if (
+      !response.error &&
+      response.data &&
+      response.data.length
+    ) {
+
+      return response.data[0];
+
+    }
+
+
     return null;
+
   }
 
-  // Optional enrichment from the EXISTING RPC (read only). Failures are ignored.
-  async function loadRpcExtras(client, rec) {
+
+  /* =======================================================
+     RPC ENRICHMENT
+  ======================================================= */
+
+  async function loadAuthenticationExtras(
+    client,
+    record
+  ) {
+
     try {
-      const { data, error } = await client.rpc('verify_authentication_letter',
-        { p_code: rec.verify_code, p_id: rec.certificate_id });
-      if (error || !data) return {};
-      return Array.isArray(data) ? (data[0] || {}) : data;
-    } catch (e) { return {}; }
-  }
 
-  // Best-effort read of existing results. Never throws.
-  async function loadAcademicResults(client, rec) {
-    const tables = ['academic_results', 'results', 'exam_results', 'student_results'];
-    for (const table of tables) {
-      try {
-        let q = client.from(table).select('*').eq('student_id', rec.student_id);
-        const res = await q;
-        if (res.error || !res.data || !res.data.length) continue;
-        let rows = res.data;
-        if (rec.course_id && rows.some((r) => r.course_id)) rows = rows.filter((r) => r.course_id === rec.course_id);
-        if (!rows.length) continue;
-        // Resolve subject names if only subject_id is present
-        if (rows.some((r) => !r.subject_name && !r.subject && r.subject_id)) {
-          const ids = [...new Set(rows.map((r) => r.subject_id).filter(Boolean))];
-          const s = await client.from('subjects').select('*').in('id', ids);
-          const map = {};
-          (s.data || []).forEach((x) => { map[x.id] = x.name || x.subject_name || x.title; });
-          rows = rows.map((r) => Object.assign({}, r, { subject_name: map[r.subject_id] }));
-        }
-        return rows;
-      } catch (e) { /* try next */ }
+      if (
+        !record.verify_code ||
+        !record.certificate_id
+      ) {
+
+        return {};
+
+      }
+
+
+      const response =
+        await client.rpc(
+          "verify_authentication_letter",
+          {
+            p_code:
+              record.verify_code,
+
+            p_id:
+              record.certificate_id
+          }
+        );
+
+
+      if (
+        response.error ||
+        !response.data
+      ) {
+
+        return {};
+
+      }
+
+
+      const data =
+        Array.isArray(
+          response.data
+        )
+          ? response.data[0]
+          : response.data;
+
+
+      return data || {};
+
+    } catch (error) {
+
+      /*
+        RPC enrichment is optional.
+        Authentication Letter must continue
+        even if RPC enrichment fails.
+      */
+
+      console.warn(
+        "Authentication RPC enrichment failed:",
+        error
+      );
+
+      return {};
+
     }
-    return [];
+
   }
 
-  function renderStudentInfo(rec, x) {
-    $('studentName').textContent = txt(rec.student_name_snapshot || x.student_name);
-    $('courseName').textContent = txt(rec.course_name_snapshot || x.course_name);
-    $('institution').textContent = txt(x.institution_name || 'GAawow Academy');
-    $('dateStarted').textContent = formatDate(x.date_started || rec.date_started || rec.start_date);
-    $('dateCompleted').textContent = formatDate(x.date_completed || rec.date_completed || rec.end_date);
-    $('issueDate').textContent = formatDate(rec.issue_date || x.issue_date);
-    $('expiryDate').textContent = formatDate(rec.expiry_date || x.expiry_date);
-    const url = rec.student_photo_url || x.student_photo_url;
-    if (url) {
-      const img = $('photo');
-      img.onerror = () => { $('photoBox').hidden = true; };
-      img.src = url;
-      $('photoBox').hidden = false;
+
+  /* =======================================================
+     STUDENT DATA FALLBACK
+  ======================================================= */
+
+  async function loadStudentFallback(
+    client,
+    record
+  ) {
+
+    if (!record.student_id) {
+      return {};
     }
+
+
+    try {
+
+      const response =
+        await client
+          .from("students")
+          .select(`
+            id,
+            student_id,
+            full_name
+          `)
+          .eq(
+            "id",
+            record.student_id
+          )
+          .maybeSingle();
+
+
+      if (
+        response.error ||
+        !response.data
+      ) {
+
+        return {};
+
+      }
+
+
+      return response.data;
+
+    } catch (error) {
+
+      return {};
+
+    }
+
   }
 
-  function renderAuthenticationInfo(rec, x) {
-    $('refNo').textContent = txt(rec.certificate_no || x.reference_no);
-    $('authId').textContent = txt(rec.certificate_id || x.authentication_id);
-    $('verifyCode').textContent = txt(rec.verify_code || x.verification_code);
+
+  /* =======================================================
+     RENDER STUDENT INFORMATION
+  ======================================================= */
+
+  function renderStudentInformation(
+    record,
+    extras,
+    student
+  ) {
+
+    const studentName =
+      record.student_name_snapshot ||
+      extras.student_name ||
+      student.full_name;
+
+
+    const courseName =
+      record.course_name_snapshot ||
+      extras.course_name;
+
+
+    $("studentName").textContent =
+      text(studentName);
+
+
+    $("courseName").textContent =
+      text(courseName);
+
+
+    $("institution").textContent =
+      text(
+        extras.institution_name ||
+        "GAawow Academy"
+      );
+
+
+    $("dateStarted").textContent =
+      formatDate(
+        extras.date_started ||
+        record.date_started ||
+        record.start_date
+      );
+
+
+    $("dateCompleted").textContent =
+      formatDate(
+        extras.date_completed ||
+        record.date_completed ||
+        record.end_date
+      );
+
+
+    $("issueDate").textContent =
+      formatDate(
+        record.issue_date ||
+        extras.issue_date
+      );
+
+
+    $("expiryDate").textContent =
+      formatDate(
+        record.expiry_date ||
+        extras.expiry_date
+      );
+
+
+    /*
+      Student Photo
+    */
+
+    const photoURL =
+      record.student_photo_url ||
+      extras.student_photo_url;
+
+
+    const photoBox =
+      $("photoBox");
+
+    const photo =
+      $("photo");
+
+
+    if (
+      photoURL &&
+      photoBox &&
+      photo
+    ) {
+
+      photo.onerror =
+        function () {
+
+          photoBox.hidden = true;
+
+        };
+
+
+      photo.onload =
+        function () {
+
+          photoBox.hidden = false;
+
+        };
+
+
+      photo.src =
+        photoURL;
+
+    } else {
+
+      photoBox.hidden =
+        true;
+
+    }
+
   }
 
-  function renderStatus(rec, x) {
-    const s = String(rec.status || x.status || 'N/A');
-    const el = $('status');
-    el.textContent = s.toUpperCase();
-    const k = s.toLowerCase();
-    el.className = 'badge ' + (['valid', 'graduated'].includes(k) ? 'ok' : k === 'pending' ? 'warn' : ['expired', 'revoked'].includes(k) ? 'bad' : '');
+
+  /* =======================================================
+     AUTHENTICATION INFORMATION
+  ======================================================= */
+
+  function renderAuthenticationInformation(
+    record,
+    extras
+  ) {
+
+    $("refNo").textContent =
+      text(
+        record.certificate_no ||
+        extras.reference_no
+      );
+
+
+    $("authId").textContent =
+      text(
+        record.certificate_id ||
+        extras.authentication_id
+      );
+
+
+    $("verifyCode").textContent =
+      text(
+        record.verify_code ||
+        extras.verification_code
+      );
+
   }
 
-  function verifyUrl(rec, x) {
-    const direct = rec.verification_url || x.verification_url;
-    if (direct) return direct;
-    const code = rec.verify_code || x.verification_code;
-    const id = rec.certificate_id || x.authentication_id;
-    if (!code) return '';
-    const base = window.location.href.split('?')[0].replace(/[^/]*$/, '');
-    return base + 'verify-auth.html?code=' + encodeURIComponent(code) + (id ? '&id=' + encodeURIComponent(id) : '');
+
+  /* =======================================================
+     STATUS
+  ======================================================= */
+
+  function renderStatus(
+    record,
+    extras
+  ) {
+
+    const rawStatus =
+      String(
+        record.status ||
+        extras.status ||
+        "N/A"
+      ).trim();
+
+
+    const status =
+      $("status");
+
+
+    status.textContent =
+      rawStatus.toUpperCase();
+
+
+    status.className =
+      "badge";
+
+
+    const normalized =
+      rawStatus.toLowerCase();
+
+
+    if (
+      normalized === "valid" ||
+      normalized === "graduated"
+    ) {
+
+      status.classList.add(
+        "ok"
+      );
+
+    }
+
+
+    else if (
+      normalized === "pending"
+    ) {
+
+      status.classList.add(
+        "warn"
+      );
+
+    }
+
+
+    else if (
+      normalized === "expired" ||
+      normalized === "revoked"
+    ) {
+
+      status.classList.add(
+        "bad"
+      );
+
+    }
+
   }
 
-  function renderQRCode(url) {
-    const box = $('qrcode');
-    box.innerHTML = '';
-    if (!url || typeof QRCode === 'undefined') { box.parentElement.hidden = true; return; }
-    new QRCode(box, { text: url, width: 256, height: 256, correctLevel: QRCode.CorrectLevel.M });
+
+  /* =======================================================
+     VERIFICATION URL
+  ======================================================= */
+
+  function getVerificationURL(
+    record,
+    extras
+  ) {
+
+    /*
+      1. Existing stored URL
+    */
+
+    if (
+      record.verification_url
+    ) {
+
+      return record.verification_url;
+
+    }
+
+
+    if (
+      extras.verification_url
+    ) {
+
+      return extras.verification_url;
+
+    }
+
+
+    const code =
+      record.verify_code ||
+      extras.verification_code;
+
+
+    const authId =
+      record.certificate_id ||
+      extras.authentication_id;
+
+
+    if (!code) {
+
+      return "";
+
+    }
+
+
+    /*
+      Build the existing GAawow
+      verify-auth.html URL.
+    */
+
+    const currentURL =
+      new URL(
+        window.location.href
+      );
+
+
+    const basePath =
+      currentURL.pathname
+        .replace(
+          /[^/]*$/,
+          ""
+        );
+
+
+    let url =
+      currentURL.origin +
+      basePath +
+      "verify-auth.html?code=" +
+      encodeURIComponent(code);
+
+
+    if (authId) {
+
+      url +=
+        "&id=" +
+        encodeURIComponent(
+          authId
+        );
+
+    }
+
+
+    return url;
+
   }
 
-  function renderAcademicResults(rows) {
-    if (!rows || !rows.length) {
-      $('resultsSection').hidden = true;
-      $('noResults').hidden = false;
+
+  /* =======================================================
+     QR CODE
+  ======================================================= */
+
+  function renderQRCode(
+    verificationURL
+  ) {
+
+    const box =
+      $("qrcode");
+
+
+    if (!box) {
       return;
     }
-    const body = $('resultsBody');
-    body.innerHTML = '';
-    let total = 0, count = 0;
-    const pick = (r, keys) => { for (const k of keys) if (r[k] !== undefined && r[k] !== null && r[k] !== '') return r[k]; return null; };
-    rows.forEach((r) => {
-      const mark = pick(r, ['marks', 'mark', 'score', 'obtained_marks']);
-      const tr = document.createElement('tr');
-      [pick(r, ['subject_name', 'subject', 'subject_title']), mark, pick(r, ['grade']), pick(r, ['result', 'status'])]
-        .forEach((v) => { const td = document.createElement('td'); td.textContent = txt(v); tr.appendChild(td); });
-      body.appendChild(tr);
-      if (mark !== null && !isNaN(Number(mark))) { total += Number(mark); count++; }
-    });
-    const foot = $('resultsFoot');
-    foot.innerHTML = '';
-    if (count) {
-      const avg = total / count;
-      const tr = document.createElement('tr');
-      const cells = ['Total / Average', total + ' / ' + avg.toFixed(1), '', ''];
-      // Use stored overall grade/result if the rows carry one; never invent one.
-      const last = rows[0];
-      cells[2] = txt(last.final_grade || last.overall_grade || '');
-      cells[3] = txt(last.final_result || last.overall_result || '');
-      if (cells[2] === 'N/A') cells[2] = '';
-      if (cells[3] === 'N/A') cells[3] = '';
-      cells.forEach((v) => { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
-      foot.appendChild(tr);
+
+
+    box.innerHTML = "";
+
+
+    if (
+      !verificationURL ||
+      typeof QRCode === "undefined"
+    ) {
+
+      box.innerHTML = `
+        <span
+          style="
+            font-size:7px;
+            color:#697386;
+            text-align:center;
+          "
+        >
+          QR unavailable
+        </span>
+      `;
+
+      return;
+
     }
+
+
+    try {
+
+      new QRCode(
+        box,
+        {
+          text:
+            verificationURL,
+
+          width:
+            180,
+
+          height:
+            180,
+
+          correctLevel:
+            QRCode.CorrectLevel.M
+        }
+      );
+
+    } catch (error) {
+
+      console.error(
+        "QR generation error:",
+        error
+      );
+
+    }
+
   }
+
+
+  /* =======================================================
+     ACADEMIC RESULTS
+  ======================================================= */
+
+  async function loadAcademicResults(
+    client,
+    record
+  ) {
+
+    /*
+      Results are OPTIONAL.
+
+      If anything fails here,
+      return [].
+
+      The Authentication Letter
+      must still open.
+    */
+
+    try {
+
+      if (!record.student_id) {
+
+        return [];
+
+      }
+
+
+      /*
+        Load published results for
+        this student.
+
+        Existing results.js uses:
+        results.student_id
+        results.exam_id
+        results.subject_id
+        results.score
+        results.max_score
+        results.percentage
+        results.grade
+        results.is_published
+      */
+
+      const resultResponse =
+        await client
+          .from("results")
+          .select(`
+            id,
+            student_id,
+            exam_id,
+            subject_id,
+            score,
+            max_score,
+            percentage,
+            grade,
+            remarks,
+            is_published
+          `)
+          .eq(
+            "student_id",
+            record.student_id
+          )
+          .eq(
+            "is_published",
+            true
+          );
+
+
+      if (
+        resultResponse.error
+      ) {
+
+        console.warn(
+          "Academic results unavailable:",
+          resultResponse.error
+        );
+
+        return [];
+
+      }
+
+
+      let rows =
+        resultResponse.data ||
+        [];
+
+
+      if (!rows.length) {
+
+        return [];
+
+      }
+
+
+      /*
+        Load subjects.
+      */
+
+      const subjectIDs =
+        [
+          ...new Set(
+            rows
+              .map(
+                row =>
+                  row.subject_id
+              )
+              .filter(Boolean)
+          )
+        ];
+
+
+      let subjects = [];
+
+
+      if (subjectIDs.length) {
+
+        const subjectResponse =
+          await client
+            .from("subjects")
+            .select(`
+              id,
+              name,
+              code
+            `)
+            .in(
+              "id",
+              subjectIDs
+            );
+
+
+        if (
+          !subjectResponse.error
+        ) {
+
+          subjects =
+            subjectResponse.data ||
+            [];
+
+        }
+
+      }
+
+
+      const subjectMap =
+        new Map();
+
+
+      subjects.forEach(
+        subject => {
+
+          subjectMap.set(
+            subject.id,
+            subject
+          );
+
+        }
+      );
+
+
+      /*
+        Load exams.
+      */
+
+      const examIDs =
+        [
+          ...new Set(
+            rows
+              .map(
+                row =>
+                  row.exam_id
+              )
+              .filter(Boolean)
+          )
+        ];
+
+
+      let exams = [];
+
+
+      if (examIDs.length) {
+
+        const examResponse =
+          await client
+            .from("exams")
+            .select(`
+              id,
+              title,
+              exam_type,
+              exam_date,
+              course_id
+            `)
+            .in(
+              "id",
+              examIDs
+            );
+
+
+        if (
+          !examResponse.error
+        ) {
+
+          exams =
+            examResponse.data ||
+            [];
+
+        }
+
+      }
+
+
+      const examMap =
+        new Map();
+
+
+      exams.forEach(
+        exam => {
+
+          examMap.set(
+            exam.id,
+            exam
+          );
+
+        }
+      );
+
+
+      /*
+        Add subject + exam information.
+      */
+
+      rows =
+        rows.map(
+          row => {
+
+            const subject =
+              subjectMap.get(
+                row.subject_id
+              ) || {};
+
+
+            const exam =
+              examMap.get(
+                row.exam_id
+              ) || {};
+
+
+            return {
+
+              ...row,
+
+              subject_name:
+                subject.name ||
+                subject.code ||
+                "Unknown Subject",
+
+              subject_code:
+                subject.code ||
+                "",
+
+              exam_title:
+                exam.title ||
+                "",
+
+              exam_type:
+                exam.exam_type ||
+                "",
+
+              exam_date:
+                exam.exam_date ||
+                null,
+
+              course_id:
+                exam.course_id ||
+                null
+
+            };
+
+          }
+        );
+
+
+      /*
+        If the certificate is tied to a course,
+        prefer results from that course.
+      */
+
+      if (record.course_id) {
+
+        const courseRows =
+          rows.filter(
+            row =>
+              row.course_id ===
+              record.course_id
+          );
+
+
+        if (courseRows.length) {
+
+          rows =
+            courseRows;
+
+        }
+
+      }
+
+
+      /*
+        Prefer FINAL exam results when
+        a final exam exists.
+
+        This avoids showing quiz/midterm
+        duplicates on the official letter.
+      */
+
+      const finalRows =
+        rows.filter(
+          row =>
+            String(
+              row.exam_type || ""
+            ).toLowerCase() ===
+            "final"
+        );
+
+
+      if (finalRows.length) {
+
+        rows =
+          finalRows;
+
+      }
+
+
+      /*
+        Sort by subject name.
+      */
+
+      rows.sort(
+        (a, b) =>
+          String(
+            a.subject_name || ""
+          ).localeCompare(
+            String(
+              b.subject_name || ""
+            )
+          )
+      );
+
+
+      /*
+        If duplicate results for the
+        same subject exist, retain the
+        most recent row.
+      */
+
+      const unique =
+        new Map();
+
+
+      rows.forEach(
+        row => {
+
+          const key =
+            row.subject_id ||
+            row.subject_name;
+
+
+          if (
+            !unique.has(key)
+          ) {
+
+            unique.set(
+              key,
+              row
+            );
+
+          }
+
+        }
+      );
+
+
+      return Array.from(
+        unique.values()
+      );
+
+    } catch (error) {
+
+      console.warn(
+        "Academic results loading failed:",
+        error
+      );
+
+      return [];
+
+    }
+
+  }
+
+
+  /* =======================================================
+     GRADE
+  ======================================================= */
+
+  function calculateGrade(
+    percentage
+  ) {
+
+    const p =
+      Number(
+        percentage
+      );
+
+
+    if (
+      Number.isNaN(p)
+    ) {
+
+      return "";
+
+    }
+
+
+    /*
+      Same grading logic already
+      used by the existing results.js.
+    */
+
+    if (p >= 90) return "A+";
+    if (p >= 80) return "A";
+    if (p >= 70) return "B";
+    if (p >= 60) return "C";
+    if (p >= 50) return "D";
+
+    return "F";
+
+  }
+
+
+  /* =======================================================
+     RESULT
+  ======================================================= */
+
+  function calculateResult(
+    percentage,
+    grade
+  ) {
+
+    const p =
+      Number(
+        percentage
+      );
+
+
+    /*
+      Existing EMS grading system
+      considers 50% as pass.
+    */
+
+    if (
+      !Number.isNaN(p)
+    ) {
+
+      return p >= 50
+        ? "PASS"
+        : "FAIL";
+
+    }
+
+
+    if (
+      String(
+        grade || ""
+      ).toUpperCase() === "F"
+    ) {
+
+      return "FAIL";
+
+    }
+
+
+    return "PASS";
+
+  }
+
+
+  /* =======================================================
+     RENDER ACADEMIC RESULTS
+  ======================================================= */
+
+  function renderAcademicResults(
+    rows
+  ) {
+
+    const section =
+      $("resultsSection");
+
+    const noResults =
+      $("noResults");
+
+    const body =
+      $("resultsBody");
+
+    const foot =
+      $("resultsFoot");
+
+
+    body.innerHTML = "";
+
+    foot.innerHTML = "";
+
+
+    /*
+      NO RESULTS:
+      Do not break Authentication Letter.
+    */
+
+    if (
+      !rows ||
+      !rows.length
+    ) {
+
+      section.hidden =
+        true;
+
+      noResults.hidden =
+        false;
+
+      return;
+
+    }
+
+
+    section.hidden =
+      false;
+
+    noResults.hidden =
+      true;
+
+
+    let total =
+      0;
+
+    let totalMax =
+      0;
+
+    let count =
+      0;
+
+    let passed =
+      0;
+
+
+    rows.forEach(
+      row => {
+
+        const score =
+          Number(
+            row.score
+          );
+
+
+        const maxScore =
+          Number(
+            row.max_score
+          );
+
+
+        let percentage =
+          Number(
+            row.percentage
+          );
+
+
+        if (
+          Number.isNaN(
+            percentage
+          ) &&
+          !Number.isNaN(score) &&
+          !Number.isNaN(maxScore) &&
+          maxScore > 0
+        ) {
+
+          percentage =
+            (
+              score /
+              maxScore
+            ) * 100;
+
+        }
+
+
+        const grade =
+          row.grade ||
+          calculateGrade(
+            percentage
+          );
+
+
+        const result =
+          calculateResult(
+            percentage,
+            grade
+          );
+
+
+        if (
+          !Number.isNaN(score)
+        ) {
+
+          total += score;
+
+          count++;
+
+        }
+
+
+        if (
+          !Number.isNaN(maxScore)
+        ) {
+
+          totalMax +=
+            maxScore;
+
+        }
+
+
+        if (
+          result === "PASS"
+        ) {
+
+          passed++;
+
+        }
+
+
+        const tr =
+          document.createElement(
+            "tr"
+          );
+
+
+        const subjectCell =
+          document.createElement(
+            "td"
+          );
+
+
+        subjectCell.textContent =
+          text(
+            row.subject_name
+          );
+
+
+        const markCell =
+          document.createElement(
+            "td"
+          );
+
+
+        if (
+          !Number.isNaN(score)
+        ) {
+
+          markCell.textContent =
+            !Number.isNaN(maxScore)
+              ? `${score} / ${maxScore}`
+              : String(score);
+
+        } else {
+
+          markCell.textContent =
+            "N/A";
+
+        }
+
+
+        const gradeCell =
+          document.createElement(
+            "td"
+          );
+
+
+        gradeCell.textContent =
+          text(grade);
+
+
+        const resultCell =
+          document.createElement(
+            "td"
+          );
+
+
+        resultCell.textContent =
+          result;
+
+
+        if (
+          result === "PASS"
+        ) {
+
+          resultCell.classList.add(
+            "pass"
+          );
+
+        } else {
+
+          resultCell.classList.add(
+            "fail"
+          );
+
+        }
+
+
+        tr.appendChild(
+          subjectCell
+        );
+
+        tr.appendChild(
+          markCell
+        );
+
+        tr.appendChild(
+          gradeCell
+        );
+
+        tr.appendChild(
+          resultCell
+        );
+
+
+        body.appendChild(
+          tr
+        );
+
+      }
+    );
+
+
+    /*
+      Summary
+    */
+
+    const summary =
+      document.createElement(
+        "tr"
+      );
+
+
+    const summaryLabel =
+      document.createElement(
+        "td"
+      );
+
+
+    summaryLabel.textContent =
+      "TOTAL / AVERAGE";
+
+
+    const summaryMarks =
+      document.createElement(
+        "td"
+      );
+
+
+    let average =
+      0;
+
+
+    if (count > 0) {
+
+      average =
+        total /
+        count;
+
+    }
+
+
+    summaryMarks.textContent =
+      totalMax > 0
+        ? `${total} / ${totalMax}`
+        : String(total);
+
+
+    const summaryGrade =
+      document.createElement(
+        "td"
+      );
+
+
+    if (count > 0) {
+
+      summaryGrade.textContent =
+        calculateGrade(
+          (
+            total /
+            (
+              totalMax ||
+              count
+            )
+          ) * 100
+        );
+
+    } else {
+
+      summaryGrade.textContent =
+        "N/A";
+
+    }
+
+
+    const summaryResult =
+      document.createElement(
+        "td"
+      );
+
+
+    summaryResult.textContent =
+      passed === rows.length
+        ? "PASS"
+        : "REVIEW";
+
+
+    summary.appendChild(
+      summaryLabel
+    );
+
+    summary.appendChild(
+      summaryMarks
+    );
+
+    summary.appendChild(
+      summaryGrade
+    );
+
+    summary.appendChild(
+      summaryResult
+    );
+
+
+    foot.appendChild(
+      summary
+    );
+
+  }
+
+
+  /* =======================================================
+     LOAD EVERYTHING
+  ======================================================= */
 
   async function loadAuthenticationLetter() {
-    const id = getRecordIdFromURL();
-    if (!id) return handleError(MSG.noId);
-    const client = getClient();
-    if (!client) return handleError(MSG.network, 'Supabase client lama helin (config/script ma dhex jiro boggan).');
-    let rec;
-    try { rec = await fetchRecord(client, id); } catch (e) { return handleError(MSG.network, (e && (e.message || e.code)) || String(e)); }
-    if (!rec) return handleError(MSG.notFound);
-    if (!isAuthRecord(rec)) return handleError(MSG.wrongType);
 
-    const [extras, results] = await Promise.all([
-      loadRpcExtras(client, rec),
-      loadAcademicResults(client, rec).catch(() => [])
-    ]);
-    renderStudentInfo(rec, extras);
-    renderAuthenticationInfo(rec, extras);
-    renderStatus(rec, extras);
-    renderAcademicResults(results);
+    const recordId =
+      getRecordIdFromURL();
 
-    $('loadingState').hidden = true;
-    $('letter').hidden = false;
-    renderQRCode(verifyUrl(rec, extras));
-    $('printBtn').disabled = false;
-    document.title = 'Authentication Letter - ' + txt(rec.certificate_id);
+
+    /*
+      1. Check URL
+    */
+
+    if (!recordId) {
+
+      showError(
+        MSG.noId
+      );
+
+      return;
+
+    }
+
+
+    /*
+      2. Supabase client
+    */
+
+    db =
+      createSupabaseClient();
+
+
+    if (!db) {
+
+      showError(
+        MSG.network,
+        "Supabase client lama helin."
+      );
+
+      return;
+
+    }
+
+
+    let record;
+
+
+    /*
+      3. Load certificate record
+    */
+
+    try {
+
+      record =
+        await fetchAuthenticationRecord(
+          db,
+          recordId
+        );
+
+    } catch (error) {
+
+      showError(
+        MSG.network,
+        error.message ||
+        String(error)
+      );
+
+      return;
+
+    }
+
+
+    /*
+      4. Record not found
+    */
+
+    if (!record) {
+
+      showError(
+        MSG.notFound
+      );
+
+      return;
+
+    }
+
+
+    /*
+      5. Confirm Authentication Letter
+    */
+
+    if (
+      !isAuthenticationLetter(
+        record
+      )
+    ) {
+
+      showError(
+        MSG.wrongType,
+        "certificate_type = " +
+        String(
+          record.certificate_type ||
+          "NULL"
+        )
+      );
+
+      return;
+
+    }
+
+
+    /*
+      6. Load optional data.
+
+      Important:
+      Academic Results failure
+      MUST NOT break the letter.
+    */
+
+    const extrasPromise =
+      loadAuthenticationExtras(
+        db,
+        record
+      );
+
+
+    const studentPromise =
+      loadStudentFallback(
+        db,
+        record
+      );
+
+
+    const resultsPromise =
+      loadAcademicResults(
+        db,
+        record
+      );
+
+
+    const [
+      extras,
+      student,
+      results
+    ] =
+      await Promise.all([
+        extrasPromise,
+        studentPromise,
+        resultsPromise
+      ]);
+
+
+    /*
+      7. Render
+    */
+
+    renderStudentInformation(
+      record,
+      extras,
+      student
+    );
+
+
+    renderAuthenticationInformation(
+      record,
+      extras
+    );
+
+
+    renderStatus(
+      record,
+      extras
+    );
+
+
+    renderAcademicResults(
+      results
+    );
+
+
+    /*
+      8. QR
+    */
+
+    const verificationURL =
+      getVerificationURL(
+        record,
+        extras
+      );
+
+
+    renderQRCode(
+      verificationURL
+    );
+
+
+    /*
+      9. Show document
+    */
+
+    $("loadingState").hidden =
+      true;
+
+    $("errorState").hidden =
+      true;
+
+    $("letter").hidden =
+      false;
+
+
+    $("printBtn").disabled =
+      false;
+
+
+    /*
+      10. Document title
+    */
+
+    document.title =
+      "Authentication Letter - " +
+      text(
+        record.certificate_id
+      );
+
   }
+
+
+  /* =======================================================
+     INITIALIZATION
+  ======================================================= */
 
   function initializePage() {
-    $('printBtn').addEventListener('click', () => window.print());
-    loadAuthenticationLetter().catch((e) => { handleError(MSG.network, (e && e.message) || String(e)); });
+
+    const printBtn =
+      $("printBtn");
+
+
+    const retryBtn =
+      $("retryBtn");
+
+
+    if (printBtn) {
+
+      printBtn.addEventListener(
+        "click",
+        function () {
+
+          window.print();
+
+        }
+      );
+
+    }
+
+
+    if (retryBtn) {
+
+      retryBtn.addEventListener(
+        "click",
+        function () {
+
+          $("errorState").hidden =
+            true;
+
+          $("loadingState").hidden =
+            false;
+
+          $("letter").hidden =
+            true;
+
+          if (printBtn) {
+            printBtn.disabled =
+              true;
+          }
+
+          loadAuthenticationLetter()
+            .catch(
+              function (error) {
+
+                showError(
+                  MSG.network,
+                  error.message ||
+                  String(error)
+                );
+
+              }
+            );
+
+        }
+      );
+
+    }
+
+
+    loadAuthenticationLetter()
+      .catch(
+        function (error) {
+
+          showError(
+            MSG.network,
+            error.message ||
+            String(error)
+          );
+
+        }
+      );
+
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializePage);
-  else initializePage();
+
+  /* =======================================================
+     START
+  ======================================================= */
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      initializePage,
+      {
+        once: true
+      }
+    );
+
+  } else {
+
+    initializePage();
+
+  }
+
 })();
