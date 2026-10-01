@@ -32,30 +32,30 @@
 
 
   /* =======================================================
-     HELPERS
-  ======================================================= */
+   FIRST AVAILABLE VALUE
+   ======================================================= */
 
-  const $ = function (id) {
-    return document.getElementById(id);
-  };
+function firstAvailable(...values) {
 
+  for (
+    const value of values
+  ) {
 
-  const MSG = {
+    if (
+      value !== null &&
+      value !== undefined &&
+      String(value).trim() !== ""
+    ) {
 
-    noId:
-      "Authentication Letter record ID lama helin.",
+      return value;
 
-    notFound:
-      "Authentication Letter record-ka lama helin.",
+    }
 
-    wrongType:
-      "Record-kan ma aha Authentication Letter.",
+  }
 
-    network:
-      "Waxaa dhacay cilad marka la soo akhrinayay xogta. Fadlan isku day mar kale."
+  return null;
 
-  };
-
+}
 
   /* =======================================================
      SUPABASE CLIENT
@@ -601,8 +601,6 @@
 
   }
 
-
-  /* =======================================================
   /* =======================================================
    STUDENT DATA FALLBACK
    ======================================================= */
@@ -696,20 +694,62 @@ async function loadStudentFallback(
       );
 
 
-    $("dateStarted").textContent =
-      formatDate(
-        extras.date_started ||
-        record.date_started ||
-        record.start_date
-      );
+    /* =======================================================
+   ACADEMIC PERIOD DATES
+   ======================================================= */
+
+const dateStarted =
+  firstAvailable(
+    extras.date_started,
+    record.date_started,
+    record.start_date,
+    record.admission_date,
+    record.date_admitted,
+    student.date_started,
+    student.start_date,
+    student.admission_date,
+    student.date_admitted
+  );
 
 
-    $("dateCompleted").textContent =
-      formatDate(
-        extras.date_completed ||
-        record.date_completed ||
-        record.end_date
-      );
+const dateCompleted =
+  firstAvailable(
+    extras.date_completed,
+    record.date_completed,
+    record.completion_date,
+    record.end_date,
+    record.date_finished,
+    student.date_completed,
+    student.completion_date,
+    student.end_date,
+    student.date_finished
+  );
+
+
+$("dateStarted").textContent =
+  formatDate(
+    dateStarted
+  );
+
+
+$("dateCompleted").textContent =
+  formatDate(
+    dateCompleted
+  );
+
+
+$("issueDate").textContent =
+  formatDate(
+    record.issue_date ||
+    extras.issue_date
+  );
+
+
+$("expiryDate").textContent =
+  formatDate(
+    record.expiry_date ||
+    extras.expiry_date
+  );
 
 
     $("issueDate").textContent =
