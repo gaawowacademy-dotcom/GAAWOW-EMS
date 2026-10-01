@@ -603,55 +603,61 @@
 
 
   /* =======================================================
-     STUDENT DATA FALLBACK
-  ======================================================= */
+  /* =======================================================
+   STUDENT DATA FALLBACK
+   ======================================================= */
 
-  async function loadStudentFallback(
-    client,
-    record
-  ) {
+async function loadStudentFallback(
+  client,
+  record
+) {
 
-    if (!record.student_id) {
-      return {};
-    }
+  if (!record.student_id) {
+    return {};
+  }
 
+  try {
 
-    try {
-
-      const response =
-        await client
-          .from("students")
-          .select(`
-            id,
-            student_id,
-            full_name
-          `)
-          .eq(
-            "id",
-            record.student_id
-          )
-          .maybeSingle();
+    const response =
+      await client
+        .from("students")
+        .select("*")
+        .eq(
+          "id",
+          record.student_id
+        )
+        .maybeSingle();
 
 
-      if (
-        response.error ||
-        !response.data
-      ) {
+    if (
+      response.error ||
+      !response.data
+    ) {
 
-        return {};
-
-      }
-
-
-      return response.data;
-
-    } catch (error) {
+      console.warn(
+        "Student fallback unavailable:",
+        response.error
+      );
 
       return {};
 
     }
+
+
+    return response.data;
+
+  } catch (error) {
+
+    console.warn(
+      "Student fallback failed:",
+      error
+    );
+
+    return {};
 
   }
+
+}
 
 
   /* =======================================================
