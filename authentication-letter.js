@@ -146,20 +146,25 @@ async function withTimeout(promise, ms, message) {
    ========================================================= */
 
 function showLoading() {
+function showLoading() {
 
   const loading = $("loading");
   const error = $("errorState");
   const documentPage = $("authenticationLetter");
 
   if (loading) {
+    loading.hidden = false;
+    loading.removeAttribute("hidden");
     loading.style.display = "flex";
   }
 
   if (error) {
+    error.hidden = true;
     error.style.display = "none";
   }
 
   if (documentPage) {
+    documentPage.hidden = true;
     documentPage.style.display = "none";
   }
 
@@ -174,14 +179,20 @@ function showPage() {
 
   if (loading) {
     loading.style.display = "none";
+    loading.hidden = true;
   }
 
   if (error) {
     error.style.display = "none";
+    error.hidden = true;
   }
 
   if (documentPage) {
+    documentPage.hidden = false;
+    documentPage.removeAttribute("hidden");
     documentPage.style.display = "block";
+    documentPage.style.visibility = "visible";
+    documentPage.style.opacity = "1";
   }
 
 }
@@ -224,8 +235,10 @@ function showError(message, details = "") {
   }
 
   if (error) {
-    error.style.display = "block";
-  }
+  error.hidden = false;
+  error.removeAttribute("hidden");
+  error.style.display = "block";
+}
 
 }
 
