@@ -683,69 +683,184 @@ function renderRPC(data) {
 
 
 /* =========================================================
-   QR
+   QR VERIFICATION
+   FINAL FIX
+   20261001-7
    ========================================================= */
 
 function renderQR(record) {
-function renderQR() {
-  const qrBox = document.getElementById("qrCode");
-  if (!qrBox || !record) return;
 
-  qrBox.innerHTML = "";
+  const container = $("qrcode");
 
-  const verifyCode = String(record.verify_code || "").trim();
-  const authenticationId = String(record.certificate_id || "").trim();
-
-  if (!verifyCode || !authenticationId) {
-    qrBox.innerHTML = "<span>QR unavailable</span>";
+  if (!container) {
+    console.warn(
+      "[AUTH LETTER] QR container #qrcode lama helin."
+    );
     return;
   }
 
-  const verifyUrl =
-    `https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify-auth.html` +
-    `?code=${encodeURIComponent(verifyCode)}` +
-    `&id=${encodeURIComponent(authenticationId)}`;
+  /* -------------------------------------------------------
+     CLEAR OLD QR
+     ------------------------------------------------------- */
 
-  if (typeof QRCode !== "undefined") {
-    new QRCode(qrBox, {
-      text: verifyUrl,
-      width: 120,
-      height: 120,
-      correctLevel: QRCode.CorrectLevel.H
-    });
-  } else {
-    const img = document.createElement("img");
+  container.innerHTML = "";
 
-    img.src =
-      "https://api.qrserver.com/v1/create-qr-code/" +
-      "?size=120x120&data=" +
-      encodeURIComponent(verifyUrl);
+  /* -------------------------------------------------------
+     GET CURRENT DATABASE VALUES
+     ------------------------------------------------------- */
 
-    img.alt = "Authentication Verification QR Code";
-    img.width = 120;
-    img.height = 120;
+  const verifyCode =
+    String(record?.verify_code || "").trim();
 
-    qrBox.appendChild(img);
+  const certificateId =
+    String(record?.certificate_id || "").trim();
+
+  if (!verifyCode || !certificateId) {
+
+    console.error(
+      "[AUTH LETTER] QR data missing:",
+      {
+        verifyCode,
+        certificateId
+      }
+    );
+
+    container.innerHTML = `
+      <div style="
+        font-size:11px;
+        color:#b00020;
+        text-align:center;
+        padding:8px;
+      ">
+        QR verification unavailable
+      </div>
+    `;
+
+    return;
   }
-}
 
+  /* -------------------------------------------------------
+     OFFICIAL AUTHENTICATION VERIFICATION URL
+     ------------------------------------------------------- */
+
+  const verificationURL =
+    "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify-auth.html" +
+    "?code=" +
+    encodeURIComponent(verifyCode) +
+    "&id=" +
+    encodeURIComponent(certificateId);
+
+  /* -------------------------------------------------------
+     DEBUG
+     ------------------------------------------------------- */
+
+  console.log(
+    "[AUTH LETTER] QR VERIFY CODE:",
+    verifyCode
+  );
+
+  console.log(
+    "[AUTH LETTER] QR AUTHENTICATION ID:",
+    certificateId
+  );
+
+  console.log(
+    "[AUTH LETTER] QR URL:",
+    verificationURL
+  );
+
+  /* -------------------------------------------------------
+     CREATE QR
+     ------------------------------------------------------- */
+
+  if (
+    window.QRCode &&
+    typeof window.QRCode === "function"
+  ) {
+
+    try {
+
+      new QRCode(
+        container,
+        {
+          text: verificationURL,
+
+          width: 145,
+          height: 145,
+
+          colorDark: "#0B1E63",
+          colorLight: "#FFFFFF",
+
+          correctLevel:
+            window.QRCode.CorrectLevel
+              ? window.QRCode.CorrectLevel.H
+              : 2
+        }
+      );
+
+      console.log(
+        "[AUTH LETTER] QR CREATED SUCCESSFULLY."
+      );
+
+      return;
+
+    } catch (error) {
+
+      console.warn(
+        "[AUTH LETTER] QR library failed:",
+        error
+      );
+
+    }
+  }
+
+  /* -------------------------------------------------------
+     FALLBACK QR SERVER
+     ------------------------------------------------------- */
 
   const image =
     document.createElement("img");
 
   image.src =
-    "https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=" +
-    encodeURIComponent(
-      verificationURL
-    );
+    "https://api.qrserver.com/v1/create-qr-code/" +
+    "?size=180x180" +
+    "&data=" +
+    encodeURIComponent(verificationURL);
 
   image.alt =
-    "Authentication Letter Verification QR";
+    "GAAWOW Academy Authentication Verification QR";
 
   image.width = 145;
   image.height = 145;
 
+  image.style.display = "block";
+  image.style.width = "145px";
+  image.style.height = "145px";
+  image.style.objectFit = "contain";
+
+  image.onerror = function () {
+
+    console.error(
+      "[AUTH LETTER] QR fallback failed."
+    );
+
+    container.innerHTML = `
+      <div style="
+        font-size:11px;
+        color:#b00020;
+        text-align:center;
+        padding:8px;
+      ">
+        QR unavailable
+      </div>
+    `;
+  };
+
   container.appendChild(image);
+
+  console.log(
+    "[AUTH LETTER] QR FALLBACK CREATED."
+  );
 }
 
 
