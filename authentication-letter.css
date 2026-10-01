@@ -1,11 +1,11 @@
 /* =========================================================
    GAAWOW ACADEMY
    AUTHENTICATION LETTER
-   Professional A4 Institutional Design
+   PROFESSIONAL A4 INSTITUTIONAL DESIGN
+   VERSION: 20261001
    ========================================================= */
 
 :root {
-
   --gaawow-navy: #0B1E63;
   --gaawow-blue: #0B4DA2;
   --gaawow-gold: #D4AF37;
@@ -13,10 +13,24 @@
   --gaawow-bg: #F5F7FA;
 
   --text: #172033;
-  --muted: #697386;
-  --line: #DDE3EE;
-  --soft: #F8FAFD;
+  --muted: #667085;
+  --light-text: #8A94A6;
 
+  --line: #DCE2EC;
+  --line-soft: #E9EDF4;
+
+  --soft: #F8FAFD;
+  --soft-blue: #F4F7FC;
+  --soft-gold: #FFFDF5;
+
+  --success: #176B3A;
+  --success-bg: #EAF7EF;
+
+  --danger: #A51D16;
+  --danger-bg: #FDECEC;
+
+  --warning: #806000;
+  --warning-bg: #FFF6D8;
 }
 
 
@@ -28,18 +42,14 @@
   box-sizing: border-box;
 }
 
-
 html,
 body {
   margin: 0;
   padding: 0;
 }
 
-
 body {
-
   background: var(--gaawow-bg);
-
   color: var(--text);
 
   font-family:
@@ -48,18 +58,12 @@ body {
     sans-serif;
 
   -webkit-font-smoothing: antialiased;
-
+  text-rendering: optimizeLegibility;
 }
-
-
-/* =========================================================
-   GLOBAL
-   ========================================================= */
 
 [hidden] {
   display: none !important;
 }
-
 
 button {
   font-family: inherit;
@@ -71,27 +75,21 @@ button {
    ========================================================= */
 
 .controls {
-
   width: 210mm;
-
   max-width: calc(100% - 32px);
 
-  margin: 18px auto 12px;
+  margin: 18px auto 14px;
 
   display: flex;
-
   justify-content: flex-end;
-
+  align-items: center;
 }
 
-
 .controls button {
-
   appearance: none;
 
   border: 0;
-
-  border-radius: 8px;
+  border-radius: 9px;
 
   background:
     linear-gradient(
@@ -100,12 +98,11 @@ button {
       var(--gaawow-blue)
     );
 
-  color: white;
+  color: #fff;
 
   padding: 11px 22px;
 
   font-size: 13px;
-
   font-weight: 800;
 
   letter-spacing: .04em;
@@ -113,24 +110,23 @@ button {
   cursor: pointer;
 
   box-shadow:
-    0 5px 15px rgba(11,30,99,.18);
+    0 7px 18px rgba(11, 30, 99, .18);
 
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease;
 }
-
 
 .controls button:hover:not(:disabled) {
+  transform: translateY(-2px);
 
-  transform: translateY(-1px);
-
+  box-shadow:
+    0 10px 24px rgba(11, 30, 99, .22);
 }
 
-
 .controls button:disabled {
-
   opacity: .45;
-
   cursor: not-allowed;
-
 }
 
 
@@ -139,68 +135,50 @@ button {
    ========================================================= */
 
 .state {
-
   width: 210mm;
-
   max-width: calc(100% - 32px);
 
   margin: 50px auto;
 
   text-align: center;
-
-  font-family:
-    Arial,
-    Helvetica,
-    sans-serif;
-
 }
-
 
 .loading-state {
-
   color: var(--gaawow-navy);
-
 }
-
 
 .loading-state p {
-
   margin-top: 14px;
 
+  color: var(--muted);
+
   font-size: 14px;
-
   font-weight: 600;
-
 }
 
-
 .spinner {
-
-  width: 42px;
-
-  height: 42px;
+  width: 44px;
+  height: 44px;
 
   margin: auto;
 
   border-radius: 50%;
 
-  border: 4px solid #E1E6F0;
+  border:
+    4px solid
+    #E4E9F1;
 
   border-top-color:
     var(--gaawow-gold);
 
   animation:
     spin .9s linear infinite;
-
 }
 
-
 @keyframes spin {
-
   to {
     transform: rotate(360deg);
   }
-
 }
 
 
@@ -209,106 +187,78 @@ button {
    ========================================================= */
 
 .error-state {
-
-  background: white;
+  background: #fff;
 
   border:
-    1px solid #E4D9A9;
+    1px solid
+    #E4D9A9;
 
   border-radius: 14px;
 
   padding: 35px 25px;
 
   box-shadow:
-    0 12px 30px rgba(11,30,99,.08);
-
+    0 12px 30px rgba(11, 30, 99, .08);
 }
 
-
 .error-icon {
-
   width: 44px;
-
   height: 44px;
 
   margin: 0 auto 12px;
 
   display: flex;
-
   align-items: center;
-
   justify-content: center;
 
   border-radius: 50%;
 
-  background:
-    #FFF5D7;
-
-  color:
-    #856404;
+  background: var(--warning-bg);
+  color: #856404;
 
   font-size: 24px;
-
   font-weight: 900;
-
 }
-
 
 .error-state h2 {
-
   margin: 0 0 8px;
 
-  color:
-    var(--gaawow-navy);
-
+  color: var(--gaawow-navy);
 }
-
 
 .error-state p {
-
   margin: 0;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 
   font-weight: 600;
-
 }
 
-
 .error-state small {
-
   display: block;
 
   margin-top: 10px;
 
-  color:
-    #8B95A7;
+  color: var(--light-text);
 
   word-break: break-word;
-
 }
 
-
 .retry-btn {
-
   margin-top: 20px;
 
   border: 0;
+  border-radius: 8px;
 
-  border-radius: 7px;
+  background: var(--gaawow-navy);
 
-  background:
-    var(--gaawow-navy);
-
-  color: white;
+  color: #fff;
 
   padding: 10px 18px;
 
   font-weight: 800;
 
   cursor: pointer;
-
 }
 
 
@@ -317,13 +267,10 @@ button {
    ========================================================= */
 
 .page {
-
   position: relative;
 
   width: 210mm;
-
   height: 297mm;
-
   min-height: 297mm;
 
   margin: 0 auto;
@@ -337,22 +284,23 @@ button {
     var(--gaawow-white);
 
   border:
-    1.2px solid var(--gaawow-gold);
+    1.2px solid
+    var(--gaawow-gold);
 
   box-shadow:
-    0 12px 40px rgba(11,30,99,.16);
+    0 14px 42px rgba(11, 30, 99, .16);
 
   overflow: hidden;
 
+  isolation: isolate;
 }
 
 
 /* =========================================================
-   DECORATIVE BORDER
+   OUTER GOLD BORDER
    ========================================================= */
 
 .page::before {
-
   content: "";
 
   position: absolute;
@@ -361,35 +309,89 @@ button {
 
   border:
     1px solid
-    rgba(212,175,55,.55);
+    rgba(212, 175, 55, .55);
 
   pointer-events: none;
 
+  z-index: 3;
 }
 
 
-.page::after {
+/* =========================================================
+   TOP BRAND STRIP
+   ========================================================= */
 
+.page::after {
   content: "";
 
   position: absolute;
 
   top: 0;
-
   left: 0;
 
   width: 100%;
-
   height: 5px;
 
   background:
     linear-gradient(
       90deg,
-      var(--gaawow-navy),
-      var(--gaawow-gold),
-      var(--gaawow-blue)
+      var(--gaawow-navy) 0%,
+      var(--gaawow-blue) 48%,
+      var(--gaawow-gold) 72%,
+      var(--gaawow-navy) 100%
     );
 
+  z-index: 5;
+}
+
+
+/* =========================================================
+   OFFICIAL LOGO WATERMARK
+   ========================================================= */
+
+.document-watermark {
+  position: absolute;
+
+  top: 50%;
+  left: 50%;
+
+  width: 125mm;
+  height: 125mm;
+
+  transform:
+    translate(-50%, -50%);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  pointer-events: none;
+
+  z-index: 0;
+
+  opacity: .035;
+}
+
+.document-watermark img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+
+  display: block;
+
+  filter:
+    grayscale(100%);
+}
+
+
+/*
+   Keep document content above watermark.
+*/
+
+.page > *:not(.document-watermark) {
+  position: relative;
+  z-index: 2;
 }
 
 
@@ -398,9 +400,7 @@ button {
    ========================================================= */
 
 .head {
-
   position: relative;
-
   z-index: 2;
 
   display: flex;
@@ -409,57 +409,55 @@ button {
 
   gap: 13px;
 
-  padding-bottom: 9px;
+  padding:
+    2px 2px 10px;
 
   border-bottom:
     1.5px solid
     var(--gaawow-gold);
-
 }
 
 
+/* =========================================================
+   LOGO
+   ========================================================= */
+
 .brand-mark {
-
   width: 57px;
-
   height: 57px;
 
-  flex:
-    0 0 57px;
+  flex: 0 0 57px;
 
   display: flex;
 
   align-items: center;
-
   justify-content: center;
-
 }
 
-
 .brand-mark img {
-
   width: 55px;
-
   height: 55px;
 
   object-fit: contain;
 
+  display: block;
 }
 
+
+/* =========================================================
+   BRAND TEXT
+   ========================================================= */
 
 .brand-text {
-
   flex: 1;
 
+  min-width: 0;
 }
 
-
 .brand-text h1 {
-
   margin: 0;
 
-  color:
-    var(--gaawow-navy);
+  color: var(--gaawow-navy);
 
   font-family:
     Georgia,
@@ -468,53 +466,50 @@ button {
 
   font-size: 22px;
 
-  letter-spacing:
-    .035em;
+  line-height: 1.1;
 
+  letter-spacing: .035em;
 }
 
-
 .motto {
+  margin: 4px 0 2px;
 
-  margin: 2px 0;
-
-  color:
-    var(--gaawow-gold);
+  color: var(--gaawow-gold);
 
   font-family:
     Georgia,
     "Times New Roman",
     serif;
 
-  font-size: 11px;
+  font-size: 10.5px;
 
   font-style: italic;
 
   font-weight: 700;
-
 }
-
 
 .loc {
-
   margin: 0;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 
-  font-size: 9px;
+  font-size: 8.5px;
 
+  line-height: 1.3;
 }
 
 
+/* =========================================================
+   HEADER SEAL
+   ========================================================= */
+
 .header-seal {
+  position: relative;
 
   width: 48px;
-
   height: 48px;
 
-  flex:
-    0 0 48px;
+  flex: 0 0 48px;
 
   border:
     1px solid
@@ -525,11 +520,9 @@ button {
   display: flex;
 
   align-items: center;
-
   justify-content: center;
 
-  color:
-    var(--gaawow-navy);
+  color: var(--gaawow-navy);
 
   font-family:
     Georgia,
@@ -538,81 +531,59 @@ button {
   font-size: 14px;
 
   font-weight: 900;
-
 }
 
-
 .header-seal::before {
-
   content: "";
 
   position: absolute;
 
-  width: 40px;
-
-  height: 40px;
+  width: 39px;
+  height: 39px;
 
   border:
     1px solid
-    rgba(212,175,55,.5);
+    rgba(212, 175, 55, .45);
 
   border-radius: 50%;
-
 }
 
 
 /* =========================================================
-   TITLE
+   DOCUMENT TITLE
    ========================================================= */
 
 .title {
-
   position: relative;
-
   z-index: 2;
 
   text-align: center;
 
   margin:
-    9px
-    0
-    8px;
-
+    10px 0 10px;
 }
 
-
 .gold-rule {
-
-  width: 55px;
-
+  width: 58px;
   height: 2px;
 
   margin: 0 auto 6px;
 
   background:
     var(--gaawow-gold);
-
 }
-
 
 .gold-rule.short {
-
-  width: 30px;
+  width: 32px;
 
   margin:
-    6px
-    auto
-    0;
-
+    6px auto 0;
 }
 
-
 .title h2 {
-
   margin: 0;
 
-  color:
-    var(--gaawow-navy);
+  color: var(--gaawow-navy);
 
   font-family:
     Georgia,
@@ -621,90 +592,94 @@ button {
 
   font-size: 21px;
 
-  letter-spacing:
-    .13em;
+  line-height: 1.1;
 
+  letter-spacing: .13em;
 }
 
-
 .title p {
+  margin: 4px 0 0;
 
-  margin: 3px 0 0;
-
-  color:
-    var(--gaawow-blue);
+  color: var(--gaawow-blue);
 
   font-size: 8px;
 
   font-weight: 900;
 
-  letter-spacing:
-    .22em;
-
+  letter-spacing: .22em;
 }
 
 
 /* =========================================================
-   SECTIONS
+   SECTION CONTAINER
    ========================================================= */
 
 .document-section {
-
   position: relative;
-
   z-index: 2;
 
-  margin-top: 7px;
+  margin-top: 9px;
 
+  padding:
+    7px 8px 8px;
+
+  border:
+    1px solid
+    var(--line-soft);
+
+  border-radius: 4px;
+
+  background:
+    rgba(255, 255, 255, .93);
 }
 
 
-.section-heading {
+/* =========================================================
+   SECTION HEADING
+   ========================================================= */
 
+.section-heading {
   display: flex;
 
   align-items: center;
 
-  gap: 7px;
+  gap: 8px;
 
-  margin-bottom: 5px;
+  margin:
+    0 0 7px;
 
-  padding-bottom: 3px;
+  padding:
+    0 0 5px;
 
   border-bottom:
     1px solid
-    var(--gaawow-gold);
-
+    rgba(212, 175, 55, .7);
 }
 
-
 .section-number {
+  min-width: 18px;
 
-  color:
-    var(--gaawow-gold);
+  color: var(--gaawow-gold);
 
   font-size: 8px;
 
   font-weight: 900;
 
   letter-spacing: .05em;
-
 }
 
-
 .section-heading h3 {
-
   margin: 0;
 
-  color:
-    var(--gaawow-navy);
+  color: var(--gaawow-navy);
 
   font-size: 9px;
+
+  line-height: 1.2;
 
   font-weight: 900;
 
   letter-spacing: .12em;
-
 }
 
 
@@ -713,95 +688,96 @@ button {
    ========================================================= */
 
 .student-layout {
-
   display: flex;
 
   gap: 12px;
 
   align-items: stretch;
-
 }
-
 
 .student-information {
-
   flex: 1;
 
+  min-width: 0;
 }
 
+
+/* =========================================================
+   FIELD SYSTEM
+   ========================================================= */
 
 .field {
-
   min-width: 0;
-
 }
-
 
 .large-field {
-
   padding:
-    5px
-    8px;
+    7px 9px;
 
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 
   background:
-    var(--soft);
+    linear-gradient(
+      90deg,
+      #F7F9FD,
+      #FCFDFE
+    );
+
+  border:
+    1px solid
+    var(--line-soft);
 
   border-left:
-    2px solid
+    3px solid
     var(--gaawow-gold);
 
+  border-radius: 2px;
 }
 
-
 .field-label {
-
   display: block;
 
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 
   font-size: 7px;
 
+  line-height: 1.2;
+
   font-weight: 900;
 
-  letter-spacing:
-    .1em;
+  letter-spacing: .1em;
 
+  text-transform: uppercase;
 }
-
 
 .field strong {
-
   display: block;
 
-  color:
-    var(--text);
+  color: var(--text);
 
-  font-size: 11px;
+  font-size: 10.5px;
 
-  line-height: 1.25;
+  line-height: 1.35;
 
   overflow-wrap: anywhere;
-
 }
 
-
 .large-field strong {
-
-  color:
-    var(--gaawow-navy);
+  color: var(--gaawow-navy);
 
   font-size: 14px;
 
+  line-height: 1.25;
 }
 
 
-.two-column {
+/* =========================================================
+   TWO COLUMN FIELDS
+   ========================================================= */
 
+.two-column {
   display: grid;
 
   grid-template-columns:
@@ -809,83 +785,85 @@ button {
     1fr;
 
   gap: 7px;
-
 }
 
-
 .two-column .field {
+  min-height: 34px;
 
   padding:
-    5px
-    7px;
+    6px 8px;
 
   border:
     1px solid
     var(--line);
 
+  border-radius: 3px;
+
+  background:
+    rgba(255,255,255,.96);
+}
+
+.two-column .field strong {
+  font-size: 9.5px;
 }
 
 
-.photo-box {
+/* =========================================================
+   STUDENT PHOTO
+   ========================================================= */
 
+.photo-box {
   position: relative;
 
   width: 27mm;
-
   height: 34mm;
 
   flex:
     0 0 27mm;
 
+  padding: 2px;
+
   border:
     1.5px solid
     var(--gaawow-gold);
 
-  padding: 2px;
+  background: #fff;
 
-  background: white;
-
+  box-shadow:
+    0 3px 10px
+    rgba(11, 30, 99, .08);
 }
 
-
 .photo-box img {
-
   width: 100%;
-
   height: 100%;
 
   object-fit: cover;
 
   display: block;
-
 }
 
-
 .photo-box span {
-
   position: absolute;
 
-  left: 0;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
 
-  right: 0;
-
-  bottom: 0;
-
-  padding: 2px;
+  padding: 3px 2px;
 
   background:
-    rgba(11,30,99,.8);
+    rgba(11, 30, 99, .86);
 
   color: white;
 
   text-align: center;
 
-  font-size: 6px;
+  font-size: 5.5px;
 
   font-weight: 900;
 
   letter-spacing: .1em;
-
 }
 
 
@@ -894,37 +872,32 @@ button {
    ========================================================= */
 
 .period-grid {
-
   display: grid;
 
   grid-template-columns:
     repeat(4, 1fr);
 
-  gap: 6px;
-
+  gap: 7px;
 }
 
-
 .period-grid .field {
+  min-height: 35px;
 
   padding:
-    5px
-    7px;
+    6px 8px;
 
   border:
     1px solid
     var(--line);
 
+  border-radius: 3px;
+
   background:
     #fff;
-
 }
 
-
 .period-grid .field strong {
-
   font-size: 9px;
-
 }
 
 
@@ -933,16 +906,18 @@ button {
    ========================================================= */
 
 .results-table-wrap {
-
   width: 100%;
 
   overflow: hidden;
 
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 3px;
 }
 
-
 .results-table {
-
   width: 100%;
 
   border-collapse: collapse;
@@ -950,124 +925,95 @@ button {
   table-layout: fixed;
 
   font-size: 8px;
-
 }
 
-
 .results-table th {
-
   padding:
-    5px
-    6px;
+    6px 7px;
 
   background:
     var(--gaawow-navy);
 
-  color: white;
+  color: #fff;
 
   text-align: left;
 
   font-size: 7px;
 
+  line-height: 1.2;
+
   font-weight: 900;
 
   letter-spacing: .08em;
-
 }
-
 
 .results-table th:nth-child(1) {
-
   width: 55%;
-
 }
-
 
 .results-table th:nth-child(2) {
-
   width: 15%;
-
 }
-
 
 .results-table th:nth-child(3) {
-
   width: 14%;
-
 }
-
 
 .results-table th:nth-child(4) {
-
   width: 16%;
-
 }
 
-
 .results-table td {
-
   padding:
-    4px
-    6px;
+    5px 7px;
 
   border-bottom:
     1px solid
-    #E4E8F0;
+    #E6EAF1;
 
   color:
     var(--text);
 
   vertical-align: middle;
 
+  line-height: 1.25;
 }
-
 
 .results-table tbody tr:nth-child(even) {
-
   background:
     #FAFBFD;
-
 }
 
+.results-table tbody tr:last-child td {
+  border-bottom: 0;
+}
 
 .results-table td:not(:first-child) {
-
   font-weight: 700;
-
 }
 
-
 .results-table tfoot td {
-
   padding:
-    5px
-    6px;
+    6px 7px;
 
   border-top:
     1.5px solid
     var(--gaawow-gold);
 
   background:
-    #FFFDF5;
+    var(--soft-gold);
 
   font-weight: 900;
-
 }
-
 
 .pass {
-
   color:
-    #18733D !important;
-
+    var(--success) !important;
 }
 
-
 .fail {
-
   color:
-    #B42318 !important;
-
+    var(--danger) !important;
 }
 
 
@@ -1076,23 +1022,21 @@ button {
    ========================================================= */
 
 .no-results {
-
   position: relative;
-
   z-index: 2;
 
   padding:
-    8px
-    10px;
+    9px 10px;
 
-  margin-top: 7px;
+  margin-top: 6px;
 
   border:
     1px dashed
-    #D6DCE8;
+    #D4DBE7;
 
-  color:
-    var(--muted);
+  border-radius: 3px;
+
+  color: var(--muted);
 
   background:
     #FAFBFD;
@@ -1102,7 +1046,6 @@ button {
   font-size: 8px;
 
   font-style: italic;
-
 }
 
 
@@ -1111,18 +1054,14 @@ button {
    ========================================================= */
 
 .authentication-layout {
-
   display: flex;
 
-  gap: 15px;
+  gap: 14px;
 
   align-items: center;
-
 }
 
-
 .authentication-fields {
-
   flex: 1;
 
   display: grid;
@@ -1131,29 +1070,26 @@ button {
     1fr
     1fr;
 
-  gap: 5px;
-
+  gap: 7px;
 }
 
-
 .auth-field {
+  min-height: 35px;
 
   padding:
-    5px
-    7px;
+    6px 8px;
 
   border:
     1px solid
     var(--line);
 
+  border-radius: 3px;
+
   background:
     #fff;
-
 }
 
-
 .auth-field .mono {
-
   display: block;
 
   font-family:
@@ -1165,20 +1101,23 @@ button {
 
   font-size: 8px;
 
-  overflow-wrap: anywhere;
+  line-height: 1.35;
 
+  overflow-wrap: anywhere;
 }
 
 
-.badge {
+/* =========================================================
+   STATUS BADGES
+   ========================================================= */
 
+.badge {
   display: inline-block;
 
-  margin-top: 1px;
+  margin-top: 2px;
 
   padding:
-    3px
-    9px;
+    4px 10px;
 
   border-radius: 30px;
 
@@ -1190,79 +1129,68 @@ button {
 
   font-size: 7px;
 
+  line-height: 1;
+
   font-weight: 900;
 
-  letter-spacing:
-    .08em;
-
+  letter-spacing: .08em;
 }
 
-
 .badge.ok {
-
   color:
-    #176B3A;
+    var(--success);
 
   background:
-    #E7F6EC;
+    var(--success-bg);
 
   border:
     1px solid
     #A9DAB9;
-
 }
 
-
 .badge.warn {
-
   color:
-    #7B5E00;
+    var(--warning);
 
   background:
-    #FFF5D5;
+    var(--warning-bg);
 
   border:
     1px solid
     #E5CB75;
-
 }
 
-
 .badge.bad {
-
   color:
-    #A51D16;
+    var(--danger);
 
   background:
-    #FDECEC;
+    var(--danger-bg);
 
   border:
     1px solid
     #E8A7A3;
-
 }
 
 
 /* =========================================================
-   QR
+   QR SECTION
    ========================================================= */
 
 .qr-area {
-
   width: 32mm;
 
   flex:
     0 0 32mm;
 
-  text-align: center;
+  padding:
+    4px;
 
+  text-align: center;
 }
 
-
 .qrcode {
-
   width: 29mm;
-
   height: 29mm;
 
   margin: 0 auto;
@@ -1272,36 +1200,30 @@ button {
   display: flex;
 
   align-items: center;
-
   justify-content: center;
 
   border:
-    1px solid
+    1.5px solid
     var(--gaawow-gold);
 
   background: white;
 
+  box-shadow:
+    0 3px 9px
+    rgba(11, 30, 99, .07);
 }
-
 
 .qrcode img,
 .qrcode canvas {
-
   width: 100% !important;
-
   height: 100% !important;
 
   display: block;
-
 }
 
-
 .qr-area p {
-
   margin:
-    3px
-    0
-    1px;
+    4px 0 1px;
 
   color:
     var(--gaawow-navy);
@@ -1310,19 +1232,16 @@ button {
 
   font-weight: 900;
 
-  letter-spacing:
-    .1em;
-
+  letter-spacing: .1em;
 }
 
-
 .qr-area small {
-
   color:
     var(--muted);
 
   font-size: 6px;
 
+  line-height: 1.3;
 }
 
 
@@ -1331,29 +1250,33 @@ button {
    ========================================================= */
 
 .declaration {
-
   position: relative;
-
   z-index: 2;
 
-  margin-top: 7px;
+  margin-top: 8px;
 
   padding:
-    6px
-    9px;
+    8px 10px;
+
+  border:
+    1px solid
+    var(--line-soft);
 
   border-left:
-    2px solid
+    3px solid
     var(--gaawow-gold);
 
-  background:
-    #FBFCFE;
+  border-radius: 3px;
 
+  background:
+    linear-gradient(
+      90deg,
+      #FBFCFE,
+      #FFFFFF
+    );
 }
 
-
 .declaration p {
-
   margin: 0;
 
   color:
@@ -1364,56 +1287,48 @@ button {
     "Times New Roman",
     serif;
 
-  font-size: 7.5px;
+  font-size: 7.7px;
 
-  line-height: 1.45;
+  line-height: 1.55;
 
+  text-align: justify;
 }
 
 
 /* =========================================================
-   SIGNATURE
+   SIGNATURE AREA
    ========================================================= */
 
 .signature-section {
-
   position: relative;
-
   z-index: 2;
 
   display: flex;
 
   justify-content: flex-end;
 
-  margin-top: 10px;
+  margin-top: 11px;
 
+  padding-top: 3px;
 }
 
-
 .signature {
-
   width: 48mm;
 
   text-align: center;
-
 }
 
-
 .signature-line {
-
   width: 100%;
+
+  margin-bottom: 4px;
 
   border-top:
     1px solid
     var(--gaawow-navy);
-
-  margin-bottom: 3px;
-
 }
 
-
 .signature strong {
-
   display: block;
 
   color:
@@ -1425,23 +1340,22 @@ button {
 
   font-size: 9px;
 
+  line-height: 1.2;
 }
 
-
 .signature span {
-
   display: block;
 
-  margin-top: 2px;
+  margin-top: 3px;
 
   color:
     var(--muted);
 
   font-size: 6px;
 
-  letter-spacing:
-    .08em;
+  line-height: 1.2;
 
+  letter-spacing: .08em;
 }
 
 
@@ -1450,15 +1364,12 @@ button {
    ========================================================= */
 
 .document-footer {
-
   position: absolute;
 
   z-index: 2;
 
   left: 15mm;
-
   right: 15mm;
-
   bottom: 9mm;
 
   display: flex;
@@ -1480,16 +1391,14 @@ button {
 
   font-size: 6.5px;
 
+  line-height: 1.25;
 }
 
-
 .document-footer div:first-child {
-
   color:
     var(--gaawow-navy);
 
   font-weight: 900;
-
 }
 
 
@@ -1498,15 +1407,12 @@ button {
    ========================================================= */
 
 .security-strip {
-
   position: absolute;
 
   z-index: 2;
 
   left: 15mm;
-
   right: 15mm;
-
   bottom: 4mm;
 
   display: flex;
@@ -1522,9 +1428,7 @@ button {
 
   font-weight: 800;
 
-  letter-spacing:
-    .09em;
-
+  letter-spacing: .09em;
 }
 
 
@@ -1538,37 +1442,27 @@ button {
     padding: 0;
   }
 
-
   .controls {
-
     width: auto;
-
     max-width: none;
 
     margin:
       10px;
-
   }
 
-
   .state {
-
     width: auto;
-
     max-width: none;
 
     margin:
       35px 12px;
-
   }
 
-
   .page {
-
-    width: calc(100% - 16px);
+    width:
+      calc(100% - 16px);
 
     height: auto;
-
     min-height: 0;
 
     margin: 8px;
@@ -1577,89 +1471,67 @@ button {
       28px 14px 70px;
 
     overflow: visible;
-
   }
-
 
   .page::before {
     inset: 3px;
   }
 
-
   .header-seal {
     display: none;
   }
 
-
   .brand-text h1 {
     font-size: 18px;
   }
-
 
   .title h2 {
     font-size: 17px;
     letter-spacing: .08em;
   }
 
-
-  .period-grid {
-
-    grid-template-columns:
-      1fr 1fr;
-
+  .document-section {
+    padding:
+      7px 7px 8px;
   }
 
+  .period-grid {
+    grid-template-columns:
+      1fr 1fr;
+  }
 
   .authentication-layout {
-
     flex-direction: column;
 
     align-items: stretch;
-
   }
-
 
   .authentication-fields {
-
     grid-template-columns:
       1fr;
-
   }
-
 
   .qr-area {
-
     width: 100%;
-
   }
-
 
   .qrcode {
-
     width: 36mm;
-
     height: 36mm;
-
   }
 
-
   .document-footer {
-
     position: static;
 
     margin-top: 22px;
 
     padding-bottom: 8px;
-
   }
 
-
   .security-strip {
-
     position: static;
 
     margin-top: 8px;
-
   }
 
 }
@@ -1672,110 +1544,78 @@ button {
 @media (max-width: 480px) {
 
   .two-column {
-
     grid-template-columns:
       1fr;
-
   }
-
 
   .student-layout {
-
     flex-direction: column;
-
   }
-
 
   .photo-box {
-
     align-self: flex-start;
-
   }
-
 
   .period-grid {
-
     grid-template-columns:
       1fr;
-
   }
 
+  .authentication-fields {
+    grid-template-columns:
+      1fr;
+  }
 
   .results-table {
-
     font-size: 7px;
-
   }
-
 
   .results-table th,
   .results-table td {
-
     padding:
-      5px
-      4px;
-
+      5px 4px;
   }
 
 }
 
 
 /* =========================================================
-   PRINT
+   PRINT / PDF
    ========================================================= */
 
 @page {
-
   size: A4 portrait;
-
   margin: 0;
-
 }
-
 
 @media print {
 
   html,
   body {
-
     width: 210mm;
-
     height: 297mm;
 
     margin: 0;
-
     padding: 0;
 
     background: white;
-
   }
-
 
   body {
-
     -webkit-print-color-adjust: exact;
-
     print-color-adjust: exact;
-
   }
-
 
   .no-print,
   .state {
-
     display: none !important;
-
   }
 
-
   .page {
-
     display: block !important;
 
     width: 210mm;
-
     height: 297mm;
-
     min-height: 297mm;
 
     margin: 0;
@@ -1794,128 +1634,50 @@ button {
     overflow: hidden;
 
     page-break-after: avoid;
-
   }
 
+  .document-watermark {
+    opacity: .035 !important;
+
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 
   .document-section,
   .results-section,
   .authentication-layout,
-  .signature-section {
-
+  .signature-section,
+  .declaration {
     break-inside: avoid;
-
     page-break-inside: avoid;
-
   }
-
 
   .results-table tr {
-
     break-inside: avoid;
-
     page-break-inside: avoid;
-
   }
-
 
   .photo-box {
-
     break-inside: avoid;
-
   }
-
-
-  .declaration {
-
-    break-inside: avoid;
-
-  }
-
 }
+
+
 /* =========================================================
-   OFFICIAL GAAWOW WATERMARK
-   Transparent logo inside the A4 document
+   WATERMARK PRINT SAFETY
    ========================================================= */
-
-.document-watermark {
-
-  position: absolute;
-
-  top: 50%;
-
-  left: 50%;
-
-  width: 125mm;
-
-  height: 125mm;
-
-  transform:
-    translate(
-      -50%,
-      -50%
-    );
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  pointer-events: none;
-
-  z-index: 0;
-
-  opacity: 0.035;
-
-}
-
-
-.document-watermark img {
-
-  width: 100%;
-
-  height: 100%;
-
-  object-fit: contain;
-
-  display: block;
-
-  filter:
-    grayscale(100%);
-
-}
-
-
-/*
-   Keep all actual document content
-   above the watermark.
-*/
-
-.page > *:not(.document-watermark) {
-
-  position: relative;
-
-  z-index: 2;
-
-}
-
-
-/*
-   Watermark must also appear in
-   Print / PDF.
-*/
 
 @media print {
 
-  .document-watermark {
-
-    opacity: 0.035 !important;
-
-    -webkit-print-color-adjust: exact;
-
-    print-color-adjust: exact;
-
+  .document-watermark img {
+    filter:
+      grayscale(100%);
   }
 
 }
+
+
+/* =========================================================
+   LOCATION FIELD HIDDEN
+   =========================================================
+   G-Founder / SCC area
