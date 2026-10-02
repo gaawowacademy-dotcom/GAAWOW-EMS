@@ -1,52 +1,165 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>GAAWOW Academy | Student Login</title>
-  <link rel="stylesheet" href="student-auth.css">
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Student Login | GAAWOW ACADEMY</title>
+
+  <link rel="stylesheet" href="student-login.css">
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+    defer
+  ></script>
+
+  <script
+    src="student-login.js"
+    defer
+  ></script>
 </head>
+
 <body>
-  <main class="auth-shell">
+
+  <main class="login-page">
+
     <section class="login-card">
+
       <div class="brand">
-        <div class="brand-mark">GA</div>
-        <div>
-          <h1>GAAWOW ACADEMY</h1>
-          <p>Student Portal</p>
+
+        <div class="brand-logo-wrap">
+          <img
+            id="academyLogo"
+            src="logo.png"
+            alt="GAAWOW Academy"
+            onerror="this.style.display='none'"
+          >
         </div>
+
+        <div class="brand-text">
+          <h1>GAAWOW ACADEMY</h1>
+          <p>Ilayska Aqoonta iyo Xirfadda</p>
+        </div>
+
       </div>
 
-      <div id="message" class="message hidden"></div>
 
-      <form id="loginForm" novalidate>
-        <label for="studentId">Student ID</label>
-        <input id="studentId" name="studentId" type="text"
-          placeholder="GA-2026-000012" autocomplete="username" required>
+      <div class="login-header">
 
-        <label for="password">Password</label>
-        <div class="password-wrap">
-          <input id="password" name="password" type="password"
-            placeholder="Enter your password" autocomplete="current-password" required>
-          <button type="button" id="togglePassword" class="eye-btn">Show</button>
+        <div class="login-icon">
+          🎓
         </div>
 
-        <button id="loginBtn" class="primary-btn" type="submit">
-          <span id="loginText">Sign In</span>
-          <span id="loginSpinner" class="spinner hidden"></span>
+        <h2>Student Login</h2>
+
+        <p>
+          Sign in to access your student portal
+        </p>
+
+      </div>
+
+
+      <form id="studentLoginForm">
+
+        <div class="form-group">
+
+          <label for="email">
+            Student Email
+          </label>
+
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="Enter your email"
+            autocomplete="email"
+            required
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="password">
+            Password
+          </label>
+
+          <div class="password-wrap">
+
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              required
+            >
+
+            <button
+              type="button"
+              id="togglePassword"
+              class="password-toggle"
+              aria-label="Show password"
+            >
+              👁
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="loginMessage"
+          class="message"
+          role="alert"
+          aria-live="polite"
+        ></div>
+
+
+        <button
+          type="submit"
+          id="loginButton"
+          class="login-button"
+        >
+          <span id="loginButtonText">
+            Sign In
+          </span>
+
+          <span
+            id="loginSpinner"
+            class="spinner"
+            hidden
+          ></span>
         </button>
+
       </form>
 
-      <div class="login-links">
-        <button id="forgotBtn" type="button" class="link-btn">Forgot Password?</button>
+
+      <div class="login-footer">
+
+        <p>
+          GAAWOW ACADEMY
+        </p>
+
+        <span>
+          Burhakaba, Bay, Somalia
+        </span>
+
+        <span>
+          © <span id="currentYear"></span>
+        </span>
+
       </div>
 
-      <p class="security-note">🔒 Student accounts can access Student Portal only.</p>
-      <p class="footer-note">Ilayska Aqoonta iyo Xirfadda · Burhakaba, Bay, Somalia</p>
     </section>
+
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="student-login.js"></script>
 </body>
 </html>
