@@ -1,329 +1,983 @@
 <!doctype html>
 <html lang="en">
+
 <head>
+
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0B1E63">
-<meta name="description" content="GAAWOW Academy official Authentication Letter verification">
-<title>GAAWOW Academy | Authentication Letter Verification</title>
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
+
+<meta
+  name="theme-color"
+  content="#0B1E63"
+>
+
+<meta
+  name="description"
+  content="GAAWOW Academy official Authentication Letter verification"
+>
+
+<title>
+  GAAWOW Academy | Authentication Letter Verification
+</title>
+
 
 <style>
+
+/* =========================================================
+   GAAWOW ACADEMY
+   AUTHENTICATION VERIFICATION
+   VERSION 20261002-2
+   ========================================================= */
+
 :root{
+
   --navy:#0B1E63;
   --blue:#0B4DA2;
   --gold:#D4AF37;
+
   --bg:#F5F7FA;
+
   --text:#111827;
   --muted:#64748B;
+
   --line:#E2E8F0;
+
 }
+
 
 *{
   box-sizing:border-box;
 }
 
+
 body{
+
   margin:0;
+
   background:var(--bg);
-  font-family:Arial,Helvetica,sans-serif;
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+
   color:var(--text);
-  -webkit-font-smoothing:antialiased;
+
+  -webkit-font-smoothing:
+    antialiased;
+
 }
+
+
+/* =========================================================
+   TOP BAR
+   ========================================================= */
 
 .top{
-  background:linear-gradient(135deg,var(--navy),var(--blue));
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--navy),
+      var(--blue)
+    );
+
   color:#fff;
+
   padding:18px 20px;
-  box-shadow:0 3px 14px rgba(11,30,99,.18);
+
+  box-shadow:
+    0 3px 14px
+    rgba(11,30,99,.18);
+
 }
+
 
 .top-inner{
+
   max-width:900px;
+
   margin:auto;
+
   display:flex;
+
   align-items:center;
+
   gap:12px;
+
 }
+
 
 .top-mark{
+
   width:42px;
   height:42px;
-  border:1px solid rgba(255,255,255,.35);
+
+  border:
+    1px solid
+    rgba(255,255,255,.35);
+
   border-radius:10px;
+
   object-fit:contain;
+
   background:#fff;
+
   padding:4px;
+
 }
+
 
 .brand{
+
   font-size:16px;
+
   font-weight:800;
+
   letter-spacing:.3px;
+
 }
+
 
 .motto{
+
   font-size:12px;
+
   opacity:.88;
+
   margin-top:3px;
+
 }
+
+
+/* =========================================================
+   PAGE
+   ========================================================= */
 
 .wrap{
+
   max-width:820px;
+
   margin:30px auto;
-  padding:0 16px 40px;
+
+  padding:
+    0
+    16px
+    40px;
+
 }
+
 
 .card{
+
   background:#fff;
-  border:1px solid var(--line);
+
+  border:
+    1px solid
+    var(--line);
+
   border-radius:18px;
-  box-shadow:0 10px 35px rgba(15,23,42,.08);
+
+  box-shadow:
+    0 10px 35px
+    rgba(15,23,42,.08);
+
   overflow:hidden;
+
 }
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
 
 .head{
+
   text-align:center;
-  padding:30px 22px 24px;
-  border-bottom:1px solid var(--line);
-  background:linear-gradient(180deg,#fff,#fbfdff);
+
+  padding:
+    30px
+    22px
+    24px;
+
+  border-bottom:
+    1px solid
+    var(--line);
+
+  background:
+    linear-gradient(
+      180deg,
+      #fff,
+      #fbfdff
+    );
+
 }
+
 
 .logo{
+
   width:82px;
   height:82px;
+
   object-fit:contain;
+
   margin-bottom:10px;
+
 }
+
 
 .title{
+
   font-size:27px;
+
   line-height:1.2;
+
   font-weight:900;
+
   color:var(--navy);
+
   letter-spacing:.2px;
+
 }
+
 
 .sub{
+
   color:var(--muted);
+
   margin-top:7px;
+
   font-size:14px;
+
 }
+
 
 .gold-line{
+
   width:72px;
+
   height:3px;
+
   background:var(--gold);
+
   border-radius:99px;
-  margin:14px auto 0;
+
+  margin:
+    14px
+    auto
+    0;
+
 }
+
+
+/* =========================================================
+   STATUS
+   ========================================================= */
 
 .status{
-  margin:22px 22px 16px;
-  padding:15px 16px;
+
+  margin:
+    22px
+    22px
+    16px;
+
+  padding:
+    15px
+    16px;
+
   border-radius:12px;
+
   font-weight:800;
+
   text-align:center;
-  border:1px solid transparent;
+
+  border:
+    1px solid
+    transparent;
+
 }
+
 
 .loading{
+
   background:#EFF6FF;
+
   color:var(--blue);
+
   border-color:#BFDBFE;
+
 }
+
 
 .valid{
+
   background:#ECFDF5;
+
   color:#166534;
+
   border-color:#BBF7D0;
+
 }
+
 
 .invalid{
+
   background:#FEF2F2;
+
   color:#991B1B;
+
   border-color:#FECACA;
+
 }
+
+
+/* =========================================================
+   INFORMATION GRID
+   ========================================================= */
 
 .grid{
+
   display:grid;
-  grid-template-columns:1fr 1fr;
+
+  grid-template-columns:
+    1fr 1fr;
+
   gap:13px;
-  padding:4px 22px 24px;
+
+  padding:
+    4px
+    22px
+    24px;
+
 }
+
 
 .item{
-  border:1px solid var(--line);
+
+  border:
+    1px solid
+    var(--line);
+
   border-radius:11px;
+
   padding:14px;
+
   background:#fff;
+
 }
+
 
 .label{
+
   font-size:10px;
+
   font-weight:800;
+
   color:var(--muted);
+
   text-transform:uppercase;
+
   letter-spacing:.65px;
+
 }
+
 
 .value{
+
   margin-top:6px;
+
   font-weight:750;
+
   line-height:1.4;
+
   word-break:break-word;
+
 }
+
 
 .code{
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+
   color:var(--navy);
+
   font-size:14px;
+
 }
+
 
 .status-value{
+
   color:#166534;
+
   text-transform:uppercase;
+
 }
+
 
 .wide{
-  grid-column:1/-1;
+
+  grid-column:
+    1 / -1;
+
 }
+
+
+/* =========================================================
+   PHOTO
+   ========================================================= */
 
 .photo-wrap{
+
   display:flex;
+
   align-items:center;
+
   gap:16px;
+
   margin-top:8px;
+
 }
+
 
 .photo{
+
   width:92px;
+
   height:112px;
+
   object-fit:cover;
-  border:2px solid var(--gold);
+
+  border:
+    2px solid
+    var(--gold);
+
   border-radius:9px;
+
   background:#f8fafc;
+
 }
+
+
+/* =========================================================
+   ACADEMIC RESULTS
+   ========================================================= */
+
+.results-section{
+
+  margin:
+    0
+    22px
+    24px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:12px;
+
+  overflow:hidden;
+
+  background:#fff;
+
+}
+
+
+.results-header{
+
+  background:
+    linear-gradient(
+      135deg,
+      #f8fafc,
+      #ffffff
+    );
+
+  border-bottom:
+    1px solid
+    var(--line);
+
+  padding:
+    13px
+    15px;
+
+}
+
+
+.results-title{
+
+  font-size:13px;
+
+  font-weight:900;
+
+  color:var(--navy);
+
+  text-transform:uppercase;
+
+  letter-spacing:.35px;
+
+}
+
+
+.results-subtitle{
+
+  font-size:10px;
+
+  color:var(--muted);
+
+  margin-top:3px;
+
+}
+
+
+.results-table-wrap{
+
+  width:100%;
+
+  overflow-x:auto;
+
+}
+
+
+.results-table{
+
+  width:100%;
+
+  border-collapse:collapse;
+
+  font-size:12px;
+
+}
+
+
+.results-table th{
+
+  background:var(--navy);
+
+  color:#fff;
+
+  text-align:left;
+
+  padding:
+    10px
+    9px;
+
+  font-size:10px;
+
+  text-transform:uppercase;
+
+  letter-spacing:.4px;
+
+}
+
+
+.results-table td{
+
+  padding:
+    9px;
+
+  border-bottom:
+    1px solid
+    var(--line);
+
+  vertical-align:middle;
+
+}
+
+
+.results-table tbody tr:last-child td{
+
+  border-bottom:none;
+
+}
+
+
+.score-cell{
+
+  font-weight:800;
+
+  color:var(--navy);
+
+}
+
+
+.grade-cell{
+
+  font-weight:800;
+
+  color:#166534;
+
+}
+
+
+.results-summary{
+
+  display:grid;
+
+  grid-template-columns:
+    1fr 1fr 1fr;
+
+  gap:10px;
+
+  padding:12px;
+
+  border-top:
+    1px solid
+    var(--line);
+
+  background:#F8FAFC;
+
+}
+
+
+.summary-box{
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:9px;
+
+  background:#fff;
+
+  padding:10px;
+
+  text-align:center;
+
+}
+
+
+.summary-label{
+
+  font-size:9px;
+
+  font-weight:800;
+
+  color:var(--muted);
+
+  text-transform:uppercase;
+
+  letter-spacing:.4px;
+
+}
+
+
+.summary-value{
+
+  margin-top:5px;
+
+  font-size:15px;
+
+  font-weight:900;
+
+  color:var(--navy);
+
+}
+
+
+.no-results{
+
+  padding:18px;
+
+  text-align:center;
+
+  color:var(--muted);
+
+  font-size:12px;
+
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
 
 .actions{
+
   display:flex;
+
   justify-content:center;
+
   gap:10px;
-  margin:0 22px 24px;
+
+  margin:
+    0
+    22px
+    24px;
+
 }
+
 
 .btn{
-  border:1px solid var(--line);
+
+  border:
+    1px solid
+    var(--line);
+
   background:#fff;
+
   color:var(--navy);
-  padding:10px 16px;
+
+  padding:
+    10px
+    16px;
+
   border-radius:9px;
+
   font-weight:800;
+
   cursor:pointer;
+
 }
+
 
 .btn:hover{
-  border-color:var(--gold);
+
+  border-color:
+    var(--gold);
+
 }
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
 
 .footer{
+
   text-align:center;
-  border-top:1px solid var(--line);
-  padding:17px 20px;
+
+  border-top:
+    1px solid
+    var(--line);
+
+  padding:
+    17px
+    20px;
+
   color:var(--muted);
+
   font-size:12px;
+
   line-height:1.6;
+
 }
 
+
 .footer strong{
+
   color:var(--navy);
+
 }
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
 
 @media(max-width:600px){
 
   .wrap{
+
     margin:18px auto;
-    padding:0 10px 28px;
+
+    padding:
+      0
+      10px
+      28px;
+
   }
+
 
   .top{
+
     padding:14px;
+
   }
+
 
   .top-mark{
+
     width:38px;
     height:38px;
+
   }
+
 
   .head{
-    padding:24px 16px 20px;
+
+    padding:
+      24px
+      16px
+      20px;
+
   }
+
 
   .logo{
+
     width:72px;
     height:72px;
+
   }
+
 
   .title{
+
     font-size:22px;
+
   }
+
 
   .status{
-    margin:18px 14px 14px;
+
+    margin:
+      18px
+      14px
+      14px;
+
   }
+
 
   .grid{
+
     grid-template-columns:1fr;
-    padding:4px 14px 18px;
+
+    padding:
+      4px
+      14px
+      18px;
+
   }
+
 
   .wide{
+
     grid-column:auto;
+
   }
+
 
   .item{
+
     padding:13px;
+
   }
 
-  .actions{
-    margin:0 14px 18px;
+
+  .results-section{
+
+    margin:
+      0
+      14px
+      18px;
+
   }
+
+
+  .results-table{
+
+    min-width:500px;
+
+  }
+
+
+  .results-summary{
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+
+  .actions{
+
+    margin:
+      0
+      14px
+      18px;
+
+  }
+
 }
+
+
+/* =========================================================
+   PRINT
+   ========================================================= */
 
 @media print{
 
   body{
+
     background:#fff;
+
   }
+
 
   .top{
+
     box-shadow:none;
+
   }
+
 
   .wrap{
+
     max-width:none;
-    margin:12px auto;
+
+    margin:
+      12px
+      auto;
+
   }
+
 
   .card{
+
     box-shadow:none;
-    border:1px solid #ccc;
+
+    border:
+      1px solid
+      #ccc;
+
   }
+
 
   .actions{
+
     display:none;
+
   }
 
+
   .status,
-  .item{
+  .item,
+  .results-section{
+
     break-inside:avoid;
+
   }
+
 }
+
 </style>
+
 </head>
+
 
 <body>
 
+
 <header class="top">
+
   <div class="top-inner">
 
     <img
@@ -333,17 +987,34 @@ body{
     >
 
     <div>
-      <div class="brand">GAAWOW ACADEMY</div>
-      <div class="motto">Ilayska Aqoonta iyo Xirfadda</div>
+
+      <div class="brand">
+        GAAWOW ACADEMY
+      </div>
+
+      <div class="motto">
+        Ilayska Aqoonta iyo Xirfadda
+      </div>
+
     </div>
 
   </div>
+
 </header>
+
 
 
 <main class="wrap">
 
-<section class="card" aria-live="polite">
+<section
+  class="card"
+  aria-live="polite"
+>
+
+
+  <!-- =====================================================
+       HEADER
+       ===================================================== -->
 
   <div class="head">
 
@@ -366,15 +1037,78 @@ body{
   </div>
 
 
-  <div id="status" class="status loading">
+
+  <!-- =====================================================
+       STATUS
+       ===================================================== -->
+
+  <div
+    id="status"
+    class="status loading"
+  >
     Checking verification...
   </div>
 
 
-  <div id="result" class="grid"></div>
+
+  <!-- =====================================================
+       BASIC INFORMATION
+       ===================================================== -->
+
+  <div
+    id="result"
+    class="grid"
+  ></div>
 
 
-  <div id="actions" class="actions" hidden>
+
+  <!-- =====================================================
+       ACADEMIC RESULTS
+       ===================================================== -->
+
+  <section
+    id="academicResults"
+    class="results-section"
+    hidden
+  >
+
+    <div class="results-header">
+
+      <div class="results-title">
+        Academic Results
+      </div>
+
+      <div class="results-subtitle">
+        Published academic performance
+      </div>
+
+    </div>
+
+
+    <div
+      id="resultsTableContainer"
+      class="results-table-wrap"
+    ></div>
+
+
+    <div
+      id="resultsSummary"
+      class="results-summary"
+    ></div>
+
+  </section>
+
+
+
+  <!-- =====================================================
+       ACTIONS
+       ===================================================== -->
+
+  <div
+    id="actions"
+    class="actions"
+    hidden
+  >
 
     <button
       class="btn"
@@ -387,30 +1121,61 @@ body{
   </div>
 
 
+
+  <!-- =====================================================
+       FOOTER
+       ===================================================== -->
+
   <footer class="footer">
 
-    <strong>GAAWOW ACADEMY</strong><br>
+    <strong>
+      GAAWOW ACADEMY
+    </strong>
+
+    <br>
 
     Burhakaba, Bay, Somalia ·
-    Ilayska Aqoonta iyo Xirfadda<br>
+    Ilayska Aqoonta iyo Xirfadda
+
+    <br>
 
     Official verification service
 
   </footer>
+
 
 </section>
 
 </main>
 
 
+
+<!-- =======================================================
+     SUPABASE
+     ======================================================= -->
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
 
 <script>
 
+/* =========================================================
+   GAAWOW ACADEMY
+   AUTHENTICATION VERIFICATION
+   VERSION 20261002-2
+   ========================================================= */
+
 (async()=>{
+
+
+  /* =======================================================
+     CONFIG
+     ======================================================= */
 
   const SUPABASE_URL =
     "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
 
   const SUPABASE_KEY =
     window.GAAWOW_SUPABASE_KEY ||
@@ -424,59 +1189,223 @@ body{
     );
 
 
+  /* =======================================================
+     URL PARAMETERS
+     ======================================================= */
+
   const qs =
-    new URLSearchParams(location.search);
-
-  const code =
-    qs.get("code");
-
-  const id =
-    qs.get("id");
-
-
-  const status =
-    document.getElementById("status");
-
-  const result =
-    document.getElementById("result");
-
-  const actions =
-    document.getElementById("actions");
-
-
-  const esc = v =>
-    String(v ?? "")
-      .replace(/[&<>\"']/g,m=>({
-
-        "&":"&amp;",
-        "<":"&lt;",
-        ">":"&gt;",
-        "\"":"&quot;",
-        "'":"&#039;"
-
-      }[m]));
-
-
-  const fmt = v => {
-
-    if(!v)
-      return "Not available";
-
-    return new Date(
-      v + "T00:00:00"
-    ).toLocaleDateString(
-      "en-GB",
-      {
-        day:"2-digit",
-        month:"long",
-        year:"numeric"
-      }
+    new URLSearchParams(
+      location.search
     );
 
-  };
+
+  const code =
+    (
+      qs.get("code") ||
+      ""
+    ).trim();
 
 
-  if(!code){
+  const id =
+    (
+      qs.get("id") ||
+      ""
+    ).trim();
+
+
+  /* =======================================================
+     ELEMENTS
+     ======================================================= */
+
+  const status =
+    document.getElementById(
+      "status"
+    );
+
+
+  const result =
+    document.getElementById(
+      "result"
+    );
+
+
+  const actions =
+    document.getElementById(
+      "actions"
+    );
+
+
+  const academicResults =
+    document.getElementById(
+      "academicResults"
+    );
+
+
+  const resultsTableContainer =
+    document.getElementById(
+      "resultsTableContainer"
+    );
+
+
+  const resultsSummary =
+    document.getElementById(
+      "resultsSummary"
+    );
+
+
+  /* =======================================================
+     HELPERS
+     ======================================================= */
+
+  const esc =
+    value =>
+
+      String(
+        value ?? ""
+      )
+
+      .replace(
+        /[&<>\"']/g,
+        m => ({
+
+          "&":"&amp;",
+
+          "<":"&lt;",
+
+          ">":"&gt;",
+
+          "\"":"&quot;",
+
+          "'":"&#039;"
+
+        }[m])
+
+      );
+
+
+  const fmt =
+    value => {
+
+      if (!value) {
+
+        return "Not available";
+
+      }
+
+
+      const date =
+        new Date(
+          value +
+          (
+            String(value).includes("T")
+              ? ""
+              : "T00:00:00"
+          )
+        );
+
+
+      if (
+        Number.isNaN(
+          date.getTime()
+        )
+      ) {
+
+        return esc(value);
+
+      }
+
+
+      return date.toLocaleDateString(
+        "en-GB",
+        {
+
+          day:"2-digit",
+
+          month:"long",
+
+          year:"numeric"
+
+        }
+      );
+
+    };
+
+
+  const numberValue =
+    value => {
+
+      if (
+        value === null ||
+        value === undefined ||
+        String(value).trim() === ""
+      ) {
+
+        return null;
+
+      }
+
+
+      const n =
+        Number(value);
+
+
+      return Number.isFinite(n)
+        ? n
+        : null;
+
+    };
+
+
+  const calculateGrade =
+    percentage => {
+
+      if (
+        percentage === null ||
+        percentage === undefined ||
+        !Number.isFinite(
+          Number(percentage)
+        )
+      ) {
+
+        return "N/A";
+
+      }
+
+
+      const value =
+        Number(percentage);
+
+
+      if (value >= 80) {
+        return "A";
+      }
+
+
+      if (value >= 70) {
+        return "B";
+      }
+
+
+      if (value >= 60) {
+        return "C";
+      }
+
+
+      if (value >= 50) {
+        return "D";
+      }
+
+
+      return "F";
+
+    };
+
+
+  /* =======================================================
+     INVALID CODE
+     ======================================================= */
+
+  if (!code){
 
     status.className =
       "status invalid";
@@ -489,29 +1418,69 @@ body{
   }
 
 
+  /* =======================================================
+     MAIN VERIFICATION
+     ======================================================= */
+
   try{
 
-    const {data,error} =
+
+    console.log(
+      "[GAAWOW VERIFY AUTH] VERSION 20261002-2"
+    );
+
+
+    console.log(
+      "[GAAWOW VERIFY AUTH] CODE:",
+      code
+    );
+
+
+    console.log(
+      "[GAAWOW VERIFY AUTH] ID:",
+      id
+    );
+
+
+    /* =====================================================
+       RPC
+       ===================================================== */
+
+    const rpc =
       await db.rpc(
         "verify_authentication_letter",
         {
-          p_code:code,
-          p_id:id || null
+
+          p_code:
+            code,
+
+          p_id:
+            id ||
+            null
+
         }
       );
 
 
-    if(
-      error ||
-      !data ||
-      !data.length
+    if (
+      rpc.error ||
+      !rpc.data ||
+      !rpc.data.length
     ){
+
+      console.error(
+        "[GAAWOW VERIFY AUTH] RPC:",
+        rpc.error
+      );
+
 
       status.className =
         "status invalid";
 
+
       status.textContent =
         "AUTHENTICATION LETTER NOT FOUND / INVALID";
+
 
       return;
 
@@ -519,15 +1488,24 @@ body{
 
 
     const a =
-      data[0];
+      rpc.data[0];
 
+
+    /* =====================================================
+       STATUS
+       ===================================================== */
 
     status.className =
       "status valid";
 
+
     status.textContent =
       "✓ AUTHENTICATION LETTER VERIFIED";
 
+
+    /* =====================================================
+       DISPLAY BASIC VERIFICATION DATA
+       ===================================================== */
 
     result.innerHTML = `
 
@@ -539,6 +1517,19 @@ body{
 
         <div class="value code">
           ${esc(a.reference_no)}
+        </div>
+
+      </div>
+
+
+      <div class="item">
+
+        <div class="label">
+          Authentication ID
+        </div>
+
+        <div class="value code">
+          ${esc(a.authentication_id)}
         </div>
 
       </div>
@@ -589,8 +1580,11 @@ body{
           Date Started
         </div>
 
-        <div class="value">
-          ${fmt(a.date_started)}
+        <div
+          id="verifiedDateStarted"
+          class="value"
+        >
+          Not available
         </div>
 
       </div>
@@ -631,7 +1625,8 @@ body{
         <div class="value status-value">
           ${esc(
             String(
-              a.status || "VALID"
+              a.status ||
+              "VALID"
             ).toUpperCase()
           )}
         </div>
@@ -670,7 +1665,9 @@ body{
 
             <img
               class="photo"
-              src="${esc(a.student_photo_url)}"
+              src="${esc(
+                a.student_photo_url
+              )}"
               alt="Student photo"
             >
 
@@ -686,13 +1683,686 @@ body{
     `;
 
 
-    actions.hidden = false;
+    /* =====================================================
+       LOAD CERTIFICATE RECORD
+       ===================================================== */
+
+    let certificateQuery =
+      db
+        .from("certificates")
+        .select(`
+          id,
+          student_id,
+          certificate_id,
+          verify_code,
+          certificate_type
+        `)
+        .eq(
+          "verify_code",
+          code
+        )
+        .eq(
+          "certificate_type",
+          "authentication_letter"
+        )
+        .limit(1)
+        .maybeSingle();
 
 
-  }catch(e){
+    if (id) {
+
+      certificateQuery =
+        db
+          .from("certificates")
+          .select(`
+            id,
+            student_id,
+            certificate_id,
+            verify_code,
+            certificate_type
+          `)
+          .eq(
+            "verify_code",
+            code
+          )
+          .eq(
+            "certificate_id",
+            id
+          )
+          .eq(
+            "certificate_type",
+            "authentication_letter"
+          )
+          .limit(1)
+          .maybeSingle();
+
+    }
+
+
+    const certificateResult =
+      await certificateQuery;
+
+
+    if (
+      certificateResult.error
+    ) {
+
+      console.warn(
+        "[GAAWOW VERIFY AUTH] Certificate lookup:",
+        certificateResult.error
+      );
+
+    }
+
+
+    const certificate =
+      certificateResult.data ||
+      null;
+
+
+    /* =====================================================
+       LOAD STUDENT
+       ===================================================== */
+
+    if (
+      certificate &&
+      certificate.student_id
+    ){
+
+      const studentResult =
+        await db
+          .from("students")
+          .select(`
+            id,
+            full_name,
+            student_id,
+            admission_date,
+            photo_url
+          `)
+          .eq(
+            "id",
+            certificate.student_id
+          )
+          .limit(1)
+          .maybeSingle();
+
+
+      if (
+        !studentResult.error &&
+        studentResult.data
+      ){
+
+        const student =
+          studentResult.data;
+
+
+        const dateStarted =
+          document.getElementById(
+            "verifiedDateStarted"
+          );
+
+
+        if (dateStarted){
+
+          dateStarted.textContent =
+            fmt(
+              student.admission_date
+            );
+
+        }
+
+
+        /*
+         * Use official student photo
+         * if RPC did not already provide one.
+         */
+
+        if (
+          !a.student_photo_url &&
+          student.photo_url
+        ){
+
+          result.insertAdjacentHTML(
+            "beforeend",
+            `
+
+            <div class="item wide">
+
+              <div class="label">
+                Student Photo
+              </div>
+
+              <div class="photo-wrap">
+
+                <img
+                  class="photo"
+                  src="${esc(
+                    student.photo_url
+                  )}"
+                  alt="Student photo"
+                >
+
+              </div>
+
+            </div>
+
+            `
+          );
+
+        }
+
+      }
+
+    }
+
+
+    /* =====================================================
+       LOAD ACADEMIC RESULTS
+       ===================================================== */
+
+    if (
+      certificate &&
+      certificate.student_id
+    ){
+
+      try{
+
+        const resultsQuery =
+          await db
+            .from("results")
+            .select(`
+              id,
+              student_id,
+              subject_id,
+              score,
+              max_score,
+              percentage,
+              grade,
+              is_published
+            `)
+            .eq(
+              "student_id",
+              certificate.student_id
+            )
+            .eq(
+              "is_published",
+              true
+            );
+
+
+        if (
+          resultsQuery.error
+        ){
+
+          console.warn(
+            "[GAAWOW VERIFY AUTH] Results:",
+            resultsQuery.error
+          );
+
+        } else {
+
+          const rows =
+            resultsQuery.data ||
+            [];
+
+
+          if (rows.length){
+
+            /* =============================================
+               SUBJECT IDs
+               ============================================= */
+
+            const subjectIds =
+              [
+                ...new Set(
+                  rows
+                    .map(
+                      row =>
+                        row.subject_id
+                    )
+                    .filter(Boolean)
+                )
+              ];
+
+
+            let subjectMap = {};
+
+
+            if (
+              subjectIds.length
+            ){
+
+              const subjectsQuery =
+                await db
+                  .from("subjects")
+                  .select(`
+                    id,
+                    name,
+                    code,
+                    max_score
+                  `)
+                  .in(
+                    "id",
+                    subjectIds
+                  );
+
+
+              if (
+                !subjectsQuery.error
+              ){
+
+                (
+                  subjectsQuery.data ||
+                  []
+                ).forEach(
+                  subject => {
+
+                    subjectMap[
+                      String(
+                        subject.id
+                      )
+                    ] =
+                      subject;
+
+                  }
+                );
+
+              } else {
+
+                console.warn(
+                  "[GAAWOW VERIFY AUTH] Subjects:",
+                  subjectsQuery.error
+                );
+
+              }
+
+            }
+
+
+            /* =============================================
+               NORMALIZE RESULTS
+               ============================================= */
+
+            const normalized =
+              rows.map(
+                row => {
+
+                  const subject =
+                    row.subject_id
+                    ?
+                    subjectMap[
+                      String(
+                        row.subject_id
+                      )
+                    ]
+                    :
+                    null;
+
+
+                  const score =
+                    numberValue(
+                      row.score
+                    );
+
+
+                  const maxScore =
+                    numberValue(
+                      row.max_score
+                    ) ??
+                    numberValue(
+                      subject?.max_score
+                    ) ??
+                    100;
+
+
+                  let percentage =
+                    numberValue(
+                      row.percentage
+                    );
+
+
+                  if (
+                    percentage === null &&
+                    score !== null &&
+                    maxScore > 0
+                  ){
+
+                    percentage =
+                      (
+                        score /
+                        maxScore
+                      ) *
+                      100;
+
+                  }
+
+
+                  const grade =
+                    row.grade ||
+                    calculateGrade(
+                      percentage
+                    );
+
+
+                  const subjectName =
+                    subject?.name ||
+                    subject?.code ||
+                    "Subject";
+
+
+                  return {
+
+                    subject:
+                      subjectName,
+
+                    score:
+                      score,
+
+                    maxScore:
+                      maxScore,
+
+                    percentage:
+                      percentage,
+
+                    grade:
+                      grade
+
+                  };
+
+                }
+              );
+
+
+            /* =============================================
+               TOTALS
+               ============================================= */
+
+            let total = 0;
+
+            let maxTotal = 0;
+
+            let percentageSum = 0;
+
+            let percentageCount = 0;
+
+
+            normalized.forEach(
+              row => {
+
+                if (
+                  row.score !== null
+                ){
+
+                  total +=
+                    row.score;
+
+                  maxTotal +=
+                    row.maxScore;
+
+                }
+
+
+                if (
+                  row.percentage !== null
+                ){
+
+                  percentageSum +=
+                    row.percentage;
+
+                  percentageCount++;
+
+                }
+
+              }
+            );
+
+
+            const overallPercentage =
+              maxTotal > 0
+                ?
+                (
+                  total /
+                  maxTotal
+                ) *
+                100
+                :
+                (
+                  percentageCount > 0
+                    ?
+                    percentageSum /
+                    percentageCount
+                    :
+                    null
+                );
+
+
+            const overallGrade =
+              calculateGrade(
+                overallPercentage
+              );
+
+
+            /* =============================================
+               BUILD TABLE
+               ============================================= */
+
+            let tableHTML = `
+
+              <table class="results-table">
+
+                <thead>
+
+                  <tr>
+
+                    <th>
+                      Subject
+                    </th>
+
+                    <th>
+                      Score
+                    </th>
+
+                    <th>
+                      Grade
+                    </th>
+
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+            `;
+
+
+            normalized.forEach(
+              row => {
+
+                tableHTML += `
+
+                  <tr>
+
+                    <td>
+                      ${esc(
+                        row.subject
+                      )}
+                    </td>
+
+                    <td class="score-cell">
+
+                      ${
+                        row.score === null
+                          ?
+                          "N/A"
+                          :
+                          esc(
+                            row.score
+                          )
+                      }
+
+                    </td>
+
+                    <td class="grade-cell">
+
+                      ${esc(
+                        row.grade
+                      )}
+
+                    </td>
+
+                  </tr>
+
+                `;
+
+              }
+            );
+
+
+            tableHTML += `
+
+                </tbody>
+
+              </table>
+
+            `;
+
+
+            resultsTableContainer.innerHTML =
+              tableHTML;
+
+
+            /* =============================================
+               SUMMARY
+               ============================================= */
+
+            resultsSummary.innerHTML = `
+
+              <div class="summary-box">
+
+                <div class="summary-label">
+                  Total
+                </div>
+
+                <div class="summary-value">
+                  ${esc(total)}
+                  /
+                  ${esc(maxTotal)}
+                </div>
+
+              </div>
+
+
+              <div class="summary-box">
+
+                <div class="summary-label">
+                  Percentage
+                </div>
+
+                <div class="summary-value">
+
+                  ${
+                    overallPercentage !== null
+                      ?
+                      overallPercentage.toFixed(1) +
+                      "%"
+                      :
+                      "N/A"
+                  }
+
+                </div>
+
+              </div>
+
+
+              <div class="summary-box">
+
+                <div class="summary-label">
+                  Overall Grade
+                </div>
+
+                <div class="summary-value">
+                  ${esc(
+                    overallGrade
+                  )}
+                </div>
+
+              </div>
+
+            `;
+
+
+            academicResults.hidden =
+              false;
+
+
+            console.log(
+              "[GAAWOW VERIFY AUTH] RESULTS:",
+              {
+
+                subjects:
+                  normalized.length,
+
+                total:
+                  total,
+
+                maxTotal:
+                  maxTotal,
+
+                percentage:
+                  overallPercentage,
+
+                grade:
+                  overallGrade
+
+              }
+            );
+
+          } else {
+
+            console.log(
+              "[GAAWOW VERIFY AUTH] No published results."
+            );
+
+          }
+
+        }
+
+      }catch(resultsError){
+
+        console.warn(
+          "[GAAWOW VERIFY AUTH] Results exception:",
+          resultsError
+        );
+
+      }
+
+    }
+
+
+    /* =====================================================
+       SHOW ACTIONS
+       ===================================================== */
+
+    actions.hidden =
+      false;
+
+
+    console.log(
+      "[GAAWOW VERIFY AUTH] VERIFIED SUCCESSFULLY"
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "[GAAWOW VERIFY AUTH] ERROR:",
+      error
+    );
+
 
     status.className =
       "status invalid";
+
 
     status.textContent =
       "VERIFICATION SERVICE ERROR";
@@ -703,5 +2373,7 @@ body{
 
 </script>
 
+
 </body>
+
 </html>
