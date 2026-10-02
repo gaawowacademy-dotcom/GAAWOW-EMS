@@ -1,154 +1,530 @@
+"use strict";
+
 /* =========================================================
    GAAWOW ACADEMY EMS
    STUDENT LOGIN
-   Replace only SUPABASE_URL and SUPABASE_ANON_KEY.
+   Version: 20261002-1
    ========================================================= */
 
-"use strict";
 
-const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+/* =========================================================
+   SUPABASE CONFIG
+   ========================================================= */
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+const SUPABASE_URL =
+  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-const form = document.getElementById("loginForm");
-const studentIdInput = document.getElementById("studentId");
-const passwordInput = document.getElementById("password");
-const messageBox = document.getElementById("message");
-const loginBtn = document.getElementById("loginBtn");
-const loginText = document.getElementById("loginText");
-const spinner = document.getElementById("loginSpinner");
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-function showMessage(text, type = "error") {
-  messageBox.textContent = text;
-  messageBox.className = `message ${type}`;
-}
 
-function setLoading(loading) {
-  loginBtn.disabled = loading;
-  spinner.classList.toggle("hidden", !loading);
-  loginText.textContent = loading ? "Signing In..." : "Sign In";
-}
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
 
-function normalizeStudentId(value) {
-  return String(value || "").trim().toUpperCase();
-}
+let supabaseClient = null;
 
-/*
-  Student ID is used to find the student's auth email.
-  The profiles table should contain:
-  id, student_id, email, role, is_active
-*/
-async function getStudentAccount(studentId) {
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("id,student_id,email,role,is_active")
-    .eq("student_id", studentId)
-    .maybeSingle();
 
-  if (error) throw error;
-  return data;
-}
+function initializeSupabase() {
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const studentId = normalizeStudentId(studentIdInput.value);
-  const password = passwordInput.value;
-
-  if (!studentId || !password) {
-    showMessage("Please enter your Student ID and password.");
-    return;
+  if (
+    !window.supabase ||
+    typeof window.supabase.createClient !== "function"
+  ) {
+    throw new Error(
+      "Supabase library lama soo degin."
+    );
   }
 
-  setLoading(true);
-  messageBox.className = "message hidden";
 
-  try {
-    const account = await getStudentAccount(studentId);
-
-    if (!account) {
-      throw new Error("Student account was not found.");
-    }
-
-    if (account.role !== "student") {
-      throw new Error("This account is not a Student Account. Please use the correct login portal.");
-    }
-
-    if (account.is_active === false) {
-      throw new Error("Your student account is currently inactive. Please contact GAAWOW Academy administration.");
-    }
-
-    if (!account.email) {
-      throw new Error("No login email is connected to this student account.");
-    }
-
-    const { error: signInError } =
-      await supabaseClient.auth.signInWithPassword({
-        email: account.email,
-        password
-      });
-
-    if (signInError) throw signInError;
-
-    window.location.href = "student-portal.html";
-  } catch (error) {
-    console.error("Student login error:", error);
-    showMessage(error.message || "Unable to sign in. Please check your credentials.");
-  } finally {
-    setLoading(false);
-  }
-});
-
-document.getElementById("togglePassword").addEventListener("click", (event) => {
-  const isPassword = passwordInput.type === "password";
-  passwordInput.type = isPassword ? "text" : "password";
-  event.currentTarget.textContent = isPassword ? "Hide" : "Show";
-});
-
-document.getElementById("forgotBtn").addEventListener("click", async () => {
-  const studentId = normalizeStudentId(studentIdInput.value);
-
-  if (!studentId) {
-    showMessage("Enter your Student ID first so we can find your account.");
-    studentIdInput.focus();
-    return;
+  if (
+    SUPABASE_URL.includes("PASTE_") ||
+    SUPABASE_PUBLISHABLE_KEY.includes("PASTE_")
+  ) {
+    throw new Error(
+      "Supabase URL iyo Publishable Key wali lama gelin."
+    );
   }
 
-  try {
-    const account = await getStudentAccount(studentId);
 
-    if (!account || account.role !== "student" || !account.email) {
-      throw new Error("Student account could not be found.");
-    }
+  supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+}
 
-    const redirectTo =
-      `${window.location.origin}${window.location.pathname.replace(
-        "student-login.html",
-        "student-reset.html"
-      )}`;
 
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(
-      account.email,
-      { redirectTo }
+/* =========================================================
+   ELEMENTS
+   ========================================================= */
+
+const form =
+  document.getElementById("studentLoginForm");
+
+const emailInput =
+  document.getElementById("email");
+
+const passwordInput =
+  document.getElementById("password");
+
+const togglePassword =
+  document.getElementById("togglePassword");
+
+const loginButton =
+  document.getElementById("loginButton");
+
+const loginButtonText =
+  document.getElementById("loginButtonText");
+
+const loginSpinner =
+  document.getElementById("loginSpinner");
+
+const messageBox =
+  document.getElementById("loginMessage");
+
+const currentYear =
+  document.getElementById("currentYear");
+
+
+/* =========================================================
+   MESSAGE
+   ========================================================= */
+
+function showMessage(
+  message,
+  type = "error"
+) {
+
+  messageBox.textContent = message;
+
+  messageBox.className =
+    `message show ${type}`;
+}
+
+
+function clearMessage() {
+
+  messageBox.textContent = "";
+
+  messageBox.className =
+    "message";
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+function setLoading(isLoading) {
+
+  loginButton.disabled = isLoading;
+
+  loginButtonText.textContent =
+    isLoading
+      ? "Signing in..."
+      : "Sign In";
+
+  loginSpinner.hidden =
+    !isLoading;
+}
+
+
+/* =========================================================
+   PASSWORD TOGGLE
+   ========================================================= */
+
+togglePassword.addEventListener(
+  "click",
+  () => {
+
+    const isPassword =
+      passwordInput.type === "password";
+
+    passwordInput.type =
+      isPassword
+        ? "text"
+        : "password";
+
+    togglePassword.textContent =
+      isPassword
+        ? "🙈"
+        : "👁";
+
+    togglePassword.setAttribute(
+      "aria-label",
+      isPassword
+        ? "Hide password"
+        : "Show password"
     );
 
-    if (error) throw error;
-
-    showMessage("Password reset instructions have been sent to the email connected to your student account.", "success");
-  } catch (error) {
-    console.error(error);
-    showMessage(error.message || "Unable to start password reset.");
   }
-});
+);
 
-/* If an authenticated user opens Student Login, send them to the portal. */
-(async () => {
-  const { data } = await supabaseClient.auth.getSession();
-  if (data?.session) {
-    window.location.href = "student-portal.html";
+
+/* =========================================================
+   LOGIN
+   ========================================================= */
+
+form.addEventListener(
+  "submit",
+  async (event) => {
+
+    event.preventDefault();
+
+    clearMessage();
+
+    const email =
+      emailInput.value
+        .trim()
+        .toLowerCase();
+
+    const password =
+      passwordInput.value;
+
+
+    if (!email || !password) {
+
+      showMessage(
+        "Please enter your email and password."
+      );
+
+      return;
+    }
+
+
+    setLoading(true);
+
+
+    try {
+
+      const {
+        data,
+        error
+      } =
+        await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+
+
+      if (error) {
+        throw error;
+      }
+
+
+      if (!data?.user) {
+        throw new Error(
+          "Login failed. User account was not returned."
+        );
+      }
+
+
+      /*
+       * Confirm that the logged-in account
+       * is actually a student account.
+       */
+
+      const {
+        data: profile,
+        error: profileError
+      } =
+        await supabaseClient
+          .from("profiles")
+          .select(
+            "id, full_name, role, is_active"
+          )
+          .eq("id", data.user.id)
+          .maybeSingle();
+
+
+      if (profileError) {
+        throw profileError;
+      }
+
+
+      if (!profile) {
+
+        await supabaseClient.auth.signOut();
+
+        throw new Error(
+          "Student profile lama helin."
+        );
+      }
+
+
+      if (
+        profile.role !== "student"
+      ) {
+
+        await supabaseClient.auth.signOut();
+
+        throw new Error(
+          "Account-kan ma aha Student account."
+        );
+      }
+
+
+      if (
+        profile.is_active === false
+      ) {
+
+        await supabaseClient.auth.signOut();
+
+        throw new Error(
+          "Student account-kan waa la xiray. Fadlan la xiriir maamulka."
+        );
+      }
+
+
+      /*
+       * Confirm student record exists
+       * and is linked to this Auth account.
+       */
+
+      const {
+        data: student,
+        error: studentError
+      } =
+        await supabaseClient
+          .from("students")
+          .select(
+            "id, student_id, full_name, profile_id, status"
+          )
+          .eq("profile_id", data.user.id)
+          .maybeSingle();
+
+
+      if (studentError) {
+        throw studentError;
+      }
+
+
+      if (!student) {
+
+        await supabaseClient.auth.signOut();
+
+        throw new Error(
+          "Student record-ka lama xiriirin account-kan."
+        );
+      }
+
+
+      if (
+        String(student.status)
+          .toLowerCase() !== "active"
+      ) {
+
+        await supabaseClient.auth.signOut();
+
+        throw new Error(
+          "Student record-kan ma aha active."
+        );
+      }
+
+
+      showMessage(
+        "Login successful. Opening your portal...",
+        "success"
+      );
+
+
+      /*
+       * Small delay so the success message
+       * can be seen before redirect.
+       */
+
+      setTimeout(
+        () => {
+
+          window.location.href =
+            "student-portal.html";
+
+        },
+        500
+      );
+
+    }
+
+    catch (error) {
+
+      console.error(
+        "Student login error:",
+        error
+      );
+
+
+      showMessage(
+        getFriendlyAuthError(error)
+      );
+
+    }
+
+    finally {
+
+      setLoading(false);
+
+    }
+
   }
-})();
+);
+
+
+/* =========================================================
+   ERROR TRANSLATION
+   ========================================================= */
+
+function getFriendlyAuthError(error) {
+
+  const message =
+    String(
+      error?.message || ""
+    ).toLowerCase();
+
+
+  if (
+    message.includes(
+      "invalid login credentials"
+    )
+  ) {
+
+    return "Email ama password-ka waa khalad.";
+  }
+
+
+  if (
+    message.includes(
+      "email not confirmed"
+    )
+  ) {
+
+    return "Email-ka account-kan wali lama xaqiijin.";
+  }
+
+
+  if (
+    message.includes(
+      "too many requests"
+    )
+  ) {
+
+    return "Attempts badan ayaa dhacay. Fadlan wax yar sug kadib isku day.";
+  }
+
+
+  if (
+    message.includes(
+      "failed to fetch"
+    )
+  ) {
+
+    return "Internet connection ama Supabase connection ayaa cilad qaba.";
+  }
+
+
+  return (
+    error?.message ||
+    "Login failed. Fadlan mar kale isku day."
+  );
+}
+
+
+/* =========================================================
+   SESSION CHECK
+   ========================================================= */
+
+async function checkExistingSession() {
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth.getSession();
+
+
+    if (error) {
+      return;
+    }
+
+
+    if (
+      data?.session?.user
+    ) {
+
+      /*
+       * Don't redirect blindly.
+       * Verify that it is actually a student.
+       */
+
+      const {
+        data: profile
+      } =
+        await supabaseClient
+          .from("profiles")
+          .select(
+            "role, is_active"
+          )
+          .eq(
+            "id",
+            data.session.user.id
+          )
+          .maybeSingle();
+
+
+      if (
+        profile?.role === "student" &&
+        profile?.is_active !== false
+      ) {
+
+        window.location.href =
+          "student-portal.html";
+      }
+
+    }
+
+  }
+
+  catch (error) {
+
+    console.warn(
+      "Session check failed:",
+      error
+    );
+
+  }
+}
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
+
+    currentYear.textContent =
+      new Date().getFullYear();
+
+    try {
+
+      initializeSupabase();
+
+      await checkExistingSession();
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      showMessage(
+        error.message
+      );
+
+    }
+
+  }
+);
