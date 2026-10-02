@@ -1,103 +1,276 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>GAAWOW Academy | Student Portal</title>
-  <link rel="stylesheet" href="student-auth.css">
-</head>
-<body>
-  <header class="portal-header">
-    <div class="portal-brand">
-      <div class="brand-mark small">GA</div>
-      <div>
-        <strong>GAAWOW ACADEMY</strong>
-        <span>Student Portal</span>
-      </div>
-    </div>
-    <button id="logoutBtn" class="logout-btn">Log Out</button>
-  </header>
+  <meta charset="UTF-8">
 
-  <main class="portal-shell">
-    <section id="accessDenied" class="denied-card hidden">
-      <div class="denied-icon">🔒</div>
-      <h1>Access Denied</h1>
-      <h2>Super Admin Access Required</h2>
-      <p>Your current account does not have permission to access this area.</p>
-      <div class="action-row">
-        <button id="goStudentBtn" class="primary-btn">🎓 Go to Student Portal</button>
-        <button id="deniedLogoutBtn" class="secondary-btn">🚪 Log Out</button>
-        <button id="okBtn" class="ghost-btn">OK</button>
-      </div>
-    </section>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-    <section id="portalContent" class="hidden">
-      <div class="welcome-card">
-        <div>
-          <p class="eyebrow">WELCOME BACK</p>
-          <h1 id="studentName">Student</h1>
-          <p id="studentMeta">Loading student information...</p>
-        </div>
-        <div class="student-badge" id="studentIdBadge">Student</div>
-      </div>
+  <title>Student Portal | GAAWOW ACADEMY</title>
 
-      <div id="portalMessage" class="message hidden"></div>
-
-      <div class="portal-grid">
-        <article class="portal-card">
-          <div class="card-icon">👤</div>
-          <h3>My Profile</h3>
-          <p>View your student account and personal information.</p>
-          <button class="secondary-btn" data-section="profile">Open</button>
-        </article>
-
-        <article class="portal-card">
-          <div class="card-icon">📚</div>
-          <h3>My Courses</h3>
-          <p>View courses connected to your student record.</p>
-          <button class="secondary-btn" data-section="courses">Open</button>
-        </article>
-
-        <article class="portal-card">
-          <div class="card-icon">📝</div>
-          <h3>My Results</h3>
-          <p>View published academic results.</p>
-          <button class="secondary-btn" data-section="results">Open</button>
-        </article>
-
-        <article class="portal-card">
-          <div class="card-icon">🎓</div>
-          <h3>My Certificates</h3>
-          <p>View certificates linked to your student account.</p>
-          <button class="secondary-btn" data-section="certificates">Open</button>
-        </article>
-
-        <article class="portal-card">
-          <div class="card-icon">📄</div>
-          <h3>Authentication Letters</h3>
-          <p>View available academic authentication records.</p>
-          <button class="secondary-btn" data-section="authentication">Open</button>
-        </article>
-
-        <article class="portal-card">
-          <div class="card-icon">🔐</div>
-          <h3>Account Security</h3>
-          <p>Update your password and secure your account.</p>
-          <button id="changePasswordBtn" class="secondary-btn">Change Password</button>
-        </article>
-      </div>
-
-      <section id="dataPanel" class="data-panel hidden">
-        <div class="panel-head">
-          <h2 id="panelTitle">Student Information</h2>
-          <button id="closePanel" class="ghost-btn">Close</button>
-        </div>
-        <div id="panelBody"></div>
-      </section>
-    </section>
-  </main>
+  <link rel="stylesheet" href="student-portal.css">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+  <div id="portalLoading" class="portal-loading">
+    <div class="loader"></div>
+    <h3>Loading Student Portal...</h3>
+    <p>Please wait.</p>
+  </div>
+
+  <div id="portalApp" class="portal-app hidden">
+
+    <header class="topbar">
+
+      <div class="brand">
+        <img src="logo.png" alt="Gaawow Academy">
+
+        <div>
+          <strong>GAAWOW ACADEMY</strong>
+          <span>Student Portal</span>
+        </div>
+      </div>
+
+      <div class="top-actions">
+
+        <span id="studentNameTop">
+          Student
+        </span>
+
+        <button
+          id="logoutBtn"
+          class="logout-btn"
+          type="button"
+        >
+          Logout
+        </button>
+
+      </div>
+
+    </header>
+
+    <main class="portal-container">
+
+      <section class="welcome-card">
+
+        <div>
+          <small>WELCOME BACK</small>
+
+          <h1 id="welcomeName">
+            Student
+          </h1>
+
+          <p>
+            Ilayska Aqoonta iyo Xirfadda
+          </p>
+        </div>
+
+        <div class="student-number">
+          <span>Student ID</span>
+          <strong id="studentNumber">
+            --
+          </strong>
+        </div>
+
+      </section>
+
+
+      <section class="dashboard-grid">
+
+        <article class="stat-card">
+          <span class="stat-icon">📚</span>
+          <div>
+            <small>Results</small>
+            <strong id="resultsCount">0</strong>
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <span class="stat-icon">🎓</span>
+          <div>
+            <small>Certificates</small>
+            <strong id="certificatesCount">0</strong>
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <span class="stat-icon">🔔</span>
+          <div>
+            <small>Notifications</small>
+            <strong id="notificationsCount">0</strong>
+          </div>
+        </article>
+
+      </section>
+
+
+      <section class="content-card">
+
+        <div class="section-header">
+          <div>
+            <span class="eyebrow">MY PROFILE</span>
+            <h2>Student Information</h2>
+          </div>
+        </div>
+
+        <div class="profile-grid">
+
+          <div class="profile-photo">
+            <img
+              id="studentPhoto"
+              src="logo.png"
+              alt="Student"
+            >
+          </div>
+
+          <div class="profile-fields">
+
+            <div class="field">
+              <span>Full Name</span>
+              <strong id="studentFullName">--</strong>
+            </div>
+
+            <div class="field">
+              <span>Student ID</span>
+              <strong id="studentIdField">--</strong>
+            </div>
+
+            <div class="field">
+              <span>Email</span>
+              <strong id="studentEmail">--</strong>
+            </div>
+
+            <div class="field">
+              <span>Phone</span>
+              <strong id="studentPhone">--</strong>
+            </div>
+
+            <div class="field">
+              <span>Gender</span>
+              <strong id="studentGender">--</strong>
+            </div>
+
+            <div class="field">
+              <span>Admission Date</span>
+              <strong id="admissionDate">--</strong>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <section class="content-card">
+
+        <div class="section-header">
+
+          <div>
+            <span class="eyebrow">ACADEMIC</span>
+            <h2>My Results</h2>
+          </div>
+
+        </div>
+
+        <div id="resultsMessage" class="empty-message">
+          Loading results...
+        </div>
+
+        <div class="table-wrapper">
+
+          <table id="resultsTable" class="data-table hidden">
+
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th>Exam</th>
+                <th>Score</th>
+                <th>Percentage</th>
+                <th>Grade</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+
+            <tbody id="resultsBody"></tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+
+      <section class="content-card">
+
+        <div class="section-header">
+
+          <div>
+            <span class="eyebrow">DOCUMENTS</span>
+            <h2>My Certificates</h2>
+          </div>
+
+        </div>
+
+        <div id="certificatesMessage" class="empty-message">
+          Loading certificates...
+        </div>
+
+        <div id="certificatesList" class="certificate-list"></div>
+
+      </section>
+
+
+      <section class="content-card">
+
+        <div class="section-header">
+
+          <div>
+            <span class="eyebrow">MESSAGES</span>
+            <h2>Notifications</h2>
+          </div>
+
+          <button
+            id="markAllReadBtn"
+            class="secondary-btn"
+            type="button"
+          >
+            Mark all as read
+          </button>
+
+        </div>
+
+        <div id="notificationsList" class="notifications-list">
+        </div>
+
+      </section>
+
+    </main>
+
+
+    <footer class="portal-footer">
+
+      <strong>GAAWOW ACADEMY</strong>
+
+      <span>
+        Ilayska Aqoonta iyo Xirfadda
+      </span>
+
+      <small>
+        Burhakaba, Bay, Somalia
+      </small>
+
+    </footer>
+
+  </div>
+
+
   <script src="student-portal.js"></script>
+
 </body>
 </html>
