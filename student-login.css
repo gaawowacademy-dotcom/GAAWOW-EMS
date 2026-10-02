@@ -1,0 +1,448 @@
+/* =========================================================
+   GAAWOW ACADEMY EMS
+   STUDENT LOGIN
+   Version: 20261002-1
+   ========================================================= */
+
+:root {
+  --navy: #0B1E63;
+  --blue: #0B4DA2;
+  --gold: #D4AF37;
+  --white: #FFFFFF;
+  --background: #F5F7FA;
+  --text: #172033;
+  --muted: #6B7280;
+  --border: #D9DEE8;
+  --danger: #B42318;
+  --success: #16794A;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(11, 77, 162, 0.10),
+      transparent 35%
+    ),
+    var(--background);
+
+  color: var(--text);
+}
+
+
+.login-page {
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+}
+
+
+.login-card {
+  width: 100%;
+  max-width: 430px;
+
+  background: var(--white);
+
+  border: 1px solid rgba(11, 30, 99, 0.10);
+
+  border-radius: 20px;
+
+  padding: 34px 30px 26px;
+
+  box-shadow:
+    0 20px 60px rgba(11, 30, 99, 0.10);
+}
+
+
+/* BRAND */
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 14px;
+
+  margin-bottom: 30px;
+}
+
+
+.brand-logo-wrap {
+  width: 64px;
+  height: 64px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+}
+
+
+.brand-logo-wrap img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+}
+
+
+.brand-text h1 {
+  margin: 0;
+
+  color: var(--navy);
+
+  font-size: 18px;
+  font-weight: 800;
+
+  letter-spacing: 0.4px;
+}
+
+
+.brand-text p {
+  margin: 4px 0 0;
+
+  color: var(--gold);
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
+/* HEADER */
+
+.login-header {
+  text-align: center;
+
+  margin-bottom: 26px;
+}
+
+
+.login-icon {
+  width: 58px;
+  height: 58px;
+
+  margin: 0 auto 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(11, 77, 162, 0.08);
+
+  border-radius: 50%;
+
+  font-size: 26px;
+}
+
+
+.login-header h2 {
+  margin: 0;
+
+  color: var(--navy);
+
+  font-size: 25px;
+  font-weight: 800;
+}
+
+
+.login-header p {
+  margin: 8px 0 0;
+
+  color: var(--muted);
+
+  font-size: 14px;
+}
+
+
+/* FORM */
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+
+.form-group label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: var(--text);
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+
+.form-group input {
+  width: 100%;
+
+  height: 48px;
+
+  padding: 0 14px;
+
+  border: 1px solid var(--border);
+
+  border-radius: 10px;
+
+  outline: none;
+
+  background: #fff;
+
+  color: var(--text);
+
+  font-size: 14px;
+
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+
+.form-group input:focus {
+  border-color: var(--blue);
+
+  box-shadow:
+    0 0 0 3px rgba(11, 77, 162, 0.10);
+}
+
+
+/* PASSWORD */
+
+.password-wrap {
+  position: relative;
+}
+
+
+.password-wrap input {
+  padding-right: 48px;
+}
+
+
+.password-toggle {
+  position: absolute;
+
+  top: 50%;
+  right: 8px;
+
+  transform: translateY(-50%);
+
+  width: 38px;
+  height: 38px;
+
+  border: 0;
+
+  background: transparent;
+
+  cursor: pointer;
+
+  border-radius: 8px;
+
+  font-size: 16px;
+}
+
+
+.password-toggle:hover {
+  background: rgba(11, 30, 99, 0.06);
+}
+
+
+/* MESSAGE */
+
+.message {
+  display: none;
+
+  margin: 12px 0;
+
+  padding: 11px 13px;
+
+  border-radius: 9px;
+
+  font-size: 13px;
+
+  line-height: 1.45;
+}
+
+
+.message.show {
+  display: block;
+}
+
+
+.message.error {
+  color: var(--danger);
+
+  background: #FEF3F2;
+
+  border: 1px solid #FECACA;
+}
+
+
+.message.success {
+  color: var(--success);
+
+  background: #ECFDF3;
+
+  border: 1px solid #BBF7D0;
+}
+
+
+/* BUTTON */
+
+.login-button {
+  width: 100%;
+
+  height: 50px;
+
+  border: 0;
+
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--navy),
+      var(--blue)
+    );
+
+  color: white;
+
+  font-size: 15px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
+
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    opacity 0.15s;
+}
+
+
+.login-button:hover {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 8px 20px rgba(11, 30, 99, 0.18);
+}
+
+
+.login-button:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.65;
+
+  transform: none;
+
+  box-shadow: none;
+}
+
+
+/* SPINNER */
+
+.spinner {
+  width: 17px;
+  height: 17px;
+
+  border: 2px solid rgba(255,255,255,0.35);
+
+  border-top-color: white;
+
+  border-radius: 50%;
+
+  animation:
+    spin 0.7s linear infinite;
+}
+
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* FOOTER */
+
+.login-footer {
+  margin-top: 26px;
+
+  padding-top: 20px;
+
+  border-top: 1px solid #EEF1F5;
+
+  text-align: center;
+
+  color: var(--muted);
+
+  font-size: 11px;
+}
+
+
+.login-footer p {
+  margin: 0 0 4px;
+
+  color: var(--navy);
+
+  font-weight: 800;
+}
+
+
+.login-footer span {
+  display: block;
+
+  margin-top: 3px;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 480px) {
+
+  .login-page {
+    padding: 14px;
+  }
+
+  .login-card {
+    padding: 28px 20px 22px;
+
+    border-radius: 16px;
+  }
+
+  .brand-text h1 {
+    font-size: 16px;
+  }
+
+  .login-header h2 {
+    font-size: 23px;
+  }
+
+}
