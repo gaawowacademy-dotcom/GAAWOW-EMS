@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GAAWOW Academy | Student Portal</title>
+  <link rel="stylesheet" href="student-auth.css">
+</head>
+<body>
+  <header class="portal-header">
+    <div class="portal-brand">
+      <div class="brand-mark small">GA</div>
+      <div>
+        <strong>GAAWOW ACADEMY</strong>
+        <span>Student Portal</span>
+      </div>
+    </div>
+    <button id="logoutBtn" class="logout-btn">Log Out</button>
+  </header>
+
+  <main class="portal-shell">
+    <section id="accessDenied" class="denied-card hidden">
+      <div class="denied-icon">🔒</div>
+      <h1>Access Denied</h1>
+      <h2>Super Admin Access Required</h2>
+      <p>Your current account does not have permission to access this area.</p>
+      <div class="action-row">
+        <button id="goStudentBtn" class="primary-btn">🎓 Go to Student Portal</button>
+        <button id="deniedLogoutBtn" class="secondary-btn">🚪 Log Out</button>
+        <button id="okBtn" class="ghost-btn">OK</button>
+      </div>
+    </section>
+
+    <section id="portalContent" class="hidden">
+      <div class="welcome-card">
+        <div>
+          <p class="eyebrow">WELCOME BACK</p>
+          <h1 id="studentName">Student</h1>
+          <p id="studentMeta">Loading student information...</p>
+        </div>
+        <div class="student-badge" id="studentIdBadge">Student</div>
+      </div>
+
+      <div id="portalMessage" class="message hidden"></div>
+
+      <div class="portal-grid">
+        <article class="portal-card">
+          <div class="card-icon">👤</div>
+          <h3>My Profile</h3>
+          <p>View your student account and personal information.</p>
+          <button class="secondary-btn" data-section="profile">Open</button>
+        </article>
+
+        <article class="portal-card">
+          <div class="card-icon">📚</div>
+          <h3>My Courses</h3>
+          <p>View courses connected to your student record.</p>
+          <button class="secondary-btn" data-section="courses">Open</button>
+        </article>
+
+        <article class="portal-card">
+          <div class="card-icon">📝</div>
+          <h3>My Results</h3>
+          <p>View published academic results.</p>
+          <button class="secondary-btn" data-section="results">Open</button>
+        </article>
+
+        <article class="portal-card">
+          <div class="card-icon">🎓</div>
+          <h3>My Certificates</h3>
+          <p>View certificates linked to your student account.</p>
+          <button class="secondary-btn" data-section="certificates">Open</button>
+        </article>
+
+        <article class="portal-card">
+          <div class="card-icon">📄</div>
+          <h3>Authentication Letters</h3>
+          <p>View available academic authentication records.</p>
+          <button class="secondary-btn" data-section="authentication">Open</button>
+        </article>
+
+        <article class="portal-card">
+          <div class="card-icon">🔐</div>
+          <h3>Account Security</h3>
+          <p>Update your password and secure your account.</p>
+          <button id="changePasswordBtn" class="secondary-btn">Change Password</button>
+        </article>
+      </div>
+
+      <section id="dataPanel" class="data-panel hidden">
+        <div class="panel-head">
+          <h2 id="panelTitle">Student Information</h2>
+          <button id="closePanel" class="ghost-btn">Close</button>
+        </div>
+        <div id="panelBody"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="student-portal.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GAAWOW Academy | Student Login</title>
+  <link rel="stylesheet" href="student-auth.css">
+</head>
+<body>
+  <main class="auth-shell">
+    <section class="login-card">
+      <div class="brand">
+        <div class="brand-mark">GA</div>
+        <div>
+          <h1>GAAWOW ACADEMY</h1>
+          <p>Student Portal</p>
+        </div>
+      </div>
+
+      <div id="message" class="message hidden"></div>
+
+      <form id="loginForm" novalidate>
+        <label for="studentId">Student ID</label>
+        <input id="studentId" name="studentId" type="text"
+          placeholder="GA-2026-000012" autocomplete="username" required>
+
+        <label for="password">Password</label>
+        <div class="password-wrap">
+          <input id="password" name="password" type="password"
+            placeholder="Enter your password" autocomplete="current-password" required>
+          <button type="button" id="togglePassword" class="eye-btn">Show</button>
+        </div>
+
+        <button id="loginBtn" class="primary-btn" type="submit">
+          <span id="loginText">Sign In</span>
+          <span id="loginSpinner" class="spinner hidden"></span>
+        </button>
+      </form>
+
+      <div class="login-links">
+        <button id="forgotBtn" type="button" class="link-btn">Forgot Password?</button>
+      </div>
+
+      <p class="security-note">🔒 Student accounts can access Student Portal only.</p>
+      <p class="footer-note">Ilayska Aqoonta iyo Xirfadda · Burhakaba, Bay, Somalia</p>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="student-login.js"></script>
+</body>
+</html>
