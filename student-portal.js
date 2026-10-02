@@ -559,21 +559,34 @@ async function loadCertificates(studentId) {
     error
   } = await supabaseClient
     .from("certificates")
-    .select(`
-      id,
-      certificate_no,
-      certificate_id,
-      certificate_type,
-      issue_date,
-      expiry_date,
-      status,
-      course_name_snapshot,
-      certificate_url,
-      pdf_url,
-      verification_url,
-      qr_url,
-      student_photo_url
-    `)
+    const {
+  data: certificates,
+  error
+} = await supabaseClient
+  .from("certificates")
+  .select(`
+    id,
+    certificate_no,
+    certificate_id,
+    verify_code,
+    certificate_type,
+    issue_date,
+    expiry_date,
+    status,
+    course_name_snapshot,
+    certificate_url,
+    pdf_url,
+    verification_url,
+    qr_url,
+    student_photo_url
+  `)
+  .eq("student_id", studentId)
+  .order(
+    "issue_date",
+    {
+      ascending: false
+    }
+  );
     .eq("student_id", studentId)
     .order(
       "issue_date",
