@@ -193,18 +193,3 @@ async function createStudent(data, photoFile) {
       };
     }
   }
-
-
-  return {
-
-    studentDbId:
-      createdStudent.id,
-
-    generatedStudentId:
-      createdStudent.student_id,
-
-    ...result,
-
-    ...accountResult
-  };
-}
