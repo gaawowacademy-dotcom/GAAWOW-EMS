@@ -2518,3 +2518,52 @@
   }
 
 })();
+// ============================================================
+// TEMPORARY TEST — CREATE STUDENT ACCOUNT
+// Remove this block after successful testing.
+// ============================================================
+
+async function testCreateStudentAccount() {
+  try {
+    console.log("Starting student account test...");
+
+    const {
+      data,
+      error
+    } = await supabaseClient.functions.invoke(
+      "create-student-account",
+      {
+        body: {
+          student_id: "GA-2026-000119",
+          email: "Mohamedmadyarow3@gmail.com",
+          password: "Gaawow@2026"
+        }
+      }
+    );
+
+    console.log("=== STUDENT ACCOUNT TEST ===");
+    console.log("DATA:", data);
+    console.log("ERROR:", error);
+
+    if (error) {
+      showMessage(
+        "Student Account Test Error: " + error.message,
+        "error"
+      );
+      return;
+    }
+
+    showMessage(
+      "Student account test completed successfully.",
+      "success"
+    );
+
+  } catch (err) {
+    console.error("TEST EXCEPTION:", err);
+
+    showMessage(
+      "Test Exception: " + err.message,
+      "error"
+    );
+  }
+}
