@@ -30,11 +30,11 @@
 
 const SUPABASE_URL =
   window.GAAWOW_SUPABASE_URL ||
-  "YOUR_SUPABASE_URL";
+  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
 const SUPABASE_ANON_KEY =
   window.GAAWOW_SUPABASE_ANON_KEY ||
-  "YOUR_SUPABASE_ANON_KEY";
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
 
 let supabaseClient = null;
