@@ -2,25 +2,9 @@
 
 /* =========================================================
    GAAWOW ACADEMY EMS
-   STUDENT PORTAL
+   STUDENT PORTAL JS
    VERSION 5.3
-   =========================================================
-   
-   AUTH MODEL:
-   Supabase Auth
-        ↓
-   students.auth_user_id
-        ↓
-   students.account_enabled
-        ↓
-   students.status
-
-   IMPORTANT:
-   This version does NOT depend on:
-   - profiles
-   - profile_id
-   - get_my_student_id()
-
+   CLEAN / COPY-PASTE READY
    ========================================================= */
 
 
@@ -47,7 +31,7 @@ const supabaseClient =
 
 
 /* =========================================================
-   HELPER
+   DOM HELPER
    ========================================================= */
 
 const $ = (id) =>
@@ -65,45 +49,36 @@ document.addEventListener(
 
 
 /* =========================================================
-   INITIALIZE PORTAL
+   INIT PORTAL
    ========================================================= */
 
 async function initPortal() {
 
   try {
 
-    showLoading(
-      "Checking student account..."
+    showPortalLoading(
+      "Loading Student Portal..."
     );
 
 
-    /* -----------------------------------------------------
-       1. GET AUTH SESSION
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       GET SESSION
+    ----------------------------------------- */
 
     const {
-      data: sessionData,
-      error: sessionError
+      data,
+      error
     } =
       await supabaseClient.auth.getSession();
 
 
-    if (sessionError) {
-
-      console.error(
-        "Session error:",
-        sessionError
-      );
-
-      redirectToLogin();
-
-      return;
-
+    if (error) {
+      throw error;
     }
 
 
     const session =
-      sessionData?.session;
+      data?.session;
 
 
     if (!session?.user) {
@@ -111,7 +86,6 @@ async function initPortal() {
       redirectToLogin();
 
       return;
-
     }
 
 
@@ -119,152 +93,65 @@ async function initPortal() {
       session.user;
 
 
-    /* -----------------------------------------------------
-       2. FIND STUDENT USING AUTH USER ID
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       FIND STUDENT
+    ----------------------------------------- */
 
-    showLoading(
-      "Verifying student account..."
-    );
-
-
-    const {
-      data: student,
-      error: studentError
-    } =
-      await supabaseClient
-        .from("students")
-        .select(`
-          id,
-          student_id,
-          full_name,
-          gender,
-          date_of_birth,
-          phone,
-          email,
-          address,
-          photo_url,
-          admission_date,
-          status,
-          account_enabled,
-          auth_user_id,
-          institution_id
-        `)
-        .eq(
-          "auth_user_id",
-          user.id
-        )
-        .maybeSingle();
-
-
-    if (studentError) {
-
-      console.error(
-        "Student query error:",
-        studentError
+    const student =
+      await getCurrentStudent(
+        user
       );
-
-      showFatalError(
-        "Student account could not be verified."
-      );
-
-      return;
-
-    }
 
 
     if (!student) {
 
-      console.error(
-        "No student found for auth user:",
-        user.id
-      );
-
-      await safeSignOut();
+      await supabaseClient.auth.signOut();
 
       showFatalError(
-        "Student record lama xiriirin account-kan. Fadlan la xiriir maamulka."
+        "Student account-ka lama helin ama account-kan lama xiriirin student."
       );
 
       return;
-
     }
 
 
-    /* -----------------------------------------------------
-       3. VERIFY ACCOUNT ENABLED
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       ACCOUNT STATUS
+    ----------------------------------------- */
 
     if (
-      student.account_enabled !== true
+      student.account_enabled === false
     ) {
 
-      await safeSignOut();
+      await supabaseClient.auth.signOut();
 
       showFatalError(
-        "Student account-kan wali lama hawlgelin. Fadlan la xiriir maamulka."
+        "Student account-kan waa la xiray. Fadlan la xiriir maamulka."
       );
 
       return;
-
     }
 
-
-    /* -----------------------------------------------------
-       4. VERIFY STUDENT STATUS
-       ----------------------------------------------------- */
 
     if (
       student.status &&
-      String(student.status)
-        .toLowerCase() !== "active"
+      String(student.status).toLowerCase() !==
+        "active"
     ) {
 
-      await safeSignOut();
+      await supabaseClient.auth.signOut();
 
       showFatalError(
         "Student account-kan ma aha active."
       );
 
       return;
-
     }
 
 
-    /* -----------------------------------------------------
-       5. VERIFY AUTH LINK
-       ----------------------------------------------------- */
-
-    if (
-      String(student.auth_user_id) !==
-      String(user.id)
-    ) {
-
-      console.error(
-        "Auth mismatch:",
-        {
-          studentAuthId:
-            student.auth_user_id,
-
-          sessionUserId:
-            user.id
-        }
-      );
-
-      await safeSignOut();
-
-      showFatalError(
-        "Student account verification failed."
-      );
-
-      return;
-
-    }
-
-
-    /* -----------------------------------------------------
-       6. RENDER STUDENT
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       RENDER STUDENT
+    ----------------------------------------- */
 
     renderStudent(
       student,
@@ -272,9 +159,9 @@ async function initPortal() {
     );
 
 
-    /* -----------------------------------------------------
-       7. LOAD PORTAL MODULES
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       LOAD MODULES
+    ----------------------------------------- */
 
     await Promise.allSettled([
 
@@ -293,28 +180,180 @@ async function initPortal() {
     ]);
 
 
-    /* -----------------------------------------------------
-       8. SHOW PORTAL
-       ----------------------------------------------------- */
+    /* -----------------------------------------
+       SHOW PORTAL
+    ----------------------------------------- */
 
-    hideLoading();
+    $("portalLoading")
+      ?.classList.add("hidden");
 
-    showPortal();
+
+    $("portalApp")
+      ?.classList.remove("hidden");
 
 
-  } catch (error) {
+  }
+
+  catch (error) {
 
     console.error(
-      "Student Portal initialization error:",
+      "Student Portal Error:",
       error
     );
 
+
     showFatalError(
-      "Unable to load Student Portal. Fadlan mar kale isku day."
+      getFriendlyError(error)
     );
 
   }
 
+}
+
+
+/* =========================================================
+   GET CURRENT STUDENT
+   ========================================================= */
+
+async function getCurrentStudent(user) {
+
+  /*
+   * First try auth_user_id.
+   *
+   * This matches the student account
+   * structure currently being used.
+   */
+
+  const response =
+    await supabaseClient
+      .from("students")
+      .select(`
+        id,
+        institution_id,
+        profile_id,
+        auth_user_id,
+        student_id,
+        full_name,
+        gender,
+        date_of_birth,
+        phone,
+        email,
+        address,
+        photo_url,
+        admission_date,
+        status,
+        account_enabled
+      `)
+      .eq(
+        "auth_user_id",
+        user.id
+      )
+      .maybeSingle();
+
+
+  if (
+    !response.error &&
+    response.data
+  ) {
+
+    return response.data;
+  }
+
+
+  /*
+   * Fallback:
+   * Some older records may use profile_id.
+   */
+
+  const fallback =
+    await supabaseClient
+      .from("students")
+      .select(`
+        id,
+        institution_id,
+        profile_id,
+        auth_user_id,
+        student_id,
+        full_name,
+        gender,
+        date_of_birth,
+        phone,
+        email,
+        address,
+        photo_url,
+        admission_date,
+        status,
+        account_enabled
+      `)
+      .eq(
+        "profile_id",
+        user.id
+      )
+      .maybeSingle();
+
+
+  if (
+    !fallback.error &&
+    fallback.data
+  ) {
+
+    return fallback.data;
+  }
+
+
+  /*
+   * Last fallback:
+   * Search by email if available.
+   */
+
+  if (user.email) {
+
+    const emailResult =
+      await supabaseClient
+        .from("students")
+        .select(`
+          id,
+          institution_id,
+          profile_id,
+          auth_user_id,
+          student_id,
+          full_name,
+          gender,
+          date_of_birth,
+          phone,
+          email,
+          address,
+          photo_url,
+          admission_date,
+          status,
+          account_enabled
+        `)
+        .eq(
+          "email",
+          user.email
+        )
+        .maybeSingle();
+
+
+    if (
+      !emailResult.error &&
+      emailResult.data
+    ) {
+
+      return emailResult.data;
+    }
+
+  }
+
+
+  console.error(
+    "Unable to find student:",
+    response.error,
+    fallback.error
+  );
+
+
+  return null;
 }
 
 
@@ -491,7 +530,6 @@ async function loadResults(
       );
 
       return;
-
     }
 
 
@@ -515,49 +553,50 @@ async function loadResults(
       );
 
       return;
-
     }
 
 
-    /* -----------------------------------------------------
+    /* -----------------------------------------
        SUBJECT IDS
-       ----------------------------------------------------- */
+    ----------------------------------------- */
 
-    const subjectIds = [
-      ...new Set(
-        rows
-          .map(
-            row =>
-              row.subject_id
-          )
-          .filter(Boolean)
-      )
-    ];
+    const subjectIds =
+      [
+        ...new Set(
+          rows
+            .map(
+              row =>
+                row.subject_id
+            )
+            .filter(Boolean)
+        )
+      ];
 
 
-    /* -----------------------------------------------------
+    /* -----------------------------------------
        EXAM IDS
-       ----------------------------------------------------- */
+    ----------------------------------------- */
 
-    const examIds = [
-      ...new Set(
-        rows
-          .map(
-            row =>
-              row.exam_id
-          )
-          .filter(Boolean)
-      )
-    ];
+    const examIds =
+      [
+        ...new Set(
+          rows
+            .map(
+              row =>
+                row.exam_id
+            )
+            .filter(Boolean)
+        )
+      ];
 
 
     let subjects = [];
     let exams = [];
 
 
-    /* -----------------------------------------------------
+    /* -----------------------------------------
        LOAD SUBJECTS
-       ----------------------------------------------------- */
+    ----------------------------------------- */
 
     if (subjectIds.length) {
 
@@ -573,27 +612,19 @@ async function loadResults(
           );
 
 
-      if (response.error) {
-
-        console.warn(
-          "Subjects could not be loaded:",
-          response.error
-        );
-
-      } else {
+      if (!response.error) {
 
         subjects =
-          response.data ||
-          [];
+          response.data || [];
 
       }
 
     }
 
 
-    /* -----------------------------------------------------
+    /* -----------------------------------------
        LOAD EXAMS
-       ----------------------------------------------------- */
+    ----------------------------------------- */
 
     if (examIds.length) {
 
@@ -609,27 +640,15 @@ async function loadResults(
           );
 
 
-      if (response.error) {
-
-        console.warn(
-          "Exams could not be loaded:",
-          response.error
-        );
-
-      } else {
+      if (!response.error) {
 
         exams =
-          response.data ||
-          [];
+          response.data || [];
 
       }
 
     }
 
-
-    /* -----------------------------------------------------
-       MAP DATA
-       ----------------------------------------------------- */
 
     const subjectMap =
       Object.fromEntries(
@@ -657,15 +676,13 @@ async function loadResults(
       $("resultsBody");
 
 
-    if (!body) return;
+    if (!body) {
+      return;
+    }
 
 
     body.innerHTML = "";
 
-
-    /* -----------------------------------------------------
-       RENDER RESULTS
-       ----------------------------------------------------- */
 
     rows.forEach(
       row => {
@@ -742,33 +759,26 @@ async function loadResults(
         `;
 
 
-        body.appendChild(
-          tr
-        );
+        body.appendChild(tr);
 
       }
     );
 
 
-    if ($("resultsMessage")) {
-
-      $("resultsMessage")
-        .classList
-        .add("hidden");
-
-    }
+    $("resultsMessage")
+      ?.classList.add(
+        "hidden"
+      );
 
 
-    if ($("resultsTable")) {
+    $("resultsTable")
+      ?.classList.remove(
+        "hidden"
+      );
 
-      $("resultsTable")
-        .classList
-        .remove("hidden");
+  }
 
-    }
-
-
-  } catch (error) {
+  catch (error) {
 
     console.error(
       "loadResults error:",
@@ -799,8 +809,9 @@ function showResultsMessage(
       message;
 
     $("resultsMessage")
-      .classList
-      .remove("hidden");
+      .classList.remove(
+        "hidden"
+      );
 
   }
 
@@ -808,8 +819,9 @@ function showResultsMessage(
   if ($("resultsTable")) {
 
     $("resultsTable")
-      .classList
-      .add("hidden");
+      .classList.add(
+        "hidden"
+      );
 
   }
 
@@ -867,12 +879,17 @@ async function loadCertificates(
         error
       );
 
-      showCertificateMessage(
-        "Unable to load certificates."
-      );
+
+      if ($("certificatesMessage")) {
+
+        $("certificatesMessage")
+          .textContent =
+          "Unable to load certificates.";
+
+      }
+
 
       return;
-
     }
 
 
@@ -893,7 +910,9 @@ async function loadCertificates(
       $("certificatesList");
 
 
-    if (!list) return;
+    if (!list) {
+      return;
+    }
 
 
     list.innerHTML = "";
@@ -901,22 +920,27 @@ async function loadCertificates(
 
     if (!rows.length) {
 
-      showCertificateMessage(
-        "No certificates are available yet."
-      );
+      if ($("certificatesMessage")) {
+
+        $("certificatesMessage")
+          .textContent =
+          "No certificates are available yet.";
+
+        $("certificatesMessage")
+          .classList.remove(
+            "hidden"
+          );
+
+      }
 
       return;
-
     }
 
 
-    if ($("certificatesMessage")) {
-
-      $("certificatesMessage")
-        .classList
-        .add("hidden");
-
-    }
+    $("certificatesMessage")
+      ?.classList.add(
+        "hidden"
+      );
 
 
     rows.forEach(
@@ -935,9 +959,7 @@ async function loadCertificates(
         const type =
           cert.certificate_type ===
           "authentication_letter"
-
             ? "Authentication Letter"
-
             : "Certificate";
 
 
@@ -953,9 +975,7 @@ async function loadCertificates(
           <div>
 
             <h3>
-              ${escapeHtml(
-                type
-              )}
+              ${escapeHtml(type)}
             </h3>
 
             <div class="certificate-meta">
@@ -1019,7 +1039,7 @@ async function loadCertificates(
                       verifyUrl
                     )}"
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener"
                   >
                     Verify
                   </a>
@@ -1037,7 +1057,7 @@ async function loadCertificates(
                       cert.pdf_url
                     )}"
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener"
                   >
                     PDF
                   </a>
@@ -1055,7 +1075,7 @@ async function loadCertificates(
                       cert.certificate_url
                     )}"
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener"
                   >
                     Document
                   </a>
@@ -1068,47 +1088,19 @@ async function loadCertificates(
         `;
 
 
-        list.appendChild(
-          item
-        );
+        list.appendChild(item);
 
       }
     );
 
+  }
 
-  } catch (error) {
+  catch (error) {
 
     console.error(
       "loadCertificates error:",
       error
     );
-
-    showCertificateMessage(
-      "Unable to load certificates."
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   CERTIFICATE MESSAGE
-   ========================================================= */
-
-function showCertificateMessage(
-  message
-) {
-
-  if ($("certificatesMessage")) {
-
-    $("certificatesMessage")
-      .textContent =
-      message;
-
-    $("certificatesMessage")
-      .classList
-      .remove("hidden");
 
   }
 
@@ -1130,9 +1122,7 @@ async function loadNotifications(
       error
     } =
       await supabaseClient
-        .from(
-          "student_notifications"
-        )
+        .from("student_notifications")
         .select(`
           id,
           title,
@@ -1161,10 +1151,20 @@ async function loadNotifications(
         error
       );
 
-      showNotificationError();
+
+      if ($("notificationsList")) {
+
+        $("notificationsList")
+          .innerHTML = `
+            <div class="empty-message">
+              Unable to load notifications.
+            </div>
+          `;
+
+      }
+
 
       return;
-
     }
 
 
@@ -1192,7 +1192,9 @@ async function loadNotifications(
       $("notificationsList");
 
 
-    if (!list) return;
+    if (!list) {
+      return;
+    }
 
 
     list.innerHTML = "";
@@ -1207,7 +1209,6 @@ async function loadNotifications(
       `;
 
       return;
-
     }
 
 
@@ -1275,50 +1276,26 @@ async function loadNotifications(
             "click",
             () =>
               markNotificationRead(
-                notification.id,
-                studentId
+                notification.id
               )
           );
 
         }
 
 
-        list.appendChild(
-          item
-        );
+        list.appendChild(item);
 
       }
     );
 
+  }
 
-  } catch (error) {
+  catch (error) {
 
     console.error(
       "loadNotifications error:",
       error
     );
-
-    showNotificationError();
-
-  }
-
-}
-
-
-/* =========================================================
-   NOTIFICATION ERROR
-   ========================================================= */
-
-function showNotificationError() {
-
-  if ($("notificationsList")) {
-
-    $("notificationsList")
-      .innerHTML = `
-        <div class="empty-message">
-          Unable to load notifications.
-        </div>
-      `;
 
   }
 
@@ -1330,8 +1307,7 @@ function showNotificationError() {
    ========================================================= */
 
 async function markNotificationRead(
-  notificationId,
-  studentId
+  notificationId
 ) {
 
   try {
@@ -1351,33 +1327,51 @@ async function markNotificationRead(
         .eq(
           "id",
           notificationId
-        )
-        .eq(
-          "student_id",
-          studentId
         );
 
 
     if (error) {
-
-      console.error(
-        "Mark notification error:",
-        error
-      );
-
-      return;
-
+      throw error;
     }
 
 
-    await loadNotifications(
-      studentId
-    );
+    const {
+      data
+    } =
+      await supabaseClient
+        .auth
+        .getSession();
 
 
-  } catch (error) {
+    const session =
+      data?.session;
+
+
+    if (!session?.user) {
+      return;
+    }
+
+
+    const student =
+      await getCurrentStudent(
+        session.user
+      );
+
+
+    if (student) {
+
+      await loadNotifications(
+        student.id
+      );
+
+    }
+
+  }
+
+  catch (error) {
 
     console.error(
+      "markNotificationRead error:",
       error
     );
 
@@ -1387,195 +1381,143 @@ async function markNotificationRead(
 
 
 /* =========================================================
-   MARK ALL READ
+   MARK ALL NOTIFICATIONS READ
    ========================================================= */
 
-$("markAllReadBtn")?.addEventListener(
-  "click",
-  async () => {
+$("markAllReadBtn")
+  ?.addEventListener(
+    "click",
+    async () => {
 
-    try {
+      try {
 
-      const {
-        data: sessionData
-      } =
-        await supabaseClient.auth.getSession();
-
-
-      const user =
-        sessionData?.session?.user;
-
-
-      if (!user) {
-
-        redirectToLogin();
-
-        return;
-
-      }
+        const {
+          data
+        } =
+          await supabaseClient
+            .auth
+            .getSession();
 
 
-      const {
-        data: student,
-        error: studentError
-      } =
-        await supabaseClient
-          .from("students")
-          .select("id")
-          .eq(
-            "auth_user_id",
-            user.id
-          )
-          .maybeSingle();
+        const session =
+          data?.session;
 
 
-      if (
-        studentError ||
-        !student
-      ) {
+        if (!session?.user) {
 
-        console.error(
-          studentError
-        );
+          redirectToLogin();
 
-        return;
-
-      }
+          return;
+        }
 
 
-      const {
-        error
-      } =
-        await supabaseClient
-          .from(
-            "student_notifications"
-          )
-          .update({
-            is_read: true,
-            read_at:
-              new Date().toISOString()
-          })
-          .eq(
-            "student_id",
-            student.id
-          )
-          .eq(
-            "is_read",
-            false
+        const student =
+          await getCurrentStudent(
+            session.user
           );
 
 
-      if (error) {
+        if (!student) {
+          return;
+        }
+
+
+        const {
+          error
+        } =
+          await supabaseClient
+            .from(
+              "student_notifications"
+            )
+            .update({
+              is_read: true,
+              read_at:
+                new Date().toISOString()
+            })
+            .eq(
+              "student_id",
+              student.id
+            )
+            .eq(
+              "is_read",
+              false
+            );
+
+
+        if (error) {
+          throw error;
+        }
+
+
+        await loadNotifications(
+          student.id
+        );
+
+      }
+
+      catch (error) {
 
         console.error(
           "Mark all read error:",
           error
         );
 
-        return;
-
       }
 
-
-      await loadNotifications(
-        student.id
-      );
-
-
-    } catch (error) {
-
-      console.error(
-        "Mark all read error:",
-        error
-      );
-
     }
-
-  }
-);
+  );
 
 
 /* =========================================================
    LOGOUT
    ========================================================= */
 
-$("logoutBtn")?.addEventListener(
-  "click",
-  async () => {
+$("logoutBtn")
+  ?.addEventListener(
+    "click",
+    async () => {
 
-    try {
+      try {
 
-      $("logoutBtn").disabled =
-        true;
+        await supabaseClient
+          .auth
+          .signOut();
 
+      }
 
-      await supabaseClient.auth.signOut();
+      finally {
 
+        redirectToLogin();
 
-    } catch (error) {
-
-      console.error(
-        "Logout error:",
-        error
-      );
-
-    } finally {
-
-      redirectToLogin();
+      }
 
     }
-
-  }
-);
+  );
 
 
 /* =========================================================
    AUTH STATE
    ========================================================= */
 
-supabaseClient.auth.onAuthStateChange(
-  (
-    event,
-    session
-  ) => {
+supabaseClient.auth
+  .onAuthStateChange(
+    (event, session) => {
 
-    if (
-      event === "SIGNED_OUT" ||
-      !session
-    ) {
+      if (
+        event === "SIGNED_OUT" ||
+        !session
+      ) {
 
-      redirectToLogin();
+        redirectToLogin();
+
+      }
 
     }
-
-  }
-);
+  );
 
 
 /* =========================================================
-   SAFE SIGN OUT
-   ========================================================= */
-
-async function safeSignOut() {
-
-  try {
-
-    await supabaseClient.auth.signOut();
-
-  } catch (error) {
-
-    console.warn(
-      "Sign out warning:",
-      error
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   REDIRECT TO STUDENT LOGIN
+   REDIRECT
    ========================================================= */
 
 function redirectToLogin() {
@@ -1587,88 +1529,39 @@ function redirectToLogin() {
 
 
 /* =========================================================
-   SHOW PORTAL
+   LOADING
    ========================================================= */
 
-function showPortal() {
-
-  if ($("portalLoading")) {
-
-    $("portalLoading")
-      .classList
-      .add("hidden");
-
-  }
-
-
-  if ($("portalApp")) {
-
-    $("portalApp")
-      .classList
-      .remove("hidden");
-
-  }
-
-}
-
-
-/* =========================================================
-   SHOW LOADING
-   ========================================================= */
-
-function showLoading(
+function showPortalLoading(
   message
 ) {
 
-  const loading =
-    $("portalLoading");
-
-
-  if (!loading) return;
-
-
-  const heading =
-    loading.querySelector(
-      "h3"
-    );
-
-
-  const paragraph =
-    loading.querySelector(
-      "p"
-    );
-
-
-  if (heading) {
-
-    heading.textContent =
-      "Loading Student Portal...";
-
-  }
-
-
-  if (paragraph) {
-
-    paragraph.textContent =
-      message ||
-      "Please wait.";
-
-  }
-
-}
-
-
-/* =========================================================
-   HIDE LOADING
-   ========================================================= */
-
-function hideLoading() {
-
   if ($("portalLoading")) {
 
-    $("portalLoading")
-      .classList
-      .add("hidden");
+    const title =
+      $("portalLoading")
+        .querySelector("h3");
+
+
+    const paragraph =
+      $("portalLoading")
+        .querySelector("p");
+
+
+    if (title) {
+
+      title.textContent =
+        message;
+
+    }
+
+
+    if (paragraph) {
+
+      paragraph.textContent =
+        "Please wait.";
+
+    }
 
   }
 
@@ -1683,67 +1576,43 @@ function showFatalError(
   message
 ) {
 
-  const loading =
-    $("portalLoading");
-
-
-  if (!loading) {
-
-    alert(message);
-
+  if (!$("portalLoading")) {
     return;
-
   }
 
 
-  loading.innerHTML = `
+  $("portalLoading").innerHTML = `
 
-    <div
-      style="
-        max-width:520px;
-        padding:30px;
-        text-align:center;
-        margin:auto;
-      "
-    >
+    <div style="
+      max-width:520px;
+      padding:30px;
+      text-align:center;
+      margin:auto;
+    ">
 
-      <div
-        style="
-          font-size:45px;
-          margin-bottom:15px;
-        "
-      >
+      <div style="
+        font-size:45px;
+        margin-bottom:15px;
+      ">
         🔐
       </div>
 
-
-      <h2
-        style="
-          color:#0B1E63;
-          margin-bottom:10px;
-        "
-      >
+      <h2 style="
+        color:#0B1E63;
+        margin-bottom:10px;
+      ">
         Student Portal
       </h2>
 
-
-      <p
-        style="
-          color:#6B7280;
-          line-height:1.6;
-        "
-      >
-        ${escapeHtml(
-          message
-        )}
+      <p style="
+        color:#6B7280;
+        line-height:1.6;
+      ">
+        ${escapeHtml(message)}
       </p>
 
-
       <button
-        type="button"
-        onclick="
-          window.location.href='student-login.html'
-        "
+        onclick="window.location.href='student-login.html'"
         style="
           margin-top:15px;
           border:0;
@@ -1766,7 +1635,7 @@ function showFatalError(
 
 
 /* =========================================================
-   FORMAT DATE
+   DATE
    ========================================================= */
 
 function formatDate(
@@ -1774,9 +1643,7 @@ function formatDate(
 ) {
 
   if (!value) {
-
     return "--";
-
   }
 
 
@@ -1808,7 +1675,7 @@ function formatDate(
 
 
 /* =========================================================
-   FORMAT DATE TIME
+   DATE + TIME
    ========================================================= */
 
 function formatDateTime(
@@ -1816,9 +1683,7 @@ function formatDateTime(
 ) {
 
   if (!value) {
-
     return "--";
-
   }
 
 
@@ -1852,7 +1717,7 @@ function formatDateTime(
 
 
 /* =========================================================
-   FORMAT SCORE
+   SCORE
    ========================================================= */
 
 function formatScore(
@@ -1886,7 +1751,7 @@ function formatScore(
 
 
 /* =========================================================
-   FORMAT PERCENTAGE
+   PERCENTAGE
    ========================================================= */
 
 function formatPercentage(
@@ -1901,15 +1766,11 @@ function formatPercentage(
   ) {
 
     const number =
-      Number(
-        percentage
-      );
+      Number(percentage);
 
 
     if (
-      Number.isFinite(
-        number
-      )
+      !Number.isNaN(number)
     ) {
 
       return `${number.toFixed(1)}%`;
@@ -1962,17 +1823,14 @@ function buildCertificateVerificationUrl(
       )}` +
       `&id=` +
       `${encodeURIComponent(
-        cert.certificate_id ||
-        ""
+        cert.certificate_id || ""
       )}`
     );
 
   }
 
 
-  if (
-    cert.verify_code
-  ) {
+  if (cert.verify_code) {
 
     return (
       `verify.html?code=` +
@@ -2040,5 +1898,68 @@ function escapeAttribute(
 
 
 /* =========================================================
-   END
+   FRIENDLY ERROR
    ========================================================= */
+
+function getFriendlyError(
+  error
+) {
+
+  const message =
+    String(
+      error?.message ||
+      ""
+    ).toLowerCase();
+
+
+  if (
+    message.includes(
+      "failed to fetch"
+    )
+  ) {
+
+    return (
+      "Internet connection ama Supabase connection ayaa cilad qaba."
+    );
+
+  }
+
+
+  if (
+    message.includes(
+      "permission denied"
+    ) ||
+    message.includes(
+      "row-level security"
+    )
+  ) {
+
+    return (
+      "Access-ka database-ka ayaa diiday. Fadlan hubi Supabase RLS policies."
+    );
+
+  }
+
+
+  if (
+    message.includes(
+      "relation"
+    ) &&
+    message.includes(
+      "does not exist"
+    )
+  ) {
+
+    return (
+      "Database table-ka loo baahan yahay lama helin."
+    );
+
+  }
+
+
+  return (
+    error?.message ||
+    "Unable to load Student Portal."
+  );
+
+}
