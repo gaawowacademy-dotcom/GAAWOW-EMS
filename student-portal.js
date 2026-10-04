@@ -3,7 +3,12 @@
 /* =========================================================
    GAAWOW ACADEMY EMS
    STUDENT PORTAL
-   VERSION 20261002-1
+   VERSION 20261004-1
+   ========================================================= */
+
+
+/* =========================================================
+   SUPABASE CONFIG
    ========================================================= */
 
 const SUPABASE_URL =
@@ -13,25 +18,38 @@ const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
+/* =========================================================
+   SUPABASE CLIENT
+   ========================================================= */
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
 
 
 /* =========================================================
-   DOM
+   DOM HELPER
    ========================================================= */
 
-const $ = (id) => document.getElementById(id);
+const $ = (id) =>
+  document.getElementById(id);
 
 
 /* =========================================================
    START
    ========================================================= */
 
-document.addEventListener("DOMContentLoaded", initPortal);
+document.addEventListener(
+  "DOMContentLoaded",
+  initPortal
+);
 
+
+/* =========================================================
+   INITIALIZE PORTAL
+   ========================================================= */
 
 async function initPortal() {
 
@@ -40,9 +58,18 @@ async function initPortal() {
     const {
       data: {
         session
-      }
-    } = await supabaseClient.auth.getSession();
+      },
+      error: sessionError
+    } =
+      await supabaseClient.auth.getSession();
 
+
+    if (sessionError) {
+      throw sessionError;
+    }
+
+
+    /* No login session */
 
     if (!session) {
 
@@ -53,131 +80,126 @@ async function initPortal() {
     }
 
 
-    const user = session.user;
+    const user =
+      session.user;
 
 
-    /*
-     * Verify profile.
-     */
-
-    const {
-      data: profile,
-      error: profileError
-    } = await supabaseClient
-      .from("profiles")
-      .select(
-        "id, institution_id, full_name, role, is_active"
-      )
-      .eq("id", user.id)
-      .maybeSingle();
-
-
-    if (
-      profileError ||
-      !profile ||
-      profile.role !== "student" ||
-      profile.is_active !== true
-    ) {
-
-      await supabaseClient.auth.signOut();
-
-      redirectToLogin();
-
-      return;
-
-    }
-
-
-    /*
-     * Get current student's database UUID.
-     */
-
-    const {
-      data: studentUuid,
-      error: studentIdError
-    } = await supabaseClient.rpc(
-      "get_my_student_id"
-    );
-
-
-    if (studentIdError || !studentUuid) {
-
-      showFatalError(
-        "Student profile is not linked correctly. Please contact GAAWOW ACADEMY administration."
-      );
-
-      return;
-
-    }
-
-
-    /*
-     * Get student record.
-     */
+    /* =====================================================
+       GET STUDENT
+       Uses auth_user_id
+       ===================================================== */
 
     const {
       data: student,
       error: studentError
-    } = await supabaseClient
-      .from("students")
-      .select(`
-        id,
-        institution_id,
-        profile_id,
-        student_id,
-        full_name,
-        gender,
-        date_of_birth,
-        phone,
-        email,
-        address,
-        photo_url,
-        admission_date,
-        status
-      `)
-      .eq("id", studentUuid)
-      .maybeSingle();
+    } =
+      await supabaseClient
+        .from("students")
+        .select(`
+          id,
+          institution_id,
+          student_id,
+          full_name,
+          gender,
+          date_of_birth,
+          phone,
+          email,
+          address,
+          photo_url,
+          admission_date,
+          status,
+          account_enabled,
+          auth_user_id
+        `)
+        .eq(
+          "auth_user_id",
+          user.id
+        )
+        .maybeSingle();
 
 
-    if (studentError || !student) {
+    if (studentError) {
 
-      showFatalError(
-        "Student record could not be loaded."
+      console.error(
+        "Student query error:",
+        studentError
       );
 
-      return;
+      throw new Error(
+        "Student information could not be loaded."
+      );
 
     }
 
 
-    if (student.profile_id !== user.id) {
+    if (!student) {
 
-      showFatalError(
+      await supabaseClient.auth.signOut();
+
+      throw new Error(
+        "Student account is not linked to a student record."
+      );
+
+    }
+
+
+    /* =====================================================
+       VERIFY AUTH LINK
+       ===================================================== */
+
+    if (
+      String(student.auth_user_id) !==
+      String(user.id)
+    ) {
+
+      await supabaseClient.auth.signOut();
+
+      throw new Error(
         "Student account verification failed."
       );
 
-      return;
+    }
+
+
+    /* =====================================================
+       ACCOUNT ENABLED
+       ===================================================== */
+
+    if (
+      student.account_enabled === false
+    ) {
+
+      await supabaseClient.auth.signOut();
+
+      throw new Error(
+        "Student account-kan waa la xiray. Fadlan la xiriir maamulka."
+      );
 
     }
 
+
+    /* =====================================================
+       STATUS
+       ===================================================== */
 
     if (
       student.status &&
-      String(student.status).toLowerCase() !== "active"
+      String(student.status).toLowerCase() !==
+        "active"
     ) {
 
-      showFatalError(
-        "This student account is not active."
-      );
+      await supabaseClient.auth.signOut();
 
-      return;
+      throw new Error(
+        "Student account-kan ma aha active."
+      );
 
     }
 
 
-    /*
-     * Render base profile.
-     */
+    /* =====================================================
+       RENDER STUDENT
+       ===================================================== */
 
     renderStudent(
       student,
@@ -185,9 +207,9 @@ async function initPortal() {
     );
 
 
-    /*
-     * Load dashboard modules.
-     */
+    /* =====================================================
+       LOAD DASHBOARD
+       ===================================================== */
 
     await Promise.allSettled([
 
@@ -200,20 +222,32 @@ async function initPortal() {
     ]);
 
 
-    /*
-     * Show portal.
-     */
+    /* =====================================================
+       SHOW PORTAL
+       ===================================================== */
 
-    $("portalLoading").classList.add("hidden");
+    $("portalLoading")
+      .classList
+      .add("hidden");
 
-    $("portalApp").classList.remove("hidden");
+
+    $("portalApp")
+      .classList
+      .remove("hidden");
 
 
-  } catch (error) {
+  }
 
-    console.error(error);
+  catch (error) {
+
+    console.error(
+      "Student Portal Error:",
+      error
+    );
+
 
     showFatalError(
+      error.message ||
       "Unable to load Student Portal."
     );
 
@@ -223,10 +257,13 @@ async function initPortal() {
 
 
 /* =========================================================
-   STUDENT
+   RENDER STUDENT
    ========================================================= */
 
-function renderStudent(student, user) {
+function renderStudent(
+  student,
+  user
+) {
 
   const fullName =
     student.full_name ||
@@ -272,7 +309,9 @@ function renderStudent(student, user) {
 
 
   $("admissionDate").textContent =
-    formatDate(student.admission_date);
+    formatDate(
+      student.admission_date
+    );
 
 
   if (student.photo_url) {
@@ -289,33 +328,42 @@ function renderStudent(student, user) {
    RESULTS
    ========================================================= */
 
-async function loadResults(studentId) {
+async function loadResults(
+  studentId
+) {
 
   const {
     data: results,
     error
-  } = await supabaseClient
-    .from("results")
-    .select(`
-      id,
-      exam_id,
-      subject_id,
-      score,
-      max_score,
-      percentage,
-      grade,
-      remarks,
-      is_published,
-      created_at
-    `)
-    .eq("student_id", studentId)
-    .eq("is_published", true)
-    .order(
-      "created_at",
-      {
-        ascending: false
-      }
-    );
+  } =
+    await supabaseClient
+      .from("results")
+      .select(`
+        id,
+        exam_id,
+        subject_id,
+        score,
+        max_score,
+        percentage,
+        grade,
+        remarks,
+        is_published,
+        created_at
+      `)
+      .eq(
+        "student_id",
+        studentId
+      )
+      .eq(
+        "is_published",
+        true
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      );
 
 
   if (error) {
@@ -334,7 +382,8 @@ async function loadResults(studentId) {
   }
 
 
-  const rows = results || [];
+  const rows =
+    results || [];
 
 
   $("resultsCount").textContent =
@@ -352,14 +401,12 @@ async function loadResults(studentId) {
   }
 
 
-  /*
-   * Collect IDs.
-   */
-
   const subjectIds = [
     ...new Set(
       rows
-        .map(row => row.subject_id)
+        .map(
+          row => row.subject_id
+        )
         .filter(Boolean)
     )
   ];
@@ -368,13 +415,16 @@ async function loadResults(studentId) {
   const examIds = [
     ...new Set(
       rows
-        .map(row => row.exam_id)
+        .map(
+          row => row.exam_id
+        )
         .filter(Boolean)
     )
   ];
 
 
   let subjects = [];
+
   let exams = [];
 
 
@@ -390,6 +440,7 @@ async function loadResults(studentId) {
           "id",
           subjectIds
         );
+
 
     if (!response.error) {
 
@@ -413,6 +464,7 @@ async function loadResults(studentId) {
           "id",
           examIds
         );
+
 
     if (!response.error) {
 
@@ -453,97 +505,122 @@ async function loadResults(studentId) {
   body.innerHTML = "";
 
 
-  rows.forEach(row => {
+  rows.forEach(
+    row => {
 
-    const subject =
-      subjectMap[row.subject_id];
-
-
-    const exam =
-      examMap[row.exam_id];
-
-
-    const tr =
-      document.createElement("tr");
+      const subject =
+        subjectMap[
+          row.subject_id
+        ];
 
 
-    tr.innerHTML = `
-      <td>
-        ${escapeHtml(
-          subject?.name || "Subject"
-        )}
-      </td>
+      const exam =
+        examMap[
+          row.exam_id
+        ];
 
-      <td>
-        ${escapeHtml(
-          exam?.title || "Exam"
-        )}
-      </td>
 
-      <td>
-        ${escapeHtml(
-          formatScore(
-            row.score,
-            row.max_score
-          )
-        )}
-      </td>
+      const tr =
+        document.createElement(
+          "tr"
+        );
 
-      <td>
-        ${escapeHtml(
-          formatPercentage(
-            row.percentage,
-            row.score,
-            row.max_score
-          )
-        )}
-      </td>
 
-      <td>
-        <strong>
+      tr.innerHTML = `
+
+        <td>
           ${escapeHtml(
-            row.grade || "--"
+            subject?.name ||
+            "Subject"
           )}
-        </strong>
-      </td>
+        </td>
 
-      <td>
-        ${escapeHtml(
-          row.remarks || "--"
-        )}
-      </td>
-    `;
+        <td>
+          ${escapeHtml(
+            exam?.title ||
+            "Exam"
+          )}
+        </td>
+
+        <td>
+          ${escapeHtml(
+            formatScore(
+              row.score,
+              row.max_score
+            )
+          )}
+        </td>
+
+        <td>
+          ${escapeHtml(
+            formatPercentage(
+              row.percentage,
+              row.score,
+              row.max_score
+            )
+          )}
+        </td>
+
+        <td>
+          <strong>
+            ${escapeHtml(
+              row.grade ||
+              "--"
+            )}
+          </strong>
+        </td>
+
+        <td>
+          ${escapeHtml(
+            row.remarks ||
+            "--"
+          )}
+        </td>
+
+      `;
 
 
-    body.appendChild(tr);
+      body.appendChild(
+        tr
+      );
 
-  });
-
-
-  $("resultsMessage").classList.add(
-    "hidden"
+    }
   );
 
 
-  $("resultsTable").classList.remove(
-    "hidden"
-  );
+  $("resultsMessage")
+    .classList
+    .add("hidden");
+
+
+  $("resultsTable")
+    .classList
+    .remove("hidden");
 
 }
 
 
-function showResultsMessage(message) {
+/* =========================================================
+   RESULTS MESSAGE
+   ========================================================= */
 
-  $("resultsMessage").textContent =
+function showResultsMessage(
+  message
+) {
+
+  $("resultsMessage")
+    .textContent =
     message;
 
-  $("resultsMessage").classList.remove(
-    "hidden"
-  );
 
-  $("resultsTable").classList.add(
-    "hidden"
-  );
+  $("resultsMessage")
+    .classList
+    .remove("hidden");
+
+
+  $("resultsTable")
+    .classList
+    .add("hidden");
 
 }
 
@@ -552,48 +629,42 @@ function showResultsMessage(message) {
    CERTIFICATES
    ========================================================= */
 
-async function loadCertificates(studentId) {
+async function loadCertificates(
+  studentId
+) {
 
   const {
     data: certificates,
     error
-  } = await supabaseClient
-    .from("certificates")
-    const {
-  data: certificates,
-  error
-} = await supabaseClient
-  .from("certificates")
-  .select(`
-    id,
-    certificate_no,
-    certificate_id,
-    verify_code,
-    certificate_type,
-    issue_date,
-    expiry_date,
-    status,
-    course_name_snapshot,
-    certificate_url,
-    pdf_url,
-    verification_url,
-    qr_url,
-    student_photo_url
-  `)
-  .eq("student_id", studentId)
-  .order(
-    "issue_date",
-    {
-      ascending: false
-    }
-  );
-    .eq("student_id", studentId)
-    .order(
-      "issue_date",
-      {
-        ascending: false
-      }
-    );
+  } =
+    await supabaseClient
+      .from("certificates")
+      .select(`
+        id,
+        certificate_no,
+        certificate_id,
+        verify_code,
+        certificate_type,
+        issue_date,
+        expiry_date,
+        status,
+        course_name_snapshot,
+        certificate_url,
+        pdf_url,
+        verification_url,
+        qr_url,
+        student_photo_url
+      `)
+      .eq(
+        "student_id",
+        studentId
+      )
+      .order(
+        "issue_date",
+        {
+          ascending: false
+        }
+      );
 
 
   if (error) {
@@ -603,7 +674,9 @@ async function loadCertificates(studentId) {
       error
     );
 
-    $("certificatesMessage").textContent =
+
+    $("certificatesMessage")
+      .textContent =
       "Unable to load certificates.";
 
     return;
@@ -615,23 +688,9 @@ async function loadCertificates(studentId) {
     certificates || [];
 
 
-  $("certificatesCount").textContent =
+  $("certificatesCount")
+    .textContent =
     rows.length;
-
-
-  if (!rows.length) {
-
-    $("certificatesMessage").textContent =
-      "No certificates are available yet.";
-
-    return;
-
-  }
-
-
-  $("certificatesMessage").classList.add(
-    "hidden"
-  );
 
 
   const list =
@@ -641,141 +700,173 @@ async function loadCertificates(studentId) {
   list.innerHTML = "";
 
 
-  rows.forEach(cert => {
+  if (!rows.length) {
 
-    const item =
-      document.createElement("div");
+    $("certificatesMessage")
+      .textContent =
+      "No certificates are available yet.";
 
+    return;
 
-    item.className =
-      "certificate-item";
-
-
-    const type =
-      cert.certificate_type ===
-      "authentication_letter"
-        ? "Authentication Letter"
-        : "Certificate";
+  }
 
 
-    const verifyUrl =
-      cert.verification_url ||
-      buildCertificateVerificationUrl(cert);
+  $("certificatesMessage")
+    .classList
+    .add("hidden");
 
 
-    item.innerHTML = `
+  rows.forEach(
+    cert => {
 
-      <div>
+      const item =
+        document.createElement(
+          "div"
+        );
 
-        <h3>
-          ${escapeHtml(type)}
-        </h3>
 
-        <div class="certificate-meta">
+      item.className =
+        "certificate-item";
 
-          Certificate No:
-          ${escapeHtml(
-            cert.certificate_no || "--"
-          )}
 
-          <br>
+      const type =
+        cert.certificate_type ===
+        "authentication_letter"
+          ? "Authentication Letter"
+          : "Certificate";
 
-          Certificate ID:
-          ${escapeHtml(
-            cert.certificate_id || "--"
-          )}
 
-          <br>
+      const verifyUrl =
+        cert.verification_url ||
+        buildCertificateVerificationUrl(
+          cert
+        );
 
-          Issue Date:
-          ${escapeHtml(
-            formatDate(cert.issue_date)
-          )}
 
-          <br>
+      item.innerHTML = `
 
-          Status:
-          ${escapeHtml(
-            cert.status || "--"
-          )}
+        <div>
+
+          <h3>
+            ${escapeHtml(type)}
+          </h3>
+
+          <div class="certificate-meta">
+
+            Certificate No:
+            ${escapeHtml(
+              cert.certificate_no ||
+              "--"
+            )}
+
+            <br>
+
+            Certificate ID:
+            ${escapeHtml(
+              cert.certificate_id ||
+              "--"
+            )}
+
+            <br>
+
+            Issue Date:
+            ${escapeHtml(
+              formatDate(
+                cert.issue_date
+              )
+            )}
+
+            <br>
+
+            Status:
+            ${escapeHtml(
+              cert.status ||
+              "--"
+            )}
+
+            ${
+              cert.course_name_snapshot
+                ? `
+                  <br>
+                  Course:
+                  ${escapeHtml(
+                    cert.course_name_snapshot
+                  )}
+                `
+                : ""
+            }
+
+          </div>
+
+        </div>
+
+
+        <div class="certificate-actions">
 
           ${
-            cert.course_name_snapshot
-              ? `<br>Course:
-                 ${escapeHtml(
-                   cert.course_name_snapshot
-                 )}`
+            verifyUrl
+              ? `
+                <a
+                  class="primary-btn"
+                  href="${escapeAttribute(
+                    verifyUrl
+                  )}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Verify
+                </a>
+              `
+              : ""
+          }
+
+
+          ${
+            cert.pdf_url
+              ? `
+                <a
+                  class="secondary-btn"
+                  href="${escapeAttribute(
+                    cert.pdf_url
+                  )}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  PDF
+                </a>
+              `
+              : ""
+          }
+
+
+          ${
+            cert.certificate_url
+              ? `
+                <a
+                  class="secondary-btn"
+                  href="${escapeAttribute(
+                    cert.certificate_url
+                  )}"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Document
+                </a>
+              `
               : ""
           }
 
         </div>
 
-      </div>
+      `;
 
 
-      <div class="certificate-actions">
+      list.appendChild(
+        item
+      );
 
-        ${
-          verifyUrl
-            ? `
-              <a
-                class="primary-btn"
-                href="${escapeAttribute(
-                  verifyUrl
-                )}"
-                target="_blank"
-                rel="noopener"
-              >
-                Verify
-              </a>
-            `
-            : ""
-        }
-
-
-        ${
-          cert.pdf_url
-            ? `
-              <a
-                class="secondary-btn"
-                href="${escapeAttribute(
-                  cert.pdf_url
-                )}"
-                target="_blank"
-                rel="noopener"
-              >
-                PDF
-              </a>
-            `
-            : ""
-        }
-
-
-        ${
-          cert.certificate_url
-            ? `
-              <a
-                class="secondary-btn"
-                href="${escapeAttribute(
-                  cert.certificate_url
-                )}"
-                target="_blank"
-                rel="noopener"
-              >
-                Document
-              </a>
-            `
-            : ""
-        }
-
-      </div>
-
-    `;
-
-
-    list.appendChild(item);
-
-  });
+    }
+  );
 
 }
 
@@ -784,29 +875,35 @@ async function loadCertificates(studentId) {
    NOTIFICATIONS
    ========================================================= */
 
-async function loadNotifications(studentId) {
+async function loadNotifications(
+  studentId
+) {
 
   const {
     data: notifications,
     error
-  } = await supabaseClient
-    .from("student_notifications")
-    .select(`
-      id,
-      title,
-      message,
-      notification_type,
-      is_read,
-      created_at,
-      read_at
-    `)
-    .eq("student_id", studentId)
-    .order(
-      "created_at",
-      {
-        ascending: false
-      }
-    );
+  } =
+    await supabaseClient
+      .from("student_notifications")
+      .select(`
+        id,
+        title,
+        message,
+        notification_type,
+        is_read,
+        created_at,
+        read_at
+      `)
+      .eq(
+        "student_id",
+        studentId
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      );
 
 
   if (error) {
@@ -816,10 +913,13 @@ async function loadNotifications(studentId) {
       error
     );
 
-    $("notificationsList").innerHTML =
-      `<div class="empty-message">
-        Unable to load notifications.
-      </div>`;
+
+    $("notificationsList")
+      .innerHTML = `
+        <div class="empty-message">
+          Unable to load notifications.
+        </div>
+      `;
 
     return;
 
@@ -836,7 +936,8 @@ async function loadNotifications(studentId) {
     ).length;
 
 
-  $("notificationsCount").textContent =
+  $("notificationsCount")
+    .textContent =
     unread;
 
 
@@ -849,182 +950,110 @@ async function loadNotifications(studentId) {
 
   if (!rows.length) {
 
-    list.innerHTML =
-      `<div class="empty-message">
+    list.innerHTML = `
+      <div class="empty-message">
         No notifications yet.
-      </div>`;
+      </div>
+    `;
 
     return;
 
   }
 
 
-  rows.forEach(notification => {
+  rows.forEach(
+    notification => {
 
-    const item =
-      document.createElement("div");
-
-
-    item.className =
-      `notification ${
-        notification.is_read
-          ? ""
-          : "unread"
-      }`;
+      const item =
+        document.createElement(
+          "div"
+        );
 
 
-    item.innerHTML = `
-
-      <h3>
-        ${escapeHtml(
-          notification.title ||
-          "Notification"
-        )}
-      </h3>
-
-      <p>
-        ${escapeHtml(
-          notification.message ||
-          ""
-        )}
-      </p>
-
-      <small>
-        ${escapeHtml(
-          formatDateTime(
-            notification.created_at
-          )
-        )}
-
-        ${
+      item.className =
+        `notification ${
           notification.is_read
             ? ""
-            : " • Unread"
-        }
-      </small>
-
-    `;
+            : "unread"
+        }`;
 
 
-    if (!notification.is_read) {
+      item.innerHTML = `
 
-      item.style.cursor =
-        "pointer";
+        <h3>
+          ${escapeHtml(
+            notification.title ||
+            "Notification"
+          )}
+        </h3>
+
+        <p>
+          ${escapeHtml(
+            notification.message ||
+            ""
+          )}
+        </p>
+
+        <small>
+          ${escapeHtml(
+            formatDateTime(
+              notification.created_at
+            )
+          )}
+
+          ${
+            notification.is_read
+              ? ""
+              : " • Unread"
+          }
+
+        </small>
+
+      `;
 
 
-      item.addEventListener(
-        "click",
-        () =>
-          markNotificationRead(
-            notification.id
-          )
+      if (
+        !notification.is_read
+      ) {
+
+        item.style.cursor =
+          "pointer";
+
+
+        item.addEventListener(
+          "click",
+          () =>
+            markNotificationRead(
+              notification.id,
+              studentId
+            )
+        );
+
+      }
+
+
+      list.appendChild(
+        item
       );
 
     }
-
-
-    list.appendChild(item);
-
-  });
+  );
 
 }
 
 
 /* =========================================================
-   NOTIFICATION ACTIONS
+   MARK NOTIFICATION READ
    ========================================================= */
 
 async function markNotificationRead(
-  notificationId
+  notificationId,
+  studentId
 ) {
 
   const {
     error
-  } = await supabaseClient
-    .from("student_notifications")
-    .update({
-      is_read: true,
-      read_at:
-        new Date().toISOString()
-    })
-    .eq(
-      "id",
-      notificationId
-    );
-
-
-  if (error) {
-
-    console.error(error);
-
-    return;
-
-  }
-
-
-  const {
-    data: {
-      session
-    }
   } =
-    await supabaseClient.auth.getSession();
-
-
-  if (session) {
-
-    const {
-      data: studentId
-    } =
-      await supabaseClient.rpc(
-        "get_my_student_id"
-      );
-
-
-    if (studentId) {
-
-      await loadNotifications(
-        studentId
-      );
-
-    }
-
-  }
-
-}
-
-
-$("markAllReadBtn")?.addEventListener(
-  "click",
-  async () => {
-
-    const {
-      data: {
-        session
-      }
-    } =
-      await supabaseClient.auth.getSession();
-
-
-    if (!session) {
-
-      redirectToLogin();
-
-      return;
-
-    }
-
-
-    const {
-      data: studentId
-    } =
-      await supabaseClient.rpc(
-        "get_my_student_id"
-      );
-
-
-    if (!studentId) return;
-
-
     await supabaseClient
       .from("student_notifications")
       .update({
@@ -1033,18 +1062,108 @@ $("markAllReadBtn")?.addEventListener(
           new Date().toISOString()
       })
       .eq(
-        "student_id",
-        studentId
-      )
-      .eq(
-        "is_read",
-        false
+        "id",
+        notificationId
       );
 
 
-    await loadNotifications(
-      studentId
+  if (error) {
+
+    console.error(
+      "Notification update error:",
+      error
     );
+
+    return;
+
+  }
+
+
+  await loadNotifications(
+    studentId
+  );
+
+}
+
+
+/* =========================================================
+   MARK ALL READ
+   ========================================================= */
+
+$("markAllReadBtn")?.addEventListener(
+  "click",
+  async () => {
+
+    try {
+
+      const {
+        data: {
+          session
+        }
+      } =
+        await supabaseClient
+          .auth
+          .getSession();
+
+
+      if (!session) {
+
+        redirectToLogin();
+
+        return;
+
+      }
+
+
+      const {
+        data: student
+      } =
+        await supabaseClient
+          .from("students")
+          .select("id")
+          .eq(
+            "auth_user_id",
+            session.user.id
+          )
+          .maybeSingle();
+
+
+      if (!student) {
+        return;
+      }
+
+
+      await supabaseClient
+        .from("student_notifications")
+        .update({
+          is_read: true,
+          read_at:
+            new Date().toISOString()
+        })
+        .eq(
+          "student_id",
+          student.id
+        )
+        .eq(
+          "is_read",
+          false
+        );
+
+
+      await loadNotifications(
+        student.id
+      );
+
+    }
+
+    catch (error) {
+
+      console.error(
+        "Mark all read error:",
+        error
+      );
+
+    }
 
   }
 );
@@ -1058,7 +1177,10 @@ $("logoutBtn")?.addEventListener(
   "click",
   async () => {
 
-    await supabaseClient.auth.signOut();
+    await supabaseClient
+      .auth
+      .signOut();
+
 
     redirectToLogin();
 
@@ -1071,7 +1193,10 @@ $("logoutBtn")?.addEventListener(
    ========================================================= */
 
 supabaseClient.auth.onAuthStateChange(
-  (event, session) => {
+  (
+    event,
+    session
+  ) => {
 
     if (
       event === "SIGNED_OUT" ||
@@ -1087,7 +1212,7 @@ supabaseClient.auth.onAuthStateChange(
 
 
 /* =========================================================
-   HELPERS
+   REDIRECT
    ========================================================= */
 
 function redirectToLogin() {
@@ -1098,7 +1223,13 @@ function redirectToLogin() {
 }
 
 
-function showFatalError(message) {
+/* =========================================================
+   FATAL ERROR
+   ========================================================= */
+
+function showFatalError(
+  message
+) {
 
   $("portalLoading").innerHTML = `
 
@@ -1152,16 +1283,33 @@ function showFatalError(message) {
 }
 
 
-function formatDate(value) {
+/* =========================================================
+   DATE
+   ========================================================= */
 
-  if (!value) return "--";
+function formatDate(
+  value
+) {
+
+  if (!value) {
+    return "--";
+  }
+
 
   const date =
     new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+
     return value;
+
   }
+
 
   return date.toLocaleDateString(
     "en-GB",
@@ -1175,16 +1323,33 @@ function formatDate(value) {
 }
 
 
-function formatDateTime(value) {
+/* =========================================================
+   DATE + TIME
+   ========================================================= */
 
-  if (!value) return "--";
+function formatDateTime(
+  value
+) {
+
+  if (!value) {
+    return "--";
+  }
+
 
   const date =
     new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+
     return value;
+
   }
+
 
   return date.toLocaleString(
     "en-GB",
@@ -1200,6 +1365,10 @@ function formatDateTime(value) {
 }
 
 
+/* =========================================================
+   SCORE
+   ========================================================= */
+
 function formatScore(
   score,
   maxScore
@@ -1214,6 +1383,7 @@ function formatScore(
 
   }
 
+
   if (
     maxScore === null ||
     maxScore === undefined
@@ -1223,10 +1393,15 @@ function formatScore(
 
   }
 
+
   return `${score} / ${maxScore}`;
 
 }
 
+
+/* =========================================================
+   PERCENTAGE
+   ========================================================= */
 
 function formatPercentage(
   percentage,
@@ -1266,6 +1441,10 @@ function formatPercentage(
 }
 
 
+/* =========================================================
+   CERTIFICATE URL
+   ========================================================= */
+
 function buildCertificateVerificationUrl(
   cert
 ) {
@@ -1285,7 +1464,9 @@ function buildCertificateVerificationUrl(
   }
 
 
-  if (cert.verify_code) {
+  if (
+    cert.verify_code
+  ) {
 
     return `verify.html?code=${encodeURIComponent(
       cert.verify_code
@@ -1299,22 +1480,51 @@ function buildCertificateVerificationUrl(
 }
 
 
-function escapeHtml(value) {
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHtml(
+  value
+) {
 
   return String(
     value ?? ""
   )
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
 
 }
 
 
-function escapeAttribute(value) {
+/* =========================================================
+   ESCAPE ATTRIBUTE
+   ========================================================= */
 
-  return escapeHtml(value);
+function escapeAttribute(
+  value
+) {
+
+  return escapeHtml(
+    value
+  );
 
 }
