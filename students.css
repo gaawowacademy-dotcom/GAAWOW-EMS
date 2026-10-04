@@ -1,0 +1,390 @@
+/* =========================================================
+   STUDENT ACCOUNT CREATION
+   ========================================================= */
+
+.student-account-section {
+  margin-top: 30px;
+}
+
+.student-account-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 18px;
+}
+
+.student-account-header h2 {
+  margin: 0 0 5px;
+  color: #0B1E63;
+}
+
+.student-account-header p {
+  margin: 0;
+  color: #6B7280;
+  font-size: 14px;
+}
+
+.super-admin-badge {
+  background: #F4C430;
+  color: #111827;
+  padding: 8px 13px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.student-account-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 18px;
+  box-shadow: 0 5px 20px rgba(0,0,0,.04);
+}
+
+.account-step-title {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: #0B1E63;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.account-step-title h3 {
+  margin: 0 0 4px;
+  color: #111827;
+}
+
+.account-step-title p {
+  margin: 0;
+  color: #6B7280;
+  font-size: 13px;
+}
+
+
+/* SEARCH */
+
+.student-account-search {
+  display: flex;
+  gap: 10px;
+}
+
+.student-account-search input,
+.account-field input {
+  width: 100%;
+  height: 45px;
+  box-sizing: border-box;
+  border: 1px solid #D1D5DB;
+  border-radius: 9px;
+  padding: 0 13px;
+  outline: none;
+}
+
+.student-account-search input:focus,
+.account-field input:focus {
+  border-color: #0B1E63;
+}
+
+.student-account-search button {
+  border: 0;
+  background: #0B1E63;
+  color: white;
+  padding: 0 18px;
+  border-radius: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+
+/* RESULTS */
+
+.account-results {
+  margin-top: 15px;
+}
+
+.account-student-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px;
+  margin-bottom: 8px;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  cursor: pointer;
+  background: white;
+}
+
+.account-student-result:hover {
+  border-color: #0B1E63;
+}
+
+.account-student-result strong {
+  display: block;
+  color: #111827;
+}
+
+.account-student-result small {
+  color: #6B7280;
+}
+
+
+/* SELECTED STUDENT */
+
+.selected-student-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 12px;
+}
+
+.selected-student-grid > div {
+  padding: 13px;
+  border: 1px solid #E5E7EB;
+  border-radius: 9px;
+  background: #F9FAFB;
+}
+
+.selected-student-grid small {
+  display: block;
+  color: #6B7280;
+  margin-bottom: 5px;
+}
+
+.selected-student-grid strong {
+  color: #111827;
+}
+
+
+/* FIELDS */
+
+.account-field {
+  margin-bottom: 17px;
+}
+
+.account-field label {
+  display: block;
+  margin-bottom: 7px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.account-field small {
+  display: block;
+  margin-top: 6px;
+  color: #6B7280;
+}
+
+.password-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.password-input-row button {
+  border: 0;
+  background: #EEF2FF;
+  color: #0B1E63;
+  border-radius: 9px;
+  padding: 0 15px;
+  font-weight: 700;
+}
+
+
+/* ACTIONS */
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.account-actions button {
+  border: 0;
+  padding: 11px 16px;
+  border-radius: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.create-account-btn {
+  background: #0B1E63;
+  color: white;
+}
+
+.reset-account-btn {
+  background: #F59E0B;
+  color: white;
+}
+
+.disable-account-btn {
+  background: #DC2626;
+  color: white;
+}
+
+.enable-account-btn {
+  background: #16A34A;
+  color: white;
+}
+
+
+/* CREATED RESULT */
+
+.created-account-result {
+  padding: 22px;
+  border: 1px solid #86EFAC;
+  border-radius: 16px;
+  background: #F0FDF4;
+}
+
+.created-account-title {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.created-account-title h3 {
+  margin: 0 0 4px;
+  color: #166534;
+}
+
+.created-account-title p {
+  margin: 0;
+  color: #4B5563;
+  font-size: 13px;
+}
+
+.success-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #16A34A;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+
+/* CREDENTIAL */
+
+.credential-item {
+  padding: 13px 0;
+  border-bottom: 1px solid #BBF7D0;
+}
+
+.credential-item > span {
+  display: block;
+  color: #6B7280;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.credential-value {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.credential-value strong {
+  word-break: break-all;
+}
+
+.copy-credential-btn {
+  flex-shrink: 0;
+  border: 1px solid #D1D5DB;
+  background: white;
+  padding: 7px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.copy-all-credentials-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  border: 0;
+  border-radius: 9px;
+  background: #0B1E63;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.account-security-note {
+  margin-top: 14px;
+  padding: 11px;
+  background: #FFFBEB;
+  color: #92400E;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+
+/* MESSAGE */
+
+.student-account-message {
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 9px;
+  font-weight: 600;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 700px) {
+
+  .student-account-header {
+    flex-direction: column;
+  }
+
+  .student-account-search {
+    flex-direction: column;
+  }
+
+  .student-account-search button {
+    height: 45px;
+  }
+
+  .selected-student-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .password-input-row {
+    flex-direction: column;
+  }
+
+  .password-input-row button {
+    height: 43px;
+  }
+
+  .credential-value {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .copy-credential-btn {
+    width: 100%;
+  }
+
+}
+
+.hidden {
+  display: none !important;
+}
