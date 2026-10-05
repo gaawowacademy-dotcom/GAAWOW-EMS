@@ -2354,7 +2354,309 @@
   <!-- Students management -->
 <script src="student-account-creation.js"></script>
 <script src="students.js"></script>
+<!-- =========================================================
+     STUDENT LOGIN ACCOUNT MODAL
+========================================================= -->
+<div id="studentAccountModal" class="student-account-modal hidden">
 
+  <div class="student-account-overlay"></div>
+
+  <div class="student-account-card">
+
+    <!-- Header -->
+    <div class="student-account-header">
+      <div class="student-account-title-wrap">
+
+        <div class="student-account-icon">
+          🔐
+        </div>
+
+        <div>
+          <h2>Student Login Account</h2>
+          <p>Create secure login credentials for this student.</p>
+        </div>
+
+      </div>
+
+      <button
+        type="button"
+        id="closeStudentAccountModal"
+        class="student-account-close"
+        aria-label="Close"
+      >
+        ×
+      </button>
+    </div>
+
+
+    <!-- Student Information -->
+    <div class="student-account-student">
+
+      <div class="student-avatar">
+        👤
+      </div>
+
+      <div class="student-basic-info">
+        <strong id="accountStudentName">
+          Student Name
+        </strong>
+
+        <span id="accountStudentId">
+          Student ID
+        </span>
+      </div>
+
+    </div>
+
+
+    <!-- Account Form -->
+    <div id="studentAccountForm">
+
+      <!-- Email -->
+      <div class="account-field">
+
+        <label for="studentAccountEmail">
+          Email Address
+        </label>
+
+        <div class="account-input-wrap">
+
+          <span class="account-input-icon">
+            ✉️
+          </span>
+
+          <input
+            type="email"
+            id="studentAccountEmail"
+            placeholder="student@example.com"
+            autocomplete="off"
+          />
+
+        </div>
+
+      </div>
+
+
+      <!-- Username -->
+      <div class="account-field">
+
+        <label>
+          Login Username
+        </label>
+
+        <div class="account-readonly">
+          <span>👤</span>
+
+          <span id="studentAccountUsername">
+            —
+          </span>
+        </div>
+
+      </div>
+
+
+      <!-- Password -->
+      <div class="account-field">
+
+        <div class="account-label-row">
+
+          <label for="studentAccountPassword">
+            Temporary Password
+          </label>
+
+          <button
+            type="button"
+            id="generateStudentPassword"
+            class="generate-password-btn"
+          >
+            🔄 Generate
+          </button>
+
+        </div>
+
+        <div class="password-input-wrap">
+
+          <input
+            type="password"
+            id="studentAccountPassword"
+            placeholder="Minimum 8 characters"
+            autocomplete="new-password"
+          />
+
+          <button
+            type="button"
+            id="toggleStudentPassword"
+            class="password-toggle"
+            aria-label="Show password"
+          >
+            👁️
+          </button>
+
+        </div>
+
+        <div class="password-strength">
+          <div
+            id="studentPasswordStrengthBar"
+            class="password-strength-bar"
+          ></div>
+        </div>
+
+        <small id="studentPasswordStrengthText">
+          Password must contain at least 8 characters.
+        </small>
+
+      </div>
+
+
+      <!-- Security Notice -->
+      <div class="student-security-notice">
+
+        <div class="security-icon">
+          🛡️
+        </div>
+
+        <div>
+          <strong>Secure Account</strong>
+
+          <p>
+            This account will be created securely through Supabase.
+            Admin credentials are never exposed in the browser.
+          </p>
+        </div>
+
+      </div>
+
+
+      <!-- Error -->
+      <div
+        id="studentAccountError"
+        class="student-account-message error hidden"
+      ></div>
+
+
+      <!-- Actions -->
+      <div class="student-account-actions">
+
+        <button
+          type="button"
+          id="cancelStudentAccount"
+          class="account-btn cancel"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          id="createStudentAccountBtn"
+          class="account-btn create"
+        >
+          <span id="createStudentAccountIcon">🔐</span>
+
+          <span id="createStudentAccountText">
+            Create Account
+          </span>
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- Success -->
+    <div
+      id="studentAccountSuccess"
+      class="student-account-success hidden"
+    >
+
+      <div class="success-check">
+        ✓
+      </div>
+
+      <h3>Account Created Successfully</h3>
+
+      <p>
+        The student can now use the following credentials to sign in.
+      </p>
+
+
+      <div class="credential-box">
+
+        <div class="credential-row">
+
+          <span>
+            Student
+          </span>
+
+          <strong id="successStudentName">
+            —
+          </strong>
+
+        </div>
+
+
+        <div class="credential-row">
+
+          <span>
+            Username
+          </span>
+
+          <strong id="successUsername">
+            —
+          </strong>
+
+          <button
+            type="button"
+            class="copy-credential"
+            data-copy-target="successUsername"
+          >
+            📋
+          </button>
+
+        </div>
+
+
+        <div class="credential-row password-row">
+
+          <span>
+            Password
+          </span>
+
+          <strong id="successPassword">
+            —
+          </strong>
+
+          <button
+            type="button"
+            class="copy-credential"
+            data-copy-target="successPassword"
+          >
+            📋
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div class="success-warning">
+        ⚠️ Save these credentials securely.
+        The temporary password should be given only to the student.
+      </div>
+
+
+      <button
+        type="button"
+        id="closeStudentAccountSuccess"
+        class="account-btn create success-close-btn"
+      >
+        Done
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
 </body>
 </html>
 </body>
