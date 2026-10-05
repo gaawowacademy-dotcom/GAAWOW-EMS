@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#0B1E63">
+<title>GAAWOW EMS — Student Portal</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;background:#F5F7FA;color:#1F2937}
+.header{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:15px;position:sticky;top:0;z-index:10;box-shadow:0 4px 15px rgba(0,0,0,.15)}
+.brand{display:flex;align-items:center;gap:12px}.brand img{width:48px;height:48px;background:#fff;border-radius:10px;padding:4px;object-fit:contain}.brand h1{font-size:19px}.brand p{font-size:11px;color:#E8A317;margin-top:3px}
+.badge{background:#D4AF37;color:#0B1E63;padding:8px 13px;border-radius:20px;font-size:11px;font-weight:800}
+.container{max-width:1200px;margin:auto;padding:24px 16px 45px}.welcome,.card,.stat{background:#fff;border-radius:16px;box-shadow:0 5px 18px rgba(0,0,0,.06)}
+.welcome{padding:22px;margin-bottom:18px;border-left:5px solid #D4AF37}.welcome h2{color:#0B1E63;margin-bottom:6px}.muted{color:#6B7280;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}.stat{padding:17px;border-top:4px solid #0B4DA2}.stat:nth-child(2){border-top-color:#D4AF37}.stat:nth-child(3){border-top-color:#16A34A}.stat:nth-child(4){border-top-color:#7C3AED}
+.stat span,.detail span{display:block;color:#6B7280;font-size:11px;margin-bottom:5px}.stat strong{color:#0B1E63;font-size:17px;word-break:break-word}
+.card{padding:20px;margin-bottom:18px}.card h3{color:#0B1E63;margin-bottom:14px;font-size:18px}.profile{display:grid;grid-template-columns:120px 1fr;gap:20px}.photo{width:120px;height:120px;border-radius:16px;object-fit:cover;background:#E5E7EB;border:1px solid #E5E7EB}
+.details{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.detail{background:#F8FAFC;border-radius:10px;padding:12px}.detail strong{font-size:13px;color:#111827;word-break:break-word}
+.box{padding:14px;background:#F8FAFC;border-radius:10px}.empty{text-align:center;color:#6B7280}.btn{border:0;border-radius:10px;padding:11px 18px;font-weight:700;cursor:pointer}.logout{background:#DC2626;color:#fff}.btn:disabled{opacity:.6}
+.status{display:none;margin-bottom:16px;padding:12px;border-radius:10px;font-size:13px}.status.show{display:block}.info{background:#DBEAFE;color:#1E40AF}.success{background:#DCFCE7;color:#166534}.error{background:#FEE2E2;color:#991B1B}.actions{text-align:right}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.profile{grid-template-columns:1fr}.photo{width:100px;height:100px}.details{grid-template-columns:1fr}}
+@media(max-width:520px){.header{padding:12px}.brand h1{font-size:15px}.brand p{font-size:9px}.badge{font-size:9px}.container{padding:18px 12px}.grid{gap:10px}.stat{padding:13px}.stat strong{font-size:14px}}
+</style>
+</head>
+<body>
+<header class="header">
+<div class="brand"><img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy Logo"><div><h1>GAAWOW EMS</h1><p>Student Education Management Portal</p></div></div>
+<div class="badge">STUDENT PORTAL</div>
+</header>
+
+<main class="container">
+<div id="status" class="status"></div>
+
+<section class="welcome"><h2>Welcome, <span id="welcomeName">Student</span> 👋</h2><p class="muted">Your personal GAAWOW student portal.</p></section>
+
+<div class="grid">
+<div class="stat"><span>Student ID</span><strong id="studentId">—</strong></div>
+<div class="stat"><span>Course</span><strong id="courseName">—</strong></div>
+<div class="stat"><span>Institution</span><strong id="institutionName">—</strong></div>
+<div class="stat"><span>Account</span><strong id="accountStatus">—</strong></div>
+</div>
+
+<section class="card"><h3>👤 My Profile</h3><div class="profile">
+<img id="studentPhoto" class="photo" alt="Student photo">
+<div class="details">
+<div class="detail"><span>Full Name</span><strong id="fullName">—</strong></div>
+<div class="detail"><span>Email</span><strong id="email">—</strong></div>
+<div class="detail"><span>Phone</span><strong id="phone">—</strong></div>
+<div class="detail"><span>Gender</span><strong id="gender">—</strong></div>
+<div class="detail"><span>Date of Birth</span><strong id="dob">—</strong></div>
+<div class="detail"><span>Enrollment Date</span><strong id="enrollmentDate">—</strong></div>
+</div></div></section>
+
+<section class="card"><h3>🎓 Academic Information</h3><div class="details">
+<div class="detail"><span>Department</span><strong id="departmentName">—</strong></div>
+<div class="detail"><span>Course / Program</span><strong id="academicCourse">—</strong></div>
+<div class="detail"><span>Class</span><strong id="className">—</strong></div>
+<div class="detail"><span>Status</span><strong id="academicStatus">—</strong></div>
+</div></section>
+
+<section class="card"><h3>📊 Grades</h3><div id="gradesBox" class="box empty">No grade records available yet.</div></section>
+<section class="card"><h3>🎓 Certificates</h3><div id="certificatesBox" class="box empty">No certificates available yet.</div></section>
+<section class="card"><h3>💳 Payments</h3><div id="paymentsBox" class="box empty">No payment records available yet.</div></section>
+
+<div class="actions"><button id="logoutBtn" class="btn logout">LOGOUT</button></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./student.js"></script>
+</body>
+</html>
