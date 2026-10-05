@@ -1,390 +1,724 @@
 /* =========================================================
-   STUDENT ACCOUNT CREATION
-   ========================================================= */
+   STUDENT LOGIN ACCOUNT MODAL
+========================================================= */
 
-.student-account-section {
-  margin-top: 30px;
-}
+.student-account-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
 
-.student-account-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 15px;
-  margin-bottom: 18px;
-}
-
-.student-account-header h2 {
-  margin: 0 0 5px;
-  color: #0B1E63;
-}
-
-.student-account-header p {
-  margin: 0;
-  color: #6B7280;
-  font-size: 14px;
-}
-
-.super-admin-badge {
-  background: #F4C430;
-  color: #111827;
-  padding: 8px 13px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.student-account-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 16px;
-  padding: 22px;
-  margin-bottom: 18px;
-  box-shadow: 0 5px 20px rgba(0,0,0,.04);
-}
-
-.account-step-title {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 18px;
-}
-
-.step-number {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  border-radius: 50%;
-  background: #0B1E63;
-  color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
+
+  padding: 20px;
 }
 
-.account-step-title h3 {
-  margin: 0 0 4px;
-  color: #111827;
+.student-account-modal.hidden {
+  display: none;
 }
 
-.account-step-title p {
+.student-account-overlay {
+  position: absolute;
+  inset: 0;
+
+  background: rgba(8, 20, 45, 0.68);
+
+  backdrop-filter: blur(5px);
+}
+
+
+/* CARD */
+
+.student-account-card {
+  position: relative;
+  z-index: 2;
+
+  width: min(520px, 100%);
+
+  max-height: 92vh;
+
+  overflow-y: auto;
+
+  background: #ffffff;
+
+  border-radius: 22px;
+
+  box-shadow:
+    0 25px 70px rgba(0, 0, 0, 0.25);
+
+  animation: studentModalIn 0.22s ease;
+}
+
+@keyframes studentModalIn {
+
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+}
+
+
+/* HEADER */
+
+.student-account-header {
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 22px 24px;
+
+  border-bottom: 1px solid #e7edf5;
+}
+
+.student-account-title-wrap {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+}
+
+.student-account-icon {
+
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 14px;
+
+  background: #eaf2ff;
+
+  font-size: 24px;
+}
+
+.student-account-header h2 {
+
   margin: 0;
-  color: #6B7280;
+
+  color: #10295f;
+
+  font-size: 20px;
+}
+
+.student-account-header p {
+
+  margin: 4px 0 0;
+
+  color: #718096;
+
   font-size: 13px;
 }
 
+.student-account-close {
 
-/* SEARCH */
+  width: 38px;
+  height: 38px;
 
-.student-account-search {
-  display: flex;
-  gap: 10px;
-}
+  border: none;
 
-.student-account-search input,
-.account-field input {
-  width: 100%;
-  height: 45px;
-  box-sizing: border-box;
-  border: 1px solid #D1D5DB;
-  border-radius: 9px;
-  padding: 0 13px;
-  outline: none;
-}
+  border-radius: 50%;
 
-.student-account-search input:focus,
-.account-field input:focus {
-  border-color: #0B1E63;
-}
+  background: #f2f5f9;
 
-.student-account-search button {
-  border: 0;
-  background: #0B1E63;
-  color: white;
-  padding: 0 18px;
-  border-radius: 9px;
-  font-weight: 700;
+  color: #536174;
+
+  font-size: 25px;
+
   cursor: pointer;
 }
 
-
-/* RESULTS */
-
-.account-results {
-  margin-top: 15px;
+.student-account-close:hover {
+  background: #e7edf5;
 }
 
-.account-student-result {
+
+/* STUDENT */
+
+.student-account-student {
+
   display: flex;
-  justify-content: space-between;
+
   align-items: center;
-  padding: 13px;
-  margin-bottom: 8px;
-  border: 1px solid #E5E7EB;
-  border-radius: 10px;
-  cursor: pointer;
-  background: white;
+
+  gap: 13px;
+
+  margin: 20px 24px;
+
+  padding: 14px;
+
+  border-radius: 14px;
+
+  background: #f5f8fd;
+
+  border: 1px solid #e3eaf4;
 }
 
-.account-student-result:hover {
-  border-color: #0B1E63;
+.student-avatar {
+
+  width: 46px;
+  height: 46px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #dfeaff;
+
+  font-size: 22px;
 }
 
-.account-student-result strong {
-  display: block;
-  color: #111827;
+.student-basic-info {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 3px;
 }
 
-.account-student-result small {
-  color: #6B7280;
+.student-basic-info strong {
+
+  color: #172b4d;
+
+  font-size: 15px;
 }
 
+.student-basic-info span {
 
-/* SELECTED STUDENT */
+  color: #718096;
 
-.selected-student-grid {
-  display: grid;
-  grid-template-columns: repeat(2,1fr);
-  gap: 12px;
-}
-
-.selected-student-grid > div {
-  padding: 13px;
-  border: 1px solid #E5E7EB;
-  border-radius: 9px;
-  background: #F9FAFB;
-}
-
-.selected-student-grid small {
-  display: block;
-  color: #6B7280;
-  margin-bottom: 5px;
-}
-
-.selected-student-grid strong {
-  color: #111827;
+  font-size: 12px;
 }
 
 
-/* FIELDS */
+/* FORM */
+
+#studentAccountForm {
+
+  padding: 0 24px 24px;
+}
 
 .account-field {
-  margin-bottom: 17px;
+
+  margin-bottom: 18px;
 }
 
 .account-field label {
+
   display: block;
+
   margin-bottom: 7px;
+
+  color: #263957;
+
+  font-size: 13px;
+
   font-weight: 700;
-  color: #374151;
 }
 
-.account-field small {
-  display: block;
-  margin-top: 6px;
-  color: #6B7280;
-}
+.account-input-wrap,
+.password-input-wrap {
 
-.password-input-row {
+  position: relative;
+
   display: flex;
-  gap: 8px;
+
+  align-items: center;
 }
 
-.password-input-row button {
-  border: 0;
-  background: #EEF2FF;
-  color: #0B1E63;
-  border-radius: 9px;
-  padding: 0 15px;
+.account-input-wrap input,
+.password-input-wrap input {
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+  height: 46px;
+
+  border: 1px solid #d9e1ec;
+
+  border-radius: 10px;
+
+  outline: none;
+
+  padding: 0 45px;
+
+  font-size: 14px;
+
+  color: #172b4d;
+
+  background: #fff;
+}
+
+.account-input-wrap input:focus,
+.password-input-wrap input:focus {
+
+  border-color: #2c5aa0;
+
+  box-shadow:
+    0 0 0 3px rgba(44, 90, 160, 0.10);
+}
+
+.account-input-icon {
+
+  position: absolute;
+
+  left: 14px;
+
+  z-index: 2;
+
+  font-size: 16px;
+}
+
+
+/* READONLY */
+
+.account-readonly {
+
+  height: 46px;
+
+  box-sizing: border-box;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 0 14px;
+
+  border-radius: 10px;
+
+  background: #f5f7fa;
+
+  border: 1px solid #e0e6ee;
+
+  color: #536174;
+
+  font-size: 14px;
+}
+
+
+/* PASSWORD */
+
+.account-label-row {
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+}
+
+.generate-password-btn {
+
+  border: none;
+
+  background: transparent;
+
+  color: #285ca8;
+
+  font-size: 12px;
+
   font-weight: 700;
+
+  cursor: pointer;
+}
+
+.password-input-wrap input {
+
+  padding-left: 14px;
+  padding-right: 48px;
+}
+
+.password-toggle {
+
+  position: absolute;
+
+  right: 8px;
+
+  width: 36px;
+  height: 36px;
+
+  border: none;
+
+  background: transparent;
+
+  cursor: pointer;
+
+  font-size: 17px;
+}
+
+.password-strength {
+
+  height: 5px;
+
+  margin-top: 8px;
+
+  overflow: hidden;
+
+  border-radius: 10px;
+
+  background: #e8edf3;
+}
+
+.password-strength-bar {
+
+  height: 100%;
+
+  width: 0%;
+
+  transition: width 0.25s ease;
+}
+
+#studentPasswordStrengthText {
+
+  display: block;
+
+  margin-top: 5px;
+
+  color: #7a8799;
+
+  font-size: 11px;
+}
+
+
+/* SECURITY */
+
+.student-security-notice {
+
+  display: flex;
+
+  gap: 12px;
+
+  padding: 13px;
+
+  margin-bottom: 18px;
+
+  border-radius: 12px;
+
+  background: #eef6ff;
+
+  border: 1px solid #d8eaff;
+}
+
+.security-icon {
+
+  font-size: 21px;
+}
+
+.student-security-notice strong {
+
+  display: block;
+
+  color: #214d87;
+
+  font-size: 13px;
+}
+
+.student-security-notice p {
+
+  margin: 3px 0 0;
+
+  color: #62748a;
+
+  font-size: 11px;
+
+  line-height: 1.5;
 }
 
 
 /* ACTIONS */
 
-.account-actions {
+.student-account-actions {
+
   display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-  margin-top: 20px;
-}
 
-.account-actions button {
-  border: 0;
-  padding: 11px 16px;
-  border-radius: 9px;
-  font-weight: 700;
-  cursor: pointer;
-}
+  justify-content: flex-end;
 
-.create-account-btn {
-  background: #0B1E63;
-  color: white;
-}
-
-.reset-account-btn {
-  background: #F59E0B;
-  color: white;
-}
-
-.disable-account-btn {
-  background: #DC2626;
-  color: white;
-}
-
-.enable-account-btn {
-  background: #16A34A;
-  color: white;
-}
-
-
-/* CREATED RESULT */
-
-.created-account-result {
-  padding: 22px;
-  border: 1px solid #86EFAC;
-  border-radius: 16px;
-  background: #F0FDF4;
-}
-
-.created-account-title {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.created-account-title h3 {
-  margin: 0 0 4px;
-  color: #166534;
-}
-
-.created-account-title p {
-  margin: 0;
-  color: #4B5563;
-  font-size: 13px;
-}
-
-.success-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #16A34A;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  font-weight: 800;
-}
-
-
-/* CREDENTIAL */
-
-.credential-item {
-  padding: 13px 0;
-  border-bottom: 1px solid #BBF7D0;
-}
-
-.credential-item > span {
-  display: block;
-  color: #6B7280;
-  font-size: 12px;
-  margin-bottom: 5px;
-}
-
-.credential-value {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   gap: 10px;
 }
 
-.credential-value strong {
-  word-break: break-all;
-}
+.account-btn {
 
-.copy-credential-btn {
-  flex-shrink: 0;
-  border: 1px solid #D1D5DB;
-  background: white;
-  padding: 7px 10px;
-  border-radius: 7px;
-  cursor: pointer;
-}
+  min-height: 44px;
 
-.copy-all-credentials-btn {
-  width: 100%;
-  margin-top: 16px;
-  padding: 12px;
-  border: 0;
-  border-radius: 9px;
-  background: #0B1E63;
-  color: white;
+  padding: 0 18px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  font-size: 14px;
+
   font-weight: 700;
+
   cursor: pointer;
+
+  transition: 0.2s ease;
 }
 
-.account-security-note {
-  margin-top: 14px;
-  padding: 11px;
-  background: #FFFBEB;
-  color: #92400E;
-  border-radius: 8px;
+.account-btn.cancel {
+
+  background: #eef2f7;
+
+  color: #526176;
+}
+
+.account-btn.cancel:hover {
+
+  background: #e2e8f0;
+}
+
+.account-btn.create {
+
+  background: #16834b;
+
+  color: white;
+}
+
+.account-btn.create:hover {
+
+  background: #116b3d;
+
+  transform: translateY(-1px);
+}
+
+.account-btn:disabled {
+
+  opacity: 0.6;
+
+  cursor: not-allowed;
+
+  transform: none;
+}
+
+
+/* ERROR */
+
+.student-account-message {
+
+  padding: 12px 14px;
+
+  margin-bottom: 15px;
+
+  border-radius: 10px;
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
+.student-account-message.error {
+
+  background: #fff0f0;
+
+  border: 1px solid #ffd3d3;
+
+  color: #a52222;
+}
+
+.hidden {
+  display: none !important;
+}
+
+
+/* SUCCESS */
+
+.student-account-success {
+
+  padding: 28px 24px 24px;
+
+  text-align: center;
+}
+
+.success-check {
+
+  width: 64px;
+  height: 64px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 auto 15px;
+
+  border-radius: 50%;
+
+  background: #dcfce8;
+
+  color: #15803d;
+
+  font-size: 34px;
+
+  font-weight: 800;
+}
+
+.student-account-success h3 {
+
+  margin: 0;
+
+  color: #18345e;
+
+  font-size: 21px;
+}
+
+.student-account-success > p {
+
+  margin: 8px 0 20px;
+
+  color: #718096;
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
+.credential-box {
+
+  text-align: left;
+
+  border: 1px solid #dfe7f1;
+
+  border-radius: 14px;
+
+  overflow: hidden;
+
+  background: #f8fafc;
+}
+
+.credential-row {
+
+  min-height: 52px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 0 14px;
+
+  border-bottom: 1px solid #e5eaf1;
+}
+
+.credential-row:last-child {
+  border-bottom: none;
+}
+
+.credential-row > span {
+
+  width: 90px;
+
+  color: #718096;
+
   font-size: 12px;
 }
 
+.credential-row strong {
 
-/* MESSAGE */
+  flex: 1;
 
-.student-account-message {
+  color: #1e355b;
+
+  font-size: 13px;
+
+  word-break: break-word;
+}
+
+.copy-credential {
+
+  border: none;
+
+  background: #e5efff;
+
+  color: #23579e;
+
+  border-radius: 8px;
+
+  width: 34px;
+
+  height: 34px;
+
+  cursor: pointer;
+}
+
+.success-warning {
+
   margin-top: 15px;
+
   padding: 12px;
-  border-radius: 9px;
-  font-weight: 600;
+
+  border-radius: 10px;
+
+  background: #fff8e6;
+
+  color: #8a6517;
+
+  font-size: 11px;
+
+  line-height: 1.5;
+
+  text-align: left;
+}
+
+.success-close-btn {
+
+  width: 100%;
+
+  margin-top: 18px;
 }
 
 
 /* MOBILE */
 
-@media (max-width: 700px) {
+@media (max-width: 520px) {
+
+  .student-account-modal {
+    padding: 10px;
+  }
+
+  .student-account-card {
+    max-height: 95vh;
+
+    border-radius: 18px;
+  }
 
   .student-account-header {
-    flex-direction: column;
+    padding: 18px;
   }
 
-  .student-account-search {
-    flex-direction: column;
+  #studentAccountForm {
+    padding: 0 18px 20px;
   }
 
-  .student-account-search button {
-    height: 45px;
+  .student-account-student {
+    margin: 16px 18px;
   }
 
-  .selected-student-grid {
-    grid-template-columns: 1fr;
+  .student-account-actions {
+    flex-direction: column-reverse;
   }
 
-  .password-input-row {
-    flex-direction: column;
-  }
-
-  .password-input-row button {
-    height: 43px;
-  }
-
-  .credential-value {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .copy-credential-btn {
+  .account-btn {
     width: 100%;
   }
 
-}
-
-.hidden {
-  display: none !important;
 }
