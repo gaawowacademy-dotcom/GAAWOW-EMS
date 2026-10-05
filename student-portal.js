@@ -1,691 +1,1608 @@
 /* ============================================================
-   GAAWOW EMS
-   STUDENT PORTAL JS V6.2 FINAL
-   ------------------------------------------------------------
-   DATABASE RELATIONSHIP
+   GAAWOW ACADEMY / GAAWOW EMS
+   STUDENT PORTAL JS V6.3 FINAL
+
+   PURPOSE:
+   - Load authenticated student
+   - Load student profile
+   - Load enrollment
+   - Load Institution
+   - Load Department
+   - Load Course / Program
+   - Load Class
+   - Load Academic Year
+   - Load Status
+   - Load Grades / Results
+   - Load Certificates
+   - Load Payments
+   - Load Notifications
+   - Handle Logout
+   - Never hard-code a student's identity
+
+   DATABASE RELATION:
 
    auth.users
-        ↓
-   students.auth_user_id
-        ↓
-   students.id
-        ↓
-   enrollments.student_id
-        ↓
-   ├── institutions
-   ├── courses
-   │      └── departments
-   └── classes
+       ↓ auth_user_id
+   students
+       ↓ student_id
+   enrollments
+       ├── institution
+       ├── course
+       ├── class
+       ├── department
+       └── academic year
 
-   FIXED FOR:
-   Student ID: GA-2026-000119
-   Student: Maxamed Mad Yarow
-
-   Includes:
-   ✅ Authentication
-   ✅ Student Profile
-   ✅ Institution
-   ✅ Department
-   ✅ Course
-   ✅ Class
-   ✅ Enrollment Status
-   ✅ Academic Year
-   ✅ Grades
-   ✅ Certificates
-   ✅ Payments
-   ✅ Notifications placeholders
-   ✅ Loading screen
-   ✅ Error handling
-   ✅ Debug information
-   ✅ Logout
-
-   IMPORTANT:
-   This file expects:
-
-   student-portal.html
-   student-portal.js
    ============================================================ */
 
-(() => {
-  "use strict";
+"use strict";
 
 
-  /* ============================================================
-     CONFIG
-     ============================================================ */
+/* ============================================================
+   1. SUPABASE CONFIG
+   ============================================================ */
 
-  const SUPABASE_URL =
-    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+const SUPABASE_URL =
+  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-  const SUPABASE_ANON_KEY =
-    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+const SUPABASE_ANON_KEY =
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
 
-  /* ============================================================
-     SUPABASE CHECK
-     ============================================================ */
+if (!window.supabase) {
+  console.error(
+    "Supabase library was not loaded."
+  );
+  throw new Error(
+    "Supabase library was not loaded."
+  );
+}
 
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    }
+  );
+
+
+/* ============================================================
+   2. GLOBAL STATE
+   ============================================================ */
+
+let currentUser = null;
+let currentStudent = null;
+let currentEnrollment = null;
+
+let currentInstitution = null;
+let currentCourse = null;
+let currentDepartment = null;
+let currentClass = null;
+
+let gradesData = [];
+let certificatesData = [];
+let paymentsData = [];
+let notificationsData = [];
+
+
+/* ============================================================
+   3. DOM HELPERS
+   ============================================================ */
+
+function $(id) {
+  return document.getElementById(id);
+}
+
+
+function setText(id, value, fallback = "—") {
+  const el = $(id);
+
+  if (!el) {
+    return;
+  }
+
+  const finalValue =
+    value !== undefined &&
+    value !== null &&
+    String(value).trim() !== ""
+      ? value
+      : fallback;
+
+  el.textContent = finalValue;
+}
+
+
+function setHTML(id, html) {
+  const el = $(id);
+
+  if (!el) {
+    return;
+  }
+
+  el.innerHTML = html;
+}
+
+
+function show(id) {
+  const el = $(id);
+
+  if (!el) {
+    return;
+  }
+
+  el.classList.remove("hidden");
+
+  el.style.display = "";
+}
+
+
+function hide(id) {
+  const el = $(id);
+
+  if (!el) {
+    return;
+  }
+
+  el.classList.add("hidden");
+}
+
+
+function escapeHTML(value) {
   if (
-    !window.supabase ||
-    typeof window.supabase.createClient !== "function"
+    value === undefined ||
+    value === null
   ) {
-    console.error(
-      "GAAWOW STUDENT PORTAL: Supabase library is not loaded."
+    return "";
+  }
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+/* ============================================================
+   4. GENERIC VALUE FINDER
+   ============================================================ */
+
+function firstValue(object, keys, fallback = null) {
+
+  if (!object) {
+    return fallback;
+  }
+
+  for (const key of keys) {
+
+    if (
+      object[key] !== undefined &&
+      object[key] !== null &&
+      String(object[key]).trim() !== ""
+    ) {
+      return object[key];
+    }
+  }
+
+  return fallback;
+}
+
+
+/* ============================================================
+   5. DATE FORMATTER
+   ============================================================ */
+
+function formatDate(value) {
+
+  if (!value) {
+    return "—";
+  }
+
+  try {
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    return date.toLocaleDateString(
+      "en-GB",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      }
     );
 
+  } catch (error) {
+
+    return String(value);
+  }
+}
+
+
+/* ============================================================
+   6. MESSAGE
+   ============================================================ */
+
+function showMessage(
+  message,
+  type = "info"
+) {
+
+  const el = $("portalMessage");
+
+  if (!el) {
+    return;
+  }
+
+  el.textContent = message;
+
+  el.className =
+    `message ${type}`;
+
+  el.style.display = "block";
+}
+
+
+function clearMessage() {
+
+  const el = $("portalMessage");
+
+  if (!el) {
+    return;
+  }
+
+  el.textContent = "";
+  el.className = "message";
+  el.style.display = "none";
+}
+
+
+/* ============================================================
+   7. LOADING SCREEN
+   ============================================================ */
+
+function showPortalLoading() {
+
+  const loading =
+    $("portalLoading");
+
+  const app =
+    $("portalApp");
+
+  if (loading) {
+    loading.style.display = "flex";
+  }
+
+  if (app) {
+    app.classList.add("hidden");
+  }
+}
+
+
+function hidePortalLoading() {
+
+  const loading =
+    $("portalLoading");
+
+  const app =
+    $("portalApp");
+
+  if (loading) {
+    loading.style.display = "none";
+  }
+
+  if (app) {
+    app.classList.remove("hidden");
+    app.style.display = "";
+  }
+}
+
+
+/* ============================================================
+   8. LOGOUT
+   ============================================================ */
+
+async function logoutStudent() {
+
+  try {
+
+    await supabaseClient.auth.signOut();
+
+  } catch (error) {
+
+    console.error(
+      "Logout error:",
+      error
+    );
+
+  } finally {
+
+    window.location.href =
+      "student-login.html";
+  }
+}
+
+
+/* ============================================================
+   9. AUTHENTICATED USER
+   ============================================================ */
+
+async function getAuthenticatedUser() {
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.auth.getUser();
+
+  if (error) {
+
+    console.error(
+      "getUser error:",
+      error
+    );
+
+    return null;
+  }
+
+  return data?.user || null;
+}
+
+
+/* ============================================================
+   10. LOAD STUDENT BY AUTH USER ID
+   ============================================================ */
+
+async function loadStudent(userId) {
+
+  if (!userId) {
+    return null;
+  }
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("students")
+      .select("*")
+      .eq(
+        "auth_user_id",
+        userId
+      )
+      .maybeSingle();
+
+
+  if (error) {
+
+    console.error(
+      "Student query error:",
+      error
+    );
+
+    throw error;
+  }
+
+
+  return data || null;
+}
+
+
+/* ============================================================
+   11. LOAD ENROLLMENT
+   ============================================================ */
+
+async function loadEnrollment(studentId) {
+
+  if (!studentId) {
+    return null;
+  }
+
+
+  /*
+     IMPORTANT:
+
+     We DO NOT use academic_year_id here.
+
+     Previous SQL error:
+     column "academic_year_id" does not exist.
+
+     Therefore we select "*" and inspect the real
+     enrollment record dynamically.
+  */
+
+  let result =
+    await supabaseClient
+      .from("enrollments")
+      .select("*")
+      .eq(
+        "student_id",
+        studentId
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      )
+      .limit(20);
+
+
+  if (result.error) {
+
+    console.error(
+      "Enrollment query error:",
+      result.error
+    );
+
+    /*
+       Fallback for schemas using student_uuid
+       instead of student_id.
+    */
+
+    result =
+      await supabaseClient
+        .from("enrollments")
+        .select("*")
+        .eq(
+          "student_uuid",
+          studentId
+        )
+        .limit(20);
+  }
+
+
+  if (result.error) {
+
+    console.error(
+      "Enrollment fallback error:",
+      result.error
+    );
+
+    return null;
+  }
+
+
+  const rows =
+    Array.isArray(result.data)
+      ? result.data
+      : [];
+
+
+  if (!rows.length) {
+    return null;
+  }
+
+
+  /*
+     Prefer active enrollment.
+  */
+
+  const active =
+    rows.find(row => {
+
+      const status =
+        String(
+          firstValue(
+            row,
+            [
+              "status",
+              "enrollment_status",
+              "student_status"
+            ],
+            ""
+          )
+        ).toLowerCase();
+
+      return (
+        status === "active" ||
+        status === "enrolled"
+      );
+    });
+
+
+  return active || rows[0];
+}
+
+
+/* ============================================================
+   12. GENERIC TABLE RECORD BY ID
+   ============================================================ */
+
+async function getRecordById(
+  tableName,
+  id
+) {
+
+  if (!id) {
+    return null;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from(tableName)
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+
+  if (error) {
+
+    console.warn(
+      `Could not load ${tableName}:`,
+      error.message
+    );
+
+    return null;
+  }
+
+
+  return data || null;
+}
+
+
+/* ============================================================
+   13. LOAD ACADEMIC RELATIONS
+   ============================================================ */
+
+async function loadAcademicRelations(
+  enrollment
+) {
+
+  if (!enrollment) {
     return;
   }
 
 
-  /* ============================================================
-     SUPABASE CLIENT
-     ============================================================ */
+  /* ----------------------------------------------------------
+     INSTITUTION
+     ---------------------------------------------------------- */
 
-  const supabase =
-    window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY,
-      {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true
-        }
-      }
+  const institutionId =
+    firstValue(
+      enrollment,
+      [
+        "institution_id",
+        "institution_uuid",
+        "institutionId"
+      ]
     );
 
 
-  /* ============================================================
-     HELPERS
-     ============================================================ */
+  if (institutionId) {
 
-  const $ = (id) =>
-    document.getElementById(id);
-
-
-  const firstElement = (...ids) => {
-
-    for (const id of ids) {
-
-      const element = $(id);
-
-      if (element) {
-        return element;
-      }
-
-    }
-
-    return null;
-  };
-
-
-  const setText = (
-    ids,
-    value,
-    fallback = "—"
-  ) => {
-
-    const element =
-      Array.isArray(ids)
-        ? firstElement(...ids)
-        : $(ids);
-
-    if (!element) return;
-
-    const hasValue =
-      value !== null &&
-      value !== undefined &&
-      String(value).trim() !== "";
-
-    element.textContent =
-      hasValue
-        ? String(value)
-        : fallback;
-  };
-
-
-  const setHTML = (
-    ids,
-    html
-  ) => {
-
-    const element =
-      Array.isArray(ids)
-        ? firstElement(...ids)
-        : $(ids);
-
-    if (!element) return;
-
-    element.innerHTML = html;
-  };
-
-
-  const escapeHTML = (
-    value
-  ) => {
-
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  };
-
-
-  const formatDate = (
-    date
-  ) => {
-
-    if (!date) {
-      return "—";
-    }
-
-    try {
-
-      const parsed =
-        new Date(date);
-
-      if (
-        Number.isNaN(
-          parsed.getTime()
-        )
-      ) {
-        return String(date);
-      }
-
-      return parsed.toLocaleDateString(
-        "en-GB",
-        {
-          day: "2-digit",
-          month: "short",
-          year: "numeric"
-        }
+    currentInstitution =
+      await getRecordById(
+        "institutions",
+        institutionId
       );
-
-    } catch {
-
-      return String(date);
-
-    }
-  };
-
-
-  const formatMoney = (
-    amount
-  ) => {
-
-    if (
-      amount === null ||
-      amount === undefined ||
-      amount === ""
-    ) {
-      return "—";
-    }
-
-    const number =
-      Number(amount);
-
-    if (
-      Number.isNaN(number)
-    ) {
-      return String(amount);
-    }
-
-    return number.toLocaleString();
-  };
-
-
-  const normalize = (
-    value
-  ) => {
-
-    if (
-      value === null ||
-      value === undefined
-    ) {
-      return "";
-    }
-
-    return String(value)
-      .trim()
-      .toLowerCase();
-  };
-
-
-  /* ============================================================
-     GLOBAL STATE
-     ============================================================ */
-
-  let currentUser = null;
-
-  let currentStudent = null;
-
-  let currentEnrollment = null;
-
-  let currentAcademic = {
-
-    institution: null,
-
-    course: null,
-
-    department: null,
-
-    class: null,
-
-    status: null,
-
-    academicYear: null
-
-  };
-
-
-  /* ============================================================
-     DEBUG
-     ============================================================ */
-
-  const DEBUG = true;
-
-
-  const debug = (
-    label,
-    data
-  ) => {
-
-    if (!DEBUG) return;
-
-    console.log(
-      `[GAAWOW STUDENT PORTAL V6.2] ${label}`,
-      data ?? ""
-    );
-
-  };
-
-
-  /* ============================================================
-     LOADING SCREEN
-     ============================================================ */
-
-  function showLoading() {
-
-    const loading =
-      $("portalLoading");
-
-    const app =
-      $("portalApp");
-
-    if (loading) {
-
-      loading.style.display =
-        "flex";
-
-    }
-
-    if (app) {
-
-      app.classList.add(
-        "hidden"
-      );
-
-    }
-
   }
 
 
-  function hideLoading() {
+  /*
+     Sometimes enrollment can contain institution
+     as an embedded object.
+  */
 
-    const loading =
-      $("portalLoading");
-
-    const app =
-      $("portalApp");
-
-    if (loading) {
-
-      loading.style.display =
-        "none";
-
-    }
-
-    if (app) {
-
-      app.classList.remove(
-        "hidden"
-      );
-
-    }
-
-  }
-
-
-  /* ============================================================
-     MESSAGE
-     ============================================================ */
-
-  function showMessage(
-    message,
-    type = "info"
+  if (
+    !currentInstitution &&
+    enrollment.institution &&
+    typeof enrollment.institution === "object"
   ) {
 
-    const element =
-      firstElement(
-        "message",
-        "portalMessage",
-        "studentMessage"
-      );
-
-    if (!element) {
-
-      console.log(
-        `[${type}]`,
-        message
-      );
-
-      return;
-
-    }
-
-    element.textContent =
-      message;
-
-    element.className =
-      `message ${type}`;
-
-    element.style.display =
-      "block";
-
+    currentInstitution =
+      enrollment.institution;
   }
 
 
-  function hideMessage() {
+  /* ----------------------------------------------------------
+     COURSE
+     ---------------------------------------------------------- */
 
-    const element =
-      firstElement(
-        "message",
-        "portalMessage",
-        "studentMessage"
+  const courseId =
+    firstValue(
+      enrollment,
+      [
+        "course_id",
+        "course_uuid",
+        "courseId",
+        "program_id"
+      ]
+    );
+
+
+  if (courseId) {
+
+    currentCourse =
+      await getRecordById(
+        "courses",
+        courseId
       );
-
-    if (!element) return;
-
-    element.style.display =
-      "none";
-
   }
 
 
-  /* ============================================================
-     AUTHENTICATION
-     ============================================================ */
+  if (
+    !currentCourse &&
+    enrollment.course &&
+    typeof enrollment.course === "object"
+  ) {
 
-  async function getCurrentSession() {
-
-    debug(
-      "Checking Supabase session..."
-    );
-
-    const {
-      data,
-      error
-    } =
-      await supabase.auth.getSession();
-
-    if (error) {
-
-      console.error(
-        "SESSION ERROR:",
-        error
-      );
-
-      throw error;
-
-    }
-
-    if (
-      !data ||
-      !data.session ||
-      !data.session.user
-    ) {
-
-      throw new Error(
-        "Your login session has expired. Please login again."
-      );
-
-    }
-
-    currentUser =
-      data.session.user;
-
-    debug(
-      "Authenticated user:",
-      currentUser
-    );
-
-    return data.session;
-
+    currentCourse =
+      enrollment.course;
   }
 
 
-  /* ============================================================
-     LOAD STUDENT
-     ------------------------------------------------------------
-     PRIMARY:
-       students.auth_user_id = auth.users.id
-     ============================================================ */
+  /* ----------------------------------------------------------
+     DEPARTMENT
+     ---------------------------------------------------------- */
 
-  async function loadStudent() {
-
-    if (
-      !currentUser ||
-      !currentUser.id
-    ) {
-
-      throw new Error(
-        "Authenticated user was not found."
-      );
-
-    }
-
-
-    debug(
-      "Loading student using auth_user_id:",
-      currentUser.id
+  let departmentId =
+    firstValue(
+      enrollment,
+      [
+        "department_id",
+        "department_uuid",
+        "departmentId"
+      ]
     );
 
 
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .from("students")
-        .select(`
-          id,
-          institution_id,
-          profile_id,
-          student_id,
-          full_name,
-          gender,
-          date_of_birth,
-          phone,
-          email,
-          address,
-          photo_url,
-          admission_date,
-          status,
-          emergency_contact_name,
-          emergency_contact_phone,
-          account_enabled,
-          auth_user_id,
-          login_username,
-          account_created_at,
-          last_login_at,
-          password_changed_at
-        `)
-        .eq(
-          "auth_user_id",
-          currentUser.id
-        )
-        .maybeSingle();
+  /*
+     If department_id is not in enrollment,
+     look inside course.
+  */
 
+  if (
+    !departmentId &&
+    currentCourse
+  ) {
 
-    if (error) {
-
-      console.error(
-        "STUDENT QUERY ERROR:",
-        error
+    departmentId =
+      firstValue(
+        currentCourse,
+        [
+          "department_id",
+          "department_uuid",
+          "departmentId"
+        ]
       );
-
-      throw new Error(
-        `Student profile could not be loaded: ${error.message}`
-      );
-
-    }
-
-
-    if (!data) {
-
-      throw new Error(
-        "No student record is linked to this login account."
-      );
-
-    }
-
-
-    currentStudent =
-      data;
-
-
-    debug(
-      "Student loaded:",
-      currentStudent
-    );
-
-
-    return currentStudent;
-
   }
 
 
-  /* ============================================================
-     LOAD ENROLLMENTS
-     ------------------------------------------------------------
+  if (departmentId) {
+
+    currentDepartment =
+      await getRecordById(
+        "departments",
+        departmentId
+      );
+  }
+
+
+  if (
+    !currentDepartment &&
+    enrollment.department &&
+    typeof enrollment.department === "object"
+  ) {
+
+    currentDepartment =
+      enrollment.department;
+  }
+
+
+  /* ----------------------------------------------------------
+     CLASS
+     ---------------------------------------------------------- */
+
+  const classId =
+    firstValue(
+      enrollment,
+      [
+        "class_id",
+        "class_uuid",
+        "classId"
+      ]
+    );
+
+
+  if (classId) {
+
+    currentClass =
+      await getRecordById(
+        "classes",
+        classId
+      );
+  }
+
+
+  if (
+    !currentClass &&
+    enrollment.class &&
+    typeof enrollment.class === "object"
+  ) {
+
+    currentClass =
+      enrollment.class;
+  }
+}
+
+
+/* ============================================================
+   14. EXTRACT ACADEMIC YEAR
+   ============================================================ */
+
+function getAcademicYear() {
+
+  /*
      IMPORTANT:
+     No academic_year_id is required.
+  */
 
-       enrollments.student_id
-             =
-       students.id
+  const sources = [
+    currentEnrollment,
+    currentClass,
+    currentCourse,
+    currentInstitution
+  ];
 
-     This first attempts embedded relationships.
-     If relationship embedding fails,
-     it falls back to independent queries.
-     ============================================================ */
 
-  async function loadAcademicInformation() {
+  for (const source of sources) {
 
-    if (
-      !currentStudent ||
-      !currentStudent.id
-    ) {
-
-      throw new Error(
-        "Student record is required before loading enrollment."
-      );
-
+    if (!source) {
+      continue;
     }
 
 
-    debug(
-      "Loading enrollment for student UUID:",
-      currentStudent.id
+    const value =
+      firstValue(
+        source,
+        [
+          "academic_year",
+          "academicYear",
+          "year",
+          "school_year",
+          "academic_session",
+          "session",
+          "year_name",
+          "academic_year_name"
+        ]
+      );
+
+
+    if (value) {
+      return value;
+    }
+  }
+
+
+  return "—";
+}
+
+
+/* ============================================================
+   15. GET STUDENT NAME
+   ============================================================ */
+
+function getStudentFullName() {
+
+  const name =
+    firstValue(
+      currentStudent,
+      [
+        "full_name",
+        "name",
+        "student_name",
+        "display_name"
+      ]
     );
 
 
-    /*
-      ==========================================================
-      METHOD 1
-      Relationship query
-      ==========================================================
-    */
-
-    let enrollmentRows = [];
-
-    let relationshipError = null;
+  if (name) {
+    return name;
+  }
 
 
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .from("enrollments")
-        .select(`
-          id,
-          institution_id,
-          student_id,
-          course_id,
-          class_id,
-          enrollment_number,
-          enrollment_date,
-          start_date,
-          end_date,
-          status,
-          created_at,
-          updated_at,
+  const firstName =
+    firstValue(
+      currentStudent,
+      [
+        "first_name",
+        "firstname"
+      ],
+      ""
+    );
 
-          institutions (
-            id,
-            name,
-            code,
-            email,
-            phone,
-            address,
-            city,
-            country,
-            logo_url,
-            website_url,
-            is_active
-          ),
 
-          courses (
-            id,
-            institution_id,
-            department_id,
-            name,
-            code,
-            description,
-            duration_months,
-            fee,
-            is_active,
+  const middleName =
+    firstValue(
+      currentStudent,
+      [
+        "middle_name",
+        "middlename"
+      ],
+      ""
+    );
 
-            departments (
-              id,
-              institution_id,
-              name,
-              code,
-              description,
-              head_profile_id,
-              is_active
-            )
-          ),
 
-          classes (
-            id,
-            institution_id,
-            course_id,
-            name,
-            code,
-            academic_year,
-            teacher_id,
-            room,
-            start_date,
-            end_date,
-            is_active
-          )
-        `)
+  const lastName =
+    firstValue(
+      currentStudent,
+      [
+        "last_name",
+        "lastname",
+        "surname"
+      ],
+      ""
+    );
+
+
+  const combined =
+    [
+      firstName,
+      middleName,
+      lastName
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+
+
+  return combined || "Student";
+}
+
+
+/* ============================================================
+   16. RENDER STUDENT PROFILE
+   ============================================================ */
+
+function renderStudentProfile() {
+
+  if (!currentStudent) {
+    return;
+  }
+
+
+  const fullName =
+    getStudentFullName();
+
+
+  const studentId =
+    firstValue(
+      currentStudent,
+      [
+        "student_id",
+        "student_number",
+        "registration_number",
+        "reg_no"
+      ]
+    );
+
+
+  const email =
+    firstValue(
+      currentStudent,
+      [
+        "email",
+        "student_email"
+      ],
+      currentUser?.email || "—"
+    );
+
+
+  const phone =
+    firstValue(
+      currentStudent,
+      [
+        "phone",
+        "phone_number",
+        "mobile",
+        "mobile_number"
+      ]
+    );
+
+
+  const gender =
+    firstValue(
+      currentStudent,
+      [
+        "gender",
+        "sex"
+      ]
+    );
+
+
+  const dob =
+    firstValue(
+      currentStudent,
+      [
+        "date_of_birth",
+        "dob",
+        "birth_date"
+      ]
+    );
+
+
+  const address =
+    firstValue(
+      currentStudent,
+      [
+        "address",
+        "student_address",
+        "residence"
+      ]
+    );
+
+
+  const admissionDate =
+    firstValue(
+      currentStudent,
+      [
+        "admission_date",
+        "date_admitted",
+        "registered_at"
+      ]
+    );
+
+
+  const photo =
+    firstValue(
+      currentStudent,
+      [
+        "photo_url",
+        "profile_photo",
+        "profile_image",
+        "image_url",
+        "avatar_url",
+        "photo"
+      ]
+    );
+
+
+  /* ----------------------------------------------------------
+     HEADER
+     ---------------------------------------------------------- */
+
+  setText(
+    "studentNameTop",
+    fullName,
+    "Student"
+  );
+
+
+  setText(
+    "studentName",
+    fullName,
+    "Student"
+  );
+
+
+  setText(
+    "welcomeStudentName",
+    `${fullName} 👋`,
+    "Student 👋"
+  );
+
+
+  /* ----------------------------------------------------------
+     STUDENT ID
+     ---------------------------------------------------------- */
+
+  setText(
+    "studentNumber",
+    studentId
+  );
+
+
+  setText(
+    "profileStudentId",
+    studentId
+  );
+
+
+  /* ----------------------------------------------------------
+     PROFILE
+     ---------------------------------------------------------- */
+
+  setText(
+    "studentFullName",
+    fullName
+  );
+
+
+  setText(
+    "profileEmail",
+    email
+  );
+
+
+  setText(
+    "profilePhone",
+    phone
+  );
+
+
+  setText(
+    "profileGender",
+    gender
+  );
+
+
+  setText(
+    "studentAdmissionDate",
+    formatDate(admissionDate)
+  );
+
+
+  setText(
+    "profileAddress",
+    address
+  );
+
+
+  /* ----------------------------------------------------------
+     DATE OF BIRTH
+     ---------------------------------------------------------- */
+
+  const dobEl =
+    $("profileDateOfBirth");
+
+  if (dobEl) {
+
+    dobEl.textContent =
+      formatDate(dob);
+  }
+
+
+  /* ----------------------------------------------------------
+     ENROLLMENT DATE
+     ---------------------------------------------------------- */
+
+  const enrollmentDate =
+    firstValue(
+      currentEnrollment,
+      [
+        "enrollment_date",
+        "admission_date",
+        "start_date",
+        "created_at"
+      ]
+    );
+
+
+  setText(
+    "studentEnrollmentDate",
+    formatDate(enrollmentDate)
+  );
+
+
+  /* ----------------------------------------------------------
+     LAST LOGIN
+     ---------------------------------------------------------- */
+
+  const lastLogin =
+    firstValue(
+      currentStudent,
+      [
+        "last_login_at",
+        "last_login",
+        "last_seen_at"
+      ]
+    );
+
+
+  setText(
+    "lastLogin",
+    formatDate(lastLogin)
+  );
+
+
+  setText(
+    "studentLastLogin",
+    formatDate(lastLogin)
+  );
+
+
+  /* ----------------------------------------------------------
+     LOGIN USERNAME
+     ---------------------------------------------------------- */
+
+  const username =
+    firstValue(
+      currentStudent,
+      [
+        "login_username",
+        "username",
+        "student_username"
+      ],
+      currentUser?.email || "—"
+    );
+
+
+  setText(
+    "loginUsername",
+    username
+  );
+
+
+  /* ----------------------------------------------------------
+     PHOTO
+     ---------------------------------------------------------- */
+
+  const photoEl =
+    $("studentPhoto");
+
+
+  if (photoEl && photo) {
+
+    photoEl.src = photo;
+
+    photoEl.onerror =
+      function () {
+
+        this.onerror = null;
+
+        this.src =
+          "https://i.ibb.co/4ZCRpm30/gaawow-logo.png";
+      };
+  }
+
+
+  /* ----------------------------------------------------------
+     ACCOUNT ENABLED / STATUS
+     ---------------------------------------------------------- */
+
+  const accountEnabled =
+    currentStudent.account_enabled;
+
+
+  const status =
+    firstValue(
+      currentStudent,
+      [
+        "status",
+        "account_status"
+      ],
+      "active"
+    );
+
+
+  const active =
+    accountEnabled === false
+      ? false
+      : String(status).toLowerCase() !==
+        "inactive";
+
+
+  renderAccountStatus(
+    active
+  );
+}
+
+
+/* ============================================================
+   17. RENDER ACCOUNT STATUS
+   ============================================================ */
+
+function renderAccountStatus(
+  active
+) {
+
+  const statusText =
+    active
+      ? "Active"
+      : "Inactive";
+
+
+  const accountStatus =
+    $("accountStatus");
+
+
+  if (accountStatus) {
+
+    accountStatus.textContent =
+      statusText;
+
+    accountStatus.classList.toggle(
+      "inactive",
+      !active
+    );
+  }
+
+
+  setText(
+    "studentAccountStatus",
+    statusText
+  );
+
+
+  setText(
+    "profileAccountStatus",
+    statusText
+  );
+
+
+  setText(
+    "enrollmentStatus",
+    statusText
+  );
+
+
+  setText(
+    "studentEnrollmentStatus",
+    statusText
+  );
+
+
+  setText(
+    "enrollmentStatusValue",
+    statusText
+  );
+
+
+  setText(
+    "academicStatus",
+    statusText
+  );
+}
+
+
+/* ============================================================
+   18. RENDER ACADEMIC INFORMATION
+   ============================================================ */
+
+function renderAcademicInformation() {
+
+  const institutionName =
+    firstValue(
+      currentInstitution,
+      [
+        "name",
+        "institution_name",
+        "title"
+      ]
+    ) ||
+    firstValue(
+      currentEnrollment,
+      [
+        "institution_name"
+      ]
+    );
+
+
+  const courseName =
+    firstValue(
+      currentCourse,
+      [
+        "name",
+        "course_name",
+        "title",
+        "program_name"
+      ]
+    ) ||
+    firstValue(
+      currentEnrollment,
+      [
+        "course_name",
+        "program_name"
+      ]
+    );
+
+
+  const departmentName =
+    firstValue(
+      currentDepartment,
+      [
+        "name",
+        "department_name",
+        "title"
+      ]
+    ) ||
+    firstValue(
+      currentEnrollment,
+      [
+        "department_name"
+      ]
+    );
+
+
+  const className =
+    firstValue(
+      currentClass,
+      [
+        "name",
+        "class_name",
+        "title"
+      ]
+    ) ||
+    firstValue(
+      currentEnrollment,
+      [
+        "class_name"
+      ]
+    );
+
+
+  const academicYear =
+    getAcademicYear();
+
+
+  const status =
+    firstValue(
+      currentEnrollment,
+      [
+        "status",
+        "enrollment_status"
+      ],
+      "active"
+    );
+
+
+  /* ----------------------------------------------------------
+     MAIN COMPATIBILITY IDS
+     ---------------------------------------------------------- */
+
+  const institutionIds = [
+    "institutionName",
+    "studentInstitution",
+    "institution",
+    "profileInstitution",
+    "dashboardInstitution"
+  ];
+
+
+  const courseIds = [
+    "courseName",
+    "studentCourse",
+    "course",
+    "profileCourse",
+    "programName",
+    "studentProgram",
+    "dashboardCourse"
+  ];
+
+
+  const departmentIds = [
+    "departmentName",
+    "studentDepartment",
+    "department",
+    "profileDepartment",
+    "dashboardDepartment"
+  ];
+
+
+  const classIds = [
+    "className",
+    "studentClass",
+    "class",
+    "profileClass",
+    "dashboardClass"
+  ];
+
+
+  const academicYearIds = [
+    "academicYear",
+    "studentAcademicYear",
+    "classAcademicYear"
+  ];
+
+
+  institutionIds.forEach(
+    id =>
+      setText(
+        id,
+        institutionName
+      )
+  );
+
+
+  courseIds.forEach(
+    id =>
+      setText(
+        id,
+        courseName
+      )
+  );
+
+
+  departmentIds.forEach(
+    id =>
+      setText(
+        id,
+        departmentName
+      )
+  );
+
+
+  classIds.forEach(
+    id =>
+      setText(
+        id,
+        className
+      )
+  );
+
+
+  academicYearIds.forEach(
+    id =>
+      setText(
+        id,
+        academicYear
+      )
+  );
+
+
+  setText(
+    "enrollmentStatus",
+    status
+  );
+
+
+  setText(
+    "studentEnrollmentStatus",
+    status
+  );
+
+
+  setText(
+    "enrollmentStatusValue",
+    status
+  );
+
+
+  setText(
+    "academicStatus",
+    status
+  );
+
+
+  /* ----------------------------------------------------------
+     TOP DASHBOARD COURSE
+     ---------------------------------------------------------- */
+
+  setText(
+    "dashboardCourse",
+    courseName
+  );
+
+
+  /* ----------------------------------------------------------
+     RENDER VISIBLE ACADEMIC SUMMARY
+     ---------------------------------------------------------- */
+
+  const container =
+    $("academicSummary");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  container.innerHTML = `
+    <div class="academic-summary-grid">
+
+      <div class="academic-item">
+        <span>Institution</span>
+        <strong>
+          ${escapeHTML(institutionName || "—")}
+        </strong>
+      </div>
+
+      <div class="academic-item">
+        <span>Department</span>
+        <strong>
+          ${escapeHTML(departmentName || "—")}
+        </strong>
+      </div>
+
+      <div class="academic-item">
+        <span>Course / Program</span>
+        <strong>
+          ${escapeHTML(courseName || "—")}
+        </strong>
+      </div>
+
+      <div class="academic-item">
+        <span>Class</span>
+        <strong>
+          ${escapeHTML(className || "—")}
+        </strong>
+      </div>
+
+      <div class="academic-item">
+        <span>Academic Year</span>
+        <strong>
+          ${escapeHTML(
+            academicYear || "—"
+          )}
+        </strong>
+      </div>
+
+      <div class="academic-item">
+        <span>Status</span>
+        <strong class="academic-status">
+          ${escapeHTML(
+            String(status || "Active")
+          )}
+        </strong>
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* ============================================================
+   19. LOAD GRADES
+   ============================================================ */
+
+async function loadGrades() {
+
+  gradesData = [];
+
+
+  /*
+     First try grades table.
+  */
+
+  let result =
+    await supabaseClient
+      .from("grades")
+      .select("*")
+      .eq(
+        "student_id",
+        currentStudent.id
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      );
+
+
+  if (
+    !result.error &&
+    Array.isArray(result.data)
+  ) {
+
+    gradesData =
+      result.data;
+  }
+
+
+  /*
+     If grades table is empty or unavailable,
+     try results table used by the existing EMS.
+  */
+
+  if (!gradesData.length) {
+
+    const results =
+      await supabaseClient
+        .from("results")
+        .select("*")
         .eq(
           "student_id",
           currentStudent.id
+        )
+        .eq(
+          "is_published",
+          true
         )
         .order(
           "created_at",
@@ -695,1745 +1612,976 @@
         );
 
 
-    if (error) {
-
-      relationshipError =
-        error;
-
-      console.warn(
-        "Relationship enrollment query failed:",
-        error.message
-      );
-
-    } else {
-
-      enrollmentRows =
-        data || [];
-
-    }
-
-
-    /*
-      ==========================================================
-      METHOD 2
-      Fallback independent query
-      ==========================================================
-    */
-
     if (
-      relationshipError ||
-      enrollmentRows.length === 0
+      !results.error &&
+      Array.isArray(results.data)
     ) {
 
-      debug(
-        "Using independent enrollment fallback..."
+      gradesData =
+        results.data;
+    }
+  }
+
+
+  renderGrades();
+}
+
+
+/* ============================================================
+   20. RENDER GRADES
+   ============================================================ */
+
+function renderGrades() {
+
+  const container =
+    $("gradesContainer");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  setText(
+    "resultsCount",
+    gradesData.length
+  );
+
+
+  if (!gradesData.length) {
+
+    container.innerHTML = `
+      <div class="empty-message">
+        No grade records available yet.
+      </div>
+    `;
+
+    return;
+  }
+
+
+  const rows =
+    gradesData.map(
+      (grade, index) => {
+
+        const subject =
+          firstValue(
+            grade,
+            [
+              "subject_name",
+              "subject",
+              "course_name",
+              "name"
+            ],
+            "Subject"
+          );
+
+
+        const exam =
+          firstValue(
+            grade,
+            [
+              "exam_name",
+              "exam",
+              "assessment_name"
+            ],
+            "—"
+          );
+
+
+        const score =
+          firstValue(
+            grade,
+            [
+              "score",
+              "marks",
+              "total_score",
+              "grade"
+            ],
+            "—"
+          );
+
+
+        const max =
+          firstValue(
+            grade,
+            [
+              "max_score",
+              "total_marks",
+              "maximum_score"
+            ]
+          );
+
+
+        const gradeValue =
+          firstValue(
+            grade,
+            [
+              "letter_grade",
+              "grade_letter",
+              "result"
+            ],
+            ""
+          );
+
+
+        return `
+          <tr>
+
+            <td>
+              ${index + 1}
+            </td>
+
+            <td>
+              ${escapeHTML(subject)}
+            </td>
+
+            <td>
+              ${escapeHTML(exam)}
+            </td>
+
+            <td>
+              ${escapeHTML(score)}
+              ${
+                max
+                  ? ` / ${escapeHTML(max)}`
+                  : ""
+              }
+            </td>
+
+            <td>
+              ${escapeHTML(gradeValue || "—")}
+            </td>
+
+          </tr>
+        `;
+      }
+    )
+    .join("");
+
+
+  container.innerHTML = `
+    <div class="grades-table-wrap">
+
+      <table class="student-grades-table">
+
+        <thead>
+
+          <tr>
+            <th>#</th>
+            <th>Subject</th>
+            <th>Exam</th>
+            <th>Score</th>
+            <th>Grade</th>
+          </tr>
+
+        </thead>
+
+        <tbody>
+          ${rows}
+        </tbody>
+
+      </table>
+
+    </div>
+  `;
+}
+
+
+/* ============================================================
+   21. LOAD CERTIFICATES
+   ============================================================ */
+
+async function loadCertificates() {
+
+  certificatesData = [];
+
+
+  const result =
+    await supabaseClient
+      .from("certificates")
+      .select("*")
+      .eq(
+        "student_id",
+        currentStudent.id
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
       );
 
 
-      const {
-        data: simpleEnrollments,
-        error: simpleError
-      } =
-        await supabase
-          .from("enrollments")
-          .select(`
-            id,
-            institution_id,
-            student_id,
-            course_id,
-            class_id,
-            enrollment_number,
-            enrollment_date,
-            start_date,
-            end_date,
-            status,
-            created_at,
-            updated_at
-          `)
-          .eq(
-            "student_id",
-            currentStudent.id
-          )
-          .order(
-            "created_at",
-            {
-              ascending: false
+  if (
+    !result.error &&
+    Array.isArray(result.data)
+  ) {
+
+    certificatesData =
+      result.data;
+  }
+
+
+  renderCertificates();
+}
+
+
+/* ============================================================
+   22. RENDER CERTIFICATES
+   ============================================================ */
+
+function renderCertificates() {
+
+  setText(
+    "certificatesCount",
+    certificatesData.length
+  );
+
+
+  const container =
+    $("certificatesContainer");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  if (!certificatesData.length) {
+
+    container.innerHTML = `
+      <div class="certificate-list">
+
+        <div class="empty-message">
+          No certificates available yet.
+        </div>
+
+      </div>
+    `;
+
+    return;
+  }
+
+
+  const html =
+    certificatesData.map(
+      certificate => {
+
+        const title =
+          firstValue(
+            certificate,
+            [
+              "certificate_name",
+              "title",
+              "name",
+              "certificate_type"
+            ],
+            "Certificate"
+          );
+
+
+        const status =
+          firstValue(
+            certificate,
+            [
+              "status"
+            ],
+            "Issued"
+          );
+
+
+        const date =
+          firstValue(
+            certificate,
+            [
+              "issue_date",
+              "issued_at",
+              "created_at"
+            ]
+          );
+
+
+        const number =
+          firstValue(
+            certificate,
+            [
+              "certificate_number",
+              "certificate_no",
+              "serial_number"
+            ]
+          );
+
+
+        return `
+          <div class="certificate-item">
+
+            <strong>
+              ${escapeHTML(title)}
+            </strong>
+
+            <span>
+              ${escapeHTML(status)}
+            </span>
+
+            ${
+              number
+                ? `
+                  <small>
+                    Certificate No:
+                    ${escapeHTML(number)}
+                  </small>
+                `
+                : ""
             }
+
+            <small>
+              ${escapeHTML(
+                formatDate(date)
+              )}
+            </small>
+
+          </div>
+        `;
+      }
+    )
+    .join("");
+
+
+  container.innerHTML = `
+    <div class="certificate-list">
+      ${html}
+    </div>
+  `;
+}
+
+
+/* ============================================================
+   23. LOAD PAYMENTS
+   ============================================================ */
+
+async function loadPayments() {
+
+  paymentsData = [];
+
+
+  const result =
+    await supabaseClient
+      .from("payments")
+      .select("*")
+      .eq(
+        "student_id",
+        currentStudent.id
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      );
+
+
+  if (
+    !result.error &&
+    Array.isArray(result.data)
+  ) {
+
+    paymentsData =
+      result.data;
+  }
+
+
+  renderPayments();
+}
+
+
+/* ============================================================
+   24. RENDER PAYMENTS
+   ============================================================ */
+
+function renderPayments() {
+
+  const container =
+    $("paymentsContainer");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  if (!paymentsData.length) {
+
+    container.innerHTML = `
+      <div class="payments-list">
+
+        <div class="empty-message">
+          No payment records available yet.
+        </div>
+
+      </div>
+    `;
+
+    return;
+  }
+
+
+  const html =
+    paymentsData.map(
+      payment => {
+
+        const amount =
+          firstValue(
+            payment,
+            [
+              "amount",
+              "paid_amount",
+              "payment_amount"
+            ],
+            "0"
           );
 
 
-      if (simpleError) {
-
-        console.error(
-          "ENROLLMENT FALLBACK ERROR:",
-          simpleError
-        );
-
-        /*
-          No enrollment is not necessarily
-          a fatal student error.
-        */
-
-        enrollmentRows =
-          [];
-
-      } else {
-
-        enrollmentRows =
-          simpleEnrollments || [];
-
-      }
-
-
-      /*
-        Load relationships independently.
-      */
-
-      if (
-        enrollmentRows.length
-      ) {
-
-        enrollmentRows =
-          await hydrateEnrollments(
-            enrollmentRows
+        const status =
+          firstValue(
+            payment,
+            [
+              "status",
+              "payment_status"
+            ],
+            "Paid"
           );
 
-      }
 
+        const method =
+          firstValue(
+            payment,
+            [
+              "payment_method",
+              "method",
+              "channel"
+            ],
+            "—"
+          );
+
+
+        const date =
+          firstValue(
+            payment,
+            [
+              "payment_date",
+              "paid_at",
+              "created_at"
+            ]
+          );
+
+
+        const reference =
+          firstValue(
+            payment,
+            [
+              "reference",
+              "transaction_id",
+              "receipt_number"
+            ]
+          );
+
+
+        return `
+          <div class="payment-item">
+
+            <strong>
+              ${escapeHTML(amount)}
+            </strong>
+
+            <span>
+              ${escapeHTML(status)}
+            </span>
+
+            <small>
+              Method:
+              ${escapeHTML(method)}
+            </small>
+
+            <small>
+              Date:
+              ${escapeHTML(
+                formatDate(date)
+              )}
+            </small>
+
+            ${
+              reference
+                ? `
+                  <small>
+                    Reference:
+                    ${escapeHTML(reference)}
+                  </small>
+                `
+                : ""
+            }
+
+          </div>
+        `;
+      }
+    )
+    .join("");
+
+
+  container.innerHTML = `
+    <div class="payments-list">
+      ${html}
+    </div>
+  `;
+}
+
+
+/* ============================================================
+   25. LOAD NOTIFICATIONS
+   ============================================================ */
+
+async function loadNotifications() {
+
+  notificationsData = [];
+
+
+  const result =
+    await supabaseClient
+      .from("student_notifications")
+      .select("*")
+      .eq(
+        "student_id",
+        currentStudent.id
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      );
+
+
+  if (
+    !result.error &&
+    Array.isArray(result.data)
+  ) {
+
+    notificationsData =
+      result.data;
+  }
+
+
+  renderNotifications();
+}
+
+
+/* ============================================================
+   26. RENDER NOTIFICATIONS
+   ============================================================ */
+
+function renderNotifications() {
+
+  const container =
+    $("notificationsList");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const unread =
+    notificationsData.filter(
+      item =>
+        item.is_read === false ||
+        item.read_at === null
+    ).length;
+
+
+  setText(
+    "notificationsCount",
+    unread || notificationsData.length
+  );
+
+
+  if (!notificationsData.length) {
+
+    container.innerHTML = `
+      <div class="empty-message">
+        No notifications available.
+      </div>
+    `;
+
+    return;
+  }
+
+
+  container.innerHTML =
+    notificationsData
+      .map(
+        notification => {
+
+          const title =
+            firstValue(
+              notification,
+              [
+                "title",
+                "subject",
+                "notification_title"
+              ],
+              "Notification"
+            );
+
+
+          const message =
+            firstValue(
+              notification,
+              [
+                "message",
+                "body",
+                "content",
+                "description"
+              ],
+              ""
+            );
+
+
+          const isUnread =
+            notification.is_read === false;
+
+
+          return `
+            <div
+              class="
+                notification-item
+                ${isUnread ? "unread" : ""}
+              "
+            >
+
+              <strong>
+                ${escapeHTML(title)}
+              </strong>
+
+              <p>
+                ${escapeHTML(message)}
+              </p>
+
+            </div>
+          `;
+        }
+      )
+      .join("");
+}
+
+
+/* ============================================================
+   27. MARK ALL NOTIFICATIONS READ
+   ============================================================ */
+
+async function markAllNotificationsRead() {
+
+  if (!currentStudent?.id) {
+    return;
+  }
+
+
+  const result =
+    await supabaseClient
+      .from("student_notifications")
+      .update({
+        is_read: true,
+        read_at: new Date().toISOString()
+      })
+      .eq(
+        "student_id",
+        currentStudent.id
+      )
+      .eq(
+        "is_read",
+        false
+      );
+
+
+  if (result.error) {
+
+    console.warn(
+      "Could not mark notifications read:",
+      result.error
+    );
+
+    return;
+  }
+
+
+  await loadNotifications();
+}
+
+
+/* ============================================================
+   28. LOAD EVERYTHING
+   ============================================================ */
+
+async function loadStudentPortal() {
+
+  showPortalLoading();
+
+  clearMessage();
+
+
+  try {
+
+    /* --------------------------------------------------------
+       AUTH
+       -------------------------------------------------------- */
+
+    currentUser =
+      await getAuthenticatedUser();
+
+
+    if (!currentUser) {
+
+      window.location.href =
+        "student-login.html";
+
+      return;
     }
 
 
-    /*
-      ==========================================================
-      SELECT ACTIVE ENROLLMENT
-      ==========================================================
-    */
-
-    const activeEnrollment =
-      enrollmentRows.find(
-        item =>
-          normalize(item.status) ===
-          "active"
-      ) ||
-      enrollmentRows[0] ||
-      null;
+    console.log(
+      "Authenticated user:",
+      currentUser.id
+    );
 
 
-    if (!activeEnrollment) {
+    /* --------------------------------------------------------
+       STUDENT
+       -------------------------------------------------------- */
 
-      currentEnrollment =
-        null;
-
-      currentAcademic = {
-
-        institution: null,
-
-        course: null,
-
-        department: null,
-
-        class: null,
-
-        status: null,
-
-        academicYear: null
-
-      };
+    currentStudent =
+      await loadStudent(
+        currentUser.id
+      );
 
 
-      debug(
-        "No enrollment found for student.",
+    if (!currentStudent) {
+
+      throw new Error(
+        "Student account was not found."
+      );
+    }
+
+
+    console.log(
+      "Student loaded:",
+      currentStudent
+    );
+
+
+    /* --------------------------------------------------------
+       ENROLLMENT
+       -------------------------------------------------------- */
+
+    currentEnrollment =
+      await loadEnrollment(
         currentStudent.id
       );
 
 
-      return null;
-
-    }
-
-
-    currentEnrollment =
-      activeEnrollment;
-
-
-    const institution =
-      activeEnrollment.institutions ||
-      activeEnrollment.institution ||
-      null;
-
-
-    const course =
-      activeEnrollment.courses ||
-      activeEnrollment.course ||
-      null;
-
-
-    const department =
-      course?.departments ||
-      course?.department ||
-      activeEnrollment.departments ||
-      activeEnrollment.department ||
-      null;
-
-
-    const classInfo =
-      activeEnrollment.classes ||
-      activeEnrollment.class ||
-      null;
-
-
-    const academicYear =
-      classInfo?.academic_year ||
-      activeEnrollment.academic_year ||
-      activeEnrollment.academic_year_name ||
-      null;
-
-
-    currentAcademic = {
-
-      institution,
-
-      course,
-
-      department,
-
-      class: classInfo,
-
-      status:
-        activeEnrollment.status ||
-        null,
-
-      academicYear
-
-    };
-
-
-    debug(
-      "Current enrollment:",
+    console.log(
+      "Enrollment loaded:",
       currentEnrollment
     );
 
-    debug(
-      "Current academic:",
-      currentAcademic
-    );
+
+    /* --------------------------------------------------------
+       PROFILE
+       -------------------------------------------------------- */
+
+    renderStudentProfile();
 
 
-    return currentAcademic;
+    /* --------------------------------------------------------
+       ACADEMIC RELATIONS
+       -------------------------------------------------------- */
 
-  }
+    if (currentEnrollment) {
 
-
-  /* ============================================================
-     HYDRATE ENROLLMENTS
-     ------------------------------------------------------------ */
-
-  async function hydrateEnrollments(
-    enrollments
-  ) {
-
-    if (
-      !Array.isArray(
-        enrollments
-      )
-    ) {
-
-      return [];
-
+      await loadAcademicRelations(
+        currentEnrollment
+      );
     }
 
 
-    const hydrated = [];
+    /* --------------------------------------------------------
+       ACADEMIC INFORMATION
+       -------------------------------------------------------- */
+
+    renderAcademicInformation();
 
 
-    for (
-      const enrollment
-      of enrollments
-    ) {
+    /* --------------------------------------------------------
+       OTHER DATA
+       -------------------------------------------------------- */
 
-      let institution =
-        null;
+    await Promise.allSettled([
 
-      let course =
-        null;
+      loadGrades(),
 
-      let department =
-        null;
+      loadCertificates(),
 
-      let classInfo =
-        null;
+      loadPayments(),
+
+      loadNotifications()
+
+    ]);
+
+
+    /* --------------------------------------------------------
+       SHOW PORTAL
+       -------------------------------------------------------- */
+
+    hidePortalLoading();
+
+
+    console.log(
+      "Student Portal V6.3 loaded successfully."
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Student Portal V6.3 error:",
+      error
+    );
+
+
+    showPortalError(
+      error
+    );
+  }
+}
+
+
+/* ============================================================
+   29. PORTAL ERROR
+   ============================================================ */
+
+function showPortalError(error) {
+
+  hidePortalLoading();
+
+
+  const message =
+    error?.message ||
+    "Unable to load student information.";
+
+
+  showMessage(
+    message,
+    "error"
+  );
+
+
+  console.error(
+    "Portal error:",
+    error
+  );
+}
+
+
+/* ============================================================
+   30. LOGOUT BUTTONS
+   ============================================================ */
+
+function setupLogoutButtons() {
+
+  const logoutBtn =
+    $("logoutBtn");
+
+
+  const studentLogoutBtn =
+    $("studentLogoutBtn");
+
+
+  if (logoutBtn) {
+
+    logoutBtn.addEventListener(
+      "click",
+      logoutStudent
+    );
+  }
+
+
+  if (studentLogoutBtn) {
+
+    studentLogoutBtn.addEventListener(
+      "click",
+      logoutStudent
+    );
+  }
+}
+
+
+/* ============================================================
+   31. MARK READ BUTTON
+   ============================================================ */
+
+function setupNotificationButton() {
+
+  const button =
+    $("markAllReadBtn");
+
+
+  if (!button) {
+    return;
+  }
+
+
+  button.addEventListener(
+    "click",
+    markAllNotificationsRead
+  );
+}
+
+
+/* ============================================================
+   32. AUTH STATE LISTENER
+   ============================================================ */
+
+function setupAuthListener() {
+
+  supabaseClient.auth.onAuthStateChange(
+    async (
+      event,
+      session
+    ) => {
+
+      console.log(
+        "Auth event:",
+        event
+      );
+
+
+      if (
+        event === "SIGNED_OUT"
+      ) {
+
+        window.location.href =
+          "student-login.html";
+
+        return;
+      }
 
 
       /*
-        Institution
+         Do not reload continuously on
+         TOKEN_REFRESHED.
       */
 
       if (
-        enrollment.institution_id
+        event === "SIGNED_IN"
       ) {
-
-        const {
-          data
-        } =
-          await supabase
-            .from("institutions")
-            .select(`
-              id,
-              name,
-              code,
-              email,
-              phone,
-              address,
-              city,
-              country,
-              logo_url,
-              website_url,
-              is_active
-            `)
-            .eq(
-              "id",
-              enrollment.institution_id
-            )
-            .maybeSingle();
-
-        institution =
-          data || null;
-
-      }
-
-
-      /*
-        Course
-      */
-
-      if (
-        enrollment.course_id
-      ) {
-
-        const {
-          data
-        } =
-          await supabase
-            .from("courses")
-            .select(`
-              id,
-              institution_id,
-              department_id,
-              name,
-              code,
-              description,
-              duration_months,
-              fee,
-              is_active
-            `)
-            .eq(
-              "id",
-              enrollment.course_id
-            )
-            .maybeSingle();
-
-        course =
-          data || null;
-
-      }
-
-
-      /*
-        Department
-      */
-
-      if (
-        course?.department_id
-      ) {
-
-        const {
-          data
-        } =
-          await supabase
-            .from("departments")
-            .select(`
-              id,
-              institution_id,
-              name,
-              code,
-              description,
-              head_profile_id,
-              is_active
-            `)
-            .eq(
-              "id",
-              course.department_id
-            )
-            .maybeSingle();
-
-        department =
-          data || null;
-
-      }
-
-
-      /*
-        Class
-      */
-
-      if (
-        enrollment.class_id
-      ) {
-
-        const {
-          data
-        } =
-          await supabase
-            .from("classes")
-            .select(`
-              id,
-              institution_id,
-              course_id,
-              name,
-              code,
-              academic_year,
-              teacher_id,
-              room,
-              start_date,
-              end_date,
-              is_active
-            `)
-            .eq(
-              "id",
-              enrollment.class_id
-            )
-            .maybeSingle();
-
-        classInfo =
-          data || null;
-
-      }
-
-
-      hydrated.push({
-
-        ...enrollment,
-
-        institutions:
-          institution,
-
-        courses:
-          course
-            ? {
-                ...course,
-                departments:
-                  department
-              }
-            : null,
-
-        classes:
-          classInfo
-
-      });
-
-    }
-
-
-    return hydrated;
-
-  }
-
-
-  /* ============================================================
-     RENDER STUDENT PROFILE
-     ============================================================ */
-
-  function renderStudent() {
-
-    if (!currentStudent) {
-      return;
-    }
-
-
-    /*
-      Full name
-    */
-
-    setText(
-      [
-        "studentName",
-        "studentFullName",
-        "profileName",
-        "welcomeStudentName",
-        "studentNameTop"
-      ],
-      currentStudent.full_name
-    );
-
-
-    /*
-      Student ID
-    */
-
-    setText(
-      [
-        "studentId",
-        "profileStudentId",
-        "studentNumber",
-        "dashboardStudentId"
-      ],
-      currentStudent.student_id
-    );
-
-
-    /*
-      Email
-    */
-
-    setText(
-      [
-        "studentEmail",
-        "profileEmail"
-      ],
-      currentStudent.email ||
-      currentUser?.email
-    );
-
-
-    /*
-      Phone
-    */
-
-    setText(
-      [
-        "studentPhone",
-        "profilePhone"
-      ],
-      currentStudent.phone
-    );
-
-
-    /*
-      Gender
-    */
-
-    setText(
-      [
-        "studentGender",
-        "profileGender"
-      ],
-      currentStudent.gender
-    );
-
-
-    /*
-      Address
-    */
-
-    setText(
-      [
-        "studentAddress",
-        "profileAddress"
-      ],
-      currentStudent.address
-    );
-
-
-    /*
-      Admission date
-    */
-
-    setText(
-      [
-        "admissionDate",
-        "studentAdmissionDate"
-      ],
-      formatDate(
-        currentStudent.admission_date
-      )
-    );
-
-
-    /*
-      Login username
-    */
-
-    setText(
-      [
-        "loginUsername"
-      ],
-      currentStudent.login_username
-    );
-
-
-    /*
-      Student photo
-    */
-
-    const photoElements = [
-
-      $("studentPhoto"),
-
-      $("profilePhoto"),
-
-      $("studentAvatar"),
-
-      $("avatar")
-
-    ].filter(Boolean);
-
-
-    for (
-      const image
-      of photoElements
-    ) {
-
-      if (
-        currentStudent.photo_url
-      ) {
-
-        image.src =
-          currentStudent.photo_url;
-
-        image.alt =
-          currentStudent.full_name ||
-          "Student";
-
-      }
-
-    }
-
-
-    /*
-      Emergency contact if HTML supports it.
-    */
-
-    setText(
-      [
-        "emergencyContactName"
-      ],
-      currentStudent.emergency_contact_name
-    );
-
-
-    setText(
-      [
-        "emergencyContactPhone"
-      ],
-      currentStudent.emergency_contact_phone
-    );
-
-  }
-
-
-  /* ============================================================
-     RENDER ACADEMIC INFORMATION
-     ============================================================ */
-
-  function renderAcademicInformation() {
-
-    const institution =
-      currentAcademic.institution;
-
-    const course =
-      currentAcademic.course;
-
-    const department =
-      currentAcademic.department;
-
-    const classInfo =
-      currentAcademic.class;
-
-
-    /*
-      Institution
-    */
-
-    setText(
-      [
-        "institutionName",
-        "studentInstitution",
-        "institution",
-        "profileInstitution",
-        "dashboardInstitution"
-      ],
-      institution?.name
-    );
-
-
-    setText(
-      [
-        "institutionCode",
-        "studentInstitutionCode"
-      ],
-      institution?.code
-    );
-
-
-    /*
-      Course
-    */
-
-    setText(
-      [
-        "courseName",
-        "studentCourse",
-        "course",
-        "profileCourse",
-        "programName",
-        "studentProgram",
-        "dashboardCourse"
-      ],
-      course?.name
-    );
-
-
-    setText(
-      [
-        "courseCode",
-        "studentCourseCode"
-      ],
-      course?.code
-    );
-
-
-    /*
-      Department
-    */
-
-    setText(
-      [
-        "departmentName",
-        "studentDepartment",
-        "department",
-        "profileDepartment",
-        "dashboardDepartment"
-      ],
-      department?.name
-    );
-
-
-    setText(
-      [
-        "departmentCode",
-        "studentDepartmentCode"
-      ],
-      department?.code
-    );
-
-
-    /*
-      Class
-    */
-
-    setText(
-      [
-        "className",
-        "studentClass",
-        "class",
-        "profileClass",
-        "dashboardClass"
-      ],
-      classInfo?.name
-    );
-
-
-    setText(
-      [
-        "classCode",
-        "studentClassCode"
-      ],
-      classInfo?.code
-    );
-
-
-    /*
-      Enrollment status
-    */
-
-    setText(
-      [
-        "enrollmentStatus",
-        "studentEnrollmentStatus",
-        "enrollmentStatusValue",
-        "academicStatus"
-      ],
-      currentAcademic.status
-    );
-
-
-    /*
-      Academic year
-    */
-
-    setText(
-      [
-        "academicYear",
-        "studentAcademicYear",
-        "classAcademicYear"
-      ],
-      currentAcademic.academicYear
-    );
-
-
-    /*
-      Combined summary
-    */
-
-    renderAcademicSummary();
-
-  }
-
-
-  /* ============================================================
-     ACADEMIC SUMMARY
-     ============================================================ */
-
-  function renderAcademicSummary() {
-
-    const element =
-      firstElement(
-        "academicSummary",
-        "studentAcademicSummary",
-        "academicInformation"
-      );
-
-
-    if (!element) {
-      return;
-    }
-
-
-    const institution =
-      currentAcademic.institution;
-
-    const course =
-      currentAcademic.course;
-
-    const department =
-      currentAcademic.department;
-
-    const classInfo =
-      currentAcademic.class;
-
-    const status =
-      currentAcademic.status;
-
-    const year =
-      currentAcademic.academicYear;
-
-
-    element.innerHTML = `
-
-      <div class="academic-summary-grid">
-
-        <div class="academic-item">
-
-          <span>
-            Institution
-          </span>
-
-          <strong>
-            ${escapeHTML(
-              institution?.name ||
-              "—"
-            )}
-          </strong>
-
-        </div>
-
-
-        <div class="academic-item">
-
-          <span>
-            Department
-          </span>
-
-          <strong>
-            ${escapeHTML(
-              department?.name ||
-              "—"
-            )}
-          </strong>
-
-        </div>
-
-
-        <div class="academic-item">
-
-          <span>
-            Course
-          </span>
-
-          <strong>
-            ${escapeHTML(
-              course?.name ||
-              "—"
-            )}
-          </strong>
-
-        </div>
-
-
-        <div class="academic-item">
-
-          <span>
-            Class
-          </span>
-
-          <strong>
-            ${escapeHTML(
-              classInfo?.name ||
-              "—"
-            )}
-          </strong>
-
-        </div>
-
-
-        <div class="academic-item">
-
-          <span>
-            Academic Year
-          </span>
-
-          <strong>
-            ${escapeHTML(
-              year ||
-              "—"
-            )}
-          </strong>
-
-        </div>
-
-
-        <div class="academic-item">
-
-          <span>
-            Status
-          </span>
-
-          <strong class="academic-status">
-
-            ${escapeHTML(
-              status ||
-              "—"
-            )}
-
-          </strong>
-
-        </div>
-
-      </div>
-
-    `;
-
-  }
-
-
-  /* ============================================================
-     ACCOUNT STATUS
-     ============================================================ */
-
-  function renderAccountStatus() {
-
-    const enabled =
-      currentStudent?.account_enabled === true;
-
-
-    setText(
-      [
-        "accountStatus",
-        "studentAccountStatus",
-        "profileAccountStatus"
-      ],
-      enabled
-        ? "Active"
-        : "Disabled"
-    );
-
-
-    const elements = [
-
-      $("accountStatus"),
-
-      $("studentAccountStatus"),
-
-      $("profileAccountStatus")
-
-    ].filter(Boolean);
-
-
-    for (
-      const element
-      of elements
-    ) {
-
-      element.classList.remove(
-        "active",
-        "inactive",
-        "success",
-        "error"
-      );
-
-
-      element.classList.add(
-        enabled
-          ? "active"
-          : "inactive"
-      );
-
-    }
-
-  }
-
-
-  /* ============================================================
-     LAST LOGIN
-     ============================================================ */
-
-  function renderLastLogin() {
-
-    setText(
-      [
-        "lastLogin",
-        "studentLastLogin",
-        "lastLoginAt"
-      ],
-      formatDate(
-        currentStudent?.last_login_at
-      )
-    );
-
-  }
-
-
-  /* ============================================================
-     GRADES
-     ============================================================ */
-
-  async function loadGrades() {
-
-    if (
-      !currentStudent?.id
-    ) {
-      return;
-    }
-
-
-    const container =
-      firstElement(
-        "gradesContainer",
-        "gradesList",
-        "studentGrades",
-        "resultsContainer"
-      );
-
-
-    if (!container) {
-      return;
-    }
-
-
-    try {
-
-      const {
-        data,
-        error
-      } =
-        await supabase
-          .from("grades")
-          .select(`
-            id,
-            institution_id,
-            student_id,
-            exam_id,
-            entered_by,
-            score,
-            grade,
-            created_at,
-            updated_at
-          `)
-          .eq(
-            "student_id",
-            currentStudent.id
-          )
-          .order(
-            "created_at",
-            {
-              ascending: false
-            }
-          );
-
-
-      if (error) {
-
-        console.warn(
-          "GRADES ERROR:",
-          error.message
-        );
-
-        return;
-
-      }
-
-
-      renderGradesFallback(
-        container,
-        data || []
-      );
-
-
-      /*
-        Dashboard count
-      */
-
-      setText(
-        [
-          "resultsCount"
-        ],
-        data?.length || 0,
-        "0"
-      );
-
-
-    } catch (error) {
-
-      console.warn(
-        "GRADES EXCEPTION:",
-        error
-      );
-
-    }
-
-  }
-
-
-  function renderGradesFallback(
-    container,
-    grades
-  ) {
-
-    if (
-      container.dataset
-        .managedByExistingPortal ===
-      "true"
-    ) {
-
-      return;
-
-    }
-
-
-    if (
-      !grades ||
-      grades.length === 0
-    ) {
-
-      container.innerHTML = `
-
-        <div class="empty-state">
-
-          No grades available yet.
-
-        </div>
-
-      `;
-
-      return;
-
-    }
-
-
-    container.innerHTML = `
-
-      <div class="grades-table-wrap">
-
-        <table class="student-grades-table">
-
-          <thead>
-
-            <tr>
-
-              <th>
-                Exam
-              </th>
-
-              <th>
-                Score
-              </th>
-
-              <th>
-                Grade
-              </th>
-
-              <th>
-                Date
-              </th>
-
-            </tr>
-
-          </thead>
-
-
-          <tbody>
-
-            ${grades.map(
-              item => `
-
-                <tr>
-
-                  <td>
-                    ${escapeHTML(
-                      item.exam_id ||
-                      "—"
-                    )}
-                  </td>
-
-                  <td>
-                    ${escapeHTML(
-                      item.score ??
-                      "—"
-                    )}
-                  </td>
-
-                  <td>
-                    ${escapeHTML(
-                      item.grade ||
-                      "—"
-                    )}
-                  </td>
-
-                  <td>
-                    ${escapeHTML(
-                      formatDate(
-                        item.created_at
-                      )
-                    )}
-                  </td>
-
-                </tr>
-
-              `
-            ).join("")}
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-    `;
-
-  }
-
-
-  /* ============================================================
-     CERTIFICATES
-     ============================================================ */
-
-  async function loadCertificates() {
-
-    if (
-      !currentStudent?.id
-    ) {
-      return;
-    }
-
-
-    const container =
-      firstElement(
-        "certificatesContainer",
-        "certificatesList",
-        "studentCertificates"
-      );
-
-
-    if (!container) {
-      return;
-    }
-
-
-    try {
-
-      const {
-        data,
-        error
-      } =
-        await supabase
-          .from("certificates")
-          .select(`
-            id,
-            student_id,
-            institution_id,
-            course_id,
-            certificate_number,
-            status,
-            issued_at,
-            created_at
-          `)
-          .eq(
-            "student_id",
-            currentStudent.id
-          )
-          .order(
-            "created_at",
-            {
-              ascending: false
-            }
-          );
-
-
-      if (error) {
-
-        console.warn(
-          "CERTIFICATES ERROR:",
-          error.message
-        );
-
-        return;
-
-      }
-
-
-      setText(
-        [
-          "certificatesCount"
-        ],
-        data?.length || 0,
-        "0"
-      );
-
-
-      if (
-        container.dataset
-          .managedByExistingPortal ===
-        "true"
-      ) {
-
-        return;
-
-      }
-
-
-      if (
-        !data ||
-        data.length === 0
-      ) {
-
-        container.innerHTML = `
-
-          <div class="empty-state">
-
-            No certificates available yet.
-
-          </div>
-
-        `;
-
-        return;
-
-      }
-
-
-      container.innerHTML =
-        data.map(
-          certificate => `
-
-            <div class="certificate-item">
-
-              <strong>
-
-                ${escapeHTML(
-                  certificate.certificate_number ||
-                  "Certificate"
-                )}
-
-              </strong>
-
-
-              <span>
-
-                ${escapeHTML(
-                  certificate.status ||
-                  "valid"
-                )}
-
-              </span>
-
-
-              <small>
-
-                ${escapeHTML(
-                  formatDate(
-                    certificate.issued_at ||
-                    certificate.created_at
-                  )
-                )}
-
-              </small>
-
-            </div>
-
-          `
-        ).join("");
-
-
-    } catch (error) {
-
-      console.warn(
-        "CERTIFICATES EXCEPTION:",
-        error
-      );
-
-    }
-
-  }
-
-
-  /* ============================================================
-     PAYMENTS
-     ============================================================ */
-
-  async function loadPayments() {
-
-    if (
-      !currentStudent?.id
-    ) {
-      return;
-    }
-
-
-    const container =
-      firstElement(
-        "paymentsContainer",
-        "paymentsList",
-        "studentPayments"
-      );
-
-
-    if (!container) {
-      return;
-    }
-
-
-    try {
-
-      const {
-        data,
-        error
-      } =
-        await supabase
-          .from("payments")
-          .select(`
-            id,
-            student_id,
-            institution_id,
-            invoice_id,
-            amount,
-            status,
-            created_at
-          `)
-          .eq(
-            "student_id",
-            currentStudent.id
-          )
-          .order(
-            "created_at",
-            {
-              ascending: false
-            }
-          );
-
-
-      if (error) {
-
-        console.warn(
-          "PAYMENTS ERROR:",
-          error.message
-        );
-
-        return;
-
-      }
-
-
-      if (
-        container.dataset
-          .managedByExistingPortal ===
-        "true"
-      ) {
-
-        return;
-
-      }
-
-
-      if (
-        !data ||
-        data.length === 0
-      ) {
-
-        container.innerHTML = `
-
-          <div class="empty-state">
-
-            No payment records available.
-
-          </div>
-
-        `;
-
-        return;
-
-      }
-
-
-      container.innerHTML =
-        data.map(
-          payment => `
-
-            <div class="payment-item">
-
-              <strong>
-
-                ${escapeHTML(
-                  formatMoney(
-                    payment.amount
-                  )
-                )}
-
-              </strong>
-
-
-              <span>
-
-                ${escapeHTML(
-                  payment.status ||
-                  "pending"
-                )}
-
-              </span>
-
-
-              <small>
-
-                ${escapeHTML(
-                  formatDate(
-                    payment.created_at
-                  )
-                )}
-
-              </small>
-
-            </div>
-
-          `
-        ).join("");
-
-
-    } catch (error) {
-
-      console.warn(
-        "PAYMENTS EXCEPTION:",
-        error
-      );
-
-    }
-
-  }
-
-
-  /* ============================================================
-     NOTIFICATIONS
-     ------------------------------------------------------------
-     This V6.2 does NOT invent a database structure.
-     Existing notification system remains untouched.
-     ============================================================ */
-
-  function initializeNotifications() {
-
-    const container =
-      $("notificationsList");
-
-
-    if (!container) {
-      return;
-    }
-
-
-    /*
-      Keep existing notification content
-      if another module already manages it.
-    */
-
-    if (
-      container.dataset
-        .managedByExistingPortal ===
-      "true"
-    ) {
-
-      return;
-
-    }
-
-
-    if (
-      container.children.length === 0
-    ) {
-
-      container.innerHTML = `
-
-        <div class="empty-message">
-
-          No notifications available.
-
-        </div>
-
-      `;
-
-    }
-
-  }
-
-
-  /* ============================================================
-     LOGOUT
-     ============================================================ */
-
-  async function logout() {
-
-    try {
-
-      const {
-        error
-      } =
-        await supabase.auth.signOut();
-
-
-      if (error) {
-        throw error;
-      }
-
-
-      window.location.href =
-        "login.html";
-
-
-    } catch (error) {
-
-      console.error(
-        "LOGOUT ERROR:",
-        error
-      );
-
-
-      showMessage(
-        "Logout failed. Please try again.",
-        "error"
-      );
-
-    }
-
-  }
-
-
-  /* ============================================================
-     BIND LOGOUT
-     ============================================================ */
-
-  function bindLogout() {
-
-    const buttons = [
-
-      $("logoutBtn"),
-
-      $("studentLogoutBtn"),
-
-      $("logoutButton")
-
-    ].filter(Boolean);
-
-
-    for (
-      const button
-      of buttons
-    ) {
-
-      /*
-        Prevent duplicate listeners.
-      */
-
-      if (
-        button.dataset
-          .logoutBound ===
-        "true"
-      ) {
-
-        continue;
-
-      }
-
-
-      button.dataset
-        .logoutBound =
-        "true";
-
-
-      button.addEventListener(
-        "click",
-        event => {
-
-          event.preventDefault();
-
-          logout();
-
-        }
-      );
-
-    }
-
-  }
-
-
-  /* ============================================================
-     AUTH STATE LISTENER
-     ============================================================ */
-
-  function listenForAuthChanges() {
-
-    if (
-      window.__GAAWOW_STUDENT_AUTH_LISTENER__
-    ) {
-
-      return;
-
-    }
-
-
-    window.__GAAWOW_STUDENT_AUTH_LISTENER__ =
-      true;
-
-
-    supabase.auth.onAuthStateChange(
-      (
-        event,
-        session
-      ) => {
-
-        debug(
-          "AUTH EVENT:",
-          event
-        );
-
-
-        if (
-          event ===
-          "SIGNED_OUT"
-        ) {
-
-          window.location.href =
-            "login.html";
-
-          return;
-
-        }
-
 
         if (
           session?.user
@@ -2441,320 +2589,108 @@
 
           currentUser =
             session.user;
-
         }
-
-      }
-    );
-
-  }
-
-
-  /* ============================================================
-     SHOW DEBUG INFORMATION
-     ============================================================ */
-
-  function showDebugInformation() {
-
-    /*
-      This only logs to console.
-      It does not expose sensitive information
-      inside the visible portal.
-    */
-
-    debug(
-      "FINAL STUDENT:",
-      {
-        id:
-          currentStudent?.id,
-
-        student_id:
-          currentStudent?.student_id,
-
-        full_name:
-          currentStudent?.full_name,
-
-        auth_user_id:
-          currentStudent?.auth_user_id
-      }
-    );
-
-
-    debug(
-      "FINAL ENROLLMENT:",
-      currentEnrollment
-    );
-
-
-    debug(
-      "FINAL ACADEMIC:",
-      currentAcademic
-    );
-
-  }
-
-
-  /* ============================================================
-     VALIDATE EXPECTED STUDENT
-     ------------------------------------------------------------
-     We do NOT hard-code the student as the login identity.
-     We only use GA-2026-000119 as a diagnostic check.
-     ============================================================ */
-
-  function validateStudentForDebug() {
-
-    if (!currentStudent) {
-      return;
-    }
-
-
-    if (
-      currentStudent.student_id ===
-      "GA-2026-000119"
-    ) {
-
-      debug(
-        "EXPECTED STUDENT CONFIRMED:",
-        "GA-2026-000119"
-      );
-
-    } else {
-
-      debug(
-        "LOGGED-IN STUDENT:",
-        currentStudent.student_id
-      );
-
-    }
-
-  }
-
-
-  /* ============================================================
-     MAIN INIT
-     ============================================================ */
-
-  async function init() {
-
-    showLoading();
-
-    hideMessage();
-
-
-    try {
-
-      /*
-        ========================================================
-        1. AUTH
-        ========================================================
-      */
-
-      await getCurrentSession();
-
-
-      /*
-        ========================================================
-        2. STUDENT
-        ========================================================
-      */
-
-      await loadStudent();
-
-
-      /*
-        ========================================================
-        3. ENROLLMENT + ACADEMIC
-        ========================================================
-      */
-
-      await loadAcademicInformation();
-
-
-      /*
-        ========================================================
-        4. RENDER STUDENT
-        ========================================================
-      */
-
-      renderStudent();
-
-
-      /*
-        ========================================================
-        5. RENDER ACADEMIC
-        ========================================================
-      */
-
-      renderAcademicInformation();
-
-
-      /*
-        ========================================================
-        6. ACCOUNT
-        ========================================================
-      */
-
-      renderAccountStatus();
-
-      renderLastLogin();
-
-
-      /*
-        ========================================================
-        7. OTHER MODULES
-        ========================================================
-      */
-
-      await Promise.allSettled([
-
-        loadGrades(),
-
-        loadCertificates(),
-
-        loadPayments()
-
-      ]);
-
-
-      /*
-        ========================================================
-        8. NOTIFICATIONS
-        ========================================================
-      */
-
-      initializeNotifications();
-
-
-      /*
-        ========================================================
-        9. LOGOUT
-        ========================================================
-      */
-
-      bindLogout();
-
-
-      /*
-        ========================================================
-        10. AUTH LISTENER
-        ========================================================
-      */
-
-      listenForAuthChanges();
-
-
-      /*
-        ========================================================
-        11. DEBUG
-        ========================================================
-      */
-
-      validateStudentForDebug();
-
-      showDebugInformation();
-
-
-      /*
-        ========================================================
-        12. SHOW PORTAL
-        ========================================================
-      */
-
-      hideLoading();
-
-
-      debug(
-        "STUDENT PORTAL V6.2 READY."
-      );
-
-
-    } catch (error) {
-
-      console.error(
-        "================================================"
-      );
-
-      console.error(
-        "GAAWOW STUDENT PORTAL V6.2 ERROR"
-      );
-
-      console.error(
-        error
-      );
-
-      console.error(
-        "================================================"
-      );
-
-
-      /*
-        Hide loading
-      */
-
-      hideLoading();
-
-
-      /*
-        Show error
-      */
-
-      showMessage(
-        error?.message ||
-        "Unable to load Student Portal.",
-        "error"
-      );
-
-
-      /*
-        Hide portal content
-        so the error is clear.
-      */
-
-      const protectedArea =
-        firstElement(
-          "studentPortal",
-          "dashboard",
-          "portalContent",
-          "mainContent"
-        );
-
-
-      if (
-        protectedArea
-      ) {
-
-        protectedArea.style.display =
-          "none";
-
       }
 
     }
+  );
+}
 
-  }
+
+/* ============================================================
+   33. DEBUG INFORMATION
+   ============================================================ */
+
+function exposeDebugData() {
+
+  /*
+     Useful from browser console:
+
+     window.GAAWOW_PORTAL.student
+     window.GAAWOW_PORTAL.enrollment
+     window.GAAWOW_PORTAL.institution
+     window.GAAWOW_PORTAL.course
+     window.GAAWOW_PORTAL.department
+     window.GAAWOW_PORTAL.class
+  */
+
+  window.GAAWOW_PORTAL = {
+
+    get user() {
+      return currentUser;
+    },
+
+    get student() {
+      return currentStudent;
+    },
+
+    get enrollment() {
+      return currentEnrollment;
+    },
+
+    get institution() {
+      return currentInstitution;
+    },
+
+    get course() {
+      return currentCourse;
+    },
+
+    get department() {
+      return currentDepartment;
+    },
+
+    get class() {
+      return currentClass;
+    },
+
+    get grades() {
+      return gradesData;
+    },
+
+    get certificates() {
+      return certificatesData;
+    },
+
+    get payments() {
+      return paymentsData;
+    },
+
+    get notifications() {
+      return notificationsData;
+    }
+
+  };
+}
 
 
-  /* ============================================================
-     START
-     ============================================================ */
+/* ============================================================
+   34. INITIALIZE
+   ============================================================ */
 
-  if (
-    document.readyState ===
-    "loading"
-  ) {
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
 
-    document.addEventListener(
-      "DOMContentLoaded",
-      init,
-      {
-        once: true
-      }
+    console.log(
+      "GAAWOW Student Portal V6.3 starting..."
     );
 
-  } else {
 
-    init();
+    setupLogoutButtons();
+
+    setupNotificationButton();
+
+    setupAuthListener();
+
+    exposeDebugData();
+
+    await loadStudentPortal();
 
   }
+);
 
 
-})();
+/* ============================================================
+   END OF STUDENT PORTAL JS V6.3 FINAL
+   ============================================================ */
