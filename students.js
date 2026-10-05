@@ -92,6 +92,112 @@
   let searchTimer = null;
 
   // ------------------------------------------------------------
+  // Responsive table fix
+  // ------------------------------------------------------------
+
+  function ensureResponsiveStudentTable() {
+    const tbody = els.studentsTableBody;
+    if (!tbody) return;
+
+    const table = tbody.closest("table");
+    if (!table) return;
+
+    // Prevent the wide student table from forcing the whole page
+    // wider than the phone viewport. The table itself remains wide
+    // enough to keep every column readable and scrolls horizontally.
+    let wrapper = table.parentElement;
+
+    if (!wrapper?.classList.contains("students-table-scroll")) {
+      wrapper = document.createElement("div");
+      wrapper.className = "students-table-scroll";
+      table.parentNode.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    }
+
+    if (!document.getElementById("studentsResponsiveStyles")) {
+      const style = document.createElement("style");
+      style.id = "studentsResponsiveStyles";
+      style.textContent = `
+        html, body {
+          max-width: 100%;
+          overflow-x: hidden;
+        }
+
+        .students-table-scroll {
+          width: 100%;
+          max-width: 100%;
+          overflow-x: auto;
+          overflow-y: visible;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior-x: contain;
+          scrollbar-width: thin;
+          border-radius: 12px;
+        }
+
+        .students-table-scroll table {
+          width: max-content;
+          min-width: 1050px;
+          max-width: none;
+          table-layout: auto;
+        }
+
+        .students-table-scroll th,
+        .students-table-scroll td {
+          white-space: nowrap;
+        }
+
+        .students-table-scroll td:nth-child(3),
+        .students-table-scroll td:nth-child(6) {
+          white-space: normal;
+          min-width: 150px;
+          max-width: 260px;
+        }
+
+        .students-table-scroll .actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          min-width: 250px;
+        }
+
+        @media (max-width: 768px) {
+          .students-table-scroll {
+            margin-left: 0;
+            margin-right: 0;
+            width: 100%;
+            max-width: 100%;
+          }
+
+          .students-table-scroll table {
+            min-width: 1050px;
+          }
+
+          .students-table-scroll th,
+          .students-table-scroll td {
+            padding: 8px 10px;
+          }
+
+          .students-table-scroll .btn-small {
+            min-height: 34px;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Add a small accessibility/UX hint once, without changing the
+    // existing HTML markup or table actions.
+    if (!wrapper.querySelector(".students-table-scroll-hint")) {
+      const hint = document.createElement("div");
+      hint.className = "students-table-scroll-hint";
+      hint.textContent = "Swipe left/right to view all student columns";
+      hint.style.cssText =
+        "font-size:12px;color:#64748b;padding:7px 2px 0;text-align:center;";
+      wrapper.appendChild(hint);
+    }
+  }
+
+  // ------------------------------------------------------------
   // Helpers
   // ------------------------------------------------------------
 
@@ -1577,6 +1683,7 @@
       );
 
       bindEvents();
+      ensureResponsiveStudentTable();
 
       await loadInstitutions();
 
