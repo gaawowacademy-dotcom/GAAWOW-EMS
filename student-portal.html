@@ -8,33 +8,960 @@
     content="width=device-width, initial-scale=1.0"
   >
 
+  <meta
+    name="theme-color"
+    content="#0B1E63"
+  >
+
+  <meta
+    name="description"
+    content="GAAWOW Academy Student Portal"
+  >
+
   <title>Student Portal | GAAWOW ACADEMY</title>
 
-  <link rel="stylesheet" href="student-portal.css">
+  <style>
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+    }
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    :root{
+      --navy:#0B1E63;
+      --blue:#0B4DA2;
+      --blue-light:#EEF4FF;
+      --gold:#D4AF37;
+      --green:#16A34A;
+      --red:#DC2626;
+      --purple:#7C3AED;
+      --text:#1F2937;
+      --muted:#64748B;
+      --border:#E5E7EB;
+      --white:#FFFFFF;
+      --bg:#F5F7FA;
+      --shadow:0 10px 30px rgba(11,30,99,.08);
+    }
+
+    body{
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+      background:
+        linear-gradient(
+          135deg,
+          #F5F7FA,
+          #EEF3FA 50%,
+          #FFFFFF
+        );
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    button{
+      font-family:inherit;
+    }
+
+    .hidden{
+      display:none !important;
+    }
+
+    /* =====================================================
+       LOADING
+    ===================================================== */
+
+    .portal-loading{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+      padding:25px;
+      background:
+        linear-gradient(
+          135deg,
+          #F5F7FA,
+          #EEF3FA
+        );
+    }
+
+    .portal-loading h3{
+      color:var(--navy);
+      margin-top:18px;
+      font-size:20px;
+    }
+
+    .portal-loading p{
+      color:var(--muted);
+      margin-top:7px;
+      font-size:13px;
+    }
+
+    .loader{
+      width:55px;
+      height:55px;
+      border:5px solid #DDE6F5;
+      border-top-color:var(--blue);
+      border-radius:50%;
+      animation:spin .8s linear infinite;
+    }
+
+    @keyframes spin{
+      to{
+        transform:rotate(360deg);
+      }
+    }
+
+    /* =====================================================
+       APP
+    ===================================================== */
+
+    .portal-app{
+      min-height:100vh;
+    }
+
+    /* =====================================================
+       TOPBAR
+    ===================================================== */
+
+    .topbar{
+      background:
+        linear-gradient(
+          135deg,
+          var(--navy),
+          var(--blue)
+        );
+      color:#fff;
+      padding:16px 24px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      box-shadow:
+        0 6px 20px
+        rgba(11,30,99,.20);
+      position:sticky;
+      top:0;
+      z-index:100;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:13px;
+    }
+
+    .brand img{
+      width:55px;
+      height:55px;
+      object-fit:contain;
+      background:#fff;
+      border-radius:12px;
+      padding:5px;
+    }
+
+    .brand strong{
+      display:block;
+      font-size:17px;
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+
+    .brand span{
+      display:block;
+      font-size:11px;
+      opacity:.82;
+      margin-top:4px;
+    }
+
+    .top-actions{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    #studentNameTop{
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .logout-btn{
+      border:1px solid var(--gold);
+      background:transparent;
+      color:var(--gold);
+      padding:9px 17px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      cursor:pointer;
+      transition:.2s;
+    }
+
+    .logout-btn:hover{
+      background:var(--gold);
+      color:var(--navy);
+    }
+
+    /* =====================================================
+       MESSAGE
+    ===================================================== */
+
+    .message{
+      width:min(1200px,92%);
+      margin:20px auto 0;
+      padding:13px 16px;
+      border-radius:12px;
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .message.info{
+      background:#EFF6FF;
+      color:#1D4ED8;
+      border:1px solid #BFDBFE;
+    }
+
+    .message.success{
+      background:#ECFDF5;
+      color:#15803D;
+      border:1px solid #BBF7D0;
+    }
+
+    .message.error{
+      background:#FEF2F2;
+      color:#B91C1C;
+      border:1px solid #FECACA;
+    }
+
+    /* =====================================================
+       CONTAINER
+    ===================================================== */
+
+    .portal-container{
+      width:min(1200px,92%);
+      margin:auto;
+      padding:28px 0 45px;
+    }
+
+    /* =====================================================
+       WELCOME
+    ===================================================== */
+
+    .welcome-card{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:20px;
+      padding:26px;
+      box-shadow:var(--shadow);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      margin-bottom:20px;
+    }
+
+    .welcome-card small{
+      display:block;
+      color:var(--blue);
+      font-weight:800;
+      font-size:11px;
+      letter-spacing:1px;
+      margin-bottom:6px;
+    }
+
+    .welcome-card h1{
+      color:var(--navy);
+      font-size:28px;
+      margin-bottom:6px;
+    }
+
+    .welcome-card p{
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .student-number{
+      min-width:180px;
+      background:
+        linear-gradient(
+          135deg,
+          #EEF4FF,
+          #F8FAFC
+        );
+      border:1px solid #DCE7F8;
+      border-radius:15px;
+      padding:16px 18px;
+      text-align:right;
+    }
+
+    .student-number span{
+      display:block;
+      color:var(--muted);
+      font-size:10px;
+      text-transform:uppercase;
+      font-weight:800;
+      letter-spacing:.6px;
+      margin-bottom:5px;
+    }
+
+    .student-number strong{
+      color:var(--navy);
+      font-size:17px;
+    }
+
+    /* =====================================================
+       DASHBOARD STATS
+    ===================================================== */
+
+    .dashboard-grid{
+      display:grid;
+      grid-template-columns:
+        repeat(4,minmax(0,1fr));
+      gap:15px;
+      margin-bottom:22px;
+    }
+
+    .stat-card{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:17px;
+      padding:19px;
+      box-shadow:
+        0 7px 22px
+        rgba(15,23,42,.06);
+      display:flex;
+      align-items:center;
+      gap:13px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .stat-card:before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:3px;
+      background:var(--blue);
+    }
+
+    .stat-card:nth-child(2):before{
+      background:var(--gold);
+    }
+
+    .stat-card:nth-child(3):before{
+      background:var(--purple);
+    }
+
+    .stat-card:nth-child(4):before{
+      background:var(--green);
+    }
+
+    .stat-icon{
+      width:45px;
+      height:45px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--blue-light);
+      border-radius:12px;
+      font-size:21px;
+      flex-shrink:0;
+    }
+
+    .stat-card small{
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      margin-bottom:3px;
+    }
+
+    .stat-card strong{
+      display:block;
+      color:var(--navy);
+      font-size:23px;
+    }
+
+    /* =====================================================
+       CONTENT CARD
+    ===================================================== */
+
+    .content-card{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:19px;
+      padding:23px;
+      box-shadow:
+        0 7px 22px
+        rgba(15,23,42,.06);
+      margin-bottom:20px;
+    }
+
+    .section-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:15px;
+      margin-bottom:19px;
+    }
+
+    .eyebrow{
+      color:var(--blue);
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:1px;
+      text-transform:uppercase;
+    }
+
+    .section-header h2{
+      color:var(--navy);
+      font-size:20px;
+      margin-top:4px;
+    }
+
+    /* =====================================================
+       PROFILE
+    ===================================================== */
+
+    .profile-grid{
+      display:grid;
+      grid-template-columns:170px 1fr;
+      gap:25px;
+      align-items:start;
+    }
+
+    .profile-photo{
+      width:160px;
+      height:160px;
+      border-radius:18px;
+      background:#F1F5F9;
+      border:1px solid var(--border);
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .profile-photo img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .profile-fields{
+      display:grid;
+      grid-template-columns:
+        repeat(3,minmax(0,1fr));
+      gap:13px;
+    }
+
+    .field{
+      background:#F8FAFC;
+      border:1px solid #E8EDF4;
+      border-radius:12px;
+      padding:13px;
+      min-height:70px;
+    }
+
+    .field span{
+      display:block;
+      color:var(--muted);
+      font-size:10px;
+      text-transform:uppercase;
+      font-weight:800;
+      letter-spacing:.35px;
+      margin-bottom:7px;
+    }
+
+    .field strong{
+      display:block;
+      color:#1E293B;
+      font-size:13px;
+      word-break:break-word;
+    }
+
+    /* =====================================================
+       ACADEMIC INFORMATION
+    ===================================================== */
+
+    .academic-summary-grid{
+      display:grid;
+      grid-template-columns:
+        repeat(3,minmax(0,1fr));
+      gap:14px;
+    }
+
+    .academic-item{
+      background:#F8FAFC;
+      border:1px solid #E5E7EB;
+      border-radius:13px;
+      padding:15px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .academic-item:before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:0;
+      width:3px;
+      height:100%;
+      background:var(--blue);
+    }
+
+    .academic-item:nth-child(2):before{
+      background:var(--purple);
+    }
+
+    .academic-item:nth-child(3):before{
+      background:var(--gold);
+    }
+
+    .academic-item:nth-child(4):before{
+      background:var(--green);
+    }
+
+    .academic-item:nth-child(5):before{
+      background:#0EA5E9;
+    }
+
+    .academic-item:nth-child(6):before{
+      background:var(--green);
+    }
+
+    .academic-item span{
+      display:block;
+      color:var(--muted);
+      font-size:10px;
+      text-transform:uppercase;
+      font-weight:800;
+      letter-spacing:.4px;
+      margin-bottom:7px;
+    }
+
+    .academic-item strong{
+      display:block;
+      color:var(--navy);
+      font-size:13px;
+      line-height:1.4;
+    }
+
+    .academic-status{
+      color:var(--green) !important;
+      text-transform:capitalize;
+    }
+
+    /* =====================================================
+       TABLE
+    ===================================================== */
+
+    .table-wrapper{
+      width:100%;
+      overflow-x:auto;
+    }
+
+    .student-grades-table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:600px;
+      font-size:12px;
+    }
+
+    .student-grades-table th{
+      background:var(--navy);
+      color:#fff;
+      padding:11px 10px;
+      text-align:center;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.3px;
+    }
+
+    .student-grades-table td{
+      padding:11px 10px;
+      border-bottom:1px solid var(--border);
+      text-align:center;
+      color:#334155;
+    }
+
+    .student-grades-table tbody tr:nth-child(even){
+      background:#F8FAFC;
+    }
+
+    /* =====================================================
+       CERTIFICATES
+    ===================================================== */
+
+    .certificate-list{
+      display:grid;
+      grid-template-columns:
+        repeat(2,minmax(0,1fr));
+      gap:13px;
+    }
+
+    .certificate-item{
+      border:1px solid var(--border);
+      border-radius:13px;
+      padding:15px;
+      background:#F8FAFC;
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:5px 15px;
+      align-items:center;
+    }
+
+    .certificate-item strong{
+      color:var(--navy);
+      font-size:13px;
+    }
+
+    .certificate-item span{
+      background:#ECFDF5;
+      color:var(--green);
+      padding:5px 9px;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:800;
+      text-transform:capitalize;
+    }
+
+    .certificate-item small{
+      color:var(--muted);
+      font-size:10px;
+    }
+
+    /* =====================================================
+       PAYMENTS
+    ===================================================== */
+
+    .payment-item{
+      border:1px solid var(--border);
+      border-radius:13px;
+      padding:15px;
+      margin-bottom:10px;
+      background:#F8FAFC;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:15px;
+    }
+
+    .payment-item strong{
+      color:var(--navy);
+      font-size:14px;
+    }
+
+    .payment-item span{
+      color:var(--green);
+      font-size:11px;
+      font-weight:800;
+      text-transform:capitalize;
+    }
+
+    .payment-item small{
+      color:var(--muted);
+      font-size:10px;
+    }
+
+    /* =====================================================
+       EMPTY
+    ===================================================== */
+
+    .empty-state,
+    .empty-message{
+      padding:22px;
+      text-align:center;
+      color:var(--muted);
+      background:#F8FAFC;
+      border:1px dashed #CBD5E1;
+      border-radius:13px;
+      font-size:12px;
+    }
+
+    /* =====================================================
+       ACCOUNT STATUS
+    ===================================================== */
+
+    .active{
+      color:var(--green) !important;
+    }
+
+    .inactive{
+      color:var(--red) !important;
+    }
+
+    /* =====================================================
+       NOTIFICATIONS
+    ===================================================== */
+
+    .notifications-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .notification-item{
+      background:#F8FAFC;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:13px;
+    }
+
+    .secondary-btn{
+      border:1px solid #CBD5E1;
+      background:#fff;
+      color:var(--navy);
+      padding:9px 13px;
+      border-radius:9px;
+      cursor:pointer;
+      font-size:11px;
+      font-weight:800;
+    }
+
+    .secondary-btn:hover{
+      background:#F1F5F9;
+    }
+
+    /* =====================================================
+       FOOTER
+    ===================================================== */
+
+    .portal-footer{
+      background:var(--navy);
+      color:#fff;
+      padding:28px 20px;
+      text-align:center;
+      margin-top:35px;
+    }
+
+    .portal-footer strong{
+      display:block;
+      font-size:15px;
+      margin-bottom:5px;
+    }
+
+    .portal-footer span{
+      display:block;
+      font-size:12px;
+      opacity:.85;
+      margin-bottom:5px;
+    }
+
+    .portal-footer small{
+      display:block;
+      font-size:10px;
+      opacity:.65;
+    }
+
+    /* =====================================================
+       RESPONSIVE
+    ===================================================== */
+
+    @media(max-width:1000px){
+
+      .dashboard-grid{
+        grid-template-columns:
+          repeat(2,minmax(0,1fr));
+      }
+
+      .profile-fields{
+        grid-template-columns:
+          repeat(2,minmax(0,1fr));
+      }
+
+      .academic-summary-grid{
+        grid-template-columns:
+          repeat(2,minmax(0,1fr));
+      }
+
+    }
+
+    @media(max-width:700px){
+
+      .topbar{
+        padding:13px 15px;
+      }
+
+      .brand img{
+        width:45px;
+        height:45px;
+      }
+
+      .brand strong{
+        font-size:14px;
+      }
+
+      .brand span{
+        font-size:9px;
+      }
+
+      #studentNameTop{
+        display:none;
+      }
+
+      .portal-container{
+        width:92%;
+        padding-top:20px;
+      }
+
+      .welcome-card{
+        padding:20px;
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .welcome-card h1{
+        font-size:23px;
+      }
+
+      .student-number{
+        text-align:left;
+        min-width:0;
+      }
+
+      .dashboard-grid{
+        grid-template-columns:
+          repeat(2,minmax(0,1fr));
+        gap:10px;
+      }
+
+      .stat-card{
+        padding:15px;
+      }
+
+      .stat-icon{
+        width:40px;
+        height:40px;
+        font-size:19px;
+      }
+
+      .stat-card strong{
+        font-size:20px;
+      }
+
+      .content-card{
+        padding:17px;
+      }
+
+      .profile-grid{
+        grid-template-columns:1fr;
+      }
+
+      .profile-photo{
+        width:125px;
+        height:125px;
+        margin:auto;
+      }
+
+      .profile-fields{
+        grid-template-columns:
+          repeat(2,minmax(0,1fr));
+      }
+
+      .academic-summary-grid{
+        grid-template-columns:1fr;
+      }
+
+      .certificate-list{
+        grid-template-columns:1fr;
+      }
+
+      .section-header{
+        align-items:flex-start;
+      }
+
+    }
+
+    @media(max-width:430px){
+
+      .profile-fields{
+        grid-template-columns:1fr;
+      }
+
+      .dashboard-grid{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .section-header h2{
+        font-size:17px;
+      }
+
+      .welcome-card h1{
+        font-size:21px;
+      }
+
+      .logout-btn{
+        padding:8px 12px;
+        font-size:10px;
+      }
+
+    }
+
+  </style>
 </head>
 
 <body>
 
-  <div id="portalLoading" class="portal-loading">
+  <!-- =====================================================
+       LOADING
+  ====================================================== -->
+
+  <div
+    id="portalLoading"
+    class="portal-loading"
+  >
     <div class="loader"></div>
-    <h3>Loading Student Portal...</h3>
-    <p>Please wait.</p>
+
+    <h3>
+      Loading Student Portal...
+    </h3>
+
+    <p>
+      Please wait while we load your academic information.
+    </p>
   </div>
 
-  <div id="portalApp" class="portal-app hidden">
+
+  <!-- =====================================================
+       PORTAL
+  ====================================================== -->
+
+  <div
+    id="portalApp"
+    class="portal-app hidden"
+  >
+
+    <!-- ===================================================
+         HEADER
+    ==================================================== -->
 
     <header class="topbar">
 
       <div class="brand">
-        <img src="logo.png" alt="Gaawow Academy">
+
+        <img
+          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+          alt="GAAWOW Academy Logo"
+        >
 
         <div>
-          <strong>GAAWOW ACADEMY</strong>
-          <span>Student Portal</span>
+
+          <strong>
+            GAAWOW ACADEMY
+          </strong>
+
+          <span>
+            Student Portal
+          </span>
+
         </div>
+
       </div>
+
 
       <div class="top-actions">
 
@@ -54,110 +981,311 @@
 
     </header>
 
-    <main class="portal-container">
+
+    <!-- ===================================================
+         MESSAGE
+    ==================================================== -->
+
+    <div
+      id="portalMessage"
+      class="message"
+      style="display:none;"
+    ></div>
+
+
+    <main
+      id="portalContent"
+      class="portal-container"
+    >
+
+      <!-- =================================================
+           WELCOME
+      ================================================== -->
 
       <section class="welcome-card">
 
         <div>
-          <small>WELCOME BACK</small>
 
-          <h1 id="welcomeName">
+          <small>
+            WELCOME BACK
+          </small>
+
+          <h1 id="welcomeStudentName">
             Student
           </h1>
 
           <p>
             Ilayska Aqoonta iyo Xirfadda
           </p>
+
         </div>
 
+
         <div class="student-number">
-          <span>Student ID</span>
+
+          <span>
+            Student ID
+          </span>
+
           <strong id="studentNumber">
-            --
+            —
           </strong>
+
         </div>
 
       </section>
 
+
+      <!-- =================================================
+           DASHBOARD
+      ================================================== -->
 
       <section class="dashboard-grid">
 
         <article class="stat-card">
-          <span class="stat-icon">📚</span>
+
+          <span class="stat-icon">
+            📚
+          </span>
+
           <div>
-            <small>Results</small>
-            <strong id="resultsCount">0</strong>
+
+            <small>
+              Results
+            </small>
+
+            <strong id="resultsCount">
+              0
+            </strong>
+
           </div>
+
         </article>
 
-        <article class="stat-card">
-          <span class="stat-icon">🎓</span>
-          <div>
-            <small>Certificates</small>
-            <strong id="certificatesCount">0</strong>
-          </div>
-        </article>
 
         <article class="stat-card">
-          <span class="stat-icon">🔔</span>
+
+          <span class="stat-icon">
+            🎓
+          </span>
+
           <div>
-            <small>Notifications</small>
-            <strong id="notificationsCount">0</strong>
+
+            <small>
+              Certificates
+            </small>
+
+            <strong id="certificatesCount">
+              0
+            </strong>
+
           </div>
+
+        </article>
+
+
+        <article class="stat-card">
+
+          <span class="stat-icon">
+            💳
+          </span>
+
+          <div>
+
+            <small>
+              Payments
+            </small>
+
+            <strong id="paymentsCount">
+              0
+            </strong>
+
+          </div>
+
+        </article>
+
+
+        <article class="stat-card">
+
+          <span class="stat-icon">
+            🔐
+          </span>
+
+          <div>
+
+            <small>
+              Account
+            </small>
+
+            <strong
+              id="accountStatus"
+              class="active"
+            >
+              Active
+            </strong>
+
+          </div>
+
         </article>
 
       </section>
 
 
+      <!-- =================================================
+           STUDENT PROFILE
+      ================================================== -->
+
       <section class="content-card">
 
         <div class="section-header">
+
           <div>
-            <span class="eyebrow">MY PROFILE</span>
-            <h2>Student Information</h2>
+
+            <span class="eyebrow">
+              MY PROFILE
+            </span>
+
+            <h2>
+              Student Information
+            </h2>
+
           </div>
+
         </div>
+
 
         <div class="profile-grid">
 
           <div class="profile-photo">
+
             <img
               id="studentPhoto"
-              src="logo.png"
+              src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
               alt="Student"
             >
+
           </div>
+
 
           <div class="profile-fields">
 
             <div class="field">
-              <span>Full Name</span>
-              <strong id="studentFullName">--</strong>
+
+              <span>
+                Full Name
+              </span>
+
+              <strong id="studentFullName">
+                —
+              </strong>
+
             </div>
 
-            <div class="field">
-              <span>Student ID</span>
-              <strong id="studentIdField">--</strong>
-            </div>
 
             <div class="field">
-              <span>Email</span>
-              <strong id="studentEmail">--</strong>
+
+              <span>
+                Student ID
+              </span>
+
+              <strong id="profileStudentId">
+                —
+              </strong>
+
             </div>
 
-            <div class="field">
-              <span>Phone</span>
-              <strong id="studentPhone">--</strong>
-            </div>
 
             <div class="field">
-              <span>Gender</span>
-              <strong id="studentGender">--</strong>
+
+              <span>
+                Email
+              </span>
+
+              <strong id="profileEmail">
+                —
+              </strong>
+
             </div>
 
+
             <div class="field">
-              <span>Admission Date</span>
-              <strong id="admissionDate">--</strong>
+
+              <span>
+                Phone
+              </span>
+
+              <strong id="profilePhone">
+                —
+              </strong>
+
+            </div>
+
+
+            <div class="field">
+
+              <span>
+                Gender
+              </span>
+
+              <strong id="profileGender">
+                —
+              </strong>
+
+            </div>
+
+
+            <div class="field">
+
+              <span>
+                Admission Date
+              </span>
+
+              <strong id="studentAdmissionDate">
+                —
+              </strong>
+
+            </div>
+
+
+            <div class="field">
+
+              <span>
+                Address
+              </span>
+
+              <strong id="profileAddress">
+                —
+              </strong>
+
+            </div>
+
+
+            <div class="field">
+
+              <span>
+                Account Status
+              </span>
+
+              <strong
+                id="profileAccountStatus"
+                class="active"
+              >
+                Active
+              </strong>
+
+            </div>
+
+
+            <div class="field">
+
+              <span>
+                Last Login
+              </span>
+
+              <strong id="lastLogin">
+                —
+              </strong>
+
             </div>
 
           </div>
@@ -167,73 +1295,254 @@
       </section>
 
 
+      <!-- =================================================
+           ACADEMIC INFORMATION
+      ================================================== -->
+
       <section class="content-card">
 
         <div class="section-header">
 
           <div>
-            <span class="eyebrow">ACADEMIC</span>
-            <h2>My Results</h2>
+
+            <span class="eyebrow">
+              ACADEMIC
+            </span>
+
+            <h2>
+              Academic Information
+            </h2>
+
           </div>
 
         </div>
 
-        <div id="resultsMessage" class="empty-message">
-          Loading results...
-        </div>
 
-        <div class="table-wrapper">
+        <div
+          id="academicSummary"
+          class="academic-information"
+        >
 
-          <table id="resultsTable" class="data-table hidden">
+          <div class="academic-summary-grid">
 
-            <thead>
-              <tr>
-                <th>Subject</th>
-                <th>Exam</th>
-                <th>Score</th>
-                <th>Percentage</th>
-                <th>Grade</th>
-                <th>Remarks</th>
-              </tr>
-            </thead>
+            <div class="academic-item">
 
-            <tbody id="resultsBody"></tbody>
+              <span>
+                Institution
+              </span>
 
-          </table>
+              <strong id="institutionName">
+                —
+              </strong>
+
+            </div>
+
+
+            <div class="academic-item">
+
+              <span>
+                Department
+              </span>
+
+              <strong id="departmentName">
+                —
+              </strong>
+
+            </div>
+
+
+            <div class="academic-item">
+
+              <span>
+                Course
+              </span>
+
+              <strong id="courseName">
+                —
+              </strong>
+
+            </div>
+
+
+            <div class="academic-item">
+
+              <span>
+                Class
+              </span>
+
+              <strong id="className">
+                —
+              </strong>
+
+            </div>
+
+
+            <div class="academic-item">
+
+              <span>
+                Academic Year
+              </span>
+
+              <strong id="academicYear">
+                —
+              </strong>
+
+            </div>
+
+
+            <div class="academic-item">
+
+              <span>
+                Enrollment Status
+              </span>
+
+              <strong
+                id="enrollmentStatus"
+                class="academic-status"
+              >
+                —
+              </strong>
+
+            </div>
+
+          </div>
 
         </div>
 
       </section>
 
 
+      <!-- =================================================
+           GRADES
+      ================================================== -->
+
       <section class="content-card">
 
         <div class="section-header">
 
           <div>
-            <span class="eyebrow">DOCUMENTS</span>
-            <h2>My Certificates</h2>
+
+            <span class="eyebrow">
+              ACADEMIC RECORD
+            </span>
+
+            <h2>
+              My Grades
+            </h2>
+
           </div>
 
         </div>
 
-        <div id="certificatesMessage" class="empty-message">
-          Loading certificates...
-        </div>
 
-        <div id="certificatesList" class="certificate-list"></div>
+        <div
+          id="gradesContainer"
+          class="grades-container"
+        >
+
+          <div class="empty-message">
+            Loading grades...
+          </div>
+
+        </div>
 
       </section>
 
 
+      <!-- =================================================
+           CERTIFICATES
+      ================================================== -->
+
       <section class="content-card">
 
         <div class="section-header">
 
           <div>
-            <span class="eyebrow">MESSAGES</span>
-            <h2>Notifications</h2>
+
+            <span class="eyebrow">
+              DOCUMENTS
+            </span>
+
+            <h2>
+              My Certificates
+            </h2>
+
           </div>
+
+        </div>
+
+
+        <div
+          id="certificatesContainer"
+          class="certificate-list"
+        >
+
+          <div class="empty-message">
+            Loading certificates...
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           PAYMENTS
+      ================================================== -->
+
+      <section class="content-card">
+
+        <div class="section-header">
+
+          <div>
+
+            <span class="eyebrow">
+              FINANCE
+            </span>
+
+            <h2>
+              My Payments
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="paymentsContainer"
+          class="payments-container"
+        >
+
+          <div class="empty-message">
+            Loading payment records...
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =================================================
+           NOTIFICATIONS
+      ================================================== -->
+
+      <section class="content-card">
+
+        <div class="section-header">
+
+          <div>
+
+            <span class="eyebrow">
+              MESSAGES
+            </span>
+
+            <h2>
+              Notifications
+            </h2>
+
+          </div>
+
 
           <button
             id="markAllReadBtn"
@@ -245,7 +1554,16 @@
 
         </div>
 
-        <div id="notificationsList" class="notifications-list">
+
+        <div
+          id="notificationsList"
+          class="notifications-list"
+        >
+
+          <div class="empty-message">
+            No notifications loaded.
+          </div>
+
         </div>
 
       </section>
@@ -253,9 +1571,15 @@
     </main>
 
 
+    <!-- ===================================================
+         FOOTER
+    ==================================================== -->
+
     <footer class="portal-footer">
 
-      <strong>GAAWOW ACADEMY</strong>
+      <strong>
+        GAAWOW ACADEMY
+      </strong>
 
       <span>
         Ilayska Aqoonta iyo Xirfadda
@@ -270,8 +1594,18 @@
   </div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./student.js?v=final"></script>
+  <!-- =====================================================
+       SUPABASE
+  ====================================================== -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+  <!-- =====================================================
+       STUDENT PORTAL V6
+  ====================================================== -->
+
+  <script src="./student-portal.js?v=6.0.0"></script>
 
 </body>
 </html>
