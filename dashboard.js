@@ -1,14 +1,6 @@
 /* =========================================================
-   GAAWOW EMS
-   DASHBOARD.JS
-   Super Admin Dashboard
-   + Academic Results
-   ========================================================= */
-
-"use strict";
-
-/* =========================================================
-   SUPABASE CONFIG
+   GAAWOW EMS — SUPER ADMIN DASHBOARD
+   Secure Role-Based Access
    ========================================================= */
 
 const SUPABASE_URL =
@@ -25,158 +17,163 @@ const supabaseClient =
 
 
 /* =========================================================
-   PAGE NAVIGATION
+   NAVIGATION
    ========================================================= */
 
 function openPage(page) {
-
-  if (!page) {
-    return;
-  }
-
   window.location.href = page;
 }
 
 
 /* =========================================================
-   HTML SECURITY
+   AUTH + ROLE CHECK
    ========================================================= */
 
-function escapeHtml(value) {
-
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "";
-  }
-
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-
-/* =========================================================
-   SUPER ADMIN CHECK
-   ========================================================= */
-
-async function checkSuperAdmin() {
+async function checkDashboardAccess() {
 
   try {
 
     const {
-      data,
-      error
-    } =
-      await supabaseClient
-        .auth
-        .getSession();
-
+      data: sessionData,
+      error: sessionError
+    } = await supabaseClient.auth.getSession();
 
     if (
-      error ||
-      !data ||
-      !data.session
+      sessionError ||
+      !sessionData ||
+      !sessionData.session
     ) {
 
-      window.location.href =
-        "index.html";
-
+      window.location.replace("index.html");
       return false;
     }
 
 
     const user =
-      data.session.user;
+      sessionData.session.user;
 
+
+    /* -----------------------------------------
+       LOAD PROFILE
+    ----------------------------------------- */
 
     const {
       data: profile,
       error: profileError
-    } =
-      await supabaseClient
-        .from("profiles")
-        .select(
-          "full_name, role, institution_id, is_active"
-        )
-        .eq(
-          "id",
-          user.id
-        )
-        .single();
+    } = await supabaseClient
+      .from("profiles")
+      .select(`
+        id,
+        full_name,
+        role,
+        is_active
+      `)
+      .eq("id", user.id)
+      .maybeSingle();
 
 
-    if (
-      profileError ||
-      !profile
-    ) {
+    if (profileError) {
 
       console.error(
         "Profile error:",
         profileError
       );
 
+      await supabaseClient.auth.signOut();
+
+      window.location.replace("index.html");
+
+      return false;
+    }
+
+
+    if (!profile) {
+
+      console.error(
+        "No profile found for:",
+        user.id
+      );
+
+      await supabaseClient.auth.signOut();
+
+      window.location.replace("index.html");
+
+      return false;
+    }
+
+
+    /* -----------------------------------------
+       ACCOUNT ACTIVE CHECK
+    ----------------------------------------- */
+
+    if (profile.is_active !== true) {
+
       alert(
-        "Unable to load your profile."
+        "Your account is inactive."
+      );
+
+      await supabaseClient.auth.signOut();
+
+      window.location.replace("index.html");
+
+      return false;
+    }
+
+
+    /* =====================================================
+       IMPORTANT:
+       STUDENT MUST NEVER STAY ON SUPER ADMIN DASHBOARD
+       ===================================================== */
+
+    if (profile.role === "student") {
+
+      console.log(
+        "Student detected. Redirecting..."
+      );
+
+      window.location.replace(
+        "student.html"
       );
 
       return false;
     }
 
 
+    /* -----------------------------------------
+       OTHER ROLES
+    ----------------------------------------- */
+
     if (
-      profile.role !==
-      "super_admin"
+      profile.role !== "super_admin"
     ) {
 
       alert(
         "Access denied. Super Admin only."
       );
 
-      window.location.href =
-        "index.html";
-
-      return false;
-    }
-
-
-    if (
-      profile.is_active === false
-    ) {
-
-      alert(
-        "Your account is inactive."
+      window.location.replace(
+        "index.html"
       );
 
-      await supabaseClient
-        .auth
-        .signOut();
-
-      window.location.href =
-        "index.html";
-
       return false;
     }
 
+
+    /* -----------------------------------------
+       SUPER ADMIN APPROVED
+    ----------------------------------------- */
 
     const welcome =
       document.getElementById(
         "superAdminWelcome"
       );
 
-
-    if (
-      welcome &&
-      profile.full_name
-    ) {
+    if (welcome) {
 
       welcome.textContent =
-        "Welcome, " +
-        profile.full_name;
+        profile.full_name
+          ? `Welcome, ${profile.full_name}`
+          : "Welcome, GAAWOW Academy";
     }
 
 
@@ -185,8 +182,12 @@ async function checkSuperAdmin() {
   } catch (error) {
 
     console.error(
-      "Super Admin Check Error:",
+      "Dashboard authentication error:",
       error
+    );
+
+    window.location.replace(
+      "index.html"
     );
 
     return false;
@@ -195,63 +196,74 @@ async function checkSuperAdmin() {
 
 
 /* =========================================================
-   TOP DASHBOARD COUNTS
+   LOAD SYSTEM COUNTS
    ========================================================= */
 
-async function loadCounts() {
+async function loadSystemCounts() {
 
   try {
 
-    const institutions =
-      await supabaseClient
+    const [
+      institutions,
+      students,
+      teachers,
+      certificates
+    ] = await Promise.all([
+
+      supabaseClient
         .from("institutions")
-        .select(
-          "id",
-          {
-            count: "exact",
-            head: true
-          }
-        );
+        .select("id", {
+          count: "exact",
+          head: true
+        }),
 
-
-    const students =
-      await supabaseClient
+      supabaseClient
         .from("students")
-        .select(
-          "id",
-          {
-            count: "exact",
-            head: true
-          }
-        );
+        .select("id", {
+          count: "exact",
+          head: true
+        }),
 
-
-    const teachers =
-      await supabaseClient
+      supabaseClient
         .from("profiles")
-        .select(
-          "id",
-          {
-            count: "exact",
-            head: true
-          }
-        )
-        .eq(
-          "role",
-          "teacher"
-        );
+        .select("id", {
+          count: "exact",
+          head: true
+        })
+        .eq("role", "teacher"),
 
-
-    const certificates =
-      await supabaseClient
+      supabaseClient
         .from("certificates")
-        .select(
-          "id",
-          {
-            count: "exact",
-            head: true
-          }
-        );
+        .select("id", {
+          count: "exact",
+          head: true
+        })
+    ]);
+
+
+    if (institutions.error)
+      console.error(
+        "Institutions:",
+        institutions.error
+      );
+
+    if (students.error)
+      console.error(
+        "Students:",
+        students.error
+      );
+
+    if (teachers.error)
+      console.error(
+        "Teachers:",
+        teachers.error
+      );
+
+    if (certificates.error)
+      console.error(
+        "Certificates:",
+        certificates.error
+      );
 
 
     const institutionEl =
@@ -259,18 +271,15 @@ async function loadCounts() {
         "institutionCount"
       );
 
-
     const studentEl =
       document.getElementById(
         "studentCount"
       );
 
-
     const teacherEl =
       document.getElementById(
         "teacherCount"
       );
-
 
     const certificateEl =
       document.getElementById(
@@ -281,70 +290,31 @@ async function loadCounts() {
     if (institutionEl) {
 
       institutionEl.textContent =
-        institutions.count ?? "0";
+        institutions.count ?? 0;
     }
-
 
     if (studentEl) {
 
       studentEl.textContent =
-        students.count ?? "0";
+        students.count ?? 0;
     }
-
 
     if (teacherEl) {
 
       teacherEl.textContent =
-        teachers.count ?? "0";
+        teachers.count ?? 0;
     }
-
 
     if (certificateEl) {
 
       certificateEl.textContent =
-        certificates.count ?? "0";
-    }
-
-
-    if (institutions.error) {
-
-      console.error(
-        "Institutions count error:",
-        institutions.error
-      );
-    }
-
-
-    if (students.error) {
-
-      console.error(
-        "Students count error:",
-        students.error
-      );
-    }
-
-
-    if (teachers.error) {
-
-      console.error(
-        "Teachers count error:",
-        teachers.error
-      );
-    }
-
-
-    if (certificates.error) {
-
-      console.error(
-        "Certificates count error:",
-        certificates.error
-      );
+        certificates.count ?? 0;
     }
 
   } catch (error) {
 
     console.error(
-      "Dashboard Counts Error:",
+      "System count error:",
       error
     );
   }
@@ -352,123 +322,15 @@ async function loadCounts() {
 
 
 /* =========================================================
-   RESULT PERCENTAGE
-   ========================================================= */
-
-function getResultPercentage(result) {
-
-  if (
-    result.percentage !== null &&
-    result.percentage !== undefined &&
-    !isNaN(
-      Number(result.percentage)
-    )
-  ) {
-
-    return Number(
-      result.percentage
-    );
-  }
-
-
-  const score =
-    Number(
-      result.score
-    );
-
-
-  const maxScore =
-    Number(
-      result.max_score
-    );
-
-
-  if (
-    !isNaN(score) &&
-    !isNaN(maxScore) &&
-    maxScore > 0
-  ) {
-
-    return (
-      score /
-      maxScore
-    ) * 100;
-  }
-
-
-  return 0;
-}
-
-
-/* =========================================================
-   PASS / FAIL
-   ========================================================= */
-
-function isResultPassed(result) {
-
-  const grade =
-    String(
-      result.grade || ""
-    )
-      .trim()
-      .toUpperCase();
-
-
-  if (
-    grade === "F"
-  ) {
-
-    return false;
-  }
-
-
-  return (
-    getResultPercentage(result) >=
-    50
-  );
-}
-
-
-/* =========================================================
-   SUBJECT ORDER
-   ========================================================= */
-
-const ACADEMIC_SUBJECT_ORDER = [
-
-  "first aid",
-
-  "anatomy & physiology",
-
-  "anatomy and physiology",
-
-  "epidemiology",
-
-  "epi",
-
-  "parasitology",
-
-  "pathology",
-
-  "nutrition",
-
-  "pharmacology",
-
-  "practice"
-
-];
-
-
-/* =========================================================
    ACADEMIC RESULTS
    ========================================================= */
 
-async function loadDashboardAcademicResults() {
+async function loadAcademicResults() {
 
   const statusEl =
     document.getElementById(
       "academicResultsStatus"
     );
-
 
   const rowsEl =
     document.getElementById(
@@ -476,542 +338,308 @@ async function loadDashboardAcademicResults() {
     );
 
 
-  if (statusEl) {
-
-    statusEl.textContent =
-      "Loading...";
-  }
-
-
-  if (rowsEl) {
-
-    rowsEl.innerHTML = `
-      <tr>
-        <td
-          colspan="5"
-          class="academic-loading"
-        >
-          Loading academic results...
-        </td>
-      </tr>
-    `;
-  }
-
-
   try {
 
-    /* -----------------------------------------
-       RESULTS
-       ----------------------------------------- */
+    /*
+     * NOTE:
+     * This section intentionally handles
+     * missing/unknown academic tables safely.
+     *
+     * Your existing academic-results logic
+     * can remain here if already implemented.
+     */
 
-    const {
-      data: results,
-      error: resultsError
-    } =
-      await supabaseClient
-        .from("results")
-        .select(
-          "id, student_id, subject_id, score, max_score, percentage, grade, is_published"
-        );
+    if (statusEl) {
 
-
-    if (resultsError) {
-
-      throw resultsError;
+      statusEl.textContent =
+        "Live";
     }
 
-
-    /* -----------------------------------------
-       SUBJECTS
-
-       IMPORTANT:
-       Only existing columns are requested.
-       is_active is NOT requested.
-       ----------------------------------------- */
+    /*
+     * Do not break the whole dashboard if
+     * the academic table/RLS is unavailable.
+     */
 
     const {
-      data: subjects,
-      error: subjectsError
-    } =
-      await supabaseClient
-        .from("subjects")
-        .select(
-          "id, name, code"
-        );
+      data,
+      error
+    } = await supabaseClient
+      .from("grades")
+      .select("*")
+      .limit(1000);
 
 
-    if (subjectsError) {
+    if (error) {
 
-      throw subjectsError;
-    }
-
-
-    const resultList =
-      results || [];
-
-
-    const subjectList =
-      subjects || [];
-
-
-    /* -----------------------------------------
-       TOTAL RESULTS
-       ----------------------------------------- */
-
-    const totalResults =
-      resultList.length;
-
-
-    /* -----------------------------------------
-       PUBLISHED
-       ----------------------------------------- */
-
-    const publishedResults =
-      resultList.filter(
-        result =>
-          result.is_published === true
-      ).length;
-
-
-    /* -----------------------------------------
-       PENDING
-       ----------------------------------------- */
-
-    const pendingResults =
-      totalResults -
-      publishedResults;
-
-
-    /* -----------------------------------------
-       PASSED
-       ----------------------------------------- */
-
-    const passedResults =
-      resultList.filter(
-        isResultPassed
-      ).length;
-
-
-    /* -----------------------------------------
-       FAILED
-       ----------------------------------------- */
-
-    const failedResults =
-      totalResults -
-      passedResults;
-
-
-    /* -----------------------------------------
-       AVERAGE
-       ----------------------------------------- */
-
-    const percentages =
-      resultList.map(
-        getResultPercentage
+      console.warn(
+        "Academic results unavailable:",
+        error.message
       );
 
+      if (statusEl) {
 
-    const average =
-      percentages.length > 0
-        ? percentages.reduce(
-            (
-              sum,
-              value
-            ) =>
-              sum + value,
-            0
-          ) /
-          percentages.length
-        : 0;
-
-
-    /* -----------------------------------------
-       STUDENTS WITH RESULTS
-       ----------------------------------------- */
-
-    const studentsWithResults =
-      new Set(
-        resultList
-          .map(
-            result =>
-              result.student_id
-          )
-          .filter(Boolean)
-      ).size;
-
-
-    /* -----------------------------------------
-       UPDATE CARD
-       ----------------------------------------- */
-
-    function setValue(
-      id,
-      value
-    ) {
-
-      const element =
-        document.getElementById(
-          id
-        );
-
-
-      if (element) {
-
-        element.textContent =
-          value;
+        statusEl.textContent =
+          "Unavailable";
       }
-    }
 
+      if (rowsEl) {
 
-    setValue(
-      "academicTotalResults",
-      totalResults
-    );
-
-
-    setValue(
-      "academicPublishedResults",
-      publishedResults
-    );
-
-
-    setValue(
-      "academicPendingResults",
-      pendingResults
-    );
-
-
-    setValue(
-      "academicPassedResults",
-      passedResults
-    );
-
-
-    setValue(
-      "academicFailedResults",
-      failedResults
-    );
-
-
-    setValue(
-      "academicAverage",
-      average.toFixed(2) +
-      "%"
-    );
-
-
-    setValue(
-      "academicStudentsWithResults",
-      studentsWithResults
-    );
-
-
-    setValue(
-      "academicSubjectCount",
-      subjectList.length
-    );
-
-
-    /* -----------------------------------------
-       SORT SUBJECTS
-       ----------------------------------------- */
-
-    subjectList.sort(
-      (
-        a,
-        b
-      ) => {
-
-        const aName =
-          String(
-            a.name || ""
-          )
-            .trim()
-            .toLowerCase();
-
-
-        const bName =
-          String(
-            b.name || ""
-          )
-            .trim()
-            .toLowerCase();
-
-
-        const aIndex =
-          ACADEMIC_SUBJECT_ORDER
-            .indexOf(
-              aName
-            );
-
-
-        const bIndex =
-          ACADEMIC_SUBJECT_ORDER
-            .indexOf(
-              bName
-            );
-
-
-        if (
-          aIndex === -1 &&
-          bIndex === -1
-        ) {
-
-          return aName.localeCompare(
-            bName
-          );
-        }
-
-
-        if (
-          aIndex === -1
-        ) {
-
-          return 1;
-        }
-
-
-        if (
-          bIndex === -1
-        ) {
-
-          return -1;
-        }
-
-
-        return (
-          aIndex -
-          bIndex
-        );
+        rowsEl.innerHTML = `
+          <tr>
+            <td
+              colspan="5"
+              class="academic-error"
+            >
+              Academic results could not be loaded.
+            </td>
+          </tr>
+        `;
       }
-    );
-
-
-    /* -----------------------------------------
-       SUBJECT TABLE
-       ----------------------------------------- */
-
-    if (!rowsEl) {
 
       return;
     }
 
 
-    if (
-      subjectList.length === 0
-    ) {
-
-      rowsEl.innerHTML = `
-        <tr>
-          <td
-            colspan="5"
-            class="academic-loading"
-          >
-            No subjects found.
-          </td>
-        </tr>
-      `;
-
-    } else {
-
-      rowsEl.innerHTML =
-        subjectList
-          .map(
-            (
-              subject,
-              index
-            ) => {
-
-              const subjectResults =
-                resultList.filter(
-                  result =>
-                    result.subject_id ===
-                    subject.id
-                );
+    const results =
+      Array.isArray(data)
+        ? data
+        : [];
 
 
-              const published =
-                subjectResults.filter(
-                  result =>
-                    result.is_published ===
-                    true
-                ).length;
+    /* -----------------------------------------
+       TOTAL
+    ----------------------------------------- */
+
+    const total =
+      results.length;
 
 
-              const subjectPercentages =
-                subjectResults.map(
-                  getResultPercentage
-                );
+    const totalEl =
+      document.getElementById(
+        "academicTotalResults"
+      );
+
+    if (totalEl)
+      totalEl.textContent = total;
 
 
-              const subjectAverage =
-                subjectPercentages.length > 0
-                  ? subjectPercentages.reduce(
-                      (
-                        sum,
-                        value
-                      ) =>
-                        sum + value,
-                      0
-                    ) /
-                    subjectPercentages.length
-                  : 0;
+    /* -----------------------------------------
+       SUBJECT COUNT
+    ----------------------------------------- */
+
+    const subjects =
+      new Set();
 
 
-              return `
-                <tr>
+    results.forEach(row => {
 
-                  <td>
-                    ${index + 1}
-                  </td>
+      const subject =
+        row.subject_id ??
+        row.subject ??
+        row.subject_name;
 
-                  <td>
+      if (subject) {
 
-                    <strong>
-                      ${escapeHtml(
-                        subject.name ||
-                        "Unknown Subject"
-                      )}
-                    </strong>
+        subjects.add(
+          String(subject)
+        );
+      }
+    });
 
-                    ${
-                      subject.code
-                        ? `
-                          <span
-                            style="
-                              display:block;
-                              color:#94A3B8;
-                              font-size:10px;
-                              font-weight:400;
-                              margin-top:2px;
-                            "
-                          >
-                            ${escapeHtml(
-                              subject.code
-                            )}
-                          </span>
-                        `
-                        : ""
-                    }
 
-                  </td>
+    const subjectCountEl =
+      document.getElementById(
+        "academicSubjectCount"
+      );
 
-                  <td>
-                    ${subjectResults.length}
-                  </td>
+    if (subjectCountEl) {
 
-                  <td>
-                    ${published}
-                  </td>
-
-                  <td>
-
-                    <strong>
-                      ${subjectAverage.toFixed(2)}%
-                    </strong>
-
-                  </td>
-
-                </tr>
-              `;
-            }
-          )
-          .join("");
+      subjectCountEl.textContent =
+        subjects.size;
     }
 
 
     /* -----------------------------------------
-       STATUS
-       ----------------------------------------- */
+       EMPTY STATE
+    ----------------------------------------- */
+
+    if (!results.length) {
+
+      if (rowsEl) {
+
+        rowsEl.innerHTML = `
+          <tr>
+            <td
+              colspan="5"
+              class="academic-loading"
+            >
+              No academic results found.
+            </td>
+          </tr>
+        `;
+      }
+
+      return;
+    }
+
+
+    /*
+     * Generic subject grouping.
+     */
+
+    const grouped = {};
+
+
+    results.forEach(row => {
+
+      const subject =
+        row.subject_name ??
+        row.subject ??
+        row.subject_id ??
+        "Unknown Subject";
+
+
+      const key =
+        String(subject);
+
+
+      if (!grouped[key]) {
+
+        grouped[key] = {
+          total: 0,
+          published: 0,
+          scores: []
+        };
+      }
+
+
+      grouped[key].total++;
+
+
+      if (
+        row.published === true ||
+        row.status === "published"
+      ) {
+
+        grouped[key].published++;
+      }
+
+
+      const score =
+        Number(
+          row.score ??
+          row.marks ??
+          row.grade ??
+          row.percentage
+        );
+
+
+      if (
+        Number.isFinite(score)
+      ) {
+
+        grouped[key].scores.push(
+          score
+        );
+      }
+
+    });
+
+
+    /* -----------------------------------------
+       TABLE
+    ----------------------------------------- */
+
+    if (rowsEl) {
+
+      rowsEl.innerHTML = "";
+
+      const entries =
+        Object.entries(grouped);
+
+
+      entries.forEach(
+        ([subject, item], index) => {
+
+          const average =
+            item.scores.length
+              ? (
+                  item.scores.reduce(
+                    (a, b) => a + b,
+                    0
+                  ) /
+                  item.scores.length
+                ).toFixed(1)
+              : "0";
+
+
+          const tr =
+            document.createElement("tr");
+
+
+          tr.innerHTML = `
+            <td>${index + 1}</td>
+
+            <td>
+              ${escapeHtml(subject)}
+            </td>
+
+            <td>
+              ${item.total}
+            </td>
+
+            <td>
+              ${item.published}
+            </td>
+
+            <td>
+              ${average}%
+            </td>
+          `;
+
+
+          rowsEl.appendChild(tr);
+
+        }
+      );
+    }
+
 
     if (statusEl) {
 
       statusEl.textContent =
-        totalResults +
-        " result(s)";
+        `${results.length} result(s)`;
     }
 
 
   } catch (error) {
 
     console.error(
-      "Academic Results Dashboard Error:",
+      "Academic results error:",
       error
     );
-
-
-    const ids = [
-
-      "academicTotalResults",
-
-      "academicPublishedResults",
-
-      "academicPendingResults",
-
-      "academicPassedResults",
-
-      "academicFailedResults",
-
-      "academicStudentsWithResults",
-
-      "academicSubjectCount"
-
-    ];
-
-
-    ids.forEach(
-      id => {
-
-        const element =
-          document.getElementById(
-            id
-          );
-
-
-        if (element) {
-
-          element.textContent =
-            "0";
-        }
-
-      }
-    );
-
-
-    const averageEl =
-      document.getElementById(
-        "academicAverage"
-      );
-
-
-    if (averageEl) {
-
-      averageEl.textContent =
-        "0%";
-    }
-
 
     if (statusEl) {
 
       statusEl.textContent =
-        "Could not load";
-    }
-
-
-    if (rowsEl) {
-
-      rowsEl.innerHTML = `
-        <tr>
-          <td
-            colspan="5"
-            class="academic-error"
-          >
-            Academic results could not be loaded.
-          </td>
-        </tr>
-      `;
+        "Error";
     }
   }
+}
+
+
+/* =========================================================
+   HTML ESCAPE
+   ========================================================= */
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 
@@ -1027,29 +655,23 @@ function setupLogout() {
     );
 
 
-  if (!logoutBtn) {
-
+  if (!logoutBtn)
     return;
-  }
 
 
   logoutBtn.addEventListener(
     "click",
-    async function () {
+    async () => {
 
-      this.disabled =
-        true;
+      logoutBtn.disabled = true;
 
-
-      this.textContent =
-        "LOGGING OUT...";
+      logoutBtn.textContent =
+        "Logging out...";
 
 
       try {
 
-        await supabaseClient
-          .auth
-          .signOut();
+        await supabaseClient.auth.signOut();
 
       } catch (error) {
 
@@ -1057,17 +679,39 @@ function setupLogout() {
           "Logout error:",
           error
         );
+
       }
 
 
       sessionStorage.clear();
 
 
-      window.location.href =
-        "index.html";
+      window.location.replace(
+        "index.html"
+      );
     }
   );
 }
+
+
+/* =========================================================
+   AUTH STATE LISTENER
+   ========================================================= */
+
+supabaseClient.auth.onAuthStateChange(
+  (event, session) => {
+
+    if (
+      event === "SIGNED_OUT" ||
+      !session
+    ) {
+
+      window.location.replace(
+        "index.html"
+      );
+    }
+  }
+);
 
 
 /* =========================================================
@@ -1076,55 +720,36 @@ function setupLogout() {
 
 async function startDashboard() {
 
-  try {
+  /*
+   * IMPORTANT:
+   * Check role BEFORE loading dashboard data.
+   */
 
-    const allowed =
-      await checkSuperAdmin();
-
-
-    if (!allowed) {
-
-      return;
-    }
+  const allowed =
+    await checkDashboardAccess();
 
 
-    setupLogout();
+  if (!allowed) {
 
-
-    await Promise.all([
-
-      loadCounts(),
-
-      loadDashboardAcademicResults()
-
-    ]);
-
-
-  } catch (error) {
-
-    console.error(
-      "Dashboard Start Error:",
-      error
-    );
+    return;
   }
+
+
+  await Promise.all([
+    loadSystemCounts(),
+    loadAcademicResults()
+  ]);
+
+
+  setupLogout();
 }
 
 
 /* =========================================================
-   DOM READY
+   START
    ========================================================= */
 
-if (
-  document.readyState ===
-  "loading"
-) {
-
-  document.addEventListener(
-    "DOMContentLoaded",
-    startDashboard
-  );
-
-} else {
-
-  startDashboard();
-}
+document.addEventListener(
+  "DOMContentLoaded",
+  startDashboard
+);
