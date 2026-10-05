@@ -1,2412 +1,1608 @@
-/* =========================================================
-   GAAWOW EMS
-   STUDENTS.JS V6
-   SUPER ADMIN STUDENT MANAGEMENT
-========================================================= */
+/* ============================================================
+   GAAWOW EMS - students.js V6
+   Copy/paste-ready for the HTML supplied with this project.
 
-"use strict";
+   IMPORTANT:
+   - Browser uses ONLY the Supabase publishable/anon key.
+   - Auth Admin / secret key is NEVER placed here.
+   - Student account creation/reset goes through the Edge Function:
+       /functions/v1/create-student-account
+   ============================================================ */
 
-/* =========================================================
-   SUPABASE CONFIG
-========================================================= */
+(() => {
+  "use strict";
 
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+  const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-const SUPABASE_ANON_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  const SUPABASE_ANON_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-const supabaseClient =
-  window.supabase.createClient(
+  const ACCOUNT_FUNCTION_URL =
+    `${SUPABASE_URL}/functions/v1/create-student-account`;
+
+  const supabase = window.supabase.createClient(
     SUPABASE_URL,
-    SUPABASE_ANON_KEY
+    SUPABASE_ANON_KEY,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    }
   );
 
+  // ------------------------------------------------------------
+  // DOM
+  // ------------------------------------------------------------
 
-/* =========================================================
-   DOM
-========================================================= */
+  const $ = (id) => document.getElementById(id);
 
-const $ = (id) =>
-  document.getElementById(id);
+  const els = {
+    message: $("message"),
+    form: $("studentForm"),
+    formTitle: $("formTitle"),
+    editStudentDbId: $("editStudentDbId"),
 
-const messageEl =
-  $("message");
+    institutionSelect: $("institutionSelect"),
+    studentId: $("studentId"),
+    fullName: $("fullName"),
+    gender: $("gender"),
+    dateOfBirth: $("dateOfBirth"),
+    phone: $("phone"),
+    email: $("email"),
+    admissionDate: $("admissionDate"),
+    status: $("status"),
+    address: $("address"),
 
-const studentForm =
-  $("studentForm");
+    photoInput: $("photoInput"),
+    photoPreview: $("photoPreview"),
+    photoPlaceholder: $("photoPlaceholder"),
 
-const institutionSelect =
-  $("institutionSelect");
+    accountStatus: $("accountStatus"),
+    createAccountButton: $("createAccountButton"),
+    resetPasswordButton: $("resetPasswordButton"),
 
-const studentIdInput =
-  $("studentId");
+    progressWrap: $("progressWrap"),
+    progressBar: $("progressBar"),
+    progressText: $("progressText"),
 
-const fullNameInput =
-  $("fullName");
+    saveButton: $("saveButton"),
+    resetFormButton: $("resetFormButton"),
+    addStudentButton: $("addStudentButton"),
+    refreshStudentsButton: $("refreshStudentsButton"),
 
-const genderInput =
-  $("gender");
+    searchInput: $("searchInput"),
+    statusFilter: $("statusFilter"),
+    studentsTableBody: $("studentsTableBody"),
 
-const dateOfBirthInput =
-  $("dateOfBirth");
+    totalStudents: $("totalStudents"),
+    activeStudents: $("activeStudents"),
+    graduatedStudents: $("graduatedStudents"),
+    otherStudents: $("otherStudents"),
 
-const phoneInput =
-  $("phone");
+    profileModal: $("profileModal"),
+    closeProfileModal: $("closeProfileModal"),
+    profileContent: $("profileContent"),
+  };
 
-const emailInput =
-  $("email");
+  let students = [];
+  let editingStudent = null;
+  let searchTimer = null;
 
-const admissionDateInput =
-  $("admissionDate");
+  // ------------------------------------------------------------
+  // Helpers
+  // ------------------------------------------------------------
 
-const statusInput =
-  $("status");
-
-const addressInput =
-  $("address");
-
-const photoInput =
-  $("photoInput");
-
-const photoPreview =
-  $("photoPreview");
-
-const photoPlaceholder =
-  $("photoPlaceholder");
-
-const editStudentDbId =
-  $("editStudentDbId");
-
-const saveButton =
-  $("saveButton");
-
-const resetFormButton =
-  $("resetFormButton");
-
-const addStudentButton =
-  $("addStudentButton");
-
-const refreshStudentsButton =
-  $("refreshStudentsButton");
-
-const searchInput =
-  $("searchInput");
-
-const statusFilter =
-  $("statusFilter");
-
-const studentsTableBody =
-  $("studentsTableBody");
-
-const formTitle =
-  $("formTitle");
-
-const createAccountButton =
-  $("createAccountButton");
-
-const resetPasswordButton =
-  $("resetPasswordButton");
-
-const accountStatus =
-  $("accountStatus");
-
-const progressWrap =
-  $("progressWrap");
-
-const progressBar =
-  $("progressBar");
-
-const progressText =
-  $("progressText");
-
-const totalStudents =
-  $("totalStudents");
-
-const activeStudents =
-  $("activeStudents");
-
-const graduatedStudents =
-  $("graduatedStudents");
-
-const otherStudents =
-  $("otherStudents");
-
-const profileModal =
-  $("profileModal");
-
-const profileContent =
-  $("profileContent");
-
-const closeProfileModal =
-  $("closeProfileModal");
-
-
-/* =========================================================
-   STATE
-========================================================= */
-
-let students = [];
-
-let institutions = [];
-
-let editingStudent = null;
-
-let isSaving = false;
-
-
-/* =========================================================
-   MESSAGE
-========================================================= */
-
-function showMessage(
-  text,
-  type = "success"
-) {
-  if (!messageEl) return;
-
-  messageEl.textContent = text;
-
-  messageEl.className =
-    `message ${type}`;
-
-  messageEl.style.display =
-    "block";
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-
-  setTimeout(() => {
-    if (
-      messageEl.textContent === text
-    ) {
-      messageEl.style.display =
-        "none";
-    }
-  }, 6000);
-}
-
-
-function clearMessage() {
-  if (!messageEl) return;
-
-  messageEl.textContent = "";
-
-  messageEl.className =
-    "message";
-
-  messageEl.style.display =
-    "none";
-}
-
-
-/* =========================================================
-   ESCAPE HTML
-========================================================= */
-
-function escapeHtml(value) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "";
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+  function showMessage(text, type = "success") {
+    if (!els.message) return;
 
+    els.message.textContent = text;
+    els.message.className = `message ${type}`;
+    els.message.style.display = "block";
 
-/* =========================================================
-   DATE
-========================================================= */
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
 
-function formatDate(value) {
-  if (!value) return "—";
+  function hideMessage() {
+    if (!els.message) return;
+    els.message.style.display = "none";
+    els.message.textContent = "";
+    els.message.className = "message";
+  }
 
-  try {
-    return new Date(
-      `${value}T00:00:00`
-    ).toLocaleDateString(
-      "en-GB",
-      {
+  function setProgress(percent, text = "") {
+    if (!els.progressWrap) return;
+
+    els.progressWrap.style.display = "block";
+    els.progressBar.style.width = `${Math.max(
+      0,
+      Math.min(100, percent)
+    )}%`;
+    els.progressText.textContent = text;
+  }
+
+  function hideProgress() {
+    if (!els.progressWrap) return;
+
+    els.progressWrap.style.display = "none";
+    els.progressBar.style.width = "0%";
+    els.progressText.textContent = "";
+  }
+
+  function formatDate(value) {
+    if (!value) return "—";
+
+    try {
+      return new Intl.DateTimeFormat("en-GB", {
         year: "numeric",
         month: "short",
-        day: "2-digit"
-      }
-    );
-  } catch {
-    return value;
-  }
-}
-
-
-/* =========================================================
-   CURRENT YEAR
-========================================================= */
-
-function currentAcademicYear() {
-  return new Date()
-    .getFullYear()
-    .toString();
-}
-
-
-/* =========================================================
-   GENERATE STUDENT ID
-========================================================= */
-
-async function generateStudentId() {
-  const year =
-    currentAcademicYear();
-
-  const prefix =
-    `GA-${year}-`;
-
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .from("students")
-    .select("student_id")
-    .like(
-      "student_id",
-      `${prefix}%`
-    )
-    .order(
-      "student_id",
-      {
-        ascending: false
-      }
-    )
-    .limit(1);
-
-  if (error) {
-    console.error(
-      "Student ID generation error:",
-      error
-    );
-
-    throw new Error(
-      "Unable to generate Student ID."
-    );
+        day: "2-digit",
+      }).format(new Date(value));
+    } catch {
+      return value;
+    }
   }
 
-  let nextNumber = 1;
+  function statusBadge(status) {
+    const normalized = String(status ?? "").toLowerCase();
 
-  if (
-    data &&
-    data.length > 0 &&
-    data[0].student_id
-  ) {
-    const lastId =
-      data[0].student_id;
+    const className =
+      normalized === "active"
+        ? "status-active"
+        : normalized === "graduated"
+        ? "status-graduated"
+        : normalized === "suspended"
+        ? "status-suspended"
+        : "status-inactive";
 
-    const match =
-      lastId.match(
-        /^GA-\d{4}-(\d+)$/
+    return `<span class="status ${className}">${escapeHtml(
+      status || "inactive"
+    )}</span>`;
+  }
+
+  function accountBadge(student) {
+    if (student.auth_user_id) {
+      return `<span class="status status-active">Account Active</span>`;
+    }
+
+    return `<span class="status status-inactive">No Account</span>`;
+  }
+
+  function getInitials(name) {
+    const parts = String(name ?? "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    if (!parts.length) return "ST";
+
+    return parts
+      .slice(0, 2)
+      .map((x) => x[0].toUpperCase())
+      .join("");
+  }
+
+  function placeholderAvatar(name) {
+    const initials = escapeHtml(getInitials(name));
+
+    return `
+      <div class="initials" aria-label="Student">
+        ${initials}
+      </div>
+    `;
+  }
+
+  function todayISO() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  // ------------------------------------------------------------
+  // Supabase session
+  // ------------------------------------------------------------
+
+  async function getSessionOrThrow() {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error) throw error;
+
+    if (!session?.access_token) {
+      throw new Error(
+        "Access denied or login session expired. Please login again."
       );
+    }
+
+    return session;
+  }
+
+  async function refreshSession() {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.refreshSession();
+
+    if (error) {
+      console.warn("SESSION REFRESH:", error);
+      return null;
+    }
+
+    return session;
+  }
+
+  // ------------------------------------------------------------
+  // Edge Function request
+  // ------------------------------------------------------------
+
+  async function callAccountFunction(payload) {
+    let session = await getSessionOrThrow();
+
+    async function request(currentSession) {
+      return fetch(ACCOUNT_FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${currentSession.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    let response = await request(session);
+
+    // If access token expired, refresh once and retry.
+    if (response.status === 401) {
+      const refreshed = await refreshSession();
+
+      if (!refreshed?.access_token) {
+        throw new Error(
+          "Access denied or login session expired. Please login again."
+        );
+      }
+
+      response = await request(refreshed);
+    }
+
+    let result = null;
+
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error(
+        `Edge Function returned invalid JSON (${response.status}).`
+      );
+    }
+
+    if (!response.ok || result?.success === false) {
+      throw new Error(
+        result?.error ||
+          result?.message ||
+          `Student account request failed (${response.status}).`
+      );
+    }
+
+    return result;
+  }
+
+  // ------------------------------------------------------------
+  // Institutions
+  // ------------------------------------------------------------
+
+  async function loadInstitutions() {
+    if (!els.institutionSelect) return;
+
+    els.institutionSelect.innerHTML =
+      `<option value="">Loading institutions...</option>`;
+
+    const { data, error } = await supabase
+      .from("institutions")
+      .select("id, name")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("INSTITUTIONS ERROR:", error);
+
+      els.institutionSelect.innerHTML =
+        `<option value="">Unable to load institutions</option>`;
+
+      showMessage(
+        `Institutions could not be loaded: ${error.message}`,
+        "error"
+      );
+
+      return;
+    }
+
+    els.institutionSelect.innerHTML =
+      `<option value="">Select institution</option>`;
+
+    for (const institution of data ?? []) {
+      const option = document.createElement("option");
+
+      option.value = institution.id;
+      option.textContent = institution.name || institution.id;
+
+      els.institutionSelect.appendChild(option);
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Student ID
+  // Format: GA-2026-000119
+  // ------------------------------------------------------------
+
+  async function generateNextStudentId() {
+    const year = new Date().getFullYear();
+
+    const { data, error } = await supabase
+      .from("students")
+      .select("student_id")
+      .like("student_id", `GA-${year}-%`)
+      .order("student_id", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error("STUDENT ID ERROR:", error);
+      throw new Error(
+        `Unable to generate Student ID: ${error.message}`
+      );
+    }
+
+    let nextNumber = 1;
+
+    const latest = data?.[0]?.student_id ?? "";
+
+    const match = latest.match(
+      new RegExp(`^GA-${year}-(\\d+)$`)
+    );
 
     if (match) {
-      nextNumber =
-        parseInt(
-          match[1],
-          10
-        ) + 1;
+      nextNumber = Number(match[1]) + 1;
     }
+
+    return `GA-${year}-${String(nextNumber).padStart(6, "0")}`;
   }
 
-  return (
-    `${prefix}` +
-    String(nextNumber)
-      .padStart(6, "0")
-  );
-}
+  // ------------------------------------------------------------
+  // Load students
+  // ------------------------------------------------------------
 
+  async function loadStudents() {
+    if (!els.studentsTableBody) return;
 
-/* =========================================================
-   SET GENERATED ID
-========================================================= */
+    els.studentsTableBody.innerHTML = `
+      <tr>
+        <td colspan="10" class="empty">
+          Loading students...
+        </td>
+      </tr>
+    `;
 
-async function prepareNewStudentId() {
-  if (
-    editStudentDbId.value
-  ) {
-    return;
-  }
+    let query = supabase
+      .from("students")
+      .select(`
+        id,
+        institution_id,
+        student_id,
+        full_name,
+        gender,
+        date_of_birth,
+        phone,
+        email,
+        address,
+        photo_url,
+        admission_date,
+        status,
+        emergency_contact_name,
+        emergency_contact_phone,
+        created_at,
+        updated_at,
+        account_enabled,
+        auth_user_id,
+        login_username,
+        account_created_at,
+        last_login_at,
+        password_changed_at
+      `)
+      .order("created_at", { ascending: false });
 
-  try {
-    studentIdInput.value =
-      "Generating...";
+    const selectedStatus = els.statusFilter?.value?.trim();
 
-    studentIdInput.value =
-      await generateStudentId();
-  } catch (error) {
-    studentIdInput.value = "";
+    if (selectedStatus) {
+      query = query.eq("status", selectedStatus);
+    }
 
-    showMessage(
-      error.message,
-      "error"
-    );
-  }
-}
+    const { data, error } = await query;
 
+    if (error) {
+      console.error("STUDENTS LOAD ERROR:", error);
 
-/* =========================================================
-   LOAD INSTITUTIONS
-========================================================= */
+      els.studentsTableBody.innerHTML = `
+        <tr>
+          <td colspan="10" class="empty">
+            Could not load students.
+          </td>
+        </tr>
+      `;
 
-async function loadInstitutions() {
-  institutionSelect.innerHTML =
-    `<option value="">
-       Loading institutions...
-     </option>`;
-
-  /*
-     Assumption:
-     institutions table contains:
-     id
-     name
-
-     If your institution table uses
-     another name, change only this query.
-  */
-
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .from("institutions")
-    .select("id, name")
-    .order(
-      "name",
-      {
-        ascending: true
-      }
-    );
-
-  if (error) {
-    console.error(
-      "Institution error:",
-      error
-    );
-
-    institutionSelect.innerHTML =
-      `<option value="">
-         Unable to load institutions
-       </option>`;
-
-    showMessage(
-      "Institutions could not be loaded: " +
-      error.message,
-      "error"
-    );
-
-    return;
-  }
-
-  institutions =
-    data || [];
-
-  institutionSelect.innerHTML =
-    `<option value="">
-       Select institution
-     </option>`;
-
-  institutions.forEach(
-    (institution) => {
-      const option =
-        document.createElement(
-          "option"
-        );
-
-      option.value =
-        institution.id;
-
-      option.textContent =
-        institution.name;
-
-      institutionSelect.appendChild(
-        option
+      showMessage(
+        `Students could not be loaded: ${error.message}`,
+        "error"
       );
+
+      return;
     }
-  );
-}
 
+    students = data ?? [];
 
-/* =========================================================
-   LOAD STUDENTS
-========================================================= */
-
-async function loadStudents() {
-  studentsTableBody.innerHTML =
-    `<tr>
-       <td colspan="10" class="empty">
-         Loading students...
-       </td>
-     </tr>`;
-
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .from("students")
-    .select(`
-      id,
-      student_id,
-      institution_id,
-      full_name,
-      gender,
-      date_of_birth,
-      phone,
-      email,
-      admission_date,
-      status,
-      address,
-      photo_url,
-      auth_user_id,
-      created_at
-    `)
-    .order(
-      "created_at",
-      {
-        ascending: false
-      }
-    );
-
-  if (error) {
-    console.error(
-      "Load students error:",
-      error
-    );
-
-    studentsTableBody.innerHTML =
-      `<tr>
-         <td colspan="10" class="empty">
-           Could not load students.
-           <br>
-           ${escapeHtml(error.message)}
-         </td>
-       </tr>`;
-
-    showMessage(
-      "Students could not be loaded: " +
-      error.message,
-      "error"
-    );
-
-    return;
+    renderStudents();
+    updateStats();
   }
 
-  students =
-    data || [];
+  // ------------------------------------------------------------
+  // Search/filter
+  // ------------------------------------------------------------
 
-  updateStatistics();
-
-  renderStudents();
-}
-
-
-/* =========================================================
-   STATISTICS
-========================================================= */
-
-function updateStatistics() {
-  const total =
-    students.length;
-
-  const active =
-    students.filter(
-      s =>
-        s.status === "active"
-    ).length;
-
-  const graduated =
-    students.filter(
-      s =>
-        s.status ===
-        "graduated"
-    ).length;
-
-  const other =
-    total -
-    active -
-    graduated;
-
-  totalStudents.textContent =
-    total;
-
-  activeStudents.textContent =
-    active;
-
-  graduatedStudents.textContent =
-    graduated;
-
-  otherStudents.textContent =
-    other;
-}
-
-
-/* =========================================================
-   FILTER STUDENTS
-========================================================= */
-
-function getFilteredStudents() {
-  const search =
-    (
-      searchInput.value ||
-      ""
+  function getFilteredStudents() {
+    const term = String(
+      els.searchInput?.value ?? ""
     )
       .trim()
       .toLowerCase();
 
-  const status =
-    statusFilter.value;
+    if (!term) return students;
 
-  return students.filter(
-    (student) => {
+    return students.filter((student) => {
       const searchable = [
         student.student_id,
         student.full_name,
         student.phone,
         student.email,
-        student.gender
+        student.gender,
+        student.status,
+        student.login_username,
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
 
-      const matchesSearch =
-        !search ||
-        searchable.includes(
-          search
-        );
-
-      const matchesStatus =
-        !status ||
-        student.status === status;
-
-      return (
-        matchesSearch &&
-        matchesStatus
-      );
-    }
-  );
-}
-
-
-/* =========================================================
-   STATUS BADGE
-========================================================= */
-
-function statusBadge(status) {
-  const safeStatus =
-    status || "inactive";
-
-  const label =
-    safeStatus
-      .charAt(0)
-      .toUpperCase() +
-    safeStatus.slice(1);
-
-  return `
-    <span class="status status-${escapeHtml(
-      safeStatus
-    )}">
-      ${escapeHtml(label)}
-    </span>
-  `;
-}
-
-
-/* =========================================================
-   ACCOUNT BADGE
-========================================================= */
-
-function accountBadge(student) {
-  if (
-    student.auth_user_id
-  ) {
-    return `
-      <span class="status status-active">
-        Account Active
-      </span>
-    `;
+      return searchable.includes(term);
+    });
   }
 
-  return `
-    <span class="status status-inactive">
-      No Account
-    </span>
-  `;
-}
+  // ------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------
 
+  function renderStudents() {
+    const filtered = getFilteredStudents();
 
-/* =========================================================
-   PHOTO
-========================================================= */
-
-function studentPhoto(student) {
-  if (student.photo_url) {
-    return `
-      <img
-        class="student-photo"
-        src="${escapeHtml(
-          student.photo_url
-        )}"
-        alt="Student"
-        onerror="
-          this.style.display='none';
-          this.nextElementSibling.style.display='flex';
-        "
-      >
-      <div
-        class="initials"
-        style="display:none;"
-      >
-        ${getInitials(
-          student.full_name
-        )}
-      </div>
-    `;
-  }
-
-  return `
-    <div class="initials">
-      ${getInitials(
-        student.full_name
-      )}
-    </div>
-  `;
-}
-
-
-function getInitials(name) {
-  if (!name) return "👤";
-
-  const parts =
-    name.trim().split(/\s+/);
-
-  if (parts.length === 1) {
-    return parts[0]
-      .substring(0, 2)
-      .toUpperCase();
-  }
-
-  return (
-    parts[0][0] +
-    parts[parts.length - 1][0]
-  ).toUpperCase();
-}
-
-
-/* =========================================================
-   RENDER TABLE
-========================================================= */
-
-function renderStudents() {
-  const filtered =
-    getFilteredStudents();
-
-  if (!filtered.length) {
-    studentsTableBody.innerHTML =
-      `<tr>
-         <td colspan="10" class="empty">
-           No students found.
-         </td>
-       </tr>`;
-
-    return;
-  }
-
-  studentsTableBody.innerHTML =
-    filtered
-      .map(
-        (student) => `
+    if (!filtered.length) {
+      els.studentsTableBody.innerHTML = `
         <tr>
-
-          <td>
-            ${studentPhoto(student)}
+          <td colspan="10" class="empty">
+            No students found.
           </td>
-
-          <td>
-            <strong>
-              ${escapeHtml(
-                student.student_id ||
-                "—"
-              )}
-            </strong>
-          </td>
-
-          <td>
-            <strong>
-              ${escapeHtml(
-                student.full_name ||
-                "—"
-              )}
-            </strong>
-          </td>
-
-          <td>
-            ${escapeHtml(
-              student.gender ||
-              "—"
-            )}
-          </td>
-
-          <td>
-            ${escapeHtml(
-              student.phone ||
-              "—"
-            )}
-          </td>
-
-          <td>
-            ${escapeHtml(
-              student.email ||
-              "—"
-            )}
-          </td>
-
-          <td>
-            ${statusBadge(
-              student.status
-            )}
-          </td>
-
-          <td>
-            ${formatDate(
-              student.admission_date
-            )}
-          </td>
-
-          <td>
-            ${accountBadge(
-              student
-            )}
-          </td>
-
-          <td>
-
-            <div class="actions">
-
-              <button
-                type="button"
-                class="btn-small action-view"
-                onclick="
-                  viewStudent('${student.id}')
-                "
-              >
-                View
-              </button>
-
-              <button
-                type="button"
-                class="btn-small action-edit"
-                onclick="
-                  editStudent('${student.id}')
-                "
-              >
-                Edit
-              </button>
-
-              ${
-                student.auth_user_id
-                  ? `
-                    <button
-                      type="button"
-                      class="btn-small action-reset-password"
-                      onclick="
-                        resetStudentPassword(
-                          '${student.id}'
-                        )
-                      "
-                    >
-                      Reset Password
-                    </button>
-                  `
-                  : `
-                    <button
-                      type="button"
-                      class="btn-small action-create-account"
-                      onclick="
-                        createStudentAccount(
-                          '${student.id}'
-                        )
-                      "
-                    >
-                      Create Account
-                    </button>
-                  `
-              }
-
-              <button
-                type="button"
-                class="btn-small action-delete"
-                onclick="
-                  deleteStudent('${student.id}')
-                "
-              >
-                Delete
-              </button>
-
-            </div>
-
-          </td>
-
         </tr>
-      `
-      )
+      `;
+      return;
+    }
+
+    els.studentsTableBody.innerHTML = filtered
+      .map((student) => {
+        const photo = student.photo_url
+          ? `
+            <img
+              src="${escapeHtml(student.photo_url)}"
+              class="student-photo"
+              alt="Student photo"
+              onerror="this.outerHTML='${placeholderAvatar(
+                student.full_name
+              ).replaceAll("'", "&#039;")}'"
+            >
+          `
+          : placeholderAvatar(student.full_name);
+
+        return `
+          <tr>
+            <td>${photo}</td>
+
+            <td>
+              <strong>${escapeHtml(student.student_id)}</strong>
+            </td>
+
+            <td>
+              <strong>${escapeHtml(student.full_name)}</strong>
+            </td>
+
+            <td>${escapeHtml(student.gender || "—")}</td>
+
+            <td>${escapeHtml(student.phone || "—")}</td>
+
+            <td>${escapeHtml(student.email || "—")}</td>
+
+            <td>${statusBadge(student.status)}</td>
+
+            <td>${escapeHtml(
+              formatDate(student.admission_date)
+            )}</td>
+
+            <td>${accountBadge(student)}</td>
+
+            <td>
+              <div class="actions">
+
+                <button
+                  type="button"
+                  class="btn-small action-view"
+                  data-action="view"
+                  data-id="${escapeHtml(student.id)}"
+                >
+                  View
+                </button>
+
+                <button
+                  type="button"
+                  class="btn-small action-edit"
+                  data-action="edit"
+                  data-id="${escapeHtml(student.id)}"
+                >
+                  Edit
+                </button>
+
+                ${
+                  student.auth_user_id
+                    ? `
+                      <button
+                        type="button"
+                        class="btn-small action-reset-password"
+                        data-action="reset"
+                        data-id="${escapeHtml(student.id)}"
+                      >
+                        Reset Password
+                      </button>
+                    `
+                    : `
+                      <button
+                        type="button"
+                        class="btn-small action-create-account"
+                        data-action="create-account"
+                        data-id="${escapeHtml(student.id)}"
+                      >
+                        Create Account
+                      </button>
+                    `
+                }
+
+                <button
+                  type="button"
+                  class="btn-small action-delete"
+                  data-action="delete"
+                  data-id="${escapeHtml(student.id)}"
+                >
+                  Delete
+                </button>
+
+              </div>
+            </td>
+          </tr>
+        `;
+      })
       .join("");
-}
+  }
 
+  function updateStats() {
+    const total = students.length;
 
-/* =========================================================
-   IMAGE OPTIMIZATION
-========================================================= */
+    const active = students.filter(
+      (x) => String(x.status).toLowerCase() === "active"
+    ).length;
 
-function optimizeImage(file) {
-  return new Promise(
-    (resolve, reject) => {
-      if (!file) {
-        resolve(null);
-        return;
-      }
+    const graduated = students.filter(
+      (x) => String(x.status).toLowerCase() === "graduated"
+    ).length;
 
-      if (
-        file.size >
-        10 * 1024 * 1024
-      ) {
-        reject(
-          new Error(
-            "Photo must be less than 10MB."
-          )
-        );
+    const other = total - active - graduated;
 
-        return;
-      }
+    els.totalStudents.textContent = total;
+    els.activeStudents.textContent = active;
+    els.graduatedStudents.textContent = graduated;
+    els.otherStudents.textContent = other;
+  }
 
-      const reader =
-        new FileReader();
+  // ------------------------------------------------------------
+  // Photo
+  // ------------------------------------------------------------
 
-      reader.onload = () => {
-        const img =
-          new Image();
+  function previewPhoto() {
+    const file = els.photoInput?.files?.[0];
 
-        img.onload = () => {
-          const maxSize = 1200;
+    if (!file) {
+      clearPhotoPreview();
+      return;
+    }
 
-          let width =
-            img.width;
+    if (file.size > 10 * 1024 * 1024) {
+      els.photoInput.value = "";
+      showMessage(
+        "Photo is too large. Maximum size is 10MB.",
+        "error"
+      );
+      return;
+    }
 
-          let height =
-            img.height;
+    const reader = new FileReader();
 
-          if (
-            width > maxSize ||
-            height > maxSize
-          ) {
-            const ratio =
-              Math.min(
-                maxSize / width,
-                maxSize / height
-              );
+    reader.onload = () => {
+      els.photoPreview.src = reader.result;
+      els.photoPreview.style.display = "block";
+      els.photoPlaceholder.style.display = "none";
+    };
 
-            width =
-              Math.round(
-                width * ratio
-              );
+    reader.readAsDataURL(file);
+  }
 
-            height =
-              Math.round(
-                height * ratio
-              );
-          }
+  function clearPhotoPreview() {
+    els.photoPreview.removeAttribute("src");
+    els.photoPreview.style.display = "none";
+    els.photoPlaceholder.style.display = "block";
+  }
 
-          const canvas =
-            document.createElement(
-              "canvas"
-            );
+  async function uploadPhoto(studentDbId, file) {
+    if (!file) return null;
 
-          canvas.width =
-            width;
+    setProgress(35, "Optimizing student photo...");
 
-          canvas.height =
-            height;
+    const extension =
+      file.type === "image/png"
+        ? "png"
+        : file.type === "image/webp"
+        ? "webp"
+        : "jpg";
 
-          const ctx =
-            canvas.getContext(
-              "2d"
-            );
+    const path =
+      `students/${studentDbId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
-          ctx.drawImage(
-            img,
-            0,
-            0,
-            width,
-            height
-          );
+    const { error } = await supabase.storage
+      .from("student-photos")
+      .upload(path, file, {
+        upsert: false,
+        contentType: file.type,
+      });
 
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                reject(
-                  new Error(
-                    "Could not process image."
-                  )
-                );
-
-                return;
-              }
-
-              resolve(blob);
-            },
-            "image/jpeg",
-            0.82
-          );
-        };
-
-        img.onerror = () => {
-          reject(
-            new Error(
-              "Invalid image file."
-            )
-          );
-        };
-
-        img.src =
-          reader.result;
-      };
-
-      reader.onerror = () => {
-        reject(
-          new Error(
-            "Could not read image."
-          )
-        );
-      };
-
-      reader.readAsDataURL(
-        file
+    if (error) {
+      throw new Error(
+        `Photo upload failed: ${error.message}`
       );
     }
-  );
-}
 
-
-/* =========================================================
-   UPLOAD PHOTO
-========================================================= */
-
-async function uploadStudentPhoto(
-  file,
-  studentId
-) {
-  if (!file) {
-    return null;
-  }
-
-  const blob =
-    await optimizeImage(file);
-
-  const fileName =
-    `${studentId}-${Date.now()}.jpg`;
-
-  const path =
-    `students/${fileName}`;
-
-  const {
-    error
-  } =
-    await supabaseClient.storage
-      .from("student-photos")
-      .upload(
-        path,
-        blob,
-        {
-          contentType:
-            "image/jpeg",
-          upsert: true
-        }
-      );
-
-  if (error) {
-    throw new Error(
-      "Photo upload failed: " +
-      error.message
-    );
-  }
-
-  const {
-    data
-  } =
-    supabaseClient.storage
+    const { data } = supabase.storage
       .from("student-photos")
       .getPublicUrl(path);
 
-  return data.publicUrl;
-}
-
-
-/* =========================================================
-   SAVE STUDENT
-========================================================= */
-
-studentForm.addEventListener(
-  "submit",
-  async (event) => {
-    event.preventDefault();
-
-    if (isSaving) return;
-
-    clearMessage();
-
-    const institutionId =
-      institutionSelect.value;
-
-    const fullName =
-      fullNameInput.value.trim();
-
-    const admissionDate =
-      admissionDateInput.value;
-
-    if (!institutionId) {
-      showMessage(
-        "Please select an institution.",
-        "warning"
-      );
-
-      institutionSelect.focus();
-
-      return;
-    }
-
-    if (!fullName) {
-      showMessage(
-        "Full Name is required.",
-        "warning"
-      );
-
-      fullNameInput.focus();
-
-      return;
-    }
-
-    if (!admissionDate) {
-      showMessage(
-        "Admission Date is required.",
-        "warning"
-      );
-
-      admissionDateInput.focus();
-
-      return;
-    }
-
-    isSaving = true;
-
-    saveButton.disabled =
-      true;
-
-    showProgress(
-      10,
-      "Preparing student..."
-    );
-
-    try {
-      let studentId =
-        studentIdInput.value.trim();
-
-      if (!editStudentDbId.value) {
-        if (
-          !studentId ||
-          studentId ===
-            "Generating..."
-        ) {
-          studentId =
-            await generateStudentId();
-        }
-      }
-
-      showProgress(
-        30,
-        "Uploading photo..."
-      );
-
-      let photoUrl =
-        editingStudent?.photo_url ||
-        null;
-
-      if (
-        photoInput.files &&
-        photoInput.files[0]
-      ) {
-        photoUrl =
-          await uploadStudentPhoto(
-            photoInput.files[0],
-            studentId
-          );
-      }
-
-      showProgress(
-        65,
-        "Saving student record..."
-      );
-
-      const payload = {
-        institution_id:
-          institutionId,
-
-        student_id:
-          studentId,
-
-        full_name:
-          fullName,
-
-        gender:
-          genderInput.value ||
-          null,
-
-        date_of_birth:
-          dateOfBirthInput.value ||
-          null,
-
-        phone:
-          phoneInput.value.trim() ||
-          null,
-
-        email:
-          emailInput.value
-            .trim()
-            .toLowerCase() ||
-          null,
-
-        admission_date:
-          admissionDate,
-
-        status:
-          statusInput.value,
-
-        address:
-          addressInput.value.trim() ||
-          null,
-
-        photo_url:
-          photoUrl
-      };
-
-      let result;
-
-      if (editStudentDbId.value) {
-        result =
-          await supabaseClient
-            .from("students")
-            .update(payload)
-            .eq(
-              "id",
-              editStudentDbId.value
-            )
-            .select()
-            .single();
-      } else {
-        result =
-          await supabaseClient
-            .from("students")
-            .insert(payload)
-            .select()
-            .single();
-      }
-
-      if (result.error) {
-        throw result.error;
-      }
-
-      showProgress(
-        100,
-        "Student saved successfully."
-      );
-
-      showMessage(
-        editStudentDbId.value
-          ? "Student updated successfully."
-          : `Student created successfully. ID: ${studentId}`,
-        "success"
-      );
-
-      await loadStudents();
-
-      resetStudentForm();
-
-    } catch (error) {
-      console.error(
-        "SAVE STUDENT ERROR:",
-        error
-      );
-
-      showMessage(
-        error.message ||
-          "Student could not be saved.",
-        "error"
-      );
-
-    } finally {
-      isSaving = false;
-
-      saveButton.disabled =
-        false;
-
-      setTimeout(
-        hideProgress,
-        1200
-      );
-    }
-  }
-);
-
-
-/* =========================================================
-   EDIT STUDENT
-========================================================= */
-
-function editStudent(id) {
-  const student =
-    students.find(
-      s => String(s.id) === String(id)
-    );
-
-  if (!student) {
-    showMessage(
-      "Student not found.",
-      "error"
-    );
-
-    return;
+    return data.publicUrl;
   }
 
-  editingStudent =
-    student;
+  // ------------------------------------------------------------
+  // Form
+  // ------------------------------------------------------------
 
-  editStudentDbId.value =
-    student.id;
-
-  formTitle.textContent =
-    "Edit Student";
-
-  saveButton.textContent =
-    "Update Student";
-
-  institutionSelect.value =
-    student.institution_id || "";
-
-  studentIdInput.value =
-    student.student_id || "";
-
-  fullNameInput.value =
-    student.full_name || "";
-
-  genderInput.value =
-    student.gender || "";
-
-  dateOfBirthInput.value =
-    student.date_of_birth || "";
-
-  phoneInput.value =
-    student.phone || "";
-
-  emailInput.value =
-    student.email || "";
-
-  admissionDateInput.value =
-    student.admission_date || "";
-
-  statusInput.value =
-    student.status || "active";
-
-  addressInput.value =
-    student.address || "";
-
-  photoInput.value = "";
-
-  if (student.photo_url) {
-    photoPreview.src =
-      student.photo_url;
-
-    photoPreview.style.display =
-      "block";
-
-    photoPlaceholder.style.display =
-      "none";
-  } else {
-    photoPreview.removeAttribute(
-      "src"
-    );
-
-    photoPreview.style.display =
-      "none";
-
-    photoPlaceholder.style.display =
-      "block";
-  }
-
-  updateAccountControls(
-    student
-  );
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-}
-
-
-/* =========================================================
-   RESET FORM
-========================================================= */
-
-function resetStudentForm() {
-  editingStudent = null;
-
-  studentForm.reset();
-
-  editStudentDbId.value =
-    "";
-
-  formTitle.textContent =
-    "Add Student";
-
-  saveButton.textContent =
-    "Save Student";
-
-  photoPreview.removeAttribute(
-    "src"
-  );
-
-  photoPreview.style.display =
-    "none";
-
-  photoPlaceholder.style.display =
-    "block";
-
-  accountStatus.textContent =
-    "No Account";
-
-  accountStatus.className =
-    "status status-inactive";
-
-  createAccountButton.style.display =
-    "none";
-
-  resetPasswordButton.style.display =
-    "none";
-
-  hideProgress();
-
-  prepareNewStudentId();
-}
-
-
-resetFormButton.addEventListener(
-  "click",
-  () => {
-    resetStudentForm();
-  }
-);
-
-
-addStudentButton.addEventListener(
-  "click",
-  () => {
-    resetStudentForm();
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-  }
-);
-
-
-/* =========================================================
-   ACCOUNT CONTROLS
-========================================================= */
-
-function updateAccountControls(
-  student
-) {
-  if (!student) {
-    accountStatus.textContent =
-      "No Account";
-
-    accountStatus.className =
+  function resetAccountUI() {
+    els.accountStatus.textContent = "No Account";
+    els.accountStatus.className =
       "status status-inactive";
 
-    createAccountButton.style.display =
-      "none";
-
-    resetPasswordButton.style.display =
-      "none";
-
-    return;
+    els.createAccountButton.style.display = "none";
+    els.resetPasswordButton.style.display = "none";
   }
 
-  if (student.auth_user_id) {
-    accountStatus.textContent =
-      "Account Active";
-
-    accountStatus.className =
-      "status status-active";
-
-    createAccountButton.style.display =
-      "none";
-
-    resetPasswordButton.style.display =
-      "inline-flex";
-  } else {
-    accountStatus.textContent =
-      "No Account";
-
-    accountStatus.className =
-      "status status-inactive";
-
-    createAccountButton.style.display =
-      "inline-flex";
-
-    resetPasswordButton.style.display =
-      "none";
-  }
-}
-
-
-/* =========================================================
-   GET SUPER ADMIN SESSION
-========================================================= */
-
-async function getSuperAdminSession() {
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.auth
-      .getSession();
-
-  if (error) {
-    throw new Error(
-      "Could not read login session."
-    );
-  }
-
-  if (
-    !data ||
-    !data.session ||
-    !data.session.access_token
-  ) {
-    throw new Error(
-      "Super Admin session not found. Please login again."
-    );
-  }
-
-  return data.session;
-}
-
-
-/* =========================================================
-   VERIFY SUPER ADMIN
-========================================================= */
-
-async function verifySuperAdmin() {
-  const {
-    data,
-    error
-  } =
-    await supabaseClient.auth
-      .getUser();
-
-  if (error || !data.user) {
-    throw new Error(
-      "You are not logged in."
-    );
-  }
-
-  const role =
-    data.user.app_metadata?.role ||
-    data.user.user_metadata?.role ||
-    "";
-
-  if (
-    role !== "super_admin" &&
-    role !== "superadmin"
-  ) {
-    throw new Error(
-      "Super Admin access required."
-    );
-  }
-
-  return data.user;
-}
-
-
-/* =========================================================
-   EDGE FUNCTION CALL
-========================================================= */
-
-async function callStudentAccountFunction(
-  body
-) {
-  const session =
-    await getSuperAdminSession();
-
-  /*
-     We intentionally use fetch here
-     so the Authorization header is
-     completely visible and controlled.
-  */
-
-  const response =
-    await fetch(
-      `${SUPABASE_URL}/functions/v1/create-student-account`,
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type":
-            "application/json",
-
-          "apikey":
-            SUPABASE_ANON_KEY,
-
-          "Authorization":
-            `Bearer ${session.access_token}`
-        },
-
-        body:
-          JSON.stringify(body)
-      }
-    );
-
-  let result;
-
-  try {
-    result =
-      await response.json();
-  } catch {
-    throw new Error(
-      "Edge Function returned an invalid JSON response."
-    );
-  }
-
-  if (
-    !response.ok ||
-    !result.success
-  ) {
-    throw new Error(
-      result.error ||
-        "Student account operation failed."
-    );
-  }
-
-  return result;
-}
-
-
-/* =========================================================
-   CREATE STUDENT ACCOUNT
-========================================================= */
-
-async function createStudentAccount(
-  id = null
-) {
-  try {
-    await verifySuperAdmin();
-
-    let student;
-
-    if (id) {
-      student =
-        students.find(
-          s =>
-            String(s.id) ===
-            String(id)
-        );
-    } else {
-      student =
-        editingStudent;
-    }
-
+  function updateAccountUI(student) {
     if (!student) {
-      throw new Error(
-        "Please select a student first."
-      );
+      resetAccountUI();
+      return;
     }
 
     if (student.auth_user_id) {
+      els.accountStatus.textContent =
+        student.account_enabled
+          ? "Account Active"
+          : "Account Disabled";
+
+      els.accountStatus.className =
+        student.account_enabled
+          ? "status status-active"
+          : "status status-inactive";
+
+      els.createAccountButton.style.display = "none";
+      els.resetPasswordButton.style.display = "inline-flex";
+    } else {
+      els.accountStatus.textContent = "No Account";
+      els.accountStatus.className =
+        "status status-inactive";
+
+      els.createAccountButton.style.display =
+        "inline-flex";
+
+      els.resetPasswordButton.style.display = "none";
+    }
+  }
+
+  function clearForm() {
+    editingStudent = null;
+
+    els.form.reset();
+    els.editStudentDbId.value = "";
+    els.formTitle.textContent = "Add Student";
+    els.saveButton.textContent = "Save Student";
+
+    clearPhotoPreview();
+    resetAccountUI();
+
+    els.admissionDate.value = todayISO();
+    els.status.value = "active";
+
+    generateNextStudentId()
+      .then((id) => {
+        if (!editingStudent) {
+          els.studentId.value = id;
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        els.studentId.value = "";
+        showMessage(error.message, "error");
+      });
+
+    hideProgress();
+  }
+
+  function fillForm(student) {
+    editingStudent = student;
+
+    els.editStudentDbId.value = student.id;
+    els.institutionSelect.value =
+      student.institution_id ?? "";
+
+    els.studentId.value =
+      student.student_id ?? "";
+
+    els.fullName.value =
+      student.full_name ?? "";
+
+    els.gender.value =
+      student.gender ?? "";
+
+    els.dateOfBirth.value =
+      student.date_of_birth ?? "";
+
+    els.phone.value =
+      student.phone ?? "";
+
+    els.email.value =
+      student.email ?? "";
+
+    els.admissionDate.value =
+      student.admission_date ?? "";
+
+    els.status.value =
+      student.status ?? "active";
+
+    els.address.value =
+      student.address ?? "";
+
+    if (student.photo_url) {
+      els.photoPreview.src = student.photo_url;
+      els.photoPreview.style.display = "block";
+      els.photoPlaceholder.style.display = "none";
+    } else {
+      clearPhotoPreview();
+    }
+
+    els.formTitle.textContent =
+      `Edit Student — ${student.student_id}`;
+
+    els.saveButton.textContent =
+      "Update Student";
+
+    updateAccountUI(student);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function formData() {
+    return {
+      institution_id:
+        els.institutionSelect.value || null,
+
+      student_id:
+        els.studentId.value.trim(),
+
+      full_name:
+        els.fullName.value.trim(),
+
+      gender:
+        els.gender.value || null,
+
+      date_of_birth:
+        els.dateOfBirth.value || null,
+
+      phone:
+        els.phone.value.trim() || null,
+
+      email:
+        els.email.value.trim().toLowerCase() || null,
+
+      admission_date:
+        els.admissionDate.value,
+
+      status:
+        els.status.value,
+
+      address:
+        els.address.value.trim() || null,
+    };
+  }
+
+  // ------------------------------------------------------------
+  // Save student
+  // ------------------------------------------------------------
+
+  async function saveStudent(event) {
+    event.preventDefault();
+    hideMessage();
+
+    const values = formData();
+
+    if (!values.institution_id) {
       showMessage(
-        "This student already has an account.",
+        "Please select an institution.",
+        "error"
+      );
+      return;
+    }
+
+    if (!values.student_id) {
+      showMessage(
+        "Student ID could not be generated.",
+        "error"
+      );
+      return;
+    }
+
+    if (!values.full_name) {
+      showMessage(
+        "Full name is required.",
+        "error"
+      );
+      return;
+    }
+
+    if (!values.admission_date) {
+      showMessage(
+        "Admission date is required.",
+        "error"
+      );
+      return;
+    }
+
+    if (values.email) {
+      const emailOK =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+          values.email
+        );
+
+      if (!emailOK) {
+        showMessage(
+          "Please enter a valid email address.",
+          "error"
+        );
+        return;
+      }
+    }
+
+    els.saveButton.disabled = true;
+
+    try {
+      setProgress(15, "Saving student record...");
+
+      if (editingStudent) {
+        const { error } = await supabase
+          .from("students")
+          .update({
+            institution_id: values.institution_id,
+            full_name: values.full_name,
+            gender: values.gender,
+            date_of_birth: values.date_of_birth,
+            phone: values.phone,
+            email: values.email,
+            admission_date: values.admission_date,
+            status: values.status,
+            address: values.address,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editingStudent.id);
+
+        if (error) throw error;
+
+        const file = els.photoInput.files?.[0];
+
+        if (file) {
+          const photoUrl = await uploadPhoto(
+            editingStudent.id,
+            file
+          );
+
+          if (photoUrl) {
+            const { error: photoUpdateError } =
+              await supabase
+                .from("students")
+                .update({
+                  photo_url: photoUrl,
+                  updated_at:
+                    new Date().toISOString(),
+                })
+                .eq("id", editingStudent.id);
+
+            if (photoUpdateError) {
+              throw photoUpdateError;
+            }
+          }
+        }
+
+        showMessage(
+          "Student record updated successfully.",
+          "success"
+        );
+      } else {
+        const { data, error } = await supabase
+          .from("students")
+          .insert({
+            ...values,
+          })
+          .select("*")
+          .single();
+
+        if (error) throw error;
+
+        setProgress(30, "Student created. Uploading photo...");
+
+        const file = els.photoInput.files?.[0];
+
+        if (file) {
+          const photoUrl = await uploadPhoto(
+            data.id,
+            file
+          );
+
+          if (photoUrl) {
+            const { error: photoUpdateError } =
+              await supabase
+                .from("students")
+                .update({
+                  photo_url: photoUrl,
+                  updated_at:
+                    new Date().toISOString(),
+                })
+                .eq("id", data.id);
+
+            if (photoUpdateError) {
+              throw photoUpdateError;
+            }
+          }
+        }
+
+        showMessage(
+          `Student ${data.student_id} created successfully.`,
+          "success"
+        );
+      }
+
+      setProgress(100, "Completed.");
+      await loadStudents();
+
+      setTimeout(() => {
+        clearForm();
+      }, 300);
+    } catch (error) {
+      console.error("SAVE STUDENT ERROR:", error);
+
+      showMessage(
+        error?.message ||
+          "Student could not be saved.",
+        "error"
+      );
+    } finally {
+      els.saveButton.disabled = false;
+      setTimeout(hideProgress, 500);
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Student account dialogs
+  // ------------------------------------------------------------
+
+  function generateTemporaryPassword() {
+    const chars =
+      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+
+    return Array.from(bytes, (byte) =>
+      chars[byte % chars.length]
+    ).join("");
+  }
+
+  function askPassword(title) {
+    const generated = generateTemporaryPassword();
+
+    const password = window.prompt(
+      `${title}\n\nEnter a password with at least 8 characters.\n\nSuggested temporary password:\n${generated}`,
+      generated
+    );
+
+    if (password === null) return null;
+
+    const value = password.trim();
+
+    if (value.length < 8) {
+      showMessage(
+        "Password must contain at least 8 characters.",
+        "error"
+      );
+      return null;
+    }
+
+    return value;
+  }
+
+  async function createStudentAccount(student) {
+    if (!student?.id) return;
+
+    if (student.auth_user_id) {
+      showMessage(
+        "This student already has an account. Use Reset Password.",
         "warning"
       );
-
       return;
     }
 
     if (!student.email) {
       showMessage(
-        "Student email is required before creating a login account.",
+        "Add a valid student email first, then save the student.",
         "warning"
       );
-
-      editStudent(
-        student.id
-      );
-
-      emailInput.focus();
-
       return;
     }
 
-    /*
-       Generate password locally.
-       It is sent only through HTTPS
-       to the Edge Function.
-    */
+    const password = askPassword(
+      `Create login account for ${student.full_name}`
+    );
 
-    const password =
-      prompt(
-        `Create password for ${student.full_name}\n\nMinimum 8 characters:`
+    if (!password) return;
+
+    const confirmed = window.confirm(
+      `Create student login account?\n\nStudent: ${student.full_name}\nID: ${student.student_id}\nEmail: ${student.email}`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setProgress(
+        20,
+        "Verifying Super Admin and creating account..."
       );
 
-    if (password === null) {
-      return;
-    }
+      const result = await callAccountFunction({
+        action: "create",
+        student_db_id: student.id,
+        student_id: student.student_id,
+        email: student.email,
+        full_name: student.full_name,
+        password,
+      });
 
-    if (
-      password.length < 8
-    ) {
+      setProgress(
+        100,
+        "Student login account created."
+      );
+
       showMessage(
-        "Password must contain at least 8 characters.",
-        "warning"
+        `${result.message}\n\nUsername: ${student.email}\nTemporary password: ${password}`,
+        "success"
       );
 
-      return;
-    }
+      await loadStudents();
 
-    showProgress(
-      25,
-      "Verifying Super Admin..."
-    );
-
-    const result =
-      await callStudentAccountFunction(
-        {
-          action: "create",
-
-          student_id:
-            student.student_id,
-
-          student_db_id:
-            student.id,
-
-          email:
-            student.email,
-
-          password,
-
-          full_name:
-            student.full_name
-        }
+      const fresh = students.find(
+        (x) => x.id === student.id
       );
 
-    showProgress(
-      100,
-      "Account created successfully."
-    );
-
-    showMessage(
-      `Student account created successfully for ${student.full_name}.`,
-      "success"
-    );
-
-    /*
-       Password is intentionally NOT
-       displayed in the page after creation.
-    */
-
-    await loadStudents();
-
-    const updated =
-      students.find(
-        s =>
-          String(s.id) ===
-          String(student.id)
+      if (fresh) {
+        updateAccountUI(fresh);
+        editingStudent = fresh;
+      }
+    } catch (error) {
+      console.error(
+        "CREATE STUDENT ACCOUNT ERROR:",
+        error
       );
 
-    if (updated) {
-      editStudent(
-        updated.id
-      );
-    }
-
-  } catch (error) {
-    console.error(
-      "CREATE ACCOUNT ERROR:",
-      error
-    );
-
-    showMessage(
-      error.message ||
-        "Could not create student account.",
-      "error"
-    );
-  } finally {
-    setTimeout(
-      hideProgress,
-      1500
-    );
-  }
-}
-
-
-/* =========================================================
-   RESET PASSWORD
-========================================================= */
-
-async function resetStudentPassword(
-  id = null
-) {
-  try {
-    await verifySuperAdmin();
-
-    const student =
-      students.find(
-        s =>
-          String(s.id) ===
-          String(id)
-      );
-
-    if (!student) {
-      throw new Error(
-        "Student not found."
-      );
-    }
-
-    if (!student.auth_user_id) {
-      throw new Error(
-        "This student has no login account."
-      );
-    }
-
-    const password =
-      prompt(
-        `Enter a NEW password for ${student.full_name}\n\nMinimum 8 characters:`
-      );
-
-    if (password === null) {
-      return;
-    }
-
-    if (
-      password.length < 8
-    ) {
       showMessage(
-        "Password must contain at least 8 characters.",
+        error?.message ||
+          "Student account could not be created.",
+        "error"
+      );
+    } finally {
+      setTimeout(hideProgress, 800);
+    }
+  }
+
+  async function resetStudentPassword(student) {
+    if (!student?.auth_user_id) {
+      showMessage(
+        "This student has no login account.",
         "warning"
       );
-
       return;
     }
 
-    showProgress(
-      30,
-      "Resetting password..."
+    const password = askPassword(
+      `Reset password for ${student.full_name}`
     );
 
-    await callStudentAccountFunction(
-      {
-        action:
-          "reset_password",
+    if (!password) return;
 
-        student_db_id:
-          student.id,
-
-        password
-      }
+    const confirmed = window.confirm(
+      `Reset password for ${student.full_name}?\n\nStudent ID: ${student.student_id}`
     );
 
-    showProgress(
-      100,
-      "Password reset successfully."
-    );
+    if (!confirmed) return;
 
-    showMessage(
-      `Password reset successfully for ${student.full_name}.`,
-      "success"
-    );
+    try {
+      setProgress(
+        20,
+        "Resetting student password..."
+      );
 
-  } catch (error) {
-    console.error(
-      "RESET PASSWORD ERROR:",
-      error
-    );
+      const result = await callAccountFunction({
+        action: "reset",
+        student_db_id: student.id,
+        student_id: student.student_id,
+        password,
+      });
 
-    showMessage(
-      error.message ||
-        "Password reset failed.",
-      "error"
-    );
-  } finally {
-    setTimeout(
-      hideProgress,
-      1500
-    );
-  }
-}
+      setProgress(
+        100,
+        "Password reset successfully."
+      );
 
+      showMessage(
+        `${result.message}\n\nNew temporary password: ${password}`,
+        "success"
+      );
 
-/* =========================================================
-   VIEW STUDENT
-========================================================= */
+      await loadStudents();
+    } catch (error) {
+      console.error(
+        "RESET PASSWORD ERROR:",
+        error
+      );
 
-function viewStudent(id) {
-  const student =
-    students.find(
-      s =>
-        String(s.id) ===
-        String(id)
-    );
-
-  if (!student) {
-    showMessage(
-      "Student not found.",
-      "error"
-    );
-
-    return;
-  }
-
-  const institution =
-    institutions.find(
-      i =>
-        String(i.id) ===
-        String(
-          student.institution_id
-        )
-    );
-
-  const institutionName =
-    institution?.name ||
-    "—";
-
-  profileContent.innerHTML = `
-    <div class="profile-top">
-
-      ${
-        student.photo_url
-          ? `
-            <img
-              class="profile-photo"
-              src="${escapeHtml(
-                student.photo_url
-              )}"
-              alt="Student"
-            >
-          `
-          : `
-            <div
-              class="profile-photo"
-              style="font-size:32px;"
-            >
-              ${getInitials(
-                student.full_name
-              )}
-            </div>
-          `
-      }
-
-      <div>
-
-        <div class="profile-name">
-          ${escapeHtml(
-            student.full_name
-          )}
-        </div>
-
-        <div class="profile-id">
-          ${escapeHtml(
-            student.student_id ||
-            "—"
-          )}
-        </div>
-
-        <div style="margin-top:8px;">
-          ${statusBadge(
-            student.status
-          )}
-        </div>
-
-      </div>
-
-    </div>
-
-    <div class="profile-grid">
-
-      <div class="profile-item">
-        <strong>Institution</strong>
-        <span>
-          ${escapeHtml(
-            institutionName
-          )}
-        </span>
-      </div>
-
-      <div class="profile-item">
-        <strong>Student ID</strong>
-        <span>
-          ${escapeHtml(
-            student.student_id ||
-            "—"
-          )}
-        </span>
-      </div>
-
-      <div class="profile-item">
-        <strong>Gender</strong>
-        <span>
-          ${escapeHtml(
-            student.gender ||
-            "—"
-          )}
-        </span>
-      </div>
-
-      <div class="profile-item">
-        <strong>Date of Birth</strong>
-        <span>
-          ${formatDate(
-            student.date_of_birth
-          )}
-        </span>
-      </div>
-
-      <div class="profile-item">
-        <strong>Phone</strong>
-        <span>
-          ${escapeHtml(
-            student.phone ||
-            "—"
-          )}
-        </span>
-      </div>
-
-      <div class="profile-item">
-        <strong>Email</strong>
-        <span>
-          ${escapeHtml(
-            student.email ||
-            "—"
-          )}
-        </span>
-      </div>
-
-      <div class="profile-item">
-        <strong>Admission Date</strong>
-        <span>
-          ${formatDate(
-            student.admission_date
-          )}
-        </span>
-      </div>
-
-      <div class="profile-item">
-        <strong>Account</strong>
-        <span>
-          ${
-            student.auth_user_id
-              ? "Active"
-              : "No Account"
-          }
-        </span>
-      </div>
-
-      <div
-        class="profile-item"
-        style="grid-column:1/-1;"
-      >
-        <strong>Address</strong>
-        <span>
-          ${escapeHtml(
-            student.address ||
-            "—"
-          )}
-        </span>
-      </div>
-
-    </div>
-  `;
-
-  profileModal.classList.add(
-    "show"
-  );
-
-  profileModal.setAttribute(
-    "aria-hidden",
-    "false"
-  );
-}
-
-
-/* =========================================================
-   CLOSE PROFILE
-========================================================= */
-
-function closeProfile() {
-  profileModal.classList.remove(
-    "show"
-  );
-
-  profileModal.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-}
-
-
-closeProfileModal.addEventListener(
-  "click",
-  closeProfile
-);
-
-
-profileModal.addEventListener(
-  "click",
-  (event) => {
-    if (
-      event.target ===
-      profileModal
-    ) {
-      closeProfile();
+      showMessage(
+        error?.message ||
+          "Password could not be reset.",
+        "error"
+      );
+    } finally {
+      setTimeout(hideProgress, 800);
     }
   }
-);
 
+  // ------------------------------------------------------------
+  // Delete
+  // ------------------------------------------------------------
 
-/* =========================================================
-   DELETE STUDENT
-========================================================= */
+  async function deleteStudent(student) {
+    if (!student?.id) return;
 
-async function deleteStudent(
-  id
-) {
-  const student =
-    students.find(
-      s =>
-        String(s.id) ===
-        String(id)
+    const confirmed = window.confirm(
+      `DELETE STUDENT?\n\n${student.full_name}\n${student.student_id}\n\nThis removes the student record.`
     );
 
-  if (!student) {
-    showMessage(
-      "Student not found.",
-      "error"
-    );
+    if (!confirmed) return;
 
-    return;
-  }
-
-  const confirmed =
-    confirm(
-      `Delete student "${student.full_name}" (${student.student_id})?\n\nThis action cannot be undone.`
-    );
-
-  if (!confirmed) {
-    return;
-  }
-
-  try {
-    await verifySuperAdmin();
-
-    /*
-       NOTE:
-       Database RLS must permit the
-       Super Admin to delete students.
-    */
-
-    const {
-      error
-    } =
-      await supabaseClient
+    try {
+      const { error } = await supabase
         .from("students")
         .delete()
-        .eq(
-          "id",
-          student.id
-        );
+        .eq("id", student.id);
 
-    if (error) {
-      throw error;
-    }
+      if (error) throw error;
 
-    showMessage(
-      "Student deleted successfully.",
-      "success"
-    );
-
-    await loadStudents();
-
-    resetStudentForm();
-
-  } catch (error) {
-    console.error(
-      "DELETE STUDENT ERROR:",
-      error
-    );
-
-    showMessage(
-      error.message ||
-        "Could not delete student.",
-      "error"
-    );
-  }
-}
-
-
-/* =========================================================
-   PHOTO PREVIEW
-========================================================= */
-
-photoInput.addEventListener(
-  "change",
-  () => {
-    const file =
-      photoInput.files?.[0];
-
-    if (!file) {
-      photoPreview.removeAttribute(
-        "src"
+      showMessage(
+        "Student deleted successfully.",
+        "success"
       );
 
-      photoPreview.style.display =
-        "none";
+      await loadStudents();
 
-      photoPlaceholder.style.display =
-        "block";
+      if (editingStudent?.id === student.id) {
+        clearForm();
+      }
+    } catch (error) {
+      console.error("DELETE STUDENT ERROR:", error);
 
-      return;
-    }
-
-    if (
-      file.size >
-      10 * 1024 * 1024
-    ) {
       showMessage(
-        "Photo must be less than 10MB.",
+        `Student could not be deleted: ${error.message}`,
+        "error"
+      );
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Profile modal
+  // ------------------------------------------------------------
+
+  function showProfile(student) {
+    const photo = student.photo_url
+      ? `
+        <img
+          src="${escapeHtml(student.photo_url)}"
+          class="profile-photo"
+          alt="Student photo"
+        >
+      `
+      : placeholderAvatar(student.full_name);
+
+    els.profileContent.innerHTML = `
+      <div class="profile-top">
+        ${photo}
+
+        <div>
+          <div class="profile-name">
+            ${escapeHtml(student.full_name)}
+          </div>
+
+          <div class="profile-id">
+            ${escapeHtml(student.student_id)}
+          </div>
+
+          <div style="margin-top:8px;">
+            ${statusBadge(student.status)}
+            ${accountBadge(student)}
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-grid">
+
+        <div class="profile-item">
+          <strong>Institution ID</strong>
+          <span>${escapeHtml(
+            student.institution_id || "—"
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Gender</strong>
+          <span>${escapeHtml(
+            student.gender || "—"
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Date of Birth</strong>
+          <span>${escapeHtml(
+            formatDate(student.date_of_birth)
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Phone</strong>
+          <span>${escapeHtml(
+            student.phone || "—"
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Email</strong>
+          <span>${escapeHtml(
+            student.email || "—"
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Admission Date</strong>
+          <span>${escapeHtml(
+            formatDate(student.admission_date)
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Login Username</strong>
+          <span>${escapeHtml(
+            student.login_username || "—"
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Account Created</strong>
+          <span>${escapeHtml(
+            formatDate(student.account_created_at)
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Last Login</strong>
+          <span>${escapeHtml(
+            formatDate(student.last_login_at)
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Address</strong>
+          <span>${escapeHtml(
+            student.address || "—"
+          )}</span>
+        </div>
+
+      </div>
+    `;
+
+    els.profileModal.classList.add("show");
+    els.profileModal.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+  }
+
+  function closeProfile() {
+    els.profileModal.classList.remove("show");
+    els.profileModal.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+  }
+
+  // ------------------------------------------------------------
+  // Table actions
+  // ------------------------------------------------------------
+
+  async function handleTableAction(event) {
+    const button = event.target.closest(
+      "button[data-action]"
+    );
+
+    if (!button) return;
+
+    const action = button.dataset.action;
+    const id = button.dataset.id;
+
+    const student = students.find(
+      (x) => x.id === id
+    );
+
+    if (!student) {
+      showMessage(
+        "Student record is no longer available. Refresh the page.",
         "warning"
       );
-
-      photoInput.value = "";
-
       return;
     }
 
-    const reader =
-      new FileReader();
+    if (action === "view") {
+      showProfile(student);
+      return;
+    }
 
-    reader.onload =
+    if (action === "edit") {
+      fillForm(student);
+      return;
+    }
+
+    if (action === "create-account") {
+      await createStudentAccount(student);
+      return;
+    }
+
+    if (action === "reset") {
+      await resetStudentPassword(student);
+      return;
+    }
+
+    if (action === "delete") {
+      await deleteStudent(student);
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Events
+  // ------------------------------------------------------------
+
+  function bindEvents() {
+    els.form?.addEventListener(
+      "submit",
+      saveStudent
+    );
+
+    els.photoInput?.addEventListener(
+      "change",
+      previewPhoto
+    );
+
+    els.resetFormButton?.addEventListener(
+      "click",
+      () => {
+        clearForm();
+        hideMessage();
+      }
+    );
+
+    els.addStudentButton?.addEventListener(
+      "click",
+      () => {
+        clearForm();
+
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      }
+    );
+
+    els.refreshStudentsButton?.addEventListener(
+      "click",
+      async () => {
+        await loadStudents();
+      }
+    );
+
+    els.statusFilter?.addEventListener(
+      "change",
+      loadStudents
+    );
+
+    els.searchInput?.addEventListener(
+      "input",
+      () => {
+        clearTimeout(searchTimer);
+
+        searchTimer = setTimeout(
+          renderStudents,
+          120
+        );
+      }
+    );
+
+    els.studentsTableBody?.addEventListener(
+      "click",
+      handleTableAction
+    );
+
+    els.createAccountButton?.addEventListener(
+      "click",
+      async () => {
+        if (editingStudent) {
+          await createStudentAccount(
+            editingStudent
+          );
+        }
+      }
+    );
+
+    els.resetPasswordButton?.addEventListener(
+      "click",
+      async () => {
+        if (editingStudent) {
+          await resetStudentPassword(
+            editingStudent
+          );
+        }
+      }
+    );
+
+    els.closeProfileModal?.addEventListener(
+      "click",
+      closeProfile
+    );
+
+    els.profileModal?.addEventListener(
+      "click",
       (event) => {
-        photoPreview.src =
-          event.target.result;
+        if (event.target === els.profileModal) {
+          closeProfile();
+        }
+      }
+    );
 
-        photoPreview.style.display =
-          "block";
+    document.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key === "Escape") {
+          closeProfile();
+        }
+      }
+    );
 
-        photoPlaceholder.style.display =
-          "none";
-      };
-
-    reader.readAsDataURL(
-      file
+    supabase.auth.onAuthStateChange(
+      (event) => {
+        if (
+          event === "SIGNED_OUT" ||
+          event === "TOKEN_REFRESHED"
+        ) {
+          if (event === "SIGNED_OUT") {
+            showMessage(
+              "Your login session has ended. Please login again.",
+              "warning"
+            );
+          }
+        }
+      }
     );
   }
-);
 
+  // ------------------------------------------------------------
+  // Startup
+  // ------------------------------------------------------------
 
-/* =========================================================
-   SEARCH
-========================================================= */
-
-searchInput.addEventListener(
-  "input",
-  renderStudents
-);
-
-
-statusFilter.addEventListener(
-  "change",
-  renderStudents
-);
-
-
-/* =========================================================
-   REFRESH
-========================================================= */
-
-refreshStudentsButton.addEventListener(
-  "click",
-  async () => {
+  async function init() {
     try {
+      hideMessage();
+
+      const session = await getSessionOrThrow();
+
+      console.log(
+        "GAAWOW Students V6 session:",
+        session.user.id
+      );
+
+      bindEvents();
+
       await loadInstitutions();
 
       await loadStudents();
 
-      showMessage(
-        "Student records refreshed.",
-        "success"
-      );
-
+      clearForm();
     } catch (error) {
-      console.error(error);
-    }
-  }
-);
+      console.error("STUDENTS INIT ERROR:", error);
 
-
-/* =========================================================
-   PROGRESS
-========================================================= */
-
-function showProgress(
-  percent,
-  text
-) {
-  progressWrap.style.display =
-    "block";
-
-  progressBar.style.width =
-    `${percent}%`;
-
-  progressText.textContent =
-    text;
-}
-
-
-function hideProgress() {
-  progressWrap.style.display =
-    "none";
-
-  progressBar.style.width =
-    "0%";
-
-  progressText.textContent =
-    "";
-}
-
-
-/* =========================================================
-   ACCOUNT BUTTONS
-========================================================= */
-
-createAccountButton.addEventListener(
-  "click",
-  () => {
-    createStudentAccount();
-  }
-);
-
-
-resetPasswordButton.addEventListener(
-  "click",
-  () => {
-    resetStudentPassword(
-      editStudentDbId.value
-    );
-  }
-);
-
-
-/* =========================================================
-   AUTH STATE
-========================================================= */
-
-supabaseClient.auth.onAuthStateChange(
-  async (
-    event,
-    session
-  ) => {
-    console.log(
-      "AUTH EVENT:",
-      event
-    );
-
-    if (!session) {
       showMessage(
-        "Your login session has expired. Please login again.",
-        "warning"
+        error?.message ||
+          "Unable to initialize Students page.",
+        "error"
       );
+
+      if (els.studentsTableBody) {
+        els.studentsTableBody.innerHTML = `
+          <tr>
+            <td colspan="10" class="empty">
+              Login session required.
+            </td>
+          </tr>
+        `;
+      }
     }
   }
-);
 
-
-/* =========================================================
-   INITIALIZE
-========================================================= */
-
-async function initializeStudentsPage() {
-  try {
-    clearMessage();
-
-    /*
-       Verify Super Admin before
-       loading management data.
-    */
-
-    await verifySuperAdmin();
-
-    await loadInstitutions();
-
-    await loadStudents();
-
-    await prepareNewStudentId();
-
-  } catch (error) {
-    console.error(
-      "INITIALIZATION ERROR:",
-      error
-    );
-
-    studentsTableBody.innerHTML =
-      `<tr>
-        <td
-          colspan="10"
-          class="empty"
-        >
-          Access denied or login session expired.
-          <br>
-          ${escapeHtml(
-            error.message
-          )}
-        </td>
-      </tr>`;
-
-    showMessage(
-      error.message ||
-        "Unable to initialize Students page.",
-      "error"
-    );
-  }
-}
-
-
-/* =========================================================
-   START
-========================================================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-    initializeStudentsPage();
-  }
-);
+  init();
+})();
