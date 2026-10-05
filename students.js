@@ -12,8 +12,41 @@
 (() => {
   "use strict";
 
-  function boot() {
-    if (!window.supabase || typeof window.supabase.createClient !== "function") {
+  async function ensureSupabaseBrowser() {
+    if (window.supabase && typeof window.supabase.createClient === "function") {
+      return true;
+    }
+
+    const existing = document.querySelector('script[data-gaawow-supabase-loader="true"]');
+    if (existing) {
+      await new Promise((resolve) => {
+        let done = false;
+        const finish = () => { if (!done) { done = true; resolve(); } };
+        existing.addEventListener("load", finish, { once: true });
+        existing.addEventListener("error", finish, { once: true });
+        setTimeout(finish, 8000);
+      });
+      return !!(window.supabase && typeof window.supabase.createClient === "function");
+    }
+
+    await new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js";
+      script.async = true;
+      script.dataset.gaawowSupabaseLoader = "true";
+      script.onload = resolve;
+      script.onerror = resolve;
+      document.head.appendChild(script);
+      setTimeout(resolve, 10000);
+    });
+
+    return !!(window.supabase && typeof window.supabase.createClient === "function");
+  }
+
+  async function boot() {
+    const supabaseReady = await ensureSupabaseBrowser();
+
+    if (!supabaseReady) {
       console.error("GAAWOW Students: Supabase browser library is not loaded.");
       const message = document.getElementById("message");
       if (message) {
@@ -24,9 +57,11 @@
       return;
     }
 
-  const SUPABASE_URL = 'https://mytyvqwrxnxpxnxpiicj.supabase.co';
+  const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-  const SUPABASE_ANON_KEY = 'sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145';
+  const SUPABASE_ANON_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
   const ACCOUNT_FUNCTION_URL =
     `${SUPABASE_URL}/functions/v1/create-student-account`;
@@ -244,19 +279,18 @@
     if (!els.progressWrap) return;
 
     els.progressWrap.style.display = "block";
-    els.progressBar.style.width = `${Math.max(
-      0,
-      Math.min(100, percent)
-    )}%`;
-    els.progressText.textContent = text;
+    if (els.progressBar) {
+      els.progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+    }
+    if (els.progressText) els.progressText.textContent = text;
   }
 
   function hideProgress() {
     if (!els.progressWrap) return;
 
     els.progressWrap.style.display = "none";
-    els.progressBar.style.width = "0%";
-    els.progressText.textContent = "";
+    if (els.progressBar) els.progressBar.style.width = "0%";
+    if (els.progressText) els.progressText.textContent = "";
   }
 
   function formatDate(value) {
@@ -766,18 +800,22 @@
     const reader = new FileReader();
 
     reader.onload = () => {
-      els.photoPreview.src = reader.result;
-      els.photoPreview.style.display = "block";
-      els.photoPlaceholder.style.display = "none";
+      if (els.photoPreview) {
+        els.photoPreview.src = reader.result;
+        els.photoPreview.style.display = "block";
+      }
+      if (els.photoPlaceholder) els.photoPlaceholder.style.display = "none";
     };
 
     reader.readAsDataURL(file);
   }
 
   function clearPhotoPreview() {
-    els.photoPreview.removeAttribute("src");
-    els.photoPreview.style.display = "none";
-    els.photoPlaceholder.style.display = "block";
+    if (els.photoPreview) {
+      els.photoPreview.removeAttribute("src");
+      els.photoPreview.style.display = "none";
+    }
+    if (els.photoPlaceholder) els.photoPlaceholder.style.display = "block";
   }
 
   async function uploadPhoto(studentDbId, file) {
@@ -820,12 +858,12 @@
   // ------------------------------------------------------------
 
   function resetAccountUI() {
-    els.accountStatus.textContent = "No Account";
-    els.accountStatus.className =
-      "status status-inactive";
-
-    els.createAccountButton.style.display = "none";
-    els.resetPasswordButton.style.display = "none";
+    if (els.accountStatus) {
+      els.accountStatus.textContent = "No Account";
+      els.accountStatus.className = "status status-inactive";
+    }
+    if (els.createAccountButton) els.createAccountButton.style.display = "none";
+    if (els.resetPasswordButton) els.resetPasswordButton.style.display = "none";
   }
 
   function updateAccountUI(student) {
@@ -835,53 +873,45 @@
     }
 
     if (student.auth_user_id) {
-      els.accountStatus.textContent =
-        student.account_enabled
-          ? "Account Active"
-          : "Account Disabled";
-
-      els.accountStatus.className =
-        student.account_enabled
+      if (els.accountStatus) {
+        els.accountStatus.textContent = student.account_enabled ? "Account Active" : "Account Disabled";
+        els.accountStatus.className = student.account_enabled
           ? "status status-active"
           : "status status-inactive";
-
-      els.createAccountButton.style.display = "none";
-      els.resetPasswordButton.style.display = "inline-flex";
+      }
+      if (els.createAccountButton) els.createAccountButton.style.display = "none";
+      if (els.resetPasswordButton) els.resetPasswordButton.style.display = "inline-flex";
     } else {
-      els.accountStatus.textContent = "No Account";
-      els.accountStatus.className =
-        "status status-inactive";
-
-      els.createAccountButton.style.display =
-        "inline-flex";
-
-      els.resetPasswordButton.style.display = "none";
+      if (els.accountStatus) {
+        els.accountStatus.textContent = "No Account";
+        els.accountStatus.className = "status status-inactive";
+      }
+      if (els.createAccountButton) els.createAccountButton.style.display = "inline-flex";
+      if (els.resetPasswordButton) els.resetPasswordButton.style.display = "none";
     }
   }
 
   function clearForm() {
     editingStudent = null;
 
-    els.form.reset();
-    els.editStudentDbId.value = "";
-    els.formTitle.textContent = "Add Student";
-    els.saveButton.textContent = "Save Student";
+    if (els.form) els.form.reset();
+    if (els.editStudentDbId) els.editStudentDbId.value = "";
+    if (els.formTitle) els.formTitle.textContent = "Add Student";
+    if (els.saveButton) els.saveButton.textContent = "Save Student";
 
     clearPhotoPreview();
     resetAccountUI();
 
-    els.admissionDate.value = todayISO();
-    els.status.value = "active";
+    if (els.admissionDate) els.admissionDate.value = todayISO();
+    if (els.status) els.status.value = "active";
 
     generateNextStudentId()
       .then((id) => {
-        if (!editingStudent) {
-          els.studentId.value = id;
-        }
+        if (!editingStudent && els.studentId) els.studentId.value = id;
       })
       .catch((error) => {
         console.error(error);
-        els.studentId.value = "";
+        if (els.studentId) els.studentId.value = "";
         showMessage(error.message, "error");
       });
 
@@ -891,50 +921,37 @@
   function fillForm(student) {
     editingStudent = student;
 
-    els.editStudentDbId.value = student.id;
-    els.institutionSelect.value =
-      student.institution_id ?? "";
+    if (els.editStudentDbId) els.editStudentDbId.value = student.id;
+    if (els.institutionSelect) els.institutionSelect.value = student.institution_id ?? "";
 
-    els.studentId.value =
-      student.student_id ?? "";
+    if (els.studentId) els.studentId.value = student.student_id ?? "";
 
-    els.fullName.value =
-      student.full_name ?? "";
+    if (els.fullName) els.fullName.value = student.full_name ?? "";
 
-    els.gender.value =
-      student.gender ?? "";
+    if (els.gender) els.gender.value = student.gender ?? "";
 
-    els.dateOfBirth.value =
-      student.date_of_birth ?? "";
+    if (els.dateOfBirth) els.dateOfBirth.value = student.date_of_birth ?? "";
 
-    els.phone.value =
-      student.phone ?? "";
+    if (els.phone) els.phone.value = student.phone ?? "";
 
-    els.email.value =
-      student.email ?? "";
+    if (els.email) els.email.value = student.email ?? "";
 
-    els.admissionDate.value =
-      student.admission_date ?? "";
+    if (els.admissionDate) els.admissionDate.value = student.admission_date ?? "";
 
-    els.status.value =
-      student.status ?? "active";
+    if (els.status) els.status.value = student.status ?? "active";
 
-    els.address.value =
-      student.address ?? "";
+    if (els.address) els.address.value = student.address ?? "";
 
     if (student.photo_url) {
-      els.photoPreview.src = student.photo_url;
-      els.photoPreview.style.display = "block";
-      els.photoPlaceholder.style.display = "none";
+      if (els.photoPreview) { els.photoPreview.src = student.photo_url; els.photoPreview.style.display = "block"; }
+      if (els.photoPlaceholder) els.photoPlaceholder.style.display = "none";
     } else {
       clearPhotoPreview();
     }
 
-    els.formTitle.textContent =
-      `Edit Student — ${student.student_id}`;
+    if (els.formTitle) els.formTitle.textContent = `Edit Student — ${student.student_id}`;
 
-    els.saveButton.textContent =
-      "Update Student";
+    if (els.saveButton) els.saveButton.textContent = "Update Student";
 
     updateAccountUI(student);
 
@@ -945,36 +962,18 @@
   }
 
   function formData() {
+    const value = (el, fallback = "") => el ? el.value : fallback;
     return {
-      institution_id:
-        els.institutionSelect.value || null,
-
-      student_id:
-        els.studentId.value.trim(),
-
-      full_name:
-        els.fullName.value.trim(),
-
-      gender:
-        els.gender.value || null,
-
-      date_of_birth:
-        els.dateOfBirth.value || null,
-
-      phone:
-        els.phone.value.trim() || null,
-
-      email:
-        els.email.value.trim().toLowerCase() || null,
-
-      admission_date:
-        els.admissionDate.value,
-
-      status:
-        els.status.value,
-
-      address:
-        els.address.value.trim() || null,
+      institution_id: value(els.institutionSelect) || null,
+      student_id: value(els.studentId).trim(),
+      full_name: value(els.fullName).trim(),
+      gender: value(els.gender) || null,
+      date_of_birth: value(els.dateOfBirth) || null,
+      phone: value(els.phone).trim() || null,
+      email: value(els.email).trim().toLowerCase() || null,
+      admission_date: value(els.admissionDate),
+      status: value(els.status),
+      address: value(els.address).trim() || null,
     };
   }
 
@@ -1035,7 +1034,7 @@
       }
     }
 
-    els.saveButton.disabled = true;
+    if (els.saveButton) els.saveButton.disabled = true;
 
     try {
       setProgress(15, "Saving student record...");
@@ -1059,7 +1058,7 @@
 
         if (error) throw error;
 
-        const file = els.photoInput.files?.[0];
+        const file = els.photoInput?.files?.[0];
 
         if (file) {
           const photoUrl = await uploadPhoto(
@@ -1101,7 +1100,7 @@
 
         setProgress(30, "Student created. Uploading photo...");
 
-        const file = els.photoInput.files?.[0];
+        const file = els.photoInput?.files?.[0];
 
         if (file) {
           const photoUrl = await uploadPhoto(
@@ -1147,7 +1146,7 @@
         "error"
       );
     } finally {
-      els.saveButton.disabled = false;
+      if (els.saveButton) els.saveButton.disabled = false;
       setTimeout(hideProgress, 500);
     }
   }
@@ -1380,6 +1379,11 @@
   // ------------------------------------------------------------
 
   function showProfile(student) {
+    if (!els.profileContent || !els.profileModal) {
+      showMessage("Student profile modal is not available in this HTML.", "error");
+      return;
+    }
+
     const photo = student.photo_url
       ? `
         <img
@@ -1493,11 +1497,9 @@
   }
 
   function closeProfile() {
+    if (!els.profileModal) return;
     els.profileModal.classList.remove("show");
-    els.profileModal.setAttribute(
-      "aria-hidden",
-      "true"
-    );
+    els.profileModal.setAttribute("aria-hidden", "true");
   }
 
   // ------------------------------------------------------------
@@ -1687,10 +1689,7 @@
 
       const session = await getSessionOrThrow();
 
-      console.log(
-        "GAAWOW Students V6 session:",
-        session.user.id
-      );
+      console.log("GAAWOW Students V6 session:", session.user.id);
 
       bindEvents();
       ensureResponsiveStudentTable();
@@ -1725,8 +1724,10 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot, { once: true });
+    document.addEventListener("DOMContentLoaded", () => {
+      boot().catch((error) => console.error("GAAWOW Students boot error:", error));
+    }, { once: true });
   } else {
-    boot();
+    boot().catch((error) => console.error("GAAWOW Students boot error:", error));
   }
 })();
