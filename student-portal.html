@@ -20,1852 +20,415 @@
 
   <title>Student Portal | GAAWOW ACADEMY</title>
 
-  <link
-    rel="preconnect"
-    href="https://fonts.googleapis.com"
-  >
+  <link rel="stylesheet" href="student-portal.css">
 
-  <link
-    rel="preconnect"
-    href="https://fonts.gstatic.com"
-    crossorigin
-  >
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-    rel="stylesheet"
-  >
-
-  <style>
-    /* =========================================================
-       GAAWOW ACADEMY
-       STUDENT PORTAL V6
-       ========================================================= */
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    :root {
-      --navy: #0B1E63;
-      --blue: #0B4DA2;
-      --blue-light: #EEF4FF;
-      --gold: #D4AF37;
-      --green: #16A34A;
-      --red: #DC2626;
-      --purple: #7C3AED;
-
-      --text: #172033;
-      --muted: #64748B;
-      --border: #E2E8F0;
-      --white: #FFFFFF;
-      --bg: #F5F7FB;
-
-      --shadow:
-        0 10px 30px rgba(11, 30, 99, .08);
-
-      --shadow-sm:
-        0 6px 18px rgba(15, 23, 42, .06);
-
-      --radius: 18px;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      font-family:
-        Inter,
-        Arial,
-        Helvetica,
-        sans-serif;
-
-      background:
-        linear-gradient(
-          135deg,
-          #F7F9FC 0%,
-          #EEF3FA 55%,
-          #FFFFFF 100%
-        );
-
-      color: var(--text);
-      min-height: 100vh;
-      line-height: 1.5;
-    }
-
-    button {
-      font-family: inherit;
-    }
-
-    img {
-      max-width: 100%;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-
-    /* =========================================================
-       LOADING
-       ========================================================= */
-
-    .portal-loading {
-      min-height: 100vh;
-
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-
-      text-align: center;
-      padding: 25px;
-    }
-
-    .portal-loading h3 {
-      color: var(--navy);
-      margin-top: 18px;
-      font-size: 20px;
-    }
-
-    .portal-loading p {
-      color: var(--muted);
-      font-size: 13px;
-      margin-top: 5px;
-    }
-
-    .loader {
-      width: 52px;
-      height: 52px;
-
-      border: 5px solid #E2E8F0;
-      border-top-color: var(--gold);
-      border-right-color: var(--blue);
-
-      border-radius: 50%;
-
-      animation:
-        portalSpin .8s linear infinite;
-    }
-
-    @keyframes portalSpin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-
-    /* =========================================================
-       PORTAL APP
-       ========================================================= */
-
-    .portal-app {
-      min-height: 100vh;
-    }
-
-
-    /* =========================================================
-       TOPBAR
-       ========================================================= */
-
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-
-      background:
-        linear-gradient(
-          135deg,
-          var(--navy),
-          var(--blue)
-        );
-
-      color: #fff;
-
-      padding:
-        14px
-        max(18px, calc((100% - 1240px) / 2));
-
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      gap: 20px;
-
-      box-shadow:
-        0 7px 25px rgba(11, 30, 99, .22);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 0;
-    }
-
-    .brand img {
-      width: 52px;
-      height: 52px;
-
-      object-fit: contain;
-
-      background: #fff;
-      border-radius: 12px;
-      padding: 5px;
-
-      flex-shrink: 0;
-    }
-
-    .brand-text {
-      min-width: 0;
-    }
-
-    .brand strong {
-      display: block;
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: .3px;
-    }
-
-    .brand span {
-      display: block;
-      margin-top: 2px;
-      font-size: 11px;
-      opacity: .82;
-    }
-
-    .top-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    #studentNameTop,
-    #studentName {
-      font-size: 12px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .logout-btn {
-      border: 1px solid rgba(212,175,55,.9);
-
-      background: transparent;
-      color: var(--gold);
-
-      padding: 9px 15px;
-
-      border-radius: 999px;
-
-      font-size: 12px;
-      font-weight: 800;
-
-      cursor: pointer;
-
-      transition: .2s;
-    }
-
-    .logout-btn:hover {
-      background: var(--gold);
-      color: var(--navy);
-    }
-
-
-    /* =========================================================
-       CONTAINER
-       ========================================================= */
-
-    .portal-container {
-      width: min(1240px, 94%);
-      margin: 0 auto;
-
-      padding:
-        30px 0 45px;
-    }
-
-
-    /* =========================================================
-       MESSAGE
-       ========================================================= */
-
-    .message {
-      display: none;
-
-      margin-bottom: 20px;
-
-      padding: 14px 16px;
-
-      border-radius: 12px;
-
-      font-size: 13px;
-      font-weight: 600;
-
-      border: 1px solid transparent;
-    }
-
-    .message.info {
-      display: block;
-      background: #EFF6FF;
-      color: #1D4ED8;
-      border-color: #BFDBFE;
-    }
-
-    .message.success {
-      display: block;
-      background: #ECFDF5;
-      color: #15803D;
-      border-color: #BBF7D0;
-    }
-
-    .message.error {
-      display: block;
-      background: #FEF2F2;
-      color: #B91C1C;
-      border-color: #FECACA;
-    }
-
-
-    /* =========================================================
-       WELCOME
-       ========================================================= */
-
-    .welcome-card {
-      position: relative;
-      overflow: hidden;
-
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      gap: 25px;
-
-      background:
-        linear-gradient(
-          135deg,
-          #FFFFFF,
-          #F7FAFF
-        );
-
-      border:
-        1px solid var(--border);
-
-      border-radius: 22px;
-
-      padding: 30px;
-
-      box-shadow: var(--shadow);
-
-      margin-bottom: 22px;
-    }
-
-    .welcome-card::before {
-      content: "";
-
-      position: absolute;
-
-      left: 0;
-      top: 0;
-
-      width: 5px;
-      height: 100%;
-
-      background:
-        linear-gradient(
-          #D4AF37,
-          #0B4DA2
-        );
-    }
-
-    .welcome-content {
-      min-width: 0;
-    }
-
-    .welcome-card small {
-      display: block;
-
-      color: var(--gold);
-
-      font-size: 11px;
-      font-weight: 800;
-
-      letter-spacing: 1.5px;
-
-      margin-bottom: 7px;
-    }
-
-    .welcome-card h1 {
-      color: var(--navy);
-
-      font-size: 28px;
-      line-height: 1.2;
-
-      margin-bottom: 7px;
-
-      word-break: break-word;
-    }
-
-    .welcome-card p {
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .student-number {
-      min-width: 180px;
-
-      background:
-        linear-gradient(
-          135deg,
-          #0B1E63,
-          #0B4DA2
-        );
-
-      color: #fff;
-
-      padding: 17px 20px;
-
-      border-radius: 15px;
-
-      box-shadow:
-        0 8px 20px rgba(11,30,99,.15);
-    }
-
-    .student-number span {
-      display: block;
-
-      font-size: 10px;
-      opacity: .75;
-
-      text-transform: uppercase;
-      letter-spacing: .8px;
-
-      margin-bottom: 5px;
-    }
-
-    .student-number strong {
-      display: block;
-
-      color: #fff;
-
-      font-size: 18px;
-
-      word-break: break-word;
-    }
-
-
-    /* =========================================================
-       ACCOUNT STATUS
-       ========================================================= */
-
-    .account-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      gap: 15px;
-
-      background: #fff;
-
-      border:
-        1px solid var(--border);
-
-      border-radius: 15px;
-
-      padding: 13px 17px;
-
-      margin-bottom: 22px;
-
-      box-shadow: var(--shadow-sm);
-    }
-
-    .account-bar-label {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .account-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-
-      font-size: 11px;
-      font-weight: 800;
-
-      padding: 7px 12px;
-
-      border-radius: 999px;
-
-      background: #ECFDF5;
-      color: #15803D;
-    }
-
-    .account-status::before {
-      content: "";
-
-      width: 7px;
-      height: 7px;
-
-      border-radius: 50%;
-
-      background: var(--green);
-    }
-
-    .account-status.inactive {
-      background: #FEF2F2;
-      color: #B91C1C;
-    }
-
-    .account-status.inactive::before {
-      background: var(--red);
-    }
-
-
-    /* =========================================================
-       DASHBOARD STATS
-       ========================================================= */
-
-    .dashboard-grid {
-      display: grid;
-
-      grid-template-columns:
-        repeat(3, minmax(0, 1fr));
-
-      gap: 16px;
-
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      position: relative;
-
-      display: flex;
-      align-items: center;
-
-      gap: 14px;
-
-      background: #fff;
-
-      border:
-        1px solid var(--border);
-
-      border-radius: 17px;
-
-      padding: 19px;
-
-      box-shadow: var(--shadow-sm);
-
-      overflow: hidden;
-    }
-
-    .stat-card::before {
-      content: "";
-
-      position: absolute;
-
-      top: 0;
-      left: 0;
-
-      width: 100%;
-      height: 3px;
-
-      background: var(--blue);
-    }
-
-    .stat-card:nth-child(2)::before {
-      background: var(--gold);
-    }
-
-    .stat-card:nth-child(3)::before {
-      background: var(--green);
-    }
-
-    .stat-icon {
-      width: 45px;
-      height: 45px;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      background: var(--blue-light);
-
-      border-radius: 13px;
-
-      font-size: 21px;
-
-      flex-shrink: 0;
-    }
-
-    .stat-card small {
-      display: block;
-
-      color: var(--muted);
-
-      font-size: 11px;
-
-      margin-bottom: 2px;
-    }
-
-    .stat-card strong {
-      color: var(--navy);
-
-      display: block;
-
-      font-size: 25px;
-      line-height: 1.1;
-    }
-
-
-    /* =========================================================
-       CONTENT CARD
-       ========================================================= */
-
-    .content-card {
-      background: #fff;
-
-      border:
-        1px solid var(--border);
-
-      border-radius: var(--radius);
-
-      padding: 23px;
-
-      box-shadow: var(--shadow-sm);
-
-      margin-bottom: 22px;
-    }
-
-    .section-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      gap: 15px;
-
-      margin-bottom: 20px;
-    }
-
-    .eyebrow {
-      display: block;
-
-      color: var(--gold);
-
-      font-size: 10px;
-      font-weight: 800;
-
-      letter-spacing: 1.4px;
-
-      margin-bottom: 4px;
-    }
-
-    .section-header h2 {
-      color: var(--navy);
-
-      font-size: 20px;
-      line-height: 1.25;
-    }
-
-
-    /* =========================================================
-       PROFILE
-       ========================================================= */
-
-    .profile-grid {
-      display: grid;
-
-      grid-template-columns:
-        160px minmax(0, 1fr);
-
-      gap: 25px;
-
-      align-items: start;
-    }
-
-    .profile-photo {
-      display: flex;
-      justify-content: center;
-    }
-
-    .profile-photo img {
-      width: 145px;
-      height: 145px;
-
-      object-fit: cover;
-
-      border-radius: 18px;
-
-      border:
-        4px solid #fff;
-
-      outline:
-        1px solid var(--border);
-
-      box-shadow:
-        0 8px 22px rgba(15,23,42,.12);
-
-      background: #F8FAFC;
-    }
-
-    .profile-fields {
-      display: grid;
-
-      grid-template-columns:
-        repeat(2, minmax(0, 1fr));
-
-      gap: 13px;
-    }
-
-    .field {
-      background: #F8FAFC;
-
-      border:
-        1px solid #E8EDF4;
-
-      border-radius: 12px;
-
-      padding: 13px 14px;
-
-      min-width: 0;
-    }
-
-    .field span {
-      display: block;
-
-      color: var(--muted);
-
-      font-size: 10px;
-
-      text-transform: uppercase;
-
-      letter-spacing: .5px;
-
-      margin-bottom: 4px;
-    }
-
-    .field strong {
-      display: block;
-
-      color: #1E293B;
-
-      font-size: 13px;
-
-      word-break: break-word;
-    }
-
-
-    /* =========================================================
-       ACADEMIC INFORMATION
-       ========================================================= */
-
-    .academic-summary-grid {
-      display: grid;
-
-      grid-template-columns:
-        repeat(3, minmax(0, 1fr));
-
-      gap: 13px;
-
-      margin-top: 3px;
-    }
-
-    .academic-item {
-      position: relative;
-
-      background:
-        linear-gradient(
-          135deg,
-          #F8FAFF,
-          #FFFFFF
-        );
-
-      border:
-        1px solid #E1E8F2;
-
-      border-radius: 14px;
-
-      padding: 16px;
-
-      min-width: 0;
-
-      overflow: hidden;
-    }
-
-    .academic-item::before {
-      content: "";
-
-      position: absolute;
-
-      left: 0;
-      top: 0;
-
-      width: 3px;
-      height: 100%;
-
-      background: var(--blue);
-    }
-
-    .academic-item:nth-child(2)::before {
-      background: var(--gold);
-    }
-
-    .academic-item:nth-child(3)::before {
-      background: var(--purple);
-    }
-
-    .academic-item:nth-child(4)::before {
-      background: var(--green);
-    }
-
-    .academic-item:nth-child(5)::before {
-      background: #0891B2;
-    }
-
-    .academic-item:nth-child(6)::before {
-      background: var(--gold);
-    }
-
-    .academic-item span {
-      display: block;
-
-      color: var(--muted);
-
-      font-size: 10px;
-
-      text-transform: uppercase;
-
-      letter-spacing: .5px;
-
-      margin-bottom: 5px;
-    }
-
-    .academic-item strong {
-      display: block;
-
-      color: var(--navy);
-
-      font-size: 14px;
-
-      line-height: 1.35;
-
-      word-break: break-word;
-    }
-
-    .academic-status {
-      color: var(--green) !important;
-      text-transform: capitalize;
-    }
-
-    #academicInformation,
-    #studentAcademicSummary {
-      width: 100%;
-    }
-
-
-    /* =========================================================
-       RESULTS / GRADES
-       ========================================================= */
-
-    .table-wrapper,
-    .grades-table-wrap {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .data-table,
-    .student-grades-table {
-      width: 100%;
-
-      border-collapse: collapse;
-
-      min-width: 650px;
-
-      font-size: 12px;
-    }
-
-    .data-table th,
-    .student-grades-table th {
-      background: var(--navy);
-
-      color: #fff;
-
-      padding: 11px 10px;
-
-      text-align: left;
-
-      font-size: 10px;
-
-      text-transform: uppercase;
-
-      letter-spacing: .3px;
-    }
-
-    .data-table td,
-    .student-grades-table td {
-      padding: 11px 10px;
-
-      border-bottom:
-        1px solid var(--border);
-
-      color: #334155;
-    }
-
-    .data-table tbody tr:nth-child(even),
-    .student-grades-table tbody tr:nth-child(even) {
-      background: #F8FAFC;
-    }
-
-    .data-table tbody tr:last-child td,
-    .student-grades-table tbody tr:last-child td {
-      border-bottom: 0;
-    }
-
-
-    /* =========================================================
-       EMPTY STATE
-       ========================================================= */
-
-    .empty-message,
-    .empty-state {
-      padding: 22px;
-
-      text-align: center;
-
-      color: var(--muted);
-
-      background: #F8FAFC;
-
-      border:
-        1px dashed #CBD5E1;
-
-      border-radius: 13px;
-
-      font-size: 12px;
-    }
-
-
-    /* =========================================================
-       CERTIFICATES
-       ========================================================= */
-
-    .certificate-list {
-      display: grid;
-
-      grid-template-columns:
-        repeat(2, minmax(0, 1fr));
-
-      gap: 13px;
-    }
-
-    .certificate-item {
-      position: relative;
-
-      display: flex;
-      flex-direction: column;
-
-      gap: 5px;
-
-      background:
-        linear-gradient(
-          135deg,
-          #FFFCF1,
-          #FFFFFF
-        );
-
-      border:
-        1px solid #E9E2C8;
-
-      border-radius: 14px;
-
-      padding: 17px;
-
-      overflow: hidden;
-    }
-
-    .certificate-item::before {
-      content: "";
-
-      position: absolute;
-
-      left: 0;
-      top: 0;
-
-      width: 4px;
-      height: 100%;
-
-      background: var(--gold);
-    }
-
-    .certificate-item strong {
-      color: var(--navy);
-
-      font-size: 13px;
-    }
-
-    .certificate-item span {
-      color: var(--green);
-
-      font-size: 11px;
-
-      font-weight: 700;
-
-      text-transform: capitalize;
-    }
-
-    .certificate-item small {
-      color: var(--muted);
-
-      font-size: 10px;
-    }
-
-
-    /* =========================================================
-       PAYMENTS
-       ========================================================= */
-
-    .payments-list {
-      display: grid;
-
-      grid-template-columns:
-        repeat(2, minmax(0, 1fr));
-
-      gap: 13px;
-    }
-
-    .payment-item {
-      display: flex;
-      flex-direction: column;
-
-      gap: 5px;
-
-      background: #F8FAFC;
-
-      border:
-        1px solid var(--border);
-
-      border-radius: 14px;
-
-      padding: 16px;
-    }
-
-    .payment-item strong {
-      color: var(--navy);
-      font-size: 17px;
-    }
-
-    .payment-item span {
-      color: var(--green);
-
-      font-size: 11px;
-      font-weight: 700;
-
-      text-transform: capitalize;
-    }
-
-    .payment-item small {
-      color: var(--muted);
-      font-size: 10px;
-    }
-
-
-    /* =========================================================
-       NOTIFICATIONS
-       ========================================================= */
-
-    .notifications-list {
-      display: flex;
-      flex-direction: column;
-
-      gap: 10px;
-    }
-
-    .notification-item {
-      padding: 14px;
-
-      border-radius: 12px;
-
-      background: #F8FAFC;
-
-      border:
-        1px solid var(--border);
-
-      font-size: 12px;
-    }
-
-    .notification-item.unread {
-      background: #EFF6FF;
-      border-color: #BFDBFE;
-    }
-
-    .notification-item strong {
-      color: var(--navy);
-      display: block;
-      margin-bottom: 3px;
-    }
-
-    .notification-item p {
-      color: var(--muted);
-    }
-
-    .secondary-btn {
-      border:
-        1px solid #CBD5E1;
-
-      background: #fff;
-
-      color: var(--navy);
-
-      padding: 9px 13px;
-
-      border-radius: 9px;
-
-      font-size: 11px;
-      font-weight: 800;
-
-      cursor: pointer;
-    }
-
-    .secondary-btn:hover {
-      border-color: var(--blue);
-      background: var(--blue-light);
-    }
-
-
-    /* =========================================================
-       EXTRA ACCOUNT INFORMATION
-       ========================================================= */
-
-    .account-details {
-      display: grid;
-
-      grid-template-columns:
-        repeat(2, minmax(0, 1fr));
-
-      gap: 13px;
-    }
-
-
-    /* =========================================================
-       FOOTER
-       ========================================================= */
-
-    .portal-footer {
-      background: var(--navy);
-
-      color: #fff;
-
-      text-align: center;
-
-      padding: 27px 20px;
-
-      margin-top: 30px;
-    }
-
-    .portal-footer strong {
-      display: block;
-
-      font-size: 15px;
-
-      margin-bottom: 4px;
-    }
-
-    .portal-footer span {
-      display: block;
-
-      color: #D4AF37;
-
-      font-size: 12px;
-
-      margin-bottom: 5px;
-    }
-
-    .portal-footer small {
-      display: block;
-
-      opacity: .7;
-
-      font-size: 10px;
-    }
-
-
-    /* =========================================================
-       RESPONSIVE
-       ========================================================= */
-
-    @media (max-width: 1000px) {
-
-      .academic-summary-grid {
-        grid-template-columns:
-          repeat(2, minmax(0, 1fr));
-      }
-
-      .certificate-list,
-      .payments-list {
-        grid-template-columns:
-          1fr;
-      }
-    }
-
-
-    @media (max-width: 750px) {
-
-      .topbar {
-        padding:
-          12px 15px;
-      }
-
-      .brand img {
-        width: 45px;
-        height: 45px;
-      }
-
-      .brand strong {
-        font-size: 14px;
-      }
-
-      .brand span {
-        font-size: 9px;
-      }
-
-      #studentNameTop,
-      #studentName {
-        display: none;
-      }
-
-      .logout-btn {
-        padding:
-          8px 12px;
-
-        font-size: 10px;
-      }
-
-      .portal-container {
-        width: 92%;
-
-        padding-top: 22px;
-      }
-
-      .welcome-card {
-        flex-direction: column;
-
-        align-items: stretch;
-
-        padding: 23px;
-      }
-
-      .welcome-card h1 {
-        font-size: 23px;
-      }
-
-      .student-number {
-        width: 100%;
-      }
-
-      .dashboard-grid {
-        grid-template-columns:
-          repeat(3, minmax(0, 1fr));
-
-        gap: 10px;
-      }
-
-      .stat-card {
-        padding: 14px;
-
-        flex-direction: column;
-
-        align-items: flex-start;
-
-        gap: 8px;
-      }
-
-      .stat-icon {
-        width: 39px;
-        height: 39px;
-        font-size: 18px;
-      }
-
-      .stat-card strong {
-        font-size: 21px;
-      }
-
-      .content-card {
-        padding: 17px;
-      }
-
-      .profile-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .profile-photo {
-        justify-content: flex-start;
-      }
-
-      .profile-photo img {
-        width: 120px;
-        height: 120px;
-      }
-
-      .profile-fields {
-        grid-template-columns:
-          1fr;
-      }
-
-      .academic-summary-grid {
-        grid-template-columns:
-          1fr;
-      }
-
-      .account-details {
-        grid-template-columns:
-          1fr;
-      }
-    }
-
-
-    @media (max-width: 480px) {
-
-      .dashboard-grid {
-        grid-template-columns:
-          1fr;
-      }
-
-      .stat-card {
-        flex-direction: row;
-        align-items: center;
-      }
-
-      .section-header {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .account-bar {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-    }
-
-  </style>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 
 <body>
 
-  <!-- =========================================================
-       LOADING SCREEN
-       ========================================================= -->
+<!-- =========================================================
+     LOADING
+========================================================= -->
 
-  <div
-    id="portalLoading"
-    class="portal-loading"
+<div
+  id="portalLoading"
+  class="portal-loading"
+>
+
+  <div class="loader"></div>
+
+  <h3>
+    Loading Student Portal...
+  </h3>
+
+  <p>
+    Please wait while your student information is loaded.
+  </p>
+
+</div>
+
+
+<!-- =========================================================
+     PORTAL APP
+========================================================= -->
+
+<div
+  id="studentPortal"
+  class="portal-app"
+>
+
+  <!-- =======================================================
+       TOPBAR
+  ======================================================== -->
+
+  <header class="topbar">
+
+    <div class="brand">
+
+      <img
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
+      >
+
+      <div class="brand-text">
+
+        <strong>
+          GAAWOW ACADEMY
+        </strong>
+
+        <span>
+          Student Portal
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <div class="top-actions">
+
+      <div class="student-top-name">
+
+        <span>
+          Welcome
+        </span>
+
+        <strong id="studentName">
+          Student
+        </strong>
+
+      </div>
+
+
+      <button
+        id="logoutBtn"
+        class="logout-btn"
+        type="button"
+      >
+        Logout
+      </button>
+
+    </div>
+
+  </header>
+
+
+  <!-- =======================================================
+       MAIN
+  ======================================================== -->
+
+  <main
+    id="portalContent"
+    class="portal-container"
   >
 
-    <div class="loader"></div>
 
-    <h3>
-      Loading Student Portal...
-    </h3>
+    <!-- =====================================================
+         MESSAGE
+    ====================================================== -->
 
-    <p>
-      Please wait while your academic information is loaded.
-    </p>
-
-  </div>
-
-
-  <!-- =========================================================
-       PORTAL
-       ========================================================= -->
-
-  <div
-    id="portalApp"
-    class="portal-app hidden"
-  >
+    <div
+      id="portalMessage"
+      class="message"
+      style="display:none;"
+    ></div>
 
 
-    <!-- =======================================================
-         HEADER
-         ======================================================= -->
+    <!-- =====================================================
+         WELCOME CARD
+    ====================================================== -->
 
-    <header class="topbar">
+    <section class="welcome-card">
 
-      <div class="brand">
+      <div class="welcome-content">
 
-        <img
-          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-          alt="GAAWOW Academy Logo"
-        >
+        <span class="eyebrow">
+          STUDENT PORTAL
+        </span>
 
-        <div class="brand-text">
+        <h1 id="welcomeStudentName">
+          Student
+        </h1>
 
-          <strong>
-            GAAWOW ACADEMY
-          </strong>
+        <p>
+          Ilayska Aqoonta iyo Xirfadda
+        </p>
 
-          <span>
-            Student Portal
-          </span>
+      </div>
 
+
+      <div class="welcome-student-id">
+
+        <span>
+          Student ID
+        </span>
+
+        <strong id="studentNumber">
+          —
+        </strong>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         STUDENT OVERVIEW
+    ====================================================== -->
+
+    <section class="dashboard-grid">
+
+
+      <!-- RESULTS -->
+
+      <article class="stat-card">
+
+        <div class="stat-icon">
+          📊
         </div>
 
-      </div>
-
-
-      <div class="top-actions">
-
-        <span id="studentNameTop">
-          Student
-        </span>
-
-        <!-- Compatibility ID -->
-        <span
-          id="studentName"
-          class="hidden"
-        >
-          Student
-        </span>
-
-        <button
-          id="logoutBtn"
-          class="logout-btn"
-          type="button"
-        >
-          Logout
-        </button>
-
-      </div>
-
-    </header>
-
-
-    <!-- =======================================================
-         MAIN
-         ======================================================= -->
-
-    <main
-      id="studentPortal"
-      class="portal-container"
-    >
-
-
-      <!-- =====================================================
-           MESSAGE
-           ===================================================== -->
-
-      <div
-        id="portalMessage"
-        class="message"
-        style="display:none"
-      ></div>
-
-
-      <!-- =====================================================
-           WELCOME
-           ===================================================== -->
-
-      <section class="welcome-card">
-
-        <div class="welcome-content">
+        <div class="stat-content">
 
           <small>
-            WELCOME BACK
+            Results
           </small>
 
-          <h1 id="welcomeStudentName">
-            Student
-          </h1>
-
-          <p>
-            Ilayska Aqoonta iyo Xirfadda
-          </p>
-
-        </div>
-
-
-        <div class="student-number">
-
-          <span>
-            Student ID
-          </span>
-
-          <strong id="studentNumber">
-            —
+          <strong id="resultsCount">
+            0
           </strong>
 
         </div>
 
-      </section>
+      </article>
 
 
-      <!-- =====================================================
-           ACCOUNT STATUS
-           ===================================================== -->
+      <!-- CERTIFICATES -->
 
-      <section class="account-bar">
+      <article class="stat-card">
 
-        <span class="account-bar-label">
-          Student Account Status
-        </span>
+        <div class="stat-icon">
+          🎓
+        </div>
 
-        <span
-          id="accountStatus"
-          class="account-status active"
-        >
-          Active
-        </span>
+        <div class="stat-content">
 
-      </section>
+          <small>
+            Certificates
+          </small>
 
-
-      <!-- =====================================================
-           DASHBOARD STATS
-           ===================================================== -->
-
-      <section class="dashboard-grid">
-
-        <article class="stat-card">
-
-          <span class="stat-icon">
-            📚
-          </span>
-
-          <div>
-
-            <small>
-              Results
-            </small>
-
-            <strong id="resultsCount">
-              0
-            </strong>
-
-          </div>
-
-        </article>
-
-
-        <article class="stat-card">
-
-          <span class="stat-icon">
-            🎓
-          </span>
-
-          <div>
-
-            <small>
-              Certificates
-            </small>
-
-            <strong id="certificatesCount">
-              0
-            </strong>
-
-          </div>
-
-        </article>
-
-
-        <article class="stat-card">
-
-          <span class="stat-icon">
-            🔔
-          </span>
-
-          <div>
-
-            <small>
-              Notifications
-            </small>
-
-            <strong id="notificationsCount">
-              0
-            </strong>
-
-          </div>
-
-        </article>
-
-      </section>
-
-
-      <!-- =====================================================
-           STUDENT PROFILE
-           ===================================================== -->
-
-      <section class="content-card">
-
-        <div class="section-header">
-
-          <div>
-
-            <span class="eyebrow">
-              MY PROFILE
-            </span>
-
-            <h2>
-              Student Information
-            </h2>
-
-          </div>
+          <strong id="certificatesCount">
+            0
+          </strong>
 
         </div>
 
+      </article>
 
-        <div class="profile-grid">
+
+      <!-- PAYMENTS -->
+
+      <article class="stat-card">
+
+        <div class="stat-icon">
+          💳
+        </div>
+
+        <div class="stat-content">
+
+          <small>
+            Payments
+          </small>
+
+          <strong id="paymentsCount">
+            0
+          </strong>
+
+        </div>
+
+      </article>
 
 
-          <!-- PHOTO -->
+      <!-- ACCOUNT -->
+
+      <article class="stat-card">
+
+        <div class="stat-icon">
+          🔐
+        </div>
+
+        <div class="stat-content">
+
+          <small>
+            Account
+          </small>
+
+          <strong
+            id="accountStatus"
+            class="active"
+          >
+            Active
+          </strong>
+
+        </div>
+
+      </article>
+
+    </section>
+
+
+    <!-- =====================================================
+         STUDENT PROFILE
+    ====================================================== -->
+
+    <section class="content-card">
+
+      <div class="section-header">
+
+        <div>
+
+          <span class="eyebrow">
+            MY PROFILE
+          </span>
+
+          <h2>
+            Student Information
+          </h2>
+
+        </div>
+
+      </div>
+
+
+      <div class="profile-layout">
+
+
+        <!-- PHOTO -->
+
+        <div class="profile-photo-area">
 
           <div class="profile-photo">
 
             <img
               id="studentPhoto"
               src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-              alt="Student"
+              alt="Student Photo"
             >
 
           </div>
 
 
-          <!-- INFORMATION -->
+          <div class="profile-photo-name">
 
-          <div class="profile-fields">
+            <strong id="profileName">
+              —
+            </strong>
 
-
-            <div class="field">
-
-              <span>
-                Full Name
-              </span>
-
-              <strong id="studentFullName">
-                —
-              </strong>
-
-            </div>
-
-
-            <div class="field">
-
-              <span>
-                Student ID
-              </span>
-
-              <strong id="profileStudentId">
-                —
-              </strong>
-
-            </div>
-
-
-            <div class="field">
-
-              <span>
-                Email
-              </span>
-
-              <strong id="profileEmail">
-                —
-              </strong>
-
-            </div>
-
-
-            <div class="field">
-
-              <span>
-                Phone
-              </span>
-
-              <strong id="profilePhone">
-                —
-              </strong>
-
-            </div>
-
-
-            <div class="field">
-
-              <span>
-                Gender
-              </span>
-
-              <strong id="profileGender">
-                —
-              </strong>
-
-            </div>
-
-
-            <div class="field">
-
-              <span>
-                Admission Date
-              </span>
-
-              <strong id="studentAdmissionDate">
-                —
-              </strong>
-
-            </div>
-
-
-            <div class="field">
-
-              <span>
-                Address
-              </span>
-
-              <strong id="profileAddress">
-                —
-              </strong>
-
-            </div>
-
-
-            <div class="field">
-
-              <span>
-                Last Login
-              </span>
-
-              <strong id="lastLogin">
-                —
-              </strong>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <!-- =====================================================
-           ACADEMIC INFORMATION
-           ===================================================== -->
-
-      <section class="content-card">
-
-        <div class="section-header">
-
-          <div>
-
-            <span class="eyebrow">
-              ACADEMIC
+            <span id="profileStudentId">
+              —
             </span>
 
-            <h2>
-              Academic Information
-            </h2>
-
           </div>
 
         </div>
 
 
-        <!--
-          JS V6:
-          renderAcademicSummary()
-          will automatically fill this element.
-        -->
+        <!-- PROFILE FIELDS -->
 
-        <div
-          id="academicSummary"
-        ></div>
+        <div class="profile-grid">
 
 
-        <!-- ===================================================
-             Hidden compatibility fields
+          <div class="field">
 
-             These are intentionally present because JS V6
-             supports multiple existing portal IDs.
-             =================================================== -->
-
-        <div
-          style="display:none"
-          aria-hidden="true"
-        >
-
-          <span id="institutionName">—</span>
-          <span id="studentInstitution">—</span>
-          <span id="institution">—</span>
-          <span id="profileInstitution">—</span>
-          <span id="dashboardInstitution">—</span>
-
-          <span id="institutionCode">—</span>
-          <span id="studentInstitutionCode">—</span>
-
-          <span id="courseName">—</span>
-          <span id="studentCourse">—</span>
-          <span id="course">—</span>
-          <span id="profileCourse">—</span>
-          <span id="programName">—</span>
-          <span id="studentProgram">—</span>
-          <span id="dashboardCourse">—</span>
-
-          <span id="courseCode">—</span>
-          <span id="studentCourseCode">—</span>
-
-          <span id="departmentName">—</span>
-          <span id="studentDepartment">—</span>
-          <span id="department">—</span>
-          <span id="profileDepartment">—</span>
-          <span id="dashboardDepartment">—</span>
-
-          <span id="departmentCode">—</span>
-          <span id="studentDepartmentCode">—</span>
-
-          <span id="className">—</span>
-          <span id="studentClass">—</span>
-          <span id="class">—</span>
-          <span id="profileClass">—</span>
-          <span id="dashboardClass">—</span>
-
-          <span id="classCode">—</span>
-          <span id="studentClassCode">—</span>
-
-          <span id="enrollmentStatus">—</span>
-          <span id="studentEnrollmentStatus">—</span>
-          <span id="enrollmentStatusValue">—</span>
-          <span id="academicStatus">—</span>
-
-          <span id="academicYear">—</span>
-          <span id="studentAcademicYear">—</span>
-          <span id="classAcademicYear">—</span>
-
-        </div>
-
-      </section>
-
-
-      <!-- =====================================================
-           ACCOUNT DETAILS
-           ===================================================== -->
-
-      <section class="content-card">
-
-        <div class="section-header">
-
-          <div>
-
-            <span class="eyebrow">
-              ACCOUNT
+            <span>
+              Full Name
             </span>
 
-            <h2>
-              Account Information
-            </h2>
+            <strong id="studentFullName">
+              —
+            </strong>
 
           </div>
 
-        </div>
+
+          <div class="field">
+
+            <span>
+              Student ID
+            </span>
+
+            <strong id="studentId">
+              —
+            </strong>
+
+          </div>
 
 
-        <div class="account-details">
+          <div class="field">
+
+            <span>
+              Email
+            </span>
+
+            <strong id="studentEmail">
+              —
+            </strong>
+
+          </div>
+
+
+          <div class="field">
+
+            <span>
+              Phone
+            </span>
+
+            <strong id="studentPhone">
+              —
+            </strong>
+
+          </div>
+
+
+          <div class="field">
+
+            <span>
+              Gender
+            </span>
+
+            <strong id="studentGender">
+              —
+            </strong>
+
+          </div>
+
+
+          <div class="field">
+
+            <span>
+              Admission Date
+            </span>
+
+            <strong id="admissionDate">
+              —
+            </strong>
+
+          </div>
+
+
+          <div class="field">
+
+            <span>
+              Address
+            </span>
+
+            <strong id="studentAddress">
+              —
+            </strong>
+
+          </div>
+
 
           <div class="field">
 
@@ -1873,7 +436,10 @@
               Account Status
             </span>
 
-            <strong id="studentAccountStatus">
+            <strong
+              id="studentAccountStatus"
+              class="active"
+            >
               Active
             </strong>
 
@@ -1886,320 +452,562 @@
               Last Login
             </span>
 
-            <strong id="studentLastLogin">
+            <strong id="lastLogin">
               —
             </strong>
 
           </div>
 
+        </div>
 
-          <div class="field">
+      </div>
 
-            <span>
-              Login Username
-            </span>
-
-            <strong id="loginUsername">
-              —
-            </strong>
-
-          </div>
+    </section>
 
 
-          <div class="field">
+    <!-- =====================================================
+         ACADEMIC INFORMATION
+    ====================================================== -->
 
-            <span>
-              Academic Status
-            </span>
+    <section class="content-card academic-card">
 
-            <strong id="profileAccountStatus">
-              Active
-            </strong>
+      <div class="section-header">
 
-          </div>
+        <div>
+
+          <span class="eyebrow">
+            ACADEMIC
+          </span>
+
+          <h2>
+            Academic Information
+          </h2>
+
+          <p>
+            Your current institution, department, course and class.
+          </p>
 
         </div>
 
-      </section>
-
-
-      <!-- =====================================================
-           GRADES
-           ===================================================== -->
-
-      <section class="content-card">
-
-        <div class="section-header">
-
-          <div>
-
-            <span class="eyebrow">
-              ACADEMIC RECORDS
-            </span>
-
-            <h2>
-              My Grades
-            </h2>
-
-          </div>
-
-        </div>
-
-
-        <div
-          id="gradesContainer"
-          data-managed-by-existing-portal="false"
-        >
-
-          <div class="empty-message">
-            Loading grades...
-          </div>
-
-        </div>
-
-
-        <!-- Compatibility containers -->
-
-        <div
-          id="gradesList"
-          class="hidden"
-        ></div>
-
-        <div
-          id="studentGrades"
-          class="hidden"
-        ></div>
-
-        <div
-          id="resultsContainer"
-          class="hidden"
-        ></div>
-
-      </section>
-
-
-      <!-- =====================================================
-           CERTIFICATES
-           ===================================================== -->
-
-      <section class="content-card">
-
-        <div class="section-header">
-
-          <div>
-
-            <span class="eyebrow">
-              DOCUMENTS
-            </span>
-
-            <h2>
-              My Certificates
-            </h2>
-
-          </div>
-
-        </div>
-
-
-        <div
-          id="certificatesContainer"
-          data-managed-by-existing-portal="false"
-        >
-
-          <div class="certificate-list">
-
-            <div class="empty-message">
-              Loading certificates...
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <!-- Primary V6 target -->
-
-        <div
-          id="certificatesList"
-          class="certificate-list hidden"
-        ></div>
-
-
-        <div
-          id="studentCertificates"
-          class="hidden"
-        ></div>
-
-      </section>
-
-
-      <!-- =====================================================
-           PAYMENTS
-           ===================================================== -->
-
-      <section class="content-card">
-
-        <div class="section-header">
-
-          <div>
-
-            <span class="eyebrow">
-              FINANCE
-            </span>
-
-            <h2>
-              My Payments
-            </h2>
-
-          </div>
-
-        </div>
-
-
-        <div
-          id="paymentsContainer"
-          data-managed-by-existing-portal="false"
-        >
-
-          <div class="payments-list">
-
-            <div class="empty-message">
-              Loading payments...
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div
-          id="paymentsList"
-          class="payments-list hidden"
-        ></div>
-
-
-        <div
-          id="studentPayments"
-          class="hidden"
-        ></div>
-
-      </section>
-
-
-      <!-- =====================================================
-           NOTIFICATIONS
-           ===================================================== -->
-
-      <section class="content-card">
-
-        <div class="section-header">
-
-          <div>
-
-            <span class="eyebrow">
-              MESSAGES
-            </span>
-
-            <h2>
-              Notifications
-            </h2>
-
-          </div>
-
-
-          <button
-            id="markAllReadBtn"
-            class="secondary-btn"
-            type="button"
+        <div class="academic-status-badge">
+
+          <span>
+            Status
+          </span>
+
+          <strong
+            id="enrollmentStatus"
+            class="academic-status"
           >
-            Mark all as read
-          </button>
+            —
+          </strong>
 
         </div>
 
-
-        <div
-          id="notificationsList"
-          class="notifications-list"
-        >
-
-          <div class="empty-message">
-            No notifications available.
-          </div>
-
-        </div>
-
-      </section>
+      </div>
 
 
-      <!-- =====================================================
-           LOGOUT
-           ===================================================== -->
+      <!-- MAIN ACADEMIC GRID -->
 
-      <section
-        style="
-          display:flex;
-          justify-content:center;
-          margin-top:10px;
-        "
+      <div
+        id="academicSummary"
+        class="academic-summary"
       >
 
+        <div class="academic-summary-grid">
+
+
+          <!-- INSTITUTION -->
+
+          <div class="academic-item">
+
+            <span>
+              Institution
+            </span>
+
+            <strong id="institutionName">
+              —
+            </strong>
+
+            <small id="institutionCode">
+              —
+            </small>
+
+          </div>
+
+
+          <!-- DEPARTMENT -->
+
+          <div class="academic-item">
+
+            <span>
+              Department
+            </span>
+
+            <strong id="departmentName">
+              —
+            </strong>
+
+            <small id="departmentCode">
+              —
+            </small>
+
+          </div>
+
+
+          <!-- COURSE -->
+
+          <div class="academic-item">
+
+            <span>
+              Course
+            </span>
+
+            <strong id="courseName">
+              —
+            </strong>
+
+            <small id="courseCode">
+              —
+            </small>
+
+          </div>
+
+
+          <!-- CLASS -->
+
+          <div class="academic-item">
+
+            <span>
+              Class
+            </span>
+
+            <strong id="className">
+              —
+            </strong>
+
+            <small id="classCode">
+              —
+            </small>
+
+          </div>
+
+
+          <!-- ACADEMIC YEAR -->
+
+          <div class="academic-item">
+
+            <span>
+              Academic Year
+            </span>
+
+            <strong id="academicYear">
+              —
+            </strong>
+
+          </div>
+
+
+          <!-- STATUS -->
+
+          <div class="academic-item">
+
+            <span>
+              Enrollment Status
+            </span>
+
+            <strong
+              id="studentEnrollmentStatus"
+              class="academic-status"
+            >
+              —
+            </strong>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         ACADEMIC QUICK INFO
+    ====================================================== -->
+
+    <section class="academic-quick-grid">
+
+
+      <div class="quick-academic-card">
+
+        <span>
+          Institution
+        </span>
+
+        <strong id="studentInstitution">
+          —
+        </strong>
+
+      </div>
+
+
+      <div class="quick-academic-card">
+
+        <span>
+          Course
+        </span>
+
+        <strong id="studentCourse">
+          —
+        </strong>
+
+      </div>
+
+
+      <div class="quick-academic-card">
+
+        <span>
+          Department
+        </span>
+
+        <strong id="studentDepartment">
+          —
+        </strong>
+
+      </div>
+
+
+      <div class="quick-academic-card">
+
+        <span>
+          Class
+        </span>
+
+        <strong id="studentClass">
+          —
+        </strong>
+
+      </div>
+
+
+      <div class="quick-academic-card">
+
+        <span>
+          Academic Year
+        </span>
+
+        <strong id="studentAcademicYear">
+          —
+        </strong>
+
+      </div>
+
+
+      <div class="quick-academic-card">
+
+        <span>
+          Status
+        </span>
+
+        <strong
+          id="academicStatus"
+          class="academic-status"
+        >
+          —
+        </strong>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         GRADES
+    ====================================================== -->
+
+    <section class="content-card">
+
+      <div class="section-header">
+
+        <div>
+
+          <span class="eyebrow">
+            ACADEMIC RECORDS
+          </span>
+
+          <h2>
+            My Grades
+          </h2>
+
+          <p>
+            View your academic grades and examination records.
+          </p>
+
+        </div>
+
+        <div class="section-badge">
+          GRADES
+        </div>
+
+      </div>
+
+
+      <div
+        id="gradesContainer"
+        class="grades-container"
+      >
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         RESULTS
+    ====================================================== -->
+
+    <section class="content-card">
+
+      <div class="section-header">
+
+        <div>
+
+          <span class="eyebrow">
+            RESULTS
+          </span>
+
+          <h2>
+            My Results
+          </h2>
+
+        </div>
+
+        <div
+          id="resultsCountBadge"
+          class="section-badge"
+        >
+          RESULTS
+        </div>
+
+      </div>
+
+
+      <div
+        id="resultsContainer"
+        class="results-container"
+      >
+
+        <div class="empty-state">
+          Results will appear here.
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         CERTIFICATES
+    ====================================================== -->
+
+    <section class="content-card">
+
+      <div class="section-header">
+
+        <div>
+
+          <span class="eyebrow">
+            DOCUMENTS
+          </span>
+
+          <h2>
+            My Certificates
+          </h2>
+
+          <p>
+            Official certificates issued to you.
+          </p>
+
+        </div>
+
+        <div class="section-badge">
+          CERTIFICATES
+        </div>
+
+      </div>
+
+
+      <div
+        id="certificatesContainer"
+        class="certificates-container"
+      >
+
+        <div class="empty-state">
+          Loading certificates...
+        </div>
+
+      </div>
+
+
+      <!-- Compatibility ID -->
+
+      <div
+        id="certificatesList"
+        class="certificate-list"
+        style="display:none;"
+      ></div>
+
+    </section>
+
+
+    <!-- =====================================================
+         PAYMENTS
+    ====================================================== -->
+
+    <section class="content-card">
+
+      <div class="section-header">
+
+        <div>
+
+          <span class="eyebrow">
+            FINANCE
+          </span>
+
+          <h2>
+            My Payments
+          </h2>
+
+          <p>
+            View your payment records.
+          </p>
+
+        </div>
+
+        <div class="section-badge">
+          PAYMENTS
+        </div>
+
+      </div>
+
+
+      <div
+        id="paymentsContainer"
+        class="payments-container"
+      >
+
+        <div class="empty-state">
+          Loading payment records...
+        </div>
+
+      </div>
+
+
+      <!-- Compatibility ID -->
+
+      <div
+        id="paymentsList"
+        class="payments-list"
+        style="display:none;"
+      ></div>
+
+    </section>
+
+
+    <!-- =====================================================
+         NOTIFICATIONS
+    ====================================================== -->
+
+    <section class="content-card">
+
+      <div class="section-header">
+
+        <div>
+
+          <span class="eyebrow">
+            MESSAGES
+          </span>
+
+          <h2>
+            Notifications
+          </h2>
+
+        </div>
+
+
         <button
-          id="studentLogoutBtn"
-          class="logout-btn"
+          id="markAllReadBtn"
+          class="secondary-btn"
           type="button"
         >
-          Logout from Student Portal
+          Mark all as read
         </button>
 
-      </section>
+      </div>
 
 
-    </main>
+      <div
+        id="notificationsList"
+        class="notifications-list"
+      >
+
+        <div class="empty-state">
+          No notifications available.
+        </div>
+
+      </div>
+
+    </section>
 
 
-    <!-- =======================================================
-         FOOTER
-         ======================================================= -->
-
-    <footer class="portal-footer">
-
-      <strong>
-        GAAWOW ACADEMY
-      </strong>
-
-      <span>
-        Ilayska Aqoonta iyo Xirfadda
-      </span>
-
-      <small>
-        Burhakaba, Bay, Somalia
-      </small>
-
-    </footer>
+  </main>
 
 
-  </div>
+  <!-- =======================================================
+       FOOTER
+  ======================================================== -->
+
+  <footer class="portal-footer">
+
+    <img
+      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+      alt="GAAWOW Academy"
+    >
+
+    <strong>
+      GAAWOW ACADEMY
+    </strong>
+
+    <span>
+      Ilayska Aqoonta iyo Xirfadda
+    </span>
+
+    <small>
+      Burhakaba, Bay, Somalia
+    </small>
+
+    <button
+      id="studentLogoutBtn"
+      class="footer-logout-btn"
+      type="button"
+    >
+      Logout
+    </button>
+
+  </footer>
 
 
-  <!-- =========================================================
-       SUPABASE
-       ========================================================= -->
-
-  <script
-    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-  ></script>
+</div>
 
 
-  <!-- =========================================================
-       STUDENT PORTAL JS V6
-       ========================================================= -->
+<!-- =========================================================
+     STUDENT PORTAL JS
+========================================================= -->
 
-  <script
-    src="./student-portal.js?v=6.0.0"
-    defer
-  ></script>
-
+<script
+  src="./student-portal.js?v=6.0.0"
+  defer
+></script>
 
 </body>
 </html>
