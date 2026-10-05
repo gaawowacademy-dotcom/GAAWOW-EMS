@@ -20,900 +20,1348 @@
 
   <title>Student Portal | GAAWOW ACADEMY</title>
 
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
   <style>
-    *{
-      box-sizing:border-box;
-      margin:0;
-      padding:0;
+    /* =========================================================
+       GAAWOW ACADEMY
+       STUDENT PORTAL V6
+       ========================================================= */
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    :root{
-      --navy:#0B1E63;
-      --blue:#0B4DA2;
-      --blue-light:#EEF4FF;
-      --gold:#D4AF37;
-      --green:#16A34A;
-      --red:#DC2626;
-      --purple:#7C3AED;
-      --text:#1F2937;
-      --muted:#64748B;
-      --border:#E5E7EB;
-      --white:#FFFFFF;
-      --bg:#F5F7FA;
-      --shadow:0 10px 30px rgba(11,30,99,.08);
+    :root {
+      --navy: #0B1E63;
+      --blue: #0B4DA2;
+      --blue-light: #EEF4FF;
+      --gold: #D4AF37;
+      --green: #16A34A;
+      --red: #DC2626;
+      --purple: #7C3AED;
+
+      --text: #172033;
+      --muted: #64748B;
+      --border: #E2E8F0;
+      --white: #FFFFFF;
+      --bg: #F5F7FB;
+
+      --shadow:
+        0 10px 30px rgba(11, 30, 99, .08);
+
+      --shadow-sm:
+        0 6px 18px rgba(15, 23, 42, .06);
+
+      --radius: 18px;
     }
 
-    body{
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
       font-family:
+        Inter,
         Arial,
         Helvetica,
         sans-serif;
+
       background:
         linear-gradient(
           135deg,
-          #F5F7FA,
-          #EEF3FA 50%,
-          #FFFFFF
+          #F7F9FC 0%,
+          #EEF3FA 55%,
+          #FFFFFF 100%
         );
-      color:var(--text);
-      min-height:100vh;
+
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
     }
 
-    button{
-      font-family:inherit;
+    button {
+      font-family: inherit;
     }
 
-    .hidden{
-      display:none !important;
+    img {
+      max-width: 100%;
     }
 
-    /* =====================================================
+    .hidden {
+      display: none !important;
+    }
+
+
+    /* =========================================================
        LOADING
-    ===================================================== */
+       ========================================================= */
 
-    .portal-loading{
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-      text-align:center;
-      padding:25px;
-      background:
-        linear-gradient(
-          135deg,
-          #F5F7FA,
-          #EEF3FA
-        );
+    .portal-loading {
+      min-height: 100vh;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      text-align: center;
+      padding: 25px;
     }
 
-    .portal-loading h3{
-      color:var(--navy);
-      margin-top:18px;
-      font-size:20px;
+    .portal-loading h3 {
+      color: var(--navy);
+      margin-top: 18px;
+      font-size: 20px;
     }
 
-    .portal-loading p{
-      color:var(--muted);
-      margin-top:7px;
-      font-size:13px;
+    .portal-loading p {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 5px;
     }
 
-    .loader{
-      width:55px;
-      height:55px;
-      border:5px solid #DDE6F5;
-      border-top-color:var(--blue);
-      border-radius:50%;
-      animation:spin .8s linear infinite;
+    .loader {
+      width: 52px;
+      height: 52px;
+
+      border: 5px solid #E2E8F0;
+      border-top-color: var(--gold);
+      border-right-color: var(--blue);
+
+      border-radius: 50%;
+
+      animation:
+        portalSpin .8s linear infinite;
     }
 
-    @keyframes spin{
-      to{
-        transform:rotate(360deg);
+    @keyframes portalSpin {
+      to {
+        transform: rotate(360deg);
       }
     }
 
-    /* =====================================================
-       APP
-    ===================================================== */
 
-    .portal-app{
-      min-height:100vh;
+    /* =========================================================
+       PORTAL APP
+       ========================================================= */
+
+    .portal-app {
+      min-height: 100vh;
     }
 
-    /* =====================================================
-       TOPBAR
-    ===================================================== */
 
-    .topbar{
+    /* =========================================================
+       TOPBAR
+       ========================================================= */
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+
       background:
         linear-gradient(
           135deg,
           var(--navy),
           var(--blue)
         );
-      color:#fff;
-      padding:16px 24px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:20px;
+
+      color: #fff;
+
+      padding:
+        14px
+        max(18px, calc((100% - 1240px) / 2));
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 20px;
+
       box-shadow:
-        0 6px 20px
-        rgba(11,30,99,.20);
-      position:sticky;
-      top:0;
-      z-index:100;
+        0 7px 25px rgba(11, 30, 99, .22);
     }
 
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:13px;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
     }
 
-    .brand img{
-      width:55px;
-      height:55px;
-      object-fit:contain;
-      background:#fff;
-      border-radius:12px;
-      padding:5px;
+    .brand img {
+      width: 52px;
+      height: 52px;
+
+      object-fit: contain;
+
+      background: #fff;
+      border-radius: 12px;
+      padding: 5px;
+
+      flex-shrink: 0;
     }
 
-    .brand strong{
-      display:block;
-      font-size:17px;
-      font-weight:800;
-      letter-spacing:.2px;
+    .brand-text {
+      min-width: 0;
     }
 
-    .brand span{
-      display:block;
-      font-size:11px;
-      opacity:.82;
-      margin-top:4px;
+    .brand strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: .3px;
     }
 
-    .top-actions{
-      display:flex;
-      align-items:center;
-      gap:12px;
+    .brand span {
+      display: block;
+      margin-top: 2px;
+      font-size: 11px;
+      opacity: .82;
     }
 
-    #studentNameTop{
-      font-size:13px;
-      font-weight:700;
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
-    .logout-btn{
-      border:1px solid var(--gold);
-      background:transparent;
-      color:var(--gold);
-      padding:9px 17px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:800;
-      cursor:pointer;
-      transition:.2s;
+    #studentNameTop,
+    #studentName {
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
-    .logout-btn:hover{
-      background:var(--gold);
-      color:var(--navy);
+    .logout-btn {
+      border: 1px solid rgba(212,175,55,.9);
+
+      background: transparent;
+      color: var(--gold);
+
+      padding: 9px 15px;
+
+      border-radius: 999px;
+
+      font-size: 12px;
+      font-weight: 800;
+
+      cursor: pointer;
+
+      transition: .2s;
     }
 
-    /* =====================================================
-       MESSAGE
-    ===================================================== */
-
-    .message{
-      width:min(1200px,92%);
-      margin:20px auto 0;
-      padding:13px 16px;
-      border-radius:12px;
-      font-size:13px;
-      font-weight:700;
+    .logout-btn:hover {
+      background: var(--gold);
+      color: var(--navy);
     }
 
-    .message.info{
-      background:#EFF6FF;
-      color:#1D4ED8;
-      border:1px solid #BFDBFE;
-    }
 
-    .message.success{
-      background:#ECFDF5;
-      color:#15803D;
-      border:1px solid #BBF7D0;
-    }
-
-    .message.error{
-      background:#FEF2F2;
-      color:#B91C1C;
-      border:1px solid #FECACA;
-    }
-
-    /* =====================================================
+    /* =========================================================
        CONTAINER
-    ===================================================== */
+       ========================================================= */
 
-    .portal-container{
-      width:min(1200px,92%);
-      margin:auto;
-      padding:28px 0 45px;
+    .portal-container {
+      width: min(1240px, 94%);
+      margin: 0 auto;
+
+      padding:
+        30px 0 45px;
     }
 
-    /* =====================================================
+
+    /* =========================================================
+       MESSAGE
+       ========================================================= */
+
+    .message {
+      display: none;
+
+      margin-bottom: 20px;
+
+      padding: 14px 16px;
+
+      border-radius: 12px;
+
+      font-size: 13px;
+      font-weight: 600;
+
+      border: 1px solid transparent;
+    }
+
+    .message.info {
+      display: block;
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border-color: #BFDBFE;
+    }
+
+    .message.success {
+      display: block;
+      background: #ECFDF5;
+      color: #15803D;
+      border-color: #BBF7D0;
+    }
+
+    .message.error {
+      display: block;
+      background: #FEF2F2;
+      color: #B91C1C;
+      border-color: #FECACA;
+    }
+
+
+    /* =========================================================
        WELCOME
-    ===================================================== */
+       ========================================================= */
 
-    .welcome-card{
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius:20px;
-      padding:26px;
-      box-shadow:var(--shadow);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:20px;
-      margin-bottom:20px;
-    }
+    .welcome-card {
+      position: relative;
+      overflow: hidden;
 
-    .welcome-card small{
-      display:block;
-      color:var(--blue);
-      font-weight:800;
-      font-size:11px;
-      letter-spacing:1px;
-      margin-bottom:6px;
-    }
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
 
-    .welcome-card h1{
-      color:var(--navy);
-      font-size:28px;
-      margin-bottom:6px;
-    }
+      gap: 25px;
 
-    .welcome-card p{
-      color:var(--muted);
-      font-size:13px;
-    }
-
-    .student-number{
-      min-width:180px;
       background:
         linear-gradient(
           135deg,
-          #EEF4FF,
-          #F8FAFC
+          #FFFFFF,
+          #F7FAFF
         );
-      border:1px solid #DCE7F8;
-      border-radius:15px;
-      padding:16px 18px;
-      text-align:right;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 22px;
+
+      padding: 30px;
+
+      box-shadow: var(--shadow);
+
+      margin-bottom: 22px;
     }
 
-    .student-number span{
-      display:block;
-      color:var(--muted);
-      font-size:10px;
-      text-transform:uppercase;
-      font-weight:800;
-      letter-spacing:.6px;
-      margin-bottom:5px;
+    .welcome-card::before {
+      content: "";
+
+      position: absolute;
+
+      left: 0;
+      top: 0;
+
+      width: 5px;
+      height: 100%;
+
+      background:
+        linear-gradient(
+          #D4AF37,
+          #0B4DA2
+        );
     }
 
-    .student-number strong{
-      color:var(--navy);
-      font-size:17px;
+    .welcome-content {
+      min-width: 0;
     }
 
-    /* =====================================================
-       DASHBOARD STATS
-    ===================================================== */
+    .welcome-card small {
+      display: block;
 
-    .dashboard-grid{
-      display:grid;
-      grid-template-columns:
-        repeat(4,minmax(0,1fr));
-      gap:15px;
-      margin-bottom:22px;
+      color: var(--gold);
+
+      font-size: 11px;
+      font-weight: 800;
+
+      letter-spacing: 1.5px;
+
+      margin-bottom: 7px;
     }
 
-    .stat-card{
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius:17px;
-      padding:19px;
+    .welcome-card h1 {
+      color: var(--navy);
+
+      font-size: 28px;
+      line-height: 1.2;
+
+      margin-bottom: 7px;
+
+      word-break: break-word;
+    }
+
+    .welcome-card p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .student-number {
+      min-width: 180px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #0B1E63,
+          #0B4DA2
+        );
+
+      color: #fff;
+
+      padding: 17px 20px;
+
+      border-radius: 15px;
+
       box-shadow:
-        0 7px 22px
-        rgba(15,23,42,.06);
-      display:flex;
-      align-items:center;
-      gap:13px;
-      position:relative;
-      overflow:hidden;
+        0 8px 20px rgba(11,30,99,.15);
     }
 
-    .stat-card:before{
-      content:"";
-      position:absolute;
-      left:0;
-      top:0;
-      width:100%;
-      height:3px;
-      background:var(--blue);
+    .student-number span {
+      display: block;
+
+      font-size: 10px;
+      opacity: .75;
+
+      text-transform: uppercase;
+      letter-spacing: .8px;
+
+      margin-bottom: 5px;
     }
 
-    .stat-card:nth-child(2):before{
-      background:var(--gold);
+    .student-number strong {
+      display: block;
+
+      color: #fff;
+
+      font-size: 18px;
+
+      word-break: break-word;
     }
 
-    .stat-card:nth-child(3):before{
-      background:var(--purple);
-    }
 
-    .stat-card:nth-child(4):before{
-      background:var(--green);
-    }
-
-    .stat-icon{
-      width:45px;
-      height:45px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:var(--blue-light);
-      border-radius:12px;
-      font-size:21px;
-      flex-shrink:0;
-    }
-
-    .stat-card small{
-      display:block;
-      color:var(--muted);
-      font-size:11px;
-      margin-bottom:3px;
-    }
-
-    .stat-card strong{
-      display:block;
-      color:var(--navy);
-      font-size:23px;
-    }
-
-    /* =====================================================
-       CONTENT CARD
-    ===================================================== */
-
-    .content-card{
-      background:#fff;
-      border:1px solid var(--border);
-      border-radius:19px;
-      padding:23px;
-      box-shadow:
-        0 7px 22px
-        rgba(15,23,42,.06);
-      margin-bottom:20px;
-    }
-
-    .section-header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:15px;
-      margin-bottom:19px;
-    }
-
-    .eyebrow{
-      color:var(--blue);
-      font-size:10px;
-      font-weight:800;
-      letter-spacing:1px;
-      text-transform:uppercase;
-    }
-
-    .section-header h2{
-      color:var(--navy);
-      font-size:20px;
-      margin-top:4px;
-    }
-
-    /* =====================================================
-       PROFILE
-    ===================================================== */
-
-    .profile-grid{
-      display:grid;
-      grid-template-columns:170px 1fr;
-      gap:25px;
-      align-items:start;
-    }
-
-    .profile-photo{
-      width:160px;
-      height:160px;
-      border-radius:18px;
-      background:#F1F5F9;
-      border:1px solid var(--border);
-      overflow:hidden;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    .profile-photo img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-    }
-
-    .profile-fields{
-      display:grid;
-      grid-template-columns:
-        repeat(3,minmax(0,1fr));
-      gap:13px;
-    }
-
-    .field{
-      background:#F8FAFC;
-      border:1px solid #E8EDF4;
-      border-radius:12px;
-      padding:13px;
-      min-height:70px;
-    }
-
-    .field span{
-      display:block;
-      color:var(--muted);
-      font-size:10px;
-      text-transform:uppercase;
-      font-weight:800;
-      letter-spacing:.35px;
-      margin-bottom:7px;
-    }
-
-    .field strong{
-      display:block;
-      color:#1E293B;
-      font-size:13px;
-      word-break:break-word;
-    }
-
-    /* =====================================================
-       ACADEMIC INFORMATION
-    ===================================================== */
-
-    .academic-summary-grid{
-      display:grid;
-      grid-template-columns:
-        repeat(3,minmax(0,1fr));
-      gap:14px;
-    }
-
-    .academic-item{
-      background:#F8FAFC;
-      border:1px solid #E5E7EB;
-      border-radius:13px;
-      padding:15px;
-      position:relative;
-      overflow:hidden;
-    }
-
-    .academic-item:before{
-      content:"";
-      position:absolute;
-      left:0;
-      top:0;
-      width:3px;
-      height:100%;
-      background:var(--blue);
-    }
-
-    .academic-item:nth-child(2):before{
-      background:var(--purple);
-    }
-
-    .academic-item:nth-child(3):before{
-      background:var(--gold);
-    }
-
-    .academic-item:nth-child(4):before{
-      background:var(--green);
-    }
-
-    .academic-item:nth-child(5):before{
-      background:#0EA5E9;
-    }
-
-    .academic-item:nth-child(6):before{
-      background:var(--green);
-    }
-
-    .academic-item span{
-      display:block;
-      color:var(--muted);
-      font-size:10px;
-      text-transform:uppercase;
-      font-weight:800;
-      letter-spacing:.4px;
-      margin-bottom:7px;
-    }
-
-    .academic-item strong{
-      display:block;
-      color:var(--navy);
-      font-size:13px;
-      line-height:1.4;
-    }
-
-    .academic-status{
-      color:var(--green) !important;
-      text-transform:capitalize;
-    }
-
-    /* =====================================================
-       TABLE
-    ===================================================== */
-
-    .table-wrapper{
-      width:100%;
-      overflow-x:auto;
-    }
-
-    .student-grades-table{
-      width:100%;
-      border-collapse:collapse;
-      min-width:600px;
-      font-size:12px;
-    }
-
-    .student-grades-table th{
-      background:var(--navy);
-      color:#fff;
-      padding:11px 10px;
-      text-align:center;
-      font-size:10px;
-      text-transform:uppercase;
-      letter-spacing:.3px;
-    }
-
-    .student-grades-table td{
-      padding:11px 10px;
-      border-bottom:1px solid var(--border);
-      text-align:center;
-      color:#334155;
-    }
-
-    .student-grades-table tbody tr:nth-child(even){
-      background:#F8FAFC;
-    }
-
-    /* =====================================================
-       CERTIFICATES
-    ===================================================== */
-
-    .certificate-list{
-      display:grid;
-      grid-template-columns:
-        repeat(2,minmax(0,1fr));
-      gap:13px;
-    }
-
-    .certificate-item{
-      border:1px solid var(--border);
-      border-radius:13px;
-      padding:15px;
-      background:#F8FAFC;
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:5px 15px;
-      align-items:center;
-    }
-
-    .certificate-item strong{
-      color:var(--navy);
-      font-size:13px;
-    }
-
-    .certificate-item span{
-      background:#ECFDF5;
-      color:var(--green);
-      padding:5px 9px;
-      border-radius:999px;
-      font-size:10px;
-      font-weight:800;
-      text-transform:capitalize;
-    }
-
-    .certificate-item small{
-      color:var(--muted);
-      font-size:10px;
-    }
-
-    /* =====================================================
-       PAYMENTS
-    ===================================================== */
-
-    .payment-item{
-      border:1px solid var(--border);
-      border-radius:13px;
-      padding:15px;
-      margin-bottom:10px;
-      background:#F8FAFC;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:15px;
-    }
-
-    .payment-item strong{
-      color:var(--navy);
-      font-size:14px;
-    }
-
-    .payment-item span{
-      color:var(--green);
-      font-size:11px;
-      font-weight:800;
-      text-transform:capitalize;
-    }
-
-    .payment-item small{
-      color:var(--muted);
-      font-size:10px;
-    }
-
-    /* =====================================================
-       EMPTY
-    ===================================================== */
-
-    .empty-state,
-    .empty-message{
-      padding:22px;
-      text-align:center;
-      color:var(--muted);
-      background:#F8FAFC;
-      border:1px dashed #CBD5E1;
-      border-radius:13px;
-      font-size:12px;
-    }
-
-    /* =====================================================
+    /* =========================================================
        ACCOUNT STATUS
-    ===================================================== */
+       ========================================================= */
 
-    .active{
-      color:var(--green) !important;
+    .account-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 15px;
+
+      background: #fff;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 15px;
+
+      padding: 13px 17px;
+
+      margin-bottom: 22px;
+
+      box-shadow: var(--shadow-sm);
     }
 
-    .inactive{
-      color:var(--red) !important;
+    .account-bar-label {
+      color: var(--muted);
+      font-size: 12px;
     }
 
-    /* =====================================================
+    .account-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+
+      font-size: 11px;
+      font-weight: 800;
+
+      padding: 7px 12px;
+
+      border-radius: 999px;
+
+      background: #ECFDF5;
+      color: #15803D;
+    }
+
+    .account-status::before {
+      content: "";
+
+      width: 7px;
+      height: 7px;
+
+      border-radius: 50%;
+
+      background: var(--green);
+    }
+
+    .account-status.inactive {
+      background: #FEF2F2;
+      color: #B91C1C;
+    }
+
+    .account-status.inactive::before {
+      background: var(--red);
+    }
+
+
+    /* =========================================================
+       DASHBOARD STATS
+       ========================================================= */
+
+    .dashboard-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+      gap: 16px;
+
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      position: relative;
+
+      display: flex;
+      align-items: center;
+
+      gap: 14px;
+
+      background: #fff;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 17px;
+
+      padding: 19px;
+
+      box-shadow: var(--shadow-sm);
+
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: "";
+
+      position: absolute;
+
+      top: 0;
+      left: 0;
+
+      width: 100%;
+      height: 3px;
+
+      background: var(--blue);
+    }
+
+    .stat-card:nth-child(2)::before {
+      background: var(--gold);
+    }
+
+    .stat-card:nth-child(3)::before {
+      background: var(--green);
+    }
+
+    .stat-icon {
+      width: 45px;
+      height: 45px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      background: var(--blue-light);
+
+      border-radius: 13px;
+
+      font-size: 21px;
+
+      flex-shrink: 0;
+    }
+
+    .stat-card small {
+      display: block;
+
+      color: var(--muted);
+
+      font-size: 11px;
+
+      margin-bottom: 2px;
+    }
+
+    .stat-card strong {
+      color: var(--navy);
+
+      display: block;
+
+      font-size: 25px;
+      line-height: 1.1;
+    }
+
+
+    /* =========================================================
+       CONTENT CARD
+       ========================================================= */
+
+    .content-card {
+      background: #fff;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: var(--radius);
+
+      padding: 23px;
+
+      box-shadow: var(--shadow-sm);
+
+      margin-bottom: 22px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 15px;
+
+      margin-bottom: 20px;
+    }
+
+    .eyebrow {
+      display: block;
+
+      color: var(--gold);
+
+      font-size: 10px;
+      font-weight: 800;
+
+      letter-spacing: 1.4px;
+
+      margin-bottom: 4px;
+    }
+
+    .section-header h2 {
+      color: var(--navy);
+
+      font-size: 20px;
+      line-height: 1.25;
+    }
+
+
+    /* =========================================================
+       PROFILE
+       ========================================================= */
+
+    .profile-grid {
+      display: grid;
+
+      grid-template-columns:
+        160px minmax(0, 1fr);
+
+      gap: 25px;
+
+      align-items: start;
+    }
+
+    .profile-photo {
+      display: flex;
+      justify-content: center;
+    }
+
+    .profile-photo img {
+      width: 145px;
+      height: 145px;
+
+      object-fit: cover;
+
+      border-radius: 18px;
+
+      border:
+        4px solid #fff;
+
+      outline:
+        1px solid var(--border);
+
+      box-shadow:
+        0 8px 22px rgba(15,23,42,.12);
+
+      background: #F8FAFC;
+    }
+
+    .profile-fields {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 13px;
+    }
+
+    .field {
+      background: #F8FAFC;
+
+      border:
+        1px solid #E8EDF4;
+
+      border-radius: 12px;
+
+      padding: 13px 14px;
+
+      min-width: 0;
+    }
+
+    .field span {
+      display: block;
+
+      color: var(--muted);
+
+      font-size: 10px;
+
+      text-transform: uppercase;
+
+      letter-spacing: .5px;
+
+      margin-bottom: 4px;
+    }
+
+    .field strong {
+      display: block;
+
+      color: #1E293B;
+
+      font-size: 13px;
+
+      word-break: break-word;
+    }
+
+
+    /* =========================================================
+       ACADEMIC INFORMATION
+       ========================================================= */
+
+    .academic-summary-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+      gap: 13px;
+
+      margin-top: 3px;
+    }
+
+    .academic-item {
+      position: relative;
+
+      background:
+        linear-gradient(
+          135deg,
+          #F8FAFF,
+          #FFFFFF
+        );
+
+      border:
+        1px solid #E1E8F2;
+
+      border-radius: 14px;
+
+      padding: 16px;
+
+      min-width: 0;
+
+      overflow: hidden;
+    }
+
+    .academic-item::before {
+      content: "";
+
+      position: absolute;
+
+      left: 0;
+      top: 0;
+
+      width: 3px;
+      height: 100%;
+
+      background: var(--blue);
+    }
+
+    .academic-item:nth-child(2)::before {
+      background: var(--gold);
+    }
+
+    .academic-item:nth-child(3)::before {
+      background: var(--purple);
+    }
+
+    .academic-item:nth-child(4)::before {
+      background: var(--green);
+    }
+
+    .academic-item:nth-child(5)::before {
+      background: #0891B2;
+    }
+
+    .academic-item:nth-child(6)::before {
+      background: var(--gold);
+    }
+
+    .academic-item span {
+      display: block;
+
+      color: var(--muted);
+
+      font-size: 10px;
+
+      text-transform: uppercase;
+
+      letter-spacing: .5px;
+
+      margin-bottom: 5px;
+    }
+
+    .academic-item strong {
+      display: block;
+
+      color: var(--navy);
+
+      font-size: 14px;
+
+      line-height: 1.35;
+
+      word-break: break-word;
+    }
+
+    .academic-status {
+      color: var(--green) !important;
+      text-transform: capitalize;
+    }
+
+    #academicInformation,
+    #studentAcademicSummary {
+      width: 100%;
+    }
+
+
+    /* =========================================================
+       RESULTS / GRADES
+       ========================================================= */
+
+    .table-wrapper,
+    .grades-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .data-table,
+    .student-grades-table {
+      width: 100%;
+
+      border-collapse: collapse;
+
+      min-width: 650px;
+
+      font-size: 12px;
+    }
+
+    .data-table th,
+    .student-grades-table th {
+      background: var(--navy);
+
+      color: #fff;
+
+      padding: 11px 10px;
+
+      text-align: left;
+
+      font-size: 10px;
+
+      text-transform: uppercase;
+
+      letter-spacing: .3px;
+    }
+
+    .data-table td,
+    .student-grades-table td {
+      padding: 11px 10px;
+
+      border-bottom:
+        1px solid var(--border);
+
+      color: #334155;
+    }
+
+    .data-table tbody tr:nth-child(even),
+    .student-grades-table tbody tr:nth-child(even) {
+      background: #F8FAFC;
+    }
+
+    .data-table tbody tr:last-child td,
+    .student-grades-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+
+    /* =========================================================
+       EMPTY STATE
+       ========================================================= */
+
+    .empty-message,
+    .empty-state {
+      padding: 22px;
+
+      text-align: center;
+
+      color: var(--muted);
+
+      background: #F8FAFC;
+
+      border:
+        1px dashed #CBD5E1;
+
+      border-radius: 13px;
+
+      font-size: 12px;
+    }
+
+
+    /* =========================================================
+       CERTIFICATES
+       ========================================================= */
+
+    .certificate-list {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 13px;
+    }
+
+    .certificate-item {
+      position: relative;
+
+      display: flex;
+      flex-direction: column;
+
+      gap: 5px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #FFFCF1,
+          #FFFFFF
+        );
+
+      border:
+        1px solid #E9E2C8;
+
+      border-radius: 14px;
+
+      padding: 17px;
+
+      overflow: hidden;
+    }
+
+    .certificate-item::before {
+      content: "";
+
+      position: absolute;
+
+      left: 0;
+      top: 0;
+
+      width: 4px;
+      height: 100%;
+
+      background: var(--gold);
+    }
+
+    .certificate-item strong {
+      color: var(--navy);
+
+      font-size: 13px;
+    }
+
+    .certificate-item span {
+      color: var(--green);
+
+      font-size: 11px;
+
+      font-weight: 700;
+
+      text-transform: capitalize;
+    }
+
+    .certificate-item small {
+      color: var(--muted);
+
+      font-size: 10px;
+    }
+
+
+    /* =========================================================
+       PAYMENTS
+       ========================================================= */
+
+    .payments-list {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 13px;
+    }
+
+    .payment-item {
+      display: flex;
+      flex-direction: column;
+
+      gap: 5px;
+
+      background: #F8FAFC;
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 14px;
+
+      padding: 16px;
+    }
+
+    .payment-item strong {
+      color: var(--navy);
+      font-size: 17px;
+    }
+
+    .payment-item span {
+      color: var(--green);
+
+      font-size: 11px;
+      font-weight: 700;
+
+      text-transform: capitalize;
+    }
+
+    .payment-item small {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+
+    /* =========================================================
        NOTIFICATIONS
-    ===================================================== */
+       ========================================================= */
 
-    .notifications-list{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
+    .notifications-list {
+      display: flex;
+      flex-direction: column;
+
+      gap: 10px;
     }
 
-    .notification-item{
-      background:#F8FAFC;
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:13px;
+    .notification-item {
+      padding: 14px;
+
+      border-radius: 12px;
+
+      background: #F8FAFC;
+
+      border:
+        1px solid var(--border);
+
+      font-size: 12px;
     }
 
-    .secondary-btn{
-      border:1px solid #CBD5E1;
-      background:#fff;
-      color:var(--navy);
-      padding:9px 13px;
-      border-radius:9px;
-      cursor:pointer;
-      font-size:11px;
-      font-weight:800;
+    .notification-item.unread {
+      background: #EFF6FF;
+      border-color: #BFDBFE;
     }
 
-    .secondary-btn:hover{
-      background:#F1F5F9;
+    .notification-item strong {
+      color: var(--navy);
+      display: block;
+      margin-bottom: 3px;
     }
 
-    /* =====================================================
+    .notification-item p {
+      color: var(--muted);
+    }
+
+    .secondary-btn {
+      border:
+        1px solid #CBD5E1;
+
+      background: #fff;
+
+      color: var(--navy);
+
+      padding: 9px 13px;
+
+      border-radius: 9px;
+
+      font-size: 11px;
+      font-weight: 800;
+
+      cursor: pointer;
+    }
+
+    .secondary-btn:hover {
+      border-color: var(--blue);
+      background: var(--blue-light);
+    }
+
+
+    /* =========================================================
+       EXTRA ACCOUNT INFORMATION
+       ========================================================= */
+
+    .account-details {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 13px;
+    }
+
+
+    /* =========================================================
        FOOTER
-    ===================================================== */
+       ========================================================= */
 
-    .portal-footer{
-      background:var(--navy);
-      color:#fff;
-      padding:28px 20px;
-      text-align:center;
-      margin-top:35px;
+    .portal-footer {
+      background: var(--navy);
+
+      color: #fff;
+
+      text-align: center;
+
+      padding: 27px 20px;
+
+      margin-top: 30px;
     }
 
-    .portal-footer strong{
-      display:block;
-      font-size:15px;
-      margin-bottom:5px;
+    .portal-footer strong {
+      display: block;
+
+      font-size: 15px;
+
+      margin-bottom: 4px;
     }
 
-    .portal-footer span{
-      display:block;
-      font-size:12px;
-      opacity:.85;
-      margin-bottom:5px;
+    .portal-footer span {
+      display: block;
+
+      color: #D4AF37;
+
+      font-size: 12px;
+
+      margin-bottom: 5px;
     }
 
-    .portal-footer small{
-      display:block;
-      font-size:10px;
-      opacity:.65;
+    .portal-footer small {
+      display: block;
+
+      opacity: .7;
+
+      font-size: 10px;
     }
 
-    /* =====================================================
+
+    /* =========================================================
        RESPONSIVE
-    ===================================================== */
+       ========================================================= */
 
-    @media(max-width:1000px){
+    @media (max-width: 1000px) {
 
-      .dashboard-grid{
+      .academic-summary-grid {
         grid-template-columns:
-          repeat(2,minmax(0,1fr));
+          repeat(2, minmax(0, 1fr));
       }
 
-      .profile-fields{
+      .certificate-list,
+      .payments-list {
         grid-template-columns:
-          repeat(2,minmax(0,1fr));
+          1fr;
       }
-
-      .academic-summary-grid{
-        grid-template-columns:
-          repeat(2,minmax(0,1fr));
-      }
-
     }
 
-    @media(max-width:700px){
 
-      .topbar{
-        padding:13px 15px;
+    @media (max-width: 750px) {
+
+      .topbar {
+        padding:
+          12px 15px;
       }
 
-      .brand img{
-        width:45px;
-        height:45px;
+      .brand img {
+        width: 45px;
+        height: 45px;
       }
 
-      .brand strong{
-        font-size:14px;
+      .brand strong {
+        font-size: 14px;
       }
 
-      .brand span{
-        font-size:9px;
+      .brand span {
+        font-size: 9px;
       }
 
-      #studentNameTop{
-        display:none;
+      #studentNameTop,
+      #studentName {
+        display: none;
       }
 
-      .portal-container{
-        width:92%;
-        padding-top:20px;
+      .logout-btn {
+        padding:
+          8px 12px;
+
+        font-size: 10px;
       }
 
-      .welcome-card{
-        padding:20px;
-        flex-direction:column;
-        align-items:stretch;
+      .portal-container {
+        width: 92%;
+
+        padding-top: 22px;
       }
 
-      .welcome-card h1{
-        font-size:23px;
+      .welcome-card {
+        flex-direction: column;
+
+        align-items: stretch;
+
+        padding: 23px;
       }
 
-      .student-number{
-        text-align:left;
-        min-width:0;
+      .welcome-card h1 {
+        font-size: 23px;
       }
 
-      .dashboard-grid{
+      .student-number {
+        width: 100%;
+      }
+
+      .dashboard-grid {
         grid-template-columns:
-          repeat(2,minmax(0,1fr));
-        gap:10px;
+          repeat(3, minmax(0, 1fr));
+
+        gap: 10px;
       }
 
-      .stat-card{
-        padding:15px;
+      .stat-card {
+        padding: 14px;
+
+        flex-direction: column;
+
+        align-items: flex-start;
+
+        gap: 8px;
       }
 
-      .stat-icon{
-        width:40px;
-        height:40px;
-        font-size:19px;
+      .stat-icon {
+        width: 39px;
+        height: 39px;
+        font-size: 18px;
       }
 
-      .stat-card strong{
-        font-size:20px;
+      .stat-card strong {
+        font-size: 21px;
       }
 
-      .content-card{
-        padding:17px;
+      .content-card {
+        padding: 17px;
       }
 
-      .profile-grid{
-        grid-template-columns:1fr;
+      .profile-grid {
+        grid-template-columns: 1fr;
       }
 
-      .profile-photo{
-        width:125px;
-        height:125px;
-        margin:auto;
+      .profile-photo {
+        justify-content: flex-start;
       }
 
-      .profile-fields{
+      .profile-photo img {
+        width: 120px;
+        height: 120px;
+      }
+
+      .profile-fields {
         grid-template-columns:
-          repeat(2,minmax(0,1fr));
+          1fr;
       }
 
-      .academic-summary-grid{
-        grid-template-columns:1fr;
+      .academic-summary-grid {
+        grid-template-columns:
+          1fr;
       }
 
-      .certificate-list{
-        grid-template-columns:1fr;
+      .account-details {
+        grid-template-columns:
+          1fr;
       }
-
-      .section-header{
-        align-items:flex-start;
-      }
-
     }
 
-    @media(max-width:430px){
 
-      .profile-fields{
-        grid-template-columns:1fr;
+    @media (max-width: 480px) {
+
+      .dashboard-grid {
+        grid-template-columns:
+          1fr;
       }
 
-      .dashboard-grid{
-        grid-template-columns:1fr 1fr;
+      .stat-card {
+        flex-direction: row;
+        align-items: center;
       }
 
-      .section-header h2{
-        font-size:17px;
+      .section-header {
+        align-items: flex-start;
+        flex-direction: column;
       }
 
-      .welcome-card h1{
-        font-size:21px;
+      .account-bar {
+        align-items: flex-start;
+        flex-direction: column;
       }
-
-      .logout-btn{
-        padding:8px 12px;
-        font-size:10px;
-      }
-
     }
 
   </style>
 </head>
 
+
 <body>
 
-  <!-- =====================================================
-       LOADING
-  ====================================================== -->
+  <!-- =========================================================
+       LOADING SCREEN
+       ========================================================= -->
 
   <div
     id="portalLoading"
     class="portal-loading"
   >
+
     <div class="loader"></div>
 
     <h3>
@@ -921,23 +1369,25 @@
     </h3>
 
     <p>
-      Please wait while we load your academic information.
+      Please wait while your academic information is loaded.
     </p>
+
   </div>
 
 
-  <!-- =====================================================
+  <!-- =========================================================
        PORTAL
-  ====================================================== -->
+       ========================================================= -->
 
   <div
     id="portalApp"
     class="portal-app hidden"
   >
 
-    <!-- ===================================================
+
+    <!-- =======================================================
          HEADER
-    ==================================================== -->
+         ======================================================= -->
 
     <header class="topbar">
 
@@ -948,7 +1398,7 @@
           alt="GAAWOW Academy Logo"
         >
 
-        <div>
+        <div class="brand-text">
 
           <strong>
             GAAWOW ACADEMY
@@ -969,6 +1419,14 @@
           Student
         </span>
 
+        <!-- Compatibility ID -->
+        <span
+          id="studentName"
+          class="hidden"
+        >
+          Student
+        </span>
+
         <button
           id="logoutBtn"
           class="logout-btn"
@@ -982,29 +1440,34 @@
     </header>
 
 
-    <!-- ===================================================
-         MESSAGE
-    ==================================================== -->
-
-    <div
-      id="portalMessage"
-      class="message"
-      style="display:none;"
-    ></div>
-
+    <!-- =======================================================
+         MAIN
+         ======================================================= -->
 
     <main
-      id="portalContent"
+      id="studentPortal"
       class="portal-container"
     >
 
-      <!-- =================================================
+
+      <!-- =====================================================
+           MESSAGE
+           ===================================================== -->
+
+      <div
+        id="portalMessage"
+        class="message"
+        style="display:none"
+      ></div>
+
+
+      <!-- =====================================================
            WELCOME
-      ================================================== -->
+           ===================================================== -->
 
       <section class="welcome-card">
 
-        <div>
+        <div class="welcome-content">
 
           <small>
             WELCOME BACK
@@ -1036,9 +1499,29 @@
       </section>
 
 
-      <!-- =================================================
-           DASHBOARD
-      ================================================== -->
+      <!-- =====================================================
+           ACCOUNT STATUS
+           ===================================================== -->
+
+      <section class="account-bar">
+
+        <span class="account-bar-label">
+          Student Account Status
+        </span>
+
+        <span
+          id="accountStatus"
+          class="account-status active"
+        >
+          Active
+        </span>
+
+      </section>
+
+
+      <!-- =====================================================
+           DASHBOARD STATS
+           ===================================================== -->
 
       <section class="dashboard-grid">
 
@@ -1087,41 +1570,17 @@
         <article class="stat-card">
 
           <span class="stat-icon">
-            💳
+            🔔
           </span>
 
           <div>
 
             <small>
-              Payments
+              Notifications
             </small>
 
-            <strong id="paymentsCount">
+            <strong id="notificationsCount">
               0
-            </strong>
-
-          </div>
-
-        </article>
-
-
-        <article class="stat-card">
-
-          <span class="stat-icon">
-            🔐
-          </span>
-
-          <div>
-
-            <small>
-              Account
-            </small>
-
-            <strong
-              id="accountStatus"
-              class="active"
-            >
-              Active
             </strong>
 
           </div>
@@ -1131,9 +1590,9 @@
       </section>
 
 
-      <!-- =================================================
+      <!-- =====================================================
            STUDENT PROFILE
-      ================================================== -->
+           ===================================================== -->
 
       <section class="content-card">
 
@@ -1156,6 +1615,9 @@
 
         <div class="profile-grid">
 
+
+          <!-- PHOTO -->
+
           <div class="profile-photo">
 
             <img
@@ -1167,7 +1629,10 @@
           </div>
 
 
+          <!-- INFORMATION -->
+
           <div class="profile-fields">
+
 
             <div class="field">
 
@@ -1263,22 +1728,6 @@
             <div class="field">
 
               <span>
-                Account Status
-              </span>
-
-              <strong
-                id="profileAccountStatus"
-                class="active"
-              >
-                Active
-              </strong>
-
-            </div>
-
-
-            <div class="field">
-
-              <span>
                 Last Login
               </span>
 
@@ -1295,9 +1744,9 @@
       </section>
 
 
-      <!-- =================================================
+      <!-- =====================================================
            ACADEMIC INFORMATION
-      ================================================== -->
+           ===================================================== -->
 
       <section class="content-card">
 
@@ -1318,103 +1767,84 @@
         </div>
 
 
+        <!--
+          JS V6:
+          renderAcademicSummary()
+          will automatically fill this element.
+        -->
+
         <div
           id="academicSummary"
-          class="academic-information"
+        ></div>
+
+
+        <!-- ===================================================
+             Hidden compatibility fields
+
+             These are intentionally present because JS V6
+             supports multiple existing portal IDs.
+             =================================================== -->
+
+        <div
+          style="display:none"
+          aria-hidden="true"
         >
 
-          <div class="academic-summary-grid">
+          <span id="institutionName">—</span>
+          <span id="studentInstitution">—</span>
+          <span id="institution">—</span>
+          <span id="profileInstitution">—</span>
+          <span id="dashboardInstitution">—</span>
 
-            <div class="academic-item">
+          <span id="institutionCode">—</span>
+          <span id="studentInstitutionCode">—</span>
 
-              <span>
-                Institution
-              </span>
+          <span id="courseName">—</span>
+          <span id="studentCourse">—</span>
+          <span id="course">—</span>
+          <span id="profileCourse">—</span>
+          <span id="programName">—</span>
+          <span id="studentProgram">—</span>
+          <span id="dashboardCourse">—</span>
 
-              <strong id="institutionName">
-                —
-              </strong>
+          <span id="courseCode">—</span>
+          <span id="studentCourseCode">—</span>
 
-            </div>
+          <span id="departmentName">—</span>
+          <span id="studentDepartment">—</span>
+          <span id="department">—</span>
+          <span id="profileDepartment">—</span>
+          <span id="dashboardDepartment">—</span>
 
+          <span id="departmentCode">—</span>
+          <span id="studentDepartmentCode">—</span>
 
-            <div class="academic-item">
+          <span id="className">—</span>
+          <span id="studentClass">—</span>
+          <span id="class">—</span>
+          <span id="profileClass">—</span>
+          <span id="dashboardClass">—</span>
 
-              <span>
-                Department
-              </span>
+          <span id="classCode">—</span>
+          <span id="studentClassCode">—</span>
 
-              <strong id="departmentName">
-                —
-              </strong>
+          <span id="enrollmentStatus">—</span>
+          <span id="studentEnrollmentStatus">—</span>
+          <span id="enrollmentStatusValue">—</span>
+          <span id="academicStatus">—</span>
 
-            </div>
-
-
-            <div class="academic-item">
-
-              <span>
-                Course
-              </span>
-
-              <strong id="courseName">
-                —
-              </strong>
-
-            </div>
-
-
-            <div class="academic-item">
-
-              <span>
-                Class
-              </span>
-
-              <strong id="className">
-                —
-              </strong>
-
-            </div>
-
-
-            <div class="academic-item">
-
-              <span>
-                Academic Year
-              </span>
-
-              <strong id="academicYear">
-                —
-              </strong>
-
-            </div>
-
-
-            <div class="academic-item">
-
-              <span>
-                Enrollment Status
-              </span>
-
-              <strong
-                id="enrollmentStatus"
-                class="academic-status"
-              >
-                —
-              </strong>
-
-            </div>
-
-          </div>
+          <span id="academicYear">—</span>
+          <span id="studentAcademicYear">—</span>
+          <span id="classAcademicYear">—</span>
 
         </div>
 
       </section>
 
 
-      <!-- =================================================
-           GRADES
-      ================================================== -->
+      <!-- =====================================================
+           ACCOUNT DETAILS
+           ===================================================== -->
 
       <section class="content-card">
 
@@ -1423,7 +1853,88 @@
           <div>
 
             <span class="eyebrow">
-              ACADEMIC RECORD
+              ACCOUNT
+            </span>
+
+            <h2>
+              Account Information
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        <div class="account-details">
+
+          <div class="field">
+
+            <span>
+              Account Status
+            </span>
+
+            <strong id="studentAccountStatus">
+              Active
+            </strong>
+
+          </div>
+
+
+          <div class="field">
+
+            <span>
+              Last Login
+            </span>
+
+            <strong id="studentLastLogin">
+              —
+            </strong>
+
+          </div>
+
+
+          <div class="field">
+
+            <span>
+              Login Username
+            </span>
+
+            <strong id="loginUsername">
+              —
+            </strong>
+
+          </div>
+
+
+          <div class="field">
+
+            <span>
+              Academic Status
+            </span>
+
+            <strong id="profileAccountStatus">
+              Active
+            </strong>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- =====================================================
+           GRADES
+           ===================================================== -->
+
+      <section class="content-card">
+
+        <div class="section-header">
+
+          <div>
+
+            <span class="eyebrow">
+              ACADEMIC RECORDS
             </span>
 
             <h2>
@@ -1437,7 +1948,7 @@
 
         <div
           id="gradesContainer"
-          class="grades-container"
+          data-managed-by-existing-portal="false"
         >
 
           <div class="empty-message">
@@ -1446,12 +1957,30 @@
 
         </div>
 
+
+        <!-- Compatibility containers -->
+
+        <div
+          id="gradesList"
+          class="hidden"
+        ></div>
+
+        <div
+          id="studentGrades"
+          class="hidden"
+        ></div>
+
+        <div
+          id="resultsContainer"
+          class="hidden"
+        ></div>
+
       </section>
 
 
-      <!-- =================================================
+      <!-- =====================================================
            CERTIFICATES
-      ================================================== -->
+           ===================================================== -->
 
       <section class="content-card">
 
@@ -1474,21 +2003,39 @@
 
         <div
           id="certificatesContainer"
-          class="certificate-list"
+          data-managed-by-existing-portal="false"
         >
 
-          <div class="empty-message">
-            Loading certificates...
+          <div class="certificate-list">
+
+            <div class="empty-message">
+              Loading certificates...
+            </div>
+
           </div>
 
         </div>
 
+
+        <!-- Primary V6 target -->
+
+        <div
+          id="certificatesList"
+          class="certificate-list hidden"
+        ></div>
+
+
+        <div
+          id="studentCertificates"
+          class="hidden"
+        ></div>
+
       </section>
 
 
-      <!-- =================================================
+      <!-- =====================================================
            PAYMENTS
-      ================================================== -->
+           ===================================================== -->
 
       <section class="content-card">
 
@@ -1511,21 +2058,37 @@
 
         <div
           id="paymentsContainer"
-          class="payments-container"
+          data-managed-by-existing-portal="false"
         >
 
-          <div class="empty-message">
-            Loading payment records...
+          <div class="payments-list">
+
+            <div class="empty-message">
+              Loading payments...
+            </div>
+
           </div>
 
         </div>
 
+
+        <div
+          id="paymentsList"
+          class="payments-list hidden"
+        ></div>
+
+
+        <div
+          id="studentPayments"
+          class="hidden"
+        ></div>
+
       </section>
 
 
-      <!-- =================================================
+      <!-- =====================================================
            NOTIFICATIONS
-      ================================================== -->
+           ===================================================== -->
 
       <section class="content-card">
 
@@ -1561,19 +2124,43 @@
         >
 
           <div class="empty-message">
-            No notifications loaded.
+            No notifications available.
           </div>
 
         </div>
 
       </section>
 
+
+      <!-- =====================================================
+           LOGOUT
+           ===================================================== -->
+
+      <section
+        style="
+          display:flex;
+          justify-content:center;
+          margin-top:10px;
+        "
+      >
+
+        <button
+          id="studentLogoutBtn"
+          class="logout-btn"
+          type="button"
+        >
+          Logout from Student Portal
+        </button>
+
+      </section>
+
+
     </main>
 
 
-    <!-- ===================================================
+    <!-- =======================================================
          FOOTER
-    ==================================================== -->
+         ======================================================= -->
 
     <footer class="portal-footer">
 
@@ -1591,21 +2178,28 @@
 
     </footer>
 
+
   </div>
 
 
-  <!-- =====================================================
+  <!-- =========================================================
        SUPABASE
-  ====================================================== -->
+       ========================================================= -->
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
 
 
-  <!-- =====================================================
-       STUDENT PORTAL V6
-  ====================================================== -->
+  <!-- =========================================================
+       STUDENT PORTAL JS V6
+       ========================================================= -->
 
-  <script src="./student-portal.js?v=6.0.0"></script>
+  <script
+    src="./student-portal.js?v=6.0.0"
+    defer
+  ></script>
+
 
 </body>
 </html>
