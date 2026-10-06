@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#0B1E63">
 
-<title>GAAWOW EMS | Student Portal V8.1</title>
+<title>GAAWOW EMS | Student Portal V8.2</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -420,6 +420,16 @@ body{
   border-radius:10px;
 }
 
+.grade-error{
+  text-align:center;
+  padding:18px 15px;
+  color:#991b1b;
+  background:#fff1f2;
+  border:1px solid #fecdd3;
+  border-radius:10px;
+  font-size:12px;
+}
+
 a{
   color:#0B4DA2;
   font-weight:700;
@@ -540,7 +550,7 @@ a:hover{
   </div>
 
   <span class="portal-tag">
-    STUDENT PORTAL V8.1
+    STUDENT PORTAL V8.2
   </span>
 
   <button
@@ -1564,11 +1574,6 @@ function populateGradeYears(){
 
   }else{
 
-    /*
-      Prefer current enrollment year
-      if available.
-    */
-
     const academicYear =
       window.__currentAcademicYear;
 
@@ -1663,11 +1668,6 @@ function renderGradeSummary(results){
     Math.min(...percentages);
 
 
-  /*
-    Overall grade is calculated
-    from the average percentage.
-  */
-
   const overall =
     calculateGradeFromPercentage(
       average
@@ -1752,9 +1752,7 @@ function renderGrades(results){
 
           <td>
             ${esc(
-              val(
-                r.academic_year
-              )
+              val(r.academic_year)
             )}
           </td>
 
@@ -1862,13 +1860,6 @@ function applyGradeFilter(){
   }
 
 
-  /*
-    Sort:
-    Academic Year DESC
-    Exam Date DESC
-    Subject ASC
-  */
-
   filtered.sort(
     (a,b) => {
 
@@ -1918,7 +1909,214 @@ function applyGradeFilter(){
 
 
 /* =========================================================
+   SAFE RELATED FETCHERS
+   These prevent one RLS-related failure from
+   deleting all grade rows.
+========================================================= */
+
+async function fetchSubjectsMap(
+  subjectIds
+){
+
+  const map = new Map();
+
+
+  const ids =
+    [
+      ...new Set(
+        subjectIds.filter(Boolean)
+      )
+    ];
+
+
+  if(!ids.length){
+    return map;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await sb
+      .from("subjects")
+      .select(`
+        id,
+        name,
+        code
+      `)
+      .in("id",ids);
+
+
+  if(error){
+
+    console.warn(
+      "Subjects lookup failed:",
+      error
+    );
+
+    return map;
+
+  }
+
+
+  (data || []).forEach(row => {
+
+    map.set(
+      row.id,
+      row
+    );
+
+  });
+
+
+  return map;
+
+}
+
+
+async function fetchExamsMap(
+  examIds
+){
+
+  const map = new Map();
+
+
+  const ids =
+    [
+      ...new Set(
+        examIds.filter(Boolean)
+      )
+    ];
+
+
+  if(!ids.length){
+    return map;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await sb
+      .from("exams")
+      .select(`
+        id,
+        title,
+        exam_type,
+        exam_date,
+        max_score,
+        class_id
+      `)
+      .in("id",ids);
+
+
+  if(error){
+
+    console.warn(
+      "Exams lookup failed:",
+      error
+    );
+
+    return map;
+
+  }
+
+
+  (data || []).forEach(row => {
+
+    map.set(
+      row.id,
+      row
+    );
+
+  });
+
+
+  return map;
+
+}
+
+
+async function fetchClassesMap(
+  classIds
+){
+
+  const map = new Map();
+
+
+  const ids =
+    [
+      ...new Set(
+        classIds.filter(Boolean)
+      )
+    ];
+
+
+  if(!ids.length){
+    return map;
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await sb
+      .from("classes")
+      .select(`
+        id,
+        name,
+        code,
+        academic_year
+      `)
+      .in("id",ids);
+
+
+  if(error){
+
+    console.warn(
+      "Classes lookup failed:",
+      error
+    );
+
+    return map;
+
+  }
+
+
+  (data || []).forEach(row => {
+
+    map.set(
+      row.id,
+      row
+    );
+
+  });
+
+
+  return map;
+
+}
+
+
+/* =========================================================
    LOAD GRADES FROM RESULTS
+   V8.2 FIX
+
+   IMPORTANT:
+   The old V8.1 version used one embedded query:
+
+   results
+      -> subjects
+      -> exams
+      -> classes
+
+   This version deliberately separates those
+   requests so an RLS/relationship problem in
+   one related table cannot make all results
+   appear as zero.
 ========================================================= */
 
 async function loadGrades(
@@ -1926,27 +2124,9 @@ async function loadGrades(
 ){
 
   /*
-    IMPORTANT:
-    We intentionally use RESULTS,
-    not GRADES.
-
-    results:
-      student_id
-      exam_id
-      subject_id
-      score
-      max_score
-      percentage
-      grade
-      remarks
-      is_published
-
-    Then:
-      subjects -> Subject / Code
-      exams    -> Exam / Date / Class
-      classes  -> Academic Year
+    STEP 1
+    Fetch RESULTS only.
   */
-
 
   const {
     data,
@@ -1967,28 +2147,7 @@ async function loadGrades(
         remarks,
         is_published,
         created_at,
-        updated_at,
-
-        subjects(
-          id,
-          name,
-          code
-        ),
-
-        exams(
-          id,
-          title,
-          exam_type,
-          exam_date,
-          max_score,
-          class_id,
-          classes(
-            id,
-            name,
-            code,
-            academic_year
-          )
-        )
+        updated_at
       `)
       .eq(
         "student_id",
@@ -1997,11 +2156,27 @@ async function loadGrades(
       .eq(
         "is_published",
         true
+      )
+      .order(
+        "created_at",
+        {
+          ascending:false
+        }
       );
 
 
   if(error){
-    throw error;
+
+    /*
+      This is the REAL results query.
+      If it fails, we must expose the
+      actual Supabase error.
+    */
+
+    throw new Error(
+      `Results query failed: ${errText(error)}`
+    );
+
   }
 
 
@@ -2009,25 +2184,99 @@ async function loadGrades(
     data || [];
 
 
+  /*
+    STEP 2
+    Collect foreign keys.
+  */
+
+  const subjectIds =
+    source
+      .map(r => r.subject_id)
+      .filter(Boolean);
+
+
+  const examIds =
+    source
+      .map(r => r.exam_id)
+      .filter(Boolean);
+
+
+  /*
+    STEP 3
+    Fetch subjects and exams independently.
+  */
+
+  const [
+    subjectsMap,
+    examsMap
+  ] =
+    await Promise.all([
+      fetchSubjectsMap(
+        subjectIds
+      ),
+      fetchExamsMap(
+        examIds
+      )
+    ]);
+
+
+  /*
+    STEP 4
+    Get class IDs from exams.
+  */
+
+  const classIds =
+    source
+      .map(r => {
+
+        const exam =
+          examsMap.get(
+            r.exam_id
+          );
+
+        return exam?.class_id;
+
+      })
+      .filter(Boolean);
+
+
+  /*
+    STEP 5
+    Fetch classes independently.
+  */
+
+  const classesMap =
+    await fetchClassesMap(
+      classIds
+    );
+
+
+  /*
+    STEP 6
+    Build the final portal grade rows.
+  */
+
   allGradeResults =
     source.map(r => {
 
       const subject =
-        Array.isArray(r.subjects)
-          ? r.subjects[0]
-          : r.subjects;
+        subjectsMap.get(
+          r.subject_id
+        ) || null;
 
 
       const exam =
-        Array.isArray(r.exams)
-          ? r.exams[0]
-          : r.exams;
+        examsMap.get(
+          r.exam_id
+        ) || null;
 
 
       const classRow =
-        Array.isArray(exam?.classes)
-          ? exam.classes[0]
-          : exam?.classes;
+        exam?.class_id
+          ? classesMap.get(
+              exam.class_id
+            ) || null
+          : null;
 
 
       return {
@@ -2035,14 +2284,29 @@ async function loadGrades(
         id:
           r.id,
 
+        institution_id:
+          r.institution_id,
+
+        student_id:
+          r.student_id,
+
+        subject_id:
+          r.subject_id,
+
+        exam_id:
+          r.exam_id,
+
         academic_year:
-          classRow?.academic_year ?? null,
+          classRow?.academic_year ??
+          null,
 
         subject_name:
-          subject?.name ?? null,
+          subject?.name ??
+          null,
 
         subject_code:
-          subject?.code ?? null,
+          subject?.code ??
+          null,
 
         score:
           r.score,
@@ -2062,13 +2326,28 @@ async function loadGrades(
           r.remarks,
 
         exam_title:
-          exam?.title ?? null,
+          exam?.title ??
+          null,
 
         exam_type:
-          exam?.exam_type ?? null,
+          exam?.exam_type ??
+          null,
 
         exam_date:
-          exam?.exam_date ?? null,
+          exam?.exam_date ??
+          null,
+
+        class_id:
+          exam?.class_id ??
+          null,
+
+        class_name:
+          classRow?.name ??
+          null,
+
+        class_code:
+          classRow?.code ??
+          null,
 
         created_at:
           r.created_at
@@ -2078,10 +2357,43 @@ async function loadGrades(
     });
 
 
+  /*
+    STEP 7
+    Populate year selector.
+  */
+
   populateGradeYears();
 
 
+  /*
+    STEP 8
+    Render.
+  */
+
   applyGradeFilter();
+
+
+  /*
+    Diagnostic information.
+    Does not expose passwords or tokens.
+  */
+
+  console.info(
+    "GAAWOW Grades V8.2:",
+    {
+      publishedResults:
+        source.length,
+
+      subjectsLoaded:
+        subjectsMap.size,
+
+      examsLoaded:
+        examsMap.size,
+
+      classesLoaded:
+        classesMap.size
+    }
+  );
 
 }
 
@@ -2675,8 +2987,8 @@ async function load(){
 
     }catch(e){
 
-      console.warn(
-        "Results / Grades",
+      console.error(
+        "GAAWOW RESULTS / GRADES ERROR",
         e
       );
 
@@ -2688,16 +3000,33 @@ async function load(){
       populateGradeYears();
 
 
-      renderGrades(
-        []
-      );
+      $("gradeTotalSubjects").textContent =
+        "0";
+
+      $("gradeAverage").textContent =
+        "—";
+
+      $("gradeHighest").textContent =
+        "—";
+
+      $("gradeLowest").textContent =
+        "—";
+
+      $("gradeOverall").textContent =
+        "—";
 
 
-      /*
-        We do not stop the entire
-        Student Portal because of
-        Grades failure.
-      */
+      $("gradesBody").innerHTML = `
+        <tr>
+          <td colspan="8">
+            <div class="grade-error">
+              <strong>Grades could not be loaded.</strong>
+              <br>
+              ${esc(errText(e))}
+            </div>
+          </td>
+        </tr>
+      `;
 
     }
 
@@ -2833,7 +3162,7 @@ async function load(){
   }catch(e){
 
     console.error(
-      "GAAWOW V8.1 PORTAL ERROR",
+      "GAAWOW V8.2 PORTAL ERROR",
       e
     );
 
