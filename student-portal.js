@@ -1,37 +1,31 @@
 /* ============================================================
    GAAWOW ACADEMY / GAAWOW EMS
-   STUDENT PORTAL JS V6.3 FINAL
+   STUDENT PORTAL JS V6.4 FINAL
 
-   PURPOSE:
-   - Load authenticated student
-   - Load student profile
-   - Load enrollment
-   - Load Institution
-   - Load Department
-   - Load Course / Program
-   - Load Class
-   - Load Academic Year
-   - Load Status
-   - Load Grades / Results
-   - Load Certificates
-   - Load Payments
-   - Load Notifications
-   - Handle Logout
-   - Never hard-code a student's identity
+   PURPOSE
+   ------------------------------------------------------------
+   - Authenticated student
+   - Student profile
+   - Enrollment
+   - Institution
+   - Department
+   - Course / Program
+   - Class
+   - Academic Year
+   - Enrollment Status
+   - Grades
+   - Results
+   - Certificates
+   - Payments
+   - Notifications
+   - Logout
 
-   DATABASE RELATION:
-
-   auth.users
-       ↓ auth_user_id
-   students
-       ↓ student_id
-   enrollments
-       ├── institution
-       ├── course
-       ├── class
-       ├── department
-       └── academic year
-
+   IMPORTANT
+   ------------------------------------------------------------
+   - NO student identity is hard-coded
+   - NO academic_year_id is required
+   - Enrollment is loaded from the authenticated student
+   - HTML IDs are aligned with this JS
    ============================================================ */
 
 "use strict";
@@ -49,12 +43,8 @@ const SUPABASE_ANON_KEY =
 
 
 if (!window.supabase) {
-  console.error(
-    "Supabase library was not loaded."
-  );
-  throw new Error(
-    "Supabase library was not loaded."
-  );
+  console.error("Supabase library was not loaded.");
+  throw new Error("Supabase library was not loaded.");
 }
 
 
@@ -86,6 +76,7 @@ let currentDepartment = null;
 let currentClass = null;
 
 let gradesData = [];
+let resultsData = [];
 let certificatesData = [];
 let paymentsData = [];
 let notificationsData = [];
@@ -101,24 +92,25 @@ function $(id) {
 
 
 function setText(id, value, fallback = "—") {
+
   const el = $(id);
 
   if (!el) {
     return;
   }
 
-  const finalValue =
+  const valid =
     value !== undefined &&
     value !== null &&
-    String(value).trim() !== ""
-      ? value
-      : fallback;
+    String(value).trim() !== "";
 
-  el.textContent = finalValue;
+  el.textContent =
+    valid ? String(value) : fallback;
 }
 
 
 function setHTML(id, html) {
+
   const el = $(id);
 
   if (!el) {
@@ -129,31 +121,8 @@ function setHTML(id, html) {
 }
 
 
-function show(id) {
-  const el = $(id);
-
-  if (!el) {
-    return;
-  }
-
-  el.classList.remove("hidden");
-
-  el.style.display = "";
-}
-
-
-function hide(id) {
-  const el = $(id);
-
-  if (!el) {
-    return;
-  }
-
-  el.classList.add("hidden");
-}
-
-
 function escapeHTML(value) {
+
   if (
     value === undefined ||
     value === null
@@ -171,10 +140,14 @@ function escapeHTML(value) {
 
 
 /* ============================================================
-   4. GENERIC VALUE FINDER
+   4. VALUE FINDER
    ============================================================ */
 
-function firstValue(object, keys, fallback = null) {
+function firstValue(
+  object,
+  keys,
+  fallback = null
+) {
 
   if (!object) {
     return fallback;
@@ -205,32 +178,59 @@ function formatDate(value) {
     return "—";
   }
 
-  try {
+  const date = new Date(value);
 
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return String(value);
-    }
-
-    return date.toLocaleDateString(
-      "en-GB",
-      {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      }
-    );
-
-  } catch (error) {
-
+  if (Number.isNaN(date.getTime())) {
     return String(value);
+  }
+
+  return date.toLocaleDateString(
+    "en-GB",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }
+  );
+}
+
+
+/* ============================================================
+   6. LOADING
+   ============================================================ */
+
+function showPortalLoading() {
+
+  const loading = $("portalLoading");
+  const app = $("studentPortal");
+
+  if (loading) {
+    loading.style.display = "flex";
+  }
+
+  if (app) {
+    app.style.display = "none";
+  }
+}
+
+
+function hidePortalLoading() {
+
+  const loading = $("portalLoading");
+  const app = $("studentPortal");
+
+  if (loading) {
+    loading.style.display = "none";
+  }
+
+  if (app) {
+    app.style.display = "";
   }
 }
 
 
 /* ============================================================
-   6. MESSAGE
+   7. MESSAGE
    ============================================================ */
 
 function showMessage(
@@ -245,10 +245,7 @@ function showMessage(
   }
 
   el.textContent = message;
-
-  el.className =
-    `message ${type}`;
-
+  el.className = `message ${type}`;
   el.style.display = "block";
 }
 
@@ -264,47 +261,6 @@ function clearMessage() {
   el.textContent = "";
   el.className = "message";
   el.style.display = "none";
-}
-
-
-/* ============================================================
-   7. LOADING SCREEN
-   ============================================================ */
-
-function showPortalLoading() {
-
-  const loading =
-    $("portalLoading");
-
-  const app =
-    $("portalApp");
-
-  if (loading) {
-    loading.style.display = "flex";
-  }
-
-  if (app) {
-    app.classList.add("hidden");
-  }
-}
-
-
-function hidePortalLoading() {
-
-  const loading =
-    $("portalLoading");
-
-  const app =
-    $("portalApp");
-
-  if (loading) {
-    loading.style.display = "none";
-  }
-
-  if (app) {
-    app.classList.remove("hidden");
-    app.style.display = "";
-  }
 }
 
 
@@ -334,7 +290,7 @@ async function logoutStudent() {
 
 
 /* ============================================================
-   9. AUTHENTICATED USER
+   9. AUTH USER
    ============================================================ */
 
 async function getAuthenticatedUser() {
@@ -342,13 +298,12 @@ async function getAuthenticatedUser() {
   const {
     data,
     error
-  } =
-    await supabaseClient.auth.getUser();
+  } = await supabaseClient.auth.getUser();
 
   if (error) {
 
     console.error(
-      "getUser error:",
+      "Authentication error:",
       error
     );
 
@@ -360,7 +315,7 @@ async function getAuthenticatedUser() {
 
 
 /* ============================================================
-   10. LOAD STUDENT BY AUTH USER ID
+   10. LOAD STUDENT
    ============================================================ */
 
 async function loadStudent(userId) {
@@ -372,16 +327,14 @@ async function loadStudent(userId) {
   const {
     data,
     error
-  } =
-    await supabaseClient
-      .from("students")
-      .select("*")
-      .eq(
-        "auth_user_id",
-        userId
-      )
-      .maybeSingle();
-
+  } = await supabaseClient
+    .from("students")
+    .select("*")
+    .eq(
+      "auth_user_id",
+      userId
+    )
+    .maybeSingle();
 
   if (error) {
 
@@ -393,7 +346,6 @@ async function loadStudent(userId) {
     throw error;
   }
 
-
   return data || null;
 }
 
@@ -402,81 +354,115 @@ async function loadStudent(userId) {
    11. LOAD ENROLLMENT
    ============================================================ */
 
-async function loadEnrollment(studentId) {
+async function loadEnrollment(student) {
 
-  if (!studentId) {
+  if (!student) {
     return null;
   }
 
-
-  /*
-     IMPORTANT:
-
-     We DO NOT use academic_year_id here.
-
-     Previous SQL error:
-     column "academic_year_id" does not exist.
-
-     Therefore we select "*" and inspect the real
-     enrollment record dynamically.
-  */
-
-  let result =
-    await supabaseClient
-      .from("enrollments")
-      .select("*")
-      .eq(
-        "student_id",
-        studentId
-      )
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      )
-      .limit(20);
-
-
-  if (result.error) {
-
-    console.error(
-      "Enrollment query error:",
-      result.error
+  const studentUuid =
+    firstValue(
+      student,
+      ["id", "student_uuid"]
     );
 
-    /*
-       Fallback for schemas using student_uuid
-       instead of student_id.
-    */
+  const studentId =
+    firstValue(
+      student,
+      [
+        "student_id",
+        "student_number",
+        "registration_number"
+      ]
+    );
 
-    result =
+
+  /*
+     IMPORTANT
+     ----------------------------------------------------------
+     We do NOT use academic_year_id.
+     We first search using student_id.
+  */
+
+  let rows = [];
+
+
+  /* ----------------------------------------------------------
+     OPTION 1: students.id
+  ---------------------------------------------------------- */
+
+  if (studentUuid) {
+
+    const result =
+      await supabaseClient
+        .from("enrollments")
+        .select("*")
+        .eq(
+          "student_id",
+          studentUuid
+        );
+
+    if (
+      !result.error &&
+      Array.isArray(result.data)
+    ) {
+      rows = result.data;
+    }
+  }
+
+
+  /* ----------------------------------------------------------
+     OPTION 2: student_id contains student number
+  ---------------------------------------------------------- */
+
+  if (
+    !rows.length &&
+    studentId
+  ) {
+
+    const result =
+      await supabaseClient
+        .from("enrollments")
+        .select("*")
+        .eq(
+          "student_id",
+          studentId
+        );
+
+    if (
+      !result.error &&
+      Array.isArray(result.data)
+    ) {
+      rows = result.data;
+    }
+  }
+
+
+  /* ----------------------------------------------------------
+     OPTION 3: student_uuid
+  ---------------------------------------------------------- */
+
+  if (
+    !rows.length &&
+    studentUuid
+  ) {
+
+    const result =
       await supabaseClient
         .from("enrollments")
         .select("*")
         .eq(
           "student_uuid",
-          studentId
-        )
-        .limit(20);
+          studentUuid
+        );
+
+    if (
+      !result.error &&
+      Array.isArray(result.data)
+    ) {
+      rows = result.data;
+    }
   }
-
-
-  if (result.error) {
-
-    console.error(
-      "Enrollment fallback error:",
-      result.error
-    );
-
-    return null;
-  }
-
-
-  const rows =
-    Array.isArray(result.data)
-      ? result.data
-      : [];
 
 
   if (!rows.length) {
@@ -484,9 +470,9 @@ async function loadEnrollment(studentId) {
   }
 
 
-  /*
-     Prefer active enrollment.
-  */
+  /* ----------------------------------------------------------
+     PREFER ACTIVE ENROLLMENT
+  ---------------------------------------------------------- */
 
   const active =
     rows.find(row => {
@@ -516,7 +502,7 @@ async function loadEnrollment(studentId) {
 
 
 /* ============================================================
-   12. GENERIC TABLE RECORD BY ID
+   12. GENERIC RECORD
    ============================================================ */
 
 async function getRecordById(
@@ -528,28 +514,27 @@ async function getRecordById(
     return null;
   }
 
-
   const {
     data,
     error
-  } =
-    await supabaseClient
-      .from(tableName)
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
-
+  } = await supabaseClient
+    .from(tableName)
+    .select("*")
+    .eq(
+      "id",
+      id
+    )
+    .maybeSingle();
 
   if (error) {
 
     console.warn(
-      `Could not load ${tableName}:`,
+      `${tableName} relation unavailable:`,
       error.message
     );
 
     return null;
   }
-
 
   return data || null;
 }
@@ -563,14 +548,20 @@ async function loadAcademicRelations(
   enrollment
 ) {
 
+  currentInstitution = null;
+  currentCourse = null;
+  currentDepartment = null;
+  currentClass = null;
+
+
   if (!enrollment) {
     return;
   }
 
 
-  /* ----------------------------------------------------------
+  /* ==========================================================
      INSTITUTION
-     ---------------------------------------------------------- */
+  ========================================================== */
 
   const institutionId =
     firstValue(
@@ -593,11 +584,6 @@ async function loadAcademicRelations(
   }
 
 
-  /*
-     Sometimes enrollment can contain institution
-     as an embedded object.
-  */
-
   if (
     !currentInstitution &&
     enrollment.institution &&
@@ -609,9 +595,9 @@ async function loadAcademicRelations(
   }
 
 
-  /* ----------------------------------------------------------
+  /* ==========================================================
      COURSE
-     ---------------------------------------------------------- */
+  ========================================================== */
 
   const courseId =
     firstValue(
@@ -620,7 +606,8 @@ async function loadAcademicRelations(
         "course_id",
         "course_uuid",
         "courseId",
-        "program_id"
+        "program_id",
+        "program_uuid"
       ]
     );
 
@@ -632,6 +619,16 @@ async function loadAcademicRelations(
         "courses",
         courseId
       );
+
+
+    if (!currentCourse) {
+
+      currentCourse =
+        await getRecordById(
+          "programs",
+          courseId
+        );
+    }
   }
 
 
@@ -646,9 +643,9 @@ async function loadAcademicRelations(
   }
 
 
-  /* ----------------------------------------------------------
+  /* ==========================================================
      DEPARTMENT
-     ---------------------------------------------------------- */
+  ========================================================== */
 
   let departmentId =
     firstValue(
@@ -660,11 +657,6 @@ async function loadAcademicRelations(
       ]
     );
 
-
-  /*
-     If department_id is not in enrollment,
-     look inside course.
-  */
 
   if (
     !departmentId &&
@@ -704,9 +696,9 @@ async function loadAcademicRelations(
   }
 
 
-  /* ----------------------------------------------------------
+  /* ==========================================================
      CLASS
-     ---------------------------------------------------------- */
+  ========================================================== */
 
   const classId =
     firstValue(
@@ -742,15 +734,10 @@ async function loadAcademicRelations(
 
 
 /* ============================================================
-   14. EXTRACT ACADEMIC YEAR
+   14. ACADEMIC YEAR
    ============================================================ */
 
 function getAcademicYear() {
-
-  /*
-     IMPORTANT:
-     No academic_year_id is required.
-  */
 
   const sources = [
     currentEnrollment,
@@ -773,12 +760,12 @@ function getAcademicYear() {
         [
           "academic_year",
           "academicYear",
-          "year",
           "school_year",
           "academic_session",
           "session",
           "year_name",
-          "academic_year_name"
+          "academic_year_name",
+          "year"
         ]
       );
 
@@ -794,12 +781,12 @@ function getAcademicYear() {
 
 
 /* ============================================================
-   15. GET STUDENT NAME
+   15. STUDENT NAME
    ============================================================ */
 
 function getStudentFullName() {
 
-  const name =
+  const directName =
     firstValue(
       currentStudent,
       [
@@ -811,8 +798,8 @@ function getStudentFullName() {
     );
 
 
-  if (name) {
-    return name;
+  if (directName) {
+    return directName;
   }
 
 
@@ -850,23 +837,38 @@ function getStudentFullName() {
     );
 
 
-  const combined =
-    [
-      firstName,
-      middleName,
-      lastName
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
-
-
-  return combined || "Student";
+  return [
+    firstName,
+    middleName,
+    lastName
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim() || "Student";
 }
 
 
 /* ============================================================
-   16. RENDER STUDENT PROFILE
+   16. STUDENT ID
+   ============================================================ */
+
+function getStudentId() {
+
+  return firstValue(
+    currentStudent,
+    [
+      "student_id",
+      "student_number",
+      "registration_number",
+      "reg_no"
+    ],
+    "—"
+  );
+}
+
+
+/* ============================================================
+   17. RENDER PROFILE
    ============================================================ */
 
 function renderStudentProfile() {
@@ -879,17 +881,8 @@ function renderStudentProfile() {
   const fullName =
     getStudentFullName();
 
-
   const studentId =
-    firstValue(
-      currentStudent,
-      [
-        "student_id",
-        "student_number",
-        "registration_number",
-        "reg_no"
-      ]
-    );
+    getStudentId();
 
 
   const email =
@@ -973,103 +966,98 @@ function renderStudentProfile() {
 
 
   /* ----------------------------------------------------------
-     HEADER
-     ---------------------------------------------------------- */
-
-  setText(
-    "studentNameTop",
-    fullName,
-    "Student"
-  );
-
+     NAME
+  ---------------------------------------------------------- */
 
   setText(
     "studentName",
-    fullName,
-    "Student"
+    fullName
   );
-
 
   setText(
     "welcomeStudentName",
-    `${fullName} 👋`,
-    "Student 👋"
+    `${fullName} 👋`
+  );
+
+  setText(
+    "profileName",
+    fullName
   );
 
 
   /* ----------------------------------------------------------
      STUDENT ID
-     ---------------------------------------------------------- */
+  ---------------------------------------------------------- */
 
   setText(
     "studentNumber",
     studentId
   );
 
-
   setText(
     "profileStudentId",
+    studentId
+  );
+
+  setText(
+    "studentId",
     studentId
   );
 
 
   /* ----------------------------------------------------------
      PROFILE
-     ---------------------------------------------------------- */
+  ---------------------------------------------------------- */
 
   setText(
     "studentFullName",
     fullName
   );
 
-
   setText(
-    "profileEmail",
+    "studentEmail",
     email
   );
 
-
   setText(
-    "profilePhone",
+    "studentPhone",
     phone
   );
 
-
   setText(
-    "profileGender",
+    "studentGender",
     gender
   );
 
-
   setText(
-    "studentAdmissionDate",
-    formatDate(admissionDate)
-  );
-
-
-  setText(
-    "profileAddress",
+    "studentAddress",
     address
   );
 
 
   /* ----------------------------------------------------------
-     DATE OF BIRTH
-     ---------------------------------------------------------- */
+     DOB
+  ---------------------------------------------------------- */
 
-  const dobEl =
-    $("profileDateOfBirth");
+  setText(
+    "profileDateOfBirth",
+    formatDate(dob)
+  );
 
-  if (dobEl) {
 
-    dobEl.textContent =
-      formatDate(dob);
-  }
+  /* ----------------------------------------------------------
+     ADMISSION DATE
+  ---------------------------------------------------------- */
+
+  setText(
+    "admissionDate",
+    formatDate(admissionDate)
+  );
 
 
   /* ----------------------------------------------------------
      ENROLLMENT DATE
-     ---------------------------------------------------------- */
+  ---------------------------------------------------------- */
 
   const enrollmentDate =
     firstValue(
@@ -1091,7 +1079,7 @@ function renderStudentProfile() {
 
   /* ----------------------------------------------------------
      LAST LOGIN
-     ---------------------------------------------------------- */
+  ---------------------------------------------------------- */
 
   const lastLogin =
     firstValue(
@@ -1110,15 +1098,9 @@ function renderStudentProfile() {
   );
 
 
-  setText(
-    "studentLastLogin",
-    formatDate(lastLogin)
-  );
-
-
   /* ----------------------------------------------------------
-     LOGIN USERNAME
-     ---------------------------------------------------------- */
+     USERNAME
+  ---------------------------------------------------------- */
 
   const username =
     firstValue(
@@ -1140,15 +1122,18 @@ function renderStudentProfile() {
 
   /* ----------------------------------------------------------
      PHOTO
-     ---------------------------------------------------------- */
+  ---------------------------------------------------------- */
 
   const photoEl =
     $("studentPhoto");
 
 
-  if (photoEl && photo) {
+  if (photoEl) {
 
-    photoEl.src = photo;
+    photoEl.src =
+      photo ||
+      "https://i.ibb.co/4ZCRpm30/gaawow-logo.png";
+
 
     photoEl.onerror =
       function () {
@@ -1162,46 +1147,46 @@ function renderStudentProfile() {
 
 
   /* ----------------------------------------------------------
-     ACCOUNT ENABLED / STATUS
-     ---------------------------------------------------------- */
+     ACCOUNT STATUS
+  ---------------------------------------------------------- */
 
   const accountEnabled =
     currentStudent.account_enabled;
 
 
-  const status =
+  const accountStatus =
     firstValue(
       currentStudent,
       [
-        "status",
-        "account_status"
+        "account_status",
+        "status"
       ],
       "active"
     );
 
 
-  const active =
+  const accountActive =
     accountEnabled === false
       ? false
-      : String(status).toLowerCase() !==
-        "inactive";
+      : String(accountStatus)
+          .toLowerCase() !== "inactive";
 
 
   renderAccountStatus(
-    active
+    accountActive
   );
 }
 
 
 /* ============================================================
-   17. RENDER ACCOUNT STATUS
+   18. ACCOUNT STATUS
    ============================================================ */
 
 function renderAccountStatus(
   active
 ) {
 
-  const statusText =
+  const value =
     active
       ? "Active"
       : "Inactive";
@@ -1214,7 +1199,7 @@ function renderAccountStatus(
   if (accountStatus) {
 
     accountStatus.textContent =
-      statusText;
+      value;
 
     accountStatus.classList.toggle(
       "inactive",
@@ -1225,43 +1210,31 @@ function renderAccountStatus(
 
   setText(
     "studentAccountStatus",
-    statusText
-  );
-
-
-  setText(
-    "profileAccountStatus",
-    statusText
-  );
-
-
-  setText(
-    "enrollmentStatus",
-    statusText
-  );
-
-
-  setText(
-    "studentEnrollmentStatus",
-    statusText
-  );
-
-
-  setText(
-    "enrollmentStatusValue",
-    statusText
-  );
-
-
-  setText(
-    "academicStatus",
-    statusText
+    value
   );
 }
 
 
 /* ============================================================
-   18. RENDER ACADEMIC INFORMATION
+   19. ENROLLMENT STATUS
+   ============================================================ */
+
+function getEnrollmentStatus() {
+
+  return firstValue(
+    currentEnrollment,
+    [
+      "enrollment_status",
+      "status",
+      "student_status"
+    ],
+    "Active"
+  );
+}
+
+
+/* ============================================================
+   20. RENDER ACADEMIC INFORMATION
    ============================================================ */
 
 function renderAcademicInformation() {
@@ -1279,6 +1252,23 @@ function renderAcademicInformation() {
       currentEnrollment,
       [
         "institution_name"
+      ]
+    );
+
+
+  const institutionCode =
+    firstValue(
+      currentInstitution,
+      [
+        "code",
+        "institution_code",
+        "short_code"
+      ]
+    ) ||
+    firstValue(
+      currentEnrollment,
+      [
+        "institution_code"
       ]
     );
 
@@ -1302,6 +1292,24 @@ function renderAcademicInformation() {
     );
 
 
+  const courseCode =
+    firstValue(
+      currentCourse,
+      [
+        "code",
+        "course_code",
+        "program_code"
+      ]
+    ) ||
+    firstValue(
+      currentEnrollment,
+      [
+        "course_code",
+        "program_code"
+      ]
+    );
+
+
   const departmentName =
     firstValue(
       currentDepartment,
@@ -1315,6 +1323,22 @@ function renderAcademicInformation() {
       currentEnrollment,
       [
         "department_name"
+      ]
+    );
+
+
+  const departmentCode =
+    firstValue(
+      currentDepartment,
+      [
+        "code",
+        "department_code"
+      ]
+    ) ||
+    firstValue(
+      currentEnrollment,
+      [
+        "department_code"
       ]
     );
 
@@ -1336,209 +1360,252 @@ function renderAcademicInformation() {
     );
 
 
+  const classCode =
+    firstValue(
+      currentClass,
+      [
+        "code",
+        "class_code"
+      ]
+    ) ||
+    firstValue(
+      currentEnrollment,
+      [
+        "class_code"
+      ]
+    );
+
+
   const academicYear =
     getAcademicYear();
 
 
-  const status =
-    firstValue(
-      currentEnrollment,
-      [
-        "status",
-        "enrollment_status"
-      ],
-      "active"
-    );
+  const enrollmentStatus =
+    getEnrollmentStatus();
 
 
   /* ----------------------------------------------------------
-     MAIN COMPATIBILITY IDS
-     ---------------------------------------------------------- */
+     TOP CARDS
+  ---------------------------------------------------------- */
 
-  const institutionIds = [
+  setText(
     "institutionName",
-    "studentInstitution",
-    "institution",
-    "profileInstitution",
-    "dashboardInstitution"
-  ];
+    institutionName
+  );
 
-
-  const courseIds = [
+  setText(
     "courseName",
-    "studentCourse",
-    "course",
-    "profileCourse",
-    "programName",
-    "studentProgram",
-    "dashboardCourse"
-  ];
-
-
-  const departmentIds = [
-    "departmentName",
-    "studentDepartment",
-    "department",
-    "profileDepartment",
-    "dashboardDepartment"
-  ];
-
-
-  const classIds = [
-    "className",
-    "studentClass",
-    "class",
-    "profileClass",
-    "dashboardClass"
-  ];
-
-
-  const academicYearIds = [
-    "academicYear",
-    "studentAcademicYear",
-    "classAcademicYear"
-  ];
-
-
-  institutionIds.forEach(
-    id =>
-      setText(
-        id,
-        institutionName
-      )
-  );
-
-
-  courseIds.forEach(
-    id =>
-      setText(
-        id,
-        courseName
-      )
-  );
-
-
-  departmentIds.forEach(
-    id =>
-      setText(
-        id,
-        departmentName
-      )
-  );
-
-
-  classIds.forEach(
-    id =>
-      setText(
-        id,
-        className
-      )
-  );
-
-
-  academicYearIds.forEach(
-    id =>
-      setText(
-        id,
-        academicYear
-      )
-  );
-
-
-  setText(
-    "enrollmentStatus",
-    status
-  );
-
-
-  setText(
-    "studentEnrollmentStatus",
-    status
-  );
-
-
-  setText(
-    "enrollmentStatusValue",
-    status
-  );
-
-
-  setText(
-    "academicStatus",
-    status
-  );
-
-
-  /* ----------------------------------------------------------
-     TOP DASHBOARD COURSE
-     ---------------------------------------------------------- */
-
-  setText(
-    "dashboardCourse",
     courseName
   );
 
+  setText(
+    "departmentName",
+    departmentName
+  );
+
+  setText(
+    "className",
+    className
+  );
+
+  setText(
+    "academicYear",
+    academicYear
+  );
+
+
+  setText(
+    "institutionCode",
+    institutionCode
+  );
+
+  setText(
+    "courseCode",
+    courseCode
+  );
+
+  setText(
+    "departmentCode",
+    departmentCode
+  );
+
+  setText(
+    "classCode",
+    classCode
+  );
+
 
   /* ----------------------------------------------------------
-     RENDER VISIBLE ACADEMIC SUMMARY
-     ---------------------------------------------------------- */
+     QUICK CARDS
+  ---------------------------------------------------------- */
 
-  const container =
+  setText(
+    "studentInstitution",
+    institutionName
+  );
+
+  setText(
+    "studentCourse",
+    courseName
+  );
+
+  setText(
+    "studentDepartment",
+    departmentName
+  );
+
+  setText(
+    "studentClass",
+    className
+  );
+
+  setText(
+    "studentAcademicYear",
+    academicYear
+  );
+
+
+  /* ----------------------------------------------------------
+     STATUS
+  ---------------------------------------------------------- */
+
+  setText(
+    "enrollmentStatus",
+    enrollmentStatus
+  );
+
+  setText(
+    "studentEnrollmentStatus",
+    enrollmentStatus
+  );
+
+  setText(
+    "enrollmentStatusValue",
+    enrollmentStatus
+  );
+
+  setText(
+    "academicStatus",
+    enrollmentStatus
+  );
+
+
+  /* ----------------------------------------------------------
+     SUMMARY
+  ---------------------------------------------------------- */
+
+  const summary =
     $("academicSummary");
 
 
-  if (!container) {
+  if (!summary) {
     return;
   }
 
 
-  container.innerHTML = `
+  summary.innerHTML = `
+
     <div class="academic-summary-grid">
 
       <div class="academic-item">
+
         <span>Institution</span>
+
         <strong>
-          ${escapeHTML(institutionName || "—")}
+          ${escapeHTML(
+            institutionName || "—"
+          )}
         </strong>
+
+        <small>
+          ${escapeHTML(
+            institutionCode || ""
+          )}
+        </small>
+
       </div>
 
+
       <div class="academic-item">
+
         <span>Department</span>
+
         <strong>
-          ${escapeHTML(departmentName || "—")}
+          ${escapeHTML(
+            departmentName || "—"
+          )}
         </strong>
+
+        <small>
+          ${escapeHTML(
+            departmentCode || ""
+          )}
+        </small>
+
       </div>
 
+
       <div class="academic-item">
+
         <span>Course / Program</span>
+
         <strong>
-          ${escapeHTML(courseName || "—")}
+          ${escapeHTML(
+            courseName || "—"
+          )}
         </strong>
+
+        <small>
+          ${escapeHTML(
+            courseCode || ""
+          )}
+        </small>
+
       </div>
 
+
       <div class="academic-item">
+
         <span>Class</span>
+
         <strong>
-          ${escapeHTML(className || "—")}
+          ${escapeHTML(
+            className || "—"
+          )}
         </strong>
+
+        <small>
+          ${escapeHTML(
+            classCode || ""
+          )}
+        </small>
+
       </div>
 
+
       <div class="academic-item">
+
         <span>Academic Year</span>
+
         <strong>
           ${escapeHTML(
             academicYear || "—"
           )}
         </strong>
+
       </div>
 
+
       <div class="academic-item">
-        <span>Status</span>
+
+        <span>Enrollment Status</span>
+
         <strong class="academic-status">
           ${escapeHTML(
-            String(status || "Active")
+            enrollmentStatus || "Active"
           )}
         </strong>
+
       </div>
 
     </div>
@@ -1547,7 +1614,145 @@ function renderAcademicInformation() {
 
 
 /* ============================================================
-   19. LOAD GRADES
+   21. GENERIC STUDENT TABLE LOADER
+   ============================================================ */
+
+async function loadStudentTable(
+  tableName,
+  student
+) {
+
+  const studentUuid =
+    firstValue(
+      student,
+      ["id", "student_uuid"]
+    );
+
+
+  const studentNumber =
+    firstValue(
+      student,
+      [
+        "student_id",
+        "student_number"
+      ]
+    );
+
+
+  const enrollmentId =
+    currentEnrollment?.id;
+
+
+  /* ----------------------------------------------------------
+     TRY student_id = UUID
+  ---------------------------------------------------------- */
+
+  if (studentUuid) {
+
+    const result =
+      await supabaseClient
+        .from(tableName)
+        .select("*")
+        .eq(
+          "student_id",
+          studentUuid
+        );
+
+
+    if (
+      !result.error &&
+      Array.isArray(result.data)
+    ) {
+
+      return result.data;
+    }
+  }
+
+
+  /* ----------------------------------------------------------
+     TRY student_id = STUDENT NUMBER
+  ---------------------------------------------------------- */
+
+  if (studentNumber) {
+
+    const result =
+      await supabaseClient
+        .from(tableName)
+        .select("*")
+        .eq(
+          "student_id",
+          studentNumber
+        );
+
+
+    if (
+      !result.error &&
+      Array.isArray(result.data)
+    ) {
+
+      return result.data;
+    }
+  }
+
+
+  /* ----------------------------------------------------------
+     TRY student_uuid
+  ---------------------------------------------------------- */
+
+  if (studentUuid) {
+
+    const result =
+      await supabaseClient
+        .from(tableName)
+        .select("*")
+        .eq(
+          "student_uuid",
+          studentUuid
+        );
+
+
+    if (
+      !result.error &&
+      Array.isArray(result.data)
+    ) {
+
+      return result.data;
+    }
+  }
+
+
+  /* ----------------------------------------------------------
+     TRY enrollment_id
+  ---------------------------------------------------------- */
+
+  if (enrollmentId) {
+
+    const result =
+      await supabaseClient
+        .from(tableName)
+        .select("*")
+        .eq(
+          "enrollment_id",
+          enrollmentId
+        );
+
+
+    if (
+      !result.error &&
+      Array.isArray(result.data)
+    ) {
+
+      return result.data;
+    }
+  }
+
+
+  return [];
+}
+
+
+/* ============================================================
+   22. LOAD GRADES
    ============================================================ */
 
 async function loadGrades() {
@@ -1555,72 +1760,17 @@ async function loadGrades() {
   gradesData = [];
 
 
-  /*
-     First try grades table.
-  */
-
-  let result =
-    await supabaseClient
-      .from("grades")
-      .select("*")
-      .eq(
-        "student_id",
-        currentStudent.id
-      )
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
-
-
-  if (
-    !result.error &&
-    Array.isArray(result.data)
-  ) {
-
-    gradesData =
-      result.data;
+  if (!currentStudent) {
+    renderGrades();
+    return;
   }
 
 
-  /*
-     If grades table is empty or unavailable,
-     try results table used by the existing EMS.
-  */
-
-  if (!gradesData.length) {
-
-    const results =
-      await supabaseClient
-        .from("results")
-        .select("*")
-        .eq(
-          "student_id",
-          currentStudent.id
-        )
-        .eq(
-          "is_published",
-          true
-        )
-        .order(
-          "created_at",
-          {
-            ascending: false
-          }
-        );
-
-
-    if (
-      !results.error &&
-      Array.isArray(results.data)
-    ) {
-
-      gradesData =
-        results.data;
-    }
-  }
+  gradesData =
+    await loadStudentTable(
+      "grades",
+      currentStudent
+    );
 
 
   renderGrades();
@@ -1628,7 +1778,7 @@ async function loadGrades() {
 
 
 /* ============================================================
-   20. RENDER GRADES
+   23. RENDER GRADES
    ============================================================ */
 
 function renderGrades() {
@@ -1644,14 +1794,15 @@ function renderGrades() {
 
   setText(
     "resultsCount",
-    gradesData.length
+    gradesData.length,
+    "0"
   );
 
 
   if (!gradesData.length) {
 
     container.innerHTML = `
-      <div class="empty-message">
+      <div class="empty-state">
         No grade records available yet.
       </div>
     `;
@@ -1695,14 +1846,13 @@ function renderGrades() {
             [
               "score",
               "marks",
-              "total_score",
-              "grade"
+              "total_score"
             ],
             "—"
           );
 
 
-        const max =
+        const maxScore =
           firstValue(
             grade,
             [
@@ -1713,19 +1863,21 @@ function renderGrades() {
           );
 
 
-        const gradeValue =
+        const letter =
           firstValue(
             grade,
             [
               "letter_grade",
               "grade_letter",
+              "grade",
               "result"
             ],
-            ""
+            "—"
           );
 
 
         return `
+
           <tr>
 
             <td>
@@ -1743,17 +1895,18 @@ function renderGrades() {
             <td>
               ${escapeHTML(score)}
               ${
-                max
-                  ? ` / ${escapeHTML(max)}`
+                maxScore
+                  ? ` / ${escapeHTML(maxScore)}`
                   : ""
               }
             </td>
 
             <td>
-              ${escapeHTML(gradeValue || "—")}
+              ${escapeHTML(letter)}
             </td>
 
           </tr>
+
         `;
       }
     )
@@ -1761,9 +1914,10 @@ function renderGrades() {
 
 
   container.innerHTML = `
-    <div class="grades-table-wrap">
 
-      <table class="student-grades-table">
+    <div class="table-responsive">
+
+      <table class="student-table">
 
         <thead>
 
@@ -1784,12 +1938,208 @@ function renderGrades() {
       </table>
 
     </div>
+
   `;
 }
 
 
 /* ============================================================
-   21. LOAD CERTIFICATES
+   24. LOAD RESULTS
+   ============================================================ */
+
+async function loadResults() {
+
+  resultsData = [];
+
+
+  if (!currentStudent) {
+    renderResults();
+    return;
+  }
+
+
+  resultsData =
+    await loadStudentTable(
+      "results",
+      currentStudent
+    );
+
+
+  /*
+     If results table contains unpublished records,
+     filter only when is_published exists.
+  */
+
+  if (
+    resultsData.length &&
+    Object.prototype.hasOwnProperty.call(
+      resultsData[0],
+      "is_published"
+    )
+  ) {
+
+    resultsData =
+      resultsData.filter(
+        item =>
+          item.is_published === true
+      );
+  }
+
+
+  renderResults();
+}
+
+
+/* ============================================================
+   25. RENDER RESULTS
+   ============================================================ */
+
+function renderResults() {
+
+  const container =
+    $("resultsContainer");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  setText(
+    "resultsCountBadge",
+    `${resultsData.length} RESULTS`
+  );
+
+
+  if (!resultsData.length) {
+
+    container.innerHTML = `
+      <div class="empty-state">
+        No published results available yet.
+      </div>
+    `;
+
+    return;
+  }
+
+
+  const rows =
+    resultsData.map(
+      (result, index) => {
+
+        const subject =
+          firstValue(
+            result,
+            [
+              "subject_name",
+              "subject",
+              "course_name",
+              "name"
+            ],
+            "Subject"
+          );
+
+
+        const score =
+          firstValue(
+            result,
+            [
+              "score",
+              "marks",
+              "total_score"
+            ],
+            "—"
+          );
+
+
+        const grade =
+          firstValue(
+            result,
+            [
+              "grade",
+              "letter_grade",
+              "grade_letter",
+              "result"
+            ],
+            "—"
+          );
+
+
+        const status =
+          firstValue(
+            result,
+            [
+              "status",
+              "result_status"
+            ],
+            "Published"
+          );
+
+
+        return `
+
+          <tr>
+
+            <td>
+              ${index + 1}
+            </td>
+
+            <td>
+              ${escapeHTML(subject)}
+            </td>
+
+            <td>
+              ${escapeHTML(score)}
+            </td>
+
+            <td>
+              ${escapeHTML(grade)}
+            </td>
+
+            <td>
+              ${escapeHTML(status)}
+            </td>
+
+          </tr>
+
+        `;
+      }
+    )
+    .join("");
+
+
+  container.innerHTML = `
+
+    <div class="table-responsive">
+
+      <table class="student-table">
+
+        <thead>
+
+          <tr>
+            <th>#</th>
+            <th>Subject</th>
+            <th>Score</th>
+            <th>Grade</th>
+            <th>Status</th>
+          </tr>
+
+        </thead>
+
+        <tbody>
+          ${rows}
+        </tbody>
+
+      </table>
+
+    </div>
+
+  `;
+}
+
+
+/* ============================================================
+   26. LOAD CERTIFICATES
    ============================================================ */
 
 async function loadCertificates() {
@@ -1797,30 +2147,17 @@ async function loadCertificates() {
   certificatesData = [];
 
 
-  const result =
-    await supabaseClient
-      .from("certificates")
-      .select("*")
-      .eq(
-        "student_id",
-        currentStudent.id
-      )
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
-
-
-  if (
-    !result.error &&
-    Array.isArray(result.data)
-  ) {
-
-    certificatesData =
-      result.data;
+  if (!currentStudent) {
+    renderCertificates();
+    return;
   }
+
+
+  certificatesData =
+    await loadStudentTable(
+      "certificates",
+      currentStudent
+    );
 
 
   renderCertificates();
@@ -1828,19 +2165,20 @@ async function loadCertificates() {
 
 
 /* ============================================================
-   22. RENDER CERTIFICATES
+   27. RENDER CERTIFICATES
    ============================================================ */
 
 function renderCertificates() {
 
-  setText(
-    "certificatesCount",
-    certificatesData.length
-  );
-
-
   const container =
     $("certificatesContainer");
+
+
+  setText(
+    "certificatesCount",
+    certificatesData.length,
+    "0"
+  );
 
 
   if (!container) {
@@ -1851,12 +2189,8 @@ function renderCertificates() {
   if (!certificatesData.length) {
 
     container.innerHTML = `
-      <div class="certificate-list">
-
-        <div class="empty-message">
-          No certificates available yet.
-        </div>
-
+      <div class="empty-state">
+        No certificates available yet.
       </div>
     `;
 
@@ -1864,100 +2198,105 @@ function renderCertificates() {
   }
 
 
-  const html =
-    certificatesData.map(
-      certificate => {
+  container.innerHTML =
+    certificatesData
+      .map(
+        certificate => {
 
-        const title =
-          firstValue(
-            certificate,
-            [
-              "certificate_name",
-              "title",
-              "name",
-              "certificate_type"
-            ],
-            "Certificate"
-          );
-
-
-        const status =
-          firstValue(
-            certificate,
-            [
-              "status"
-            ],
-            "Issued"
-          );
+          const title =
+            firstValue(
+              certificate,
+              [
+                "certificate_name",
+                "title",
+                "name",
+                "certificate_type"
+              ],
+              "Certificate"
+            );
 
 
-        const date =
-          firstValue(
-            certificate,
-            [
-              "issue_date",
-              "issued_at",
-              "created_at"
-            ]
-          );
+          const status =
+            firstValue(
+              certificate,
+              [
+                "status"
+              ],
+              "Issued"
+            );
 
 
-        const number =
-          firstValue(
-            certificate,
-            [
-              "certificate_number",
-              "certificate_no",
-              "serial_number"
-            ]
-          );
+          const number =
+            firstValue(
+              certificate,
+              [
+                "certificate_number",
+                "certificate_no",
+                "serial_number"
+              ]
+            );
 
 
-        return `
-          <div class="certificate-item">
-
-            <strong>
-              ${escapeHTML(title)}
-            </strong>
-
-            <span>
-              ${escapeHTML(status)}
-            </span>
-
-            ${
-              number
-                ? `
-                  <small>
-                    Certificate No:
-                    ${escapeHTML(number)}
-                  </small>
-                `
-                : ""
-            }
-
-            <small>
-              ${escapeHTML(
-                formatDate(date)
-              )}
-            </small>
-
-          </div>
-        `;
-      }
-    )
-    .join("");
+          const date =
+            firstValue(
+              certificate,
+              [
+                "issue_date",
+                "issued_at",
+                "created_at"
+              ]
+            );
 
 
-  container.innerHTML = `
-    <div class="certificate-list">
-      ${html}
-    </div>
-  `;
+          return `
+
+            <div class="certificate-item">
+
+              <div>
+
+                <strong>
+                  ${escapeHTML(title)}
+                </strong>
+
+                ${
+                  number
+                    ? `
+                      <small>
+                        Certificate No:
+                        ${escapeHTML(number)}
+                      </small>
+                    `
+                    : ""
+                }
+
+              </div>
+
+
+              <div>
+
+                <span class="status-pill">
+                  ${escapeHTML(status)}
+                </span>
+
+                <small>
+                  ${escapeHTML(
+                    formatDate(date)
+                  )}
+                </small>
+
+              </div>
+
+            </div>
+
+          `;
+        }
+      )
+      .join("");
 }
 
 
 /* ============================================================
-   23. LOAD PAYMENTS
+   28. LOAD PAYMENTS
    ============================================================ */
 
 async function loadPayments() {
@@ -1965,30 +2304,17 @@ async function loadPayments() {
   paymentsData = [];
 
 
-  const result =
-    await supabaseClient
-      .from("payments")
-      .select("*")
-      .eq(
-        "student_id",
-        currentStudent.id
-      )
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
-
-
-  if (
-    !result.error &&
-    Array.isArray(result.data)
-  ) {
-
-    paymentsData =
-      result.data;
+  if (!currentStudent) {
+    renderPayments();
+    return;
   }
+
+
+  paymentsData =
+    await loadStudentTable(
+      "payments",
+      currentStudent
+    );
 
 
   renderPayments();
@@ -1996,13 +2322,20 @@ async function loadPayments() {
 
 
 /* ============================================================
-   24. RENDER PAYMENTS
+   29. RENDER PAYMENTS
    ============================================================ */
 
 function renderPayments() {
 
   const container =
     $("paymentsContainer");
+
+
+  setText(
+    "paymentsCount",
+    paymentsData.length,
+    "0"
+  );
 
 
   if (!container) {
@@ -2013,12 +2346,8 @@ function renderPayments() {
   if (!paymentsData.length) {
 
     container.innerHTML = `
-      <div class="payments-list">
-
-        <div class="empty-message">
-          No payment records available yet.
-        </div>
-
+      <div class="empty-state">
+        No payment records available yet.
       </div>
     `;
 
@@ -2026,118 +2355,114 @@ function renderPayments() {
   }
 
 
-  const html =
-    paymentsData.map(
-      payment => {
+  container.innerHTML =
+    paymentsData
+      .map(
+        payment => {
 
-        const amount =
-          firstValue(
-            payment,
-            [
-              "amount",
-              "paid_amount",
-              "payment_amount"
-            ],
-            "0"
-          );
-
-
-        const status =
-          firstValue(
-            payment,
-            [
-              "status",
-              "payment_status"
-            ],
-            "Paid"
-          );
+          const amount =
+            firstValue(
+              payment,
+              [
+                "amount",
+                "paid_amount",
+                "payment_amount"
+              ],
+              "0"
+            );
 
 
-        const method =
-          firstValue(
-            payment,
-            [
-              "payment_method",
-              "method",
-              "channel"
-            ],
-            "—"
-          );
+          const status =
+            firstValue(
+              payment,
+              [
+                "status",
+                "payment_status"
+              ],
+              "Paid"
+            );
 
 
-        const date =
-          firstValue(
-            payment,
-            [
-              "payment_date",
-              "paid_at",
-              "created_at"
-            ]
-          );
+          const method =
+            firstValue(
+              payment,
+              [
+                "payment_method",
+                "method",
+                "channel"
+              ],
+              "—"
+            );
 
 
-        const reference =
-          firstValue(
-            payment,
-            [
-              "reference",
-              "transaction_id",
-              "receipt_number"
-            ]
-          );
+          const date =
+            firstValue(
+              payment,
+              [
+                "payment_date",
+                "paid_at",
+                "created_at"
+              ]
+            );
 
 
-        return `
-          <div class="payment-item">
-
-            <strong>
-              ${escapeHTML(amount)}
-            </strong>
-
-            <span>
-              ${escapeHTML(status)}
-            </span>
-
-            <small>
-              Method:
-              ${escapeHTML(method)}
-            </small>
-
-            <small>
-              Date:
-              ${escapeHTML(
-                formatDate(date)
-              )}
-            </small>
-
-            ${
-              reference
-                ? `
-                  <small>
-                    Reference:
-                    ${escapeHTML(reference)}
-                  </small>
-                `
-                : ""
-            }
-
-          </div>
-        `;
-      }
-    )
-    .join("");
+          const reference =
+            firstValue(
+              payment,
+              [
+                "reference",
+                "transaction_id",
+                "receipt_number"
+              ]
+            );
 
 
-  container.innerHTML = `
-    <div class="payments-list">
-      ${html}
-    </div>
-  `;
+          return `
+
+            <div class="payment-item">
+
+              <strong>
+                ${escapeHTML(amount)}
+              </strong>
+
+              <span class="status-pill">
+                ${escapeHTML(status)}
+              </span>
+
+              <small>
+                Method:
+                ${escapeHTML(method)}
+              </small>
+
+              <small>
+                Date:
+                ${escapeHTML(
+                  formatDate(date)
+                )}
+              </small>
+
+              ${
+                reference
+                  ? `
+                    <small>
+                      Reference:
+                      ${escapeHTML(reference)}
+                    </small>
+                  `
+                  : ""
+              }
+
+            </div>
+
+          `;
+        }
+      )
+      .join("");
 }
 
 
 /* ============================================================
-   25. LOAD NOTIFICATIONS
+   30. LOAD NOTIFICATIONS
    ============================================================ */
 
 async function loadNotifications() {
@@ -2145,30 +2470,17 @@ async function loadNotifications() {
   notificationsData = [];
 
 
-  const result =
-    await supabaseClient
-      .from("student_notifications")
-      .select("*")
-      .eq(
-        "student_id",
-        currentStudent.id
-      )
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
-
-
-  if (
-    !result.error &&
-    Array.isArray(result.data)
-  ) {
-
-    notificationsData =
-      result.data;
+  if (!currentStudent) {
+    renderNotifications();
+    return;
   }
+
+
+  notificationsData =
+    await loadStudentTable(
+      "student_notifications",
+      currentStudent
+    );
 
 
   renderNotifications();
@@ -2176,7 +2488,7 @@ async function loadNotifications() {
 
 
 /* ============================================================
-   26. RENDER NOTIFICATIONS
+   31. RENDER NOTIFICATIONS
    ============================================================ */
 
 function renderNotifications() {
@@ -2194,20 +2506,23 @@ function renderNotifications() {
     notificationsData.filter(
       item =>
         item.is_read === false ||
-        item.read_at === null
+        (
+          item.is_read === undefined &&
+          !item.read_at
+        )
     ).length;
 
 
   setText(
     "notificationsCount",
-    unread || notificationsData.length
+    unread
   );
 
 
   if (!notificationsData.length) {
 
     container.innerHTML = `
-      <div class="empty-message">
+      <div class="empty-state">
         No notifications available.
       </div>
     `;
@@ -2246,15 +2561,16 @@ function renderNotifications() {
             );
 
 
-          const isUnread =
+          const unread =
             notification.is_read === false;
 
 
           return `
+
             <div
               class="
                 notification-item
-                ${isUnread ? "unread" : ""}
+                ${unread ? "unread" : ""}
               "
             >
 
@@ -2266,7 +2582,16 @@ function renderNotifications() {
                 ${escapeHTML(message)}
               </p>
 
+              <small>
+                ${escapeHTML(
+                  formatDate(
+                    notification.created_at
+                  )
+                )}
+              </small>
+
             </div>
+
           `;
         }
       )
@@ -2275,7 +2600,7 @@ function renderNotifications() {
 
 
 /* ============================================================
-   27. MARK ALL NOTIFICATIONS READ
+   32. MARK NOTIFICATIONS READ
    ============================================================ */
 
 async function markAllNotificationsRead() {
@@ -2290,7 +2615,8 @@ async function markAllNotificationsRead() {
       .from("student_notifications")
       .update({
         is_read: true,
-        read_at: new Date().toISOString()
+        read_at:
+          new Date().toISOString()
       })
       .eq(
         "student_id",
@@ -2305,7 +2631,7 @@ async function markAllNotificationsRead() {
   if (result.error) {
 
     console.warn(
-      "Could not mark notifications read:",
+      "Could not mark notifications:",
       result.error
     );
 
@@ -2318,13 +2644,12 @@ async function markAllNotificationsRead() {
 
 
 /* ============================================================
-   28. LOAD EVERYTHING
+   33. LOAD ALL PORTAL DATA
    ============================================================ */
 
 async function loadStudentPortal() {
 
   showPortalLoading();
-
   clearMessage();
 
 
@@ -2332,7 +2657,7 @@ async function loadStudentPortal() {
 
     /* --------------------------------------------------------
        AUTH
-       -------------------------------------------------------- */
+    -------------------------------------------------------- */
 
     currentUser =
       await getAuthenticatedUser();
@@ -2355,7 +2680,7 @@ async function loadStudentPortal() {
 
     /* --------------------------------------------------------
        STUDENT
-       -------------------------------------------------------- */
+    -------------------------------------------------------- */
 
     currentStudent =
       await loadStudent(
@@ -2366,7 +2691,7 @@ async function loadStudentPortal() {
     if (!currentStudent) {
 
       throw new Error(
-        "Student account was not found."
+        "Student account was not found for this login."
       );
     }
 
@@ -2379,11 +2704,11 @@ async function loadStudentPortal() {
 
     /* --------------------------------------------------------
        ENROLLMENT
-       -------------------------------------------------------- */
+    -------------------------------------------------------- */
 
     currentEnrollment =
       await loadEnrollment(
-        currentStudent.id
+        currentStudent
       );
 
 
@@ -2395,14 +2720,14 @@ async function loadStudentPortal() {
 
     /* --------------------------------------------------------
        PROFILE
-       -------------------------------------------------------- */
+    -------------------------------------------------------- */
 
     renderStudentProfile();
 
 
     /* --------------------------------------------------------
        ACADEMIC RELATIONS
-       -------------------------------------------------------- */
+    -------------------------------------------------------- */
 
     if (currentEnrollment) {
 
@@ -2414,18 +2739,20 @@ async function loadStudentPortal() {
 
     /* --------------------------------------------------------
        ACADEMIC INFORMATION
-       -------------------------------------------------------- */
+    -------------------------------------------------------- */
 
     renderAcademicInformation();
 
 
     /* --------------------------------------------------------
        OTHER DATA
-       -------------------------------------------------------- */
+    -------------------------------------------------------- */
 
     await Promise.allSettled([
 
       loadGrades(),
+
+      loadResults(),
 
       loadCertificates(),
 
@@ -2437,34 +2764,31 @@ async function loadStudentPortal() {
 
 
     /* --------------------------------------------------------
-       SHOW PORTAL
-       -------------------------------------------------------- */
+       SHOW
+    -------------------------------------------------------- */
 
     hidePortalLoading();
 
 
     console.log(
-      "Student Portal V6.3 loaded successfully."
+      "GAAWOW Student Portal V6.4 loaded successfully."
     );
-
 
   } catch (error) {
 
     console.error(
-      "Student Portal V6.3 error:",
+      "Student Portal V6.4 error:",
       error
     );
 
 
-    showPortalError(
-      error
-    );
+    showPortalError(error);
   }
 }
 
 
 /* ============================================================
-   29. PORTAL ERROR
+   34. ERROR
    ============================================================ */
 
 function showPortalError(error) {
@@ -2481,50 +2805,39 @@ function showPortalError(error) {
     message,
     "error"
   );
-
-
-  console.error(
-    "Portal error:",
-    error
-  );
 }
 
 
 /* ============================================================
-   30. LOGOUT BUTTONS
+   35. LOGOUT BUTTONS
    ============================================================ */
 
 function setupLogoutButtons() {
 
-  const logoutBtn =
-    $("logoutBtn");
+  const buttons = [
+    $("logoutBtn"),
+    $("studentLogoutBtn")
+  ];
 
 
-  const studentLogoutBtn =
-    $("studentLogoutBtn");
+  buttons.forEach(button => {
+
+    if (!button) {
+      return;
+    }
 
 
-  if (logoutBtn) {
-
-    logoutBtn.addEventListener(
+    button.addEventListener(
       "click",
       logoutStudent
     );
-  }
 
-
-  if (studentLogoutBtn) {
-
-    studentLogoutBtn.addEventListener(
-      "click",
-      logoutStudent
-    );
-  }
+  });
 }
 
 
 /* ============================================================
-   31. MARK READ BUTTON
+   36. NOTIFICATION BUTTON
    ============================================================ */
 
 function setupNotificationButton() {
@@ -2546,13 +2859,13 @@ function setupNotificationButton() {
 
 
 /* ============================================================
-   32. AUTH STATE LISTENER
+   37. AUTH STATE
    ============================================================ */
 
 function setupAuthListener() {
 
   supabaseClient.auth.onAuthStateChange(
-    async (
+    (
       event,
       session
     ) => {
@@ -2574,22 +2887,13 @@ function setupAuthListener() {
       }
 
 
-      /*
-         Do not reload continuously on
-         TOKEN_REFRESHED.
-      */
-
       if (
-        event === "SIGNED_IN"
+        event === "SIGNED_IN" &&
+        session?.user
       ) {
 
-        if (
-          session?.user
-        ) {
-
-          currentUser =
-            session.user;
-        }
+        currentUser =
+          session.user;
       }
 
     }
@@ -2598,21 +2902,10 @@ function setupAuthListener() {
 
 
 /* ============================================================
-   33. DEBUG INFORMATION
+   38. DEBUG
    ============================================================ */
 
 function exposeDebugData() {
-
-  /*
-     Useful from browser console:
-
-     window.GAAWOW_PORTAL.student
-     window.GAAWOW_PORTAL.enrollment
-     window.GAAWOW_PORTAL.institution
-     window.GAAWOW_PORTAL.course
-     window.GAAWOW_PORTAL.department
-     window.GAAWOW_PORTAL.class
-  */
 
   window.GAAWOW_PORTAL = {
 
@@ -2644,8 +2937,16 @@ function exposeDebugData() {
       return currentClass;
     },
 
+    get academicYear() {
+      return getAcademicYear();
+    },
+
     get grades() {
       return gradesData;
+    },
+
+    get results() {
+      return resultsData;
     },
 
     get certificates() {
@@ -2665,7 +2966,7 @@ function exposeDebugData() {
 
 
 /* ============================================================
-   34. INITIALIZE
+   39. INITIALIZE
    ============================================================ */
 
 document.addEventListener(
@@ -2673,7 +2974,7 @@ document.addEventListener(
   async () => {
 
     console.log(
-      "GAAWOW Student Portal V6.3 starting..."
+      "GAAWOW Student Portal V6.4 starting..."
     );
 
 
@@ -2692,5 +2993,5 @@ document.addEventListener(
 
 
 /* ============================================================
-   END OF STUDENT PORTAL JS V6.3 FINAL
+   END
    ============================================================ */
