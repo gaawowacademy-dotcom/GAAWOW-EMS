@@ -1,1077 +1,215 @@
+(() => {
+"use strict";
+
 const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-const SUPABASE_ANON_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+const SUPABASE_KEY = "sb_publishable_2AvWfupKf1b_s0RjIbAi5g_RqLCs145";
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+});
+const $ = id => document.getElementById(id);
 
-// ============================================================
-// GAAWOW STUDENT PORTAL V6
-// Student → Institution → Enrollment → Course
-//                    → Department → Class
-// Also keeps Results / Certificates / Notifications
-// ============================================================
+function text(id,value){const e=$(id);if(e)e.textContent=value==null||value===""?"—":String(value);}
+function fmtDate(v){if(!v)return"—";const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});}
+function esc(v){return String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#039;",'"':"&quot;"}[c]));}
+function showStatus(msg,type="info"){const e=$("status");if(!e)return;e.className=`status show ${type}`;e.textContent=msg;}
+function clearStatus(){const e=$("status");if(e)e.className="status";}
 
-let currentUser = null;
-let currentProfile = null;
-let currentStudent = null;
-let currentAcademic = null;
-
-// ------------------------------------------------------------
-// HELPERS
-// ------------------------------------------------------------
-
-function $(id) {
-  return document.getElementById(id);
+async function currentUser(){
+  const {data,error}=await supabase.auth.getUser();
+  if(error)throw error;
+  return data.user;
 }
 
-function setText(id, value, fallback = "") {
-  const el = $(id);
-
-  if (!el) return;
-
-  if (
-    value === null ||
-    value === undefined ||
-    String(value).trim() === ""
-  ) {
-    el.textContent = fallback;
-  } else {
-    el.textContent = String(value);
-  }
-}
-
-function show(id) {
-  const el = $(id);
-  if (el) el.classList.remove("hidden");
-}
-
-function hide(id) {
-  const el = $(id);
-  if (el) el.classList.add("hidden");
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function formatDate(value) {
-  if (!value) return "";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  });
-}
-
-function cleanStatus(value) {
-  if (!value) return "";
-
-  return String(value)
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, c => c.toUpperCase());
-}
-
-// ------------------------------------------------------------
-// LOADING / ERROR
-// ------------------------------------------------------------
-
-function hidePortalLoading() {
-  const loading = $("portalLoading");
-  const app = $("portalApp");
-
-  if (loading) loading.classList.add("hidden");
-  if (app) app.classList.remove("hidden");
-}
-
-function showPortalError(message) {
-  console.error(message);
-
-  const loading = $("portalLoading");
-
-  if (loading) {
-    loading.innerHTML = `
-      <div style="
-        max-width:420px;
-        margin:auto;
-        padding:30px;
-        text-align:center;
-      ">
-        <div style="font-size:45px;">⚠️</div>
-        <h3>Unable to Load Student Portal</h3>
-        <p style="margin-top:10px;color:#64748B;">
-          ${escapeHtml(message)}
-        </p>
-        <button
-          type="button"
-          onclick="location.reload()"
-          style="
-            margin-top:18px;
-            padding:10px 18px;
-            border:0;
-            border-radius:10px;
-            background:#0B1E63;
-            color:white;
-            cursor:pointer;
-          "
-        >
-          Try Again
-        </button>
-      </div>
-    `;
-  }
-}
-
-// ------------------------------------------------------------
-// AUTH
-// ------------------------------------------------------------
-
-async function getCurrentUser() {
-  const {
-    data: { user },
-    error
-  } = await supabaseClient.auth.getUser();
-
-  if (error) {
-    console.error("Auth error:", error);
-    return null;
-  }
-
-  return user;
-}
-
-// ------------------------------------------------------------
-// PROFILE
-// ------------------------------------------------------------
-
-async function loadStudentProfile(userId) {
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select(`
-      id,
-      institution_id,
-      full_name,
-      phone,
-      avatar_url,
-      role,
-      is_active
-    `)
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(
-      "Unable to load student profile: " + error.message
-    );
-  }
-
-  if (!data) {
-    throw new Error("Student profile was not found.");
-  }
-
-  if (data.role !== "student") {
-    throw new Error("This account is not a student account.");
-  }
-
-  if (data.is_active !== true) {
-    throw new Error("Your student account is inactive.");
-  }
-
+async function loadStudent(user){
+  const {data,error}=await supabase.from("students").select(`
+    id,student_id,full_name,email,phone,gender,date_of_birth,
+    enrollment_date,admission_date,status,photo_url,auth_user_id,account_enabled,
+    institution_id,department_id,course_id,class_id
+  `).eq("auth_user_id",user.id).maybeSingle();
+  if(error)throw error;
+  if(!data)throw new Error("Student profile was not found or is not linked to this login account.");
+  if(data.auth_user_id!==user.id)throw new Error("Student account verification failed.");
   return data;
 }
 
-// ------------------------------------------------------------
-// STUDENT
-// ------------------------------------------------------------
-
-async function loadStudent(userId) {
-  const { data, error } = await supabaseClient
-    .from("students")
-    .select(`
-      id,
-      institution_id,
-      profile_id,
-      student_id,
-      full_name,
-      gender,
-      date_of_birth,
-      phone,
-      email,
-      address,
-      photo_url,
-      admission_date,
-      status,
-      account_enabled,
-      auth_user_id,
-      login_username,
-      account_created_at,
-      last_login_at,
-      password_changed_at
-    `)
-    .eq("auth_user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(
-      "Unable to load student record: " + error.message
-    );
+async function tryRows(table, filters){
+  for(const filter of filters){
+    try{
+      let q=supabase.from(table).select("*");
+      for(const [column,value] of Object.entries(filter)) q=q.eq(column,value);
+      const {data,error}=await q;
+      if(!error && Array.isArray(data) && data.length) return data;
+    }catch(e){console.warn(`${table} lookup:`,e);}
   }
-
-  if (!data) {
-    throw new Error(
-      "Student record is not linked to this login account."
-    );
-  }
-
-  if (data.account_enabled !== true) {
-    throw new Error("Student account is disabled.");
-  }
-
-  return data;
+  return [];
 }
 
-// ------------------------------------------------------------
-// ACADEMIC RELATIONSHIPS
-// Student
-//   └── Enrollment
-//         ├── Institution
-//         ├── Course
-//         │     └── Department
-//         └── Class
-// ------------------------------------------------------------
-
-async function loadAcademicData(studentId) {
-  // First get enrollment
-  const {
-    data: enrollment,
-    error: enrollmentError
-  } = await supabaseClient
-    .from("enrollments")
-    .select(`
-      id,
-      institution_id,
-      student_id,
-      course_id,
-      class_id,
-      enrollment_number,
-      enrollment_date,
-      start_date,
-      end_date,
-      status
-    `)
-    .eq("student_id", studentId)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (enrollmentError) {
-    console.error("Enrollment error:", enrollmentError);
-    return null;
-  }
-
-  if (!enrollment) {
-    return null;
-  }
-
-  // ----------------------------------------------------------
-  // Institution
-  // ----------------------------------------------------------
-
-  let institution = null;
-
-  if (enrollment.institution_id) {
-    const { data, error } = await supabaseClient
-      .from("institutions")
-      .select(`
-        id,
-        name,
-        code,
-        email,
-        phone,
-        address,
-        city,
-        country,
-        logo_url,
-        website_url,
-        is_active
-      `)
-      .eq("id", enrollment.institution_id)
-      .maybeSingle();
-
-    if (!error) {
-      institution = data;
-    } else {
-      console.error("Institution error:", error);
-    }
-  }
-
-  // ----------------------------------------------------------
-  // Course
-  // ----------------------------------------------------------
-
-  let course = null;
-
-  if (enrollment.course_id) {
-    const { data, error } = await supabaseClient
-      .from("courses")
-      .select(`
-        id,
-        institution_id,
-        department_id,
-        name,
-        code,
-        description,
-        duration_months,
-        fee,
-        is_active
-      `)
-      .eq("id", enrollment.course_id)
-      .maybeSingle();
-
-    if (!error) {
-      course = data;
-    } else {
-      console.error("Course error:", error);
-    }
-  }
-
-  // ----------------------------------------------------------
-  // Department
-  // ----------------------------------------------------------
-
-  let department = null;
-
-  if (course?.department_id) {
-    const { data, error } = await supabaseClient
-      .from("departments")
-      .select(`
-        id,
-        institution_id,
-        name,
-        code,
-        description,
-        head_profile_id,
-        is_active
-      `)
-      .eq("id", course.department_id)
-      .maybeSingle();
-
-    if (!error) {
-      department = data;
-    } else {
-      console.error("Department error:", error);
-    }
-  }
-
-  // ----------------------------------------------------------
-  // Class
-  // ----------------------------------------------------------
-
-  let classData = null;
-
-  if (enrollment.class_id) {
-    const { data, error } = await supabaseClient
-      .from("classes")
-      .select(`
-        id,
-        institution_id,
-        course_id,
-        name,
-        code,
-        academic_year,
-        teacher_id,
-        room,
-        start_date,
-        end_date,
-        is_active
-      `)
-      .eq("id", enrollment.class_id)
-      .maybeSingle();
-
-    if (!error) {
-      classData = data;
-    } else {
-      console.error("Class error:", error);
-    }
-  }
-
-  return {
-    enrollment,
-    institution,
-    course,
-    department,
-    classData
-  };
+async function tryOneById(table,id){
+  if(!id)return null;
+  try{
+    const {data,error}=await supabase.from(table).select("*").eq("id",id).maybeSingle();
+    if(!error&&data)return data;
+  }catch(e){console.warn(`${table} id lookup:`,e);}
+  return null;
 }
 
-// ------------------------------------------------------------
-// DISPLAY STUDENT
-// ------------------------------------------------------------
+function firstValue(obj,keys){
+  for(const k of keys){if(obj&&obj[k]!==undefined&&obj[k]!==null&&String(obj[k]).trim()!=="")return obj[k];}
+  return null;
+}
 
-function renderStudent(student, profile, user) {
-  const fullName =
-    student.full_name ||
-    profile.full_name ||
-    "Student";
+async function loadNamedRelation(tableNames,id){
+  if(!id)return null;
+  for(const table of tableNames){
+    const row=await tryOneById(table,id);
+    if(row)return row;
+  }
+  return null;
+}
 
-  // Header
-  setText("studentNameTop", fullName);
-  setText("welcomeName", fullName);
+async function loadInstitution(student){
+  return loadNamedRelation(["institutions"],student.institution_id);
+}
 
-  // Profile
-  setText("studentFullName", fullName);
-  setText("studentIdField", student.student_id);
-  setText(
-    "studentEmail",
-    student.email || user.email || ""
-  );
-  setText(
-    "studentPhone",
-    student.phone || profile.phone || ""
-  );
-  setText("studentGender", student.gender);
-  setText(
-    "admissionDate",
-    formatDate(student.admission_date)
-  );
+async function loadAcademicRelations(student){
+  const [department,course,studentClass]=await Promise.all([
+    loadNamedRelation(["departments","academic_departments"],student.department_id),
+    loadNamedRelation(["courses","academic_courses","programs"],student.course_id),
+    loadNamedRelation(["classes","academic_classes","student_classes"],student.class_id)
+  ]);
+  return {department,course,studentClass};
+}
 
-  // Some older HTML IDs
-  setText("studentName", fullName);
-  setText("studentId", student.student_id);
-  setText(
-    "studentStatus",
-    cleanStatus(student.status)
-  );
+async function loadPortalRows(table,student,user){
+  return tryRows(table,[
+    {student_id:student.id},
+    {student_db_id:student.id},
+    {student_uuid:student.id},
+    {auth_user_id:user.id},
+    {student_id:student.student_id}
+  ]);
+}
 
-  // Student ID
-  setText("studentNumber", student.student_id);
+function relationName(row,fallback){
+  return firstValue(row,["name","title","course_name","course_title","department_name","class_name","program_name","label"])||fallback||null;
+}
 
-  // Photo
-  const photo = $("studentPhoto");
+function renderStudent(s,institution,relations,user){
+  text("welcomeName",s.full_name||"Student");
+  text("studentId",s.student_id);
+  text("courseName",relationName(relations.course,s.course_id));
+  text("institutionName",institution?.name||s.institution_id);
+  text("accountStatus",s.account_enabled?"Active":"Disabled");
+  text("fullName",s.full_name);
+  text("email",s.email||user.email);
+  text("phone",s.phone); text("gender",s.gender);
+  text("dob",fmtDate(s.date_of_birth));
+  text("enrollmentDate",fmtDate(s.enrollment_date||s.admission_date));
+  text("departmentName",relationName(relations.department,s.department_id));
+  text("academicCourse",relationName(relations.course,s.course_id));
+  text("className",relationName(relations.studentClass,s.class_id));
+  text("academicStatus",s.status);
 
-  if (photo) {
-    photo.src =
-      student.photo_url ||
-      profile.avatar_url ||
-      "https://i.ibb.co/4ZCRpm30/gaawow-logo.png";
-
-    photo.onerror = () => {
-      photo.onerror = null;
-      photo.src =
-        "https://i.ibb.co/4ZCRpm30/gaawow-logo.png";
-    };
+  const img=$("studentPhoto");
+  if(img){
+    if(s.photo_url){img.src=s.photo_url;img.alt=`Photo of ${s.full_name||"student"}`;}
+    else {img.removeAttribute("src");img.alt="No student photo";}
   }
 }
 
-// ------------------------------------------------------------
-// DISPLAY ACADEMIC RELATIONSHIPS
-// ------------------------------------------------------------
-
-function renderAcademicData(academic) {
-  if (!academic) {
-    console.warn("No active enrollment found.");
-
-    // Do not use "—"
-    setText("institutionName", "");
-    setText("courseName", "");
-    setText("departmentName", "");
-    setText("className", "");
-    setText("academicStatus", "");
-
-    return;
-  }
-
-  const {
-    enrollment,
-    institution,
-    course,
-    department,
-    classData
-  } = academic;
-
-  currentAcademic = academic;
-
-  // ----------------------------------------------------------
-  // Institution
-  // ----------------------------------------------------------
-
-  setText(
-    "institutionName",
-    institution?.name
-  );
-
-  setText(
-    "institutionCode",
-    institution?.code
-  );
-
-  // ----------------------------------------------------------
-  // Course
-  // ----------------------------------------------------------
-
-  setText(
-    "courseName",
-    course?.name
-  );
-
-  setText(
-    "courseCode",
-    course?.code
-  );
-
-  // ----------------------------------------------------------
-  // Department
-  // ----------------------------------------------------------
-
-  setText(
-    "departmentName",
-    department?.name
-  );
-
-  setText(
-    "departmentCode",
-    department?.code
-  );
-
-  // ----------------------------------------------------------
-  // Class
-  // ----------------------------------------------------------
-
-  setText(
-    "className",
-    classData?.name
-  );
-
-  setText(
-    "classCode",
-    classData?.code
-  );
-
-  setText(
-    "academicYear",
-    classData?.academic_year
-  );
-
-  // ----------------------------------------------------------
-  // Enrollment
-  // ----------------------------------------------------------
-
-  setText(
-    "enrollmentStatus",
-    cleanStatus(enrollment?.status)
-  );
-
-  setText(
-    "academicStatus",
-    cleanStatus(enrollment?.status)
-  );
-
-  setText(
-    "enrollmentDate",
-    formatDate(enrollment?.enrollment_date)
-  );
-
-  console.log("✅ Academic relationships loaded:", {
-    institution: institution?.name,
-    course: course?.name,
-    department: department?.name,
-    class: classData?.name,
-    status: enrollment?.status
-  });
+function valueFor(row,keys,fallback="—"){
+  const v=firstValue(row,keys);
+  return v===null?fallback:v;
 }
 
-// ------------------------------------------------------------
-// RESULTS
-// ------------------------------------------------------------
-
-async function loadResults(studentId) {
-  const message = $("resultsMessage");
-  const table = $("resultsTable");
-  const body = $("resultsBody");
-  const count = $("resultsCount");
-
-  if (message) {
-    message.textContent = "Loading results...";
-    message.classList.remove("hidden");
-  }
-
-  if (table) {
-    table.classList.add("hidden");
-  }
-
-  if (body) {
-    body.innerHTML = "";
-  }
-
-  const { data, error } = await supabaseClient
-    .from("results")
-    .select(`
-      id,
-      student_id,
-      subject_id,
-      exam_id,
-      score,
-      percentage,
-      grade,
-      remarks,
-      created_at,
-      subjects (
-        id,
-        name,
-        code
-      ),
-      exams (
-        id,
-        name,
-        exam_type
-      )
-    `)
-    .eq("student_id", studentId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Results error:", error);
-
-    if (message) {
-      message.textContent = "Unable to load results.";
-    }
-
-    return;
-  }
-
-  const results = data || [];
-
-  if (count) {
-    count.textContent = results.length;
-  }
-
-  if (!results.length) {
-    if (message) {
-      message.textContent = "No academic results available yet.";
-    }
-
-    return;
-  }
-
-  if (message) {
-    message.classList.add("hidden");
-  }
-
-  if (table) {
-    table.classList.remove("hidden");
-  }
-
-  if (body) {
-    body.innerHTML = results
-      .map(result => {
-        const subject =
-          result.subjects?.name ||
-          result.subjects?.code ||
-          "";
-
-        const exam =
-          result.exams?.name ||
-          result.exams?.exam_type ||
-          "";
-
-        return `
-          <tr>
-            <td>${escapeHtml(subject)}</td>
-            <td>${escapeHtml(exam)}</td>
-            <td>${escapeHtml(result.score ?? "")}</td>
-            <td>${escapeHtml(result.percentage ?? "")}</td>
-            <td>${escapeHtml(result.grade ?? "")}</td>
-            <td>${escapeHtml(result.remarks ?? "")}</td>
-          </tr>
-        `;
-      })
-      .join("");
-  }
-}
-
-// ------------------------------------------------------------
-// CERTIFICATES
-// ------------------------------------------------------------
-
-async function loadCertificates(studentId) {
-  const message = $("certificatesMessage");
-  const list = $("certificatesList");
-  const count = $("certificatesCount");
-
-  if (message) {
-    message.textContent = "Loading certificates...";
-    message.classList.remove("hidden");
-  }
-
-  if (list) {
-    list.innerHTML = "";
-  }
-
-  const { data, error } = await supabaseClient
-    .from("certificates")
-    .select(`
-      id,
-      certificate_number,
-      title,
-      status,
-      issued_at,
-      course_id,
-      verification_code
-    `)
-    .eq("student_id", studentId)
-    .order("issued_at", { ascending: false });
-
-  if (error) {
-    console.error("Certificates error:", error);
-
-    if (message) {
-      message.textContent =
-        "Unable to load certificates.";
-    }
-
-    return;
-  }
-
-  const certificates = data || [];
-
-  if (count) {
-    count.textContent = certificates.length;
-  }
-
-  if (!certificates.length) {
-    if (message) {
-      message.textContent =
-        "No certificates available yet.";
-    }
-
-    return;
-  }
-
-  if (message) {
-    message.classList.add("hidden");
-  }
-
-  if (list) {
-    list.innerHTML = certificates
-      .map(cert => {
-        return `
-          <div class="certificate-item">
-            <div>
-              <strong>
-                ${escapeHtml(
-                  cert.title ||
-                  "Certificate"
-                )}
-              </strong>
-
-              <small>
-                Certificate No:
-                ${escapeHtml(
-                  cert.certificate_number || ""
-                )}
-              </small>
-
-              <small>
-                Issued:
-                ${escapeHtml(
-                  formatDate(cert.issued_at)
-                )}
-              </small>
-            </div>
-
-            <span>
-              ${escapeHtml(
-                cleanStatus(cert.status)
-              )}
-            </span>
-          </div>
-        `;
-      })
-      .join("");
-  }
-}
-
-// ------------------------------------------------------------
-// NOTIFICATIONS
-// ------------------------------------------------------------
-
-async function loadNotifications(studentId) {
-  const list = $("notificationsList");
-  const count = $("notificationsCount");
-
-  if (!list) return;
-
-  list.innerHTML = `
-    <div class="empty-message">
-      Loading notifications...
-    </div>
-  `;
-
-  const { data, error } = await supabaseClient
-    .from("student_notifications")
-    .select("*")
-    .eq("student_id", studentId)
-    .order("created_at", {
-      ascending: false
-    });
-
-  if (error) {
-    console.error("Notifications error:", error);
-
-    list.innerHTML = `
-      <div class="empty-message">
-        Unable to load notifications.
+function renderGrades(rows){
+  const box=$("gradesBox");if(!box)return;
+  if(!rows.length){box.className="box empty";box.textContent="No grade records available yet.";return;}
+  box.className="box records";
+  box.innerHTML=rows.map((r,i)=>`
+    <article class="record-card">
+      <div class="record-head"><strong>${esc(valueFor(r,["subject_name","subject","subject_title","course_name","title"],`Subject ${i+1}`))}</strong><span>${esc(valueFor(r,["grade","letter_grade"],"—"))}</span></div>
+      <div class="record-grid">
+        <div><small>Score</small><b>${esc(valueFor(r,["score","mark","marks","total_score"]))}</b></div>
+        <div><small>Exam</small><b>${esc(valueFor(r,["exam_name","exam","assessment","assessment_name"]))}</b></div>
+        <div><small>Semester</small><b>${esc(valueFor(r,["semester","term","academic_term"]))}</b></div>
+        <div><small>Date</small><b>${esc(fmtDate(firstValue(r,["exam_date","date","created_at"])))}</b></div>
       </div>
-    `;
+    </article>`).join("");
+}
 
-    return;
-  }
-
-  const notifications = data || [];
-
-  if (count) {
-    count.textContent = notifications.length;
-  }
-
-  if (!notifications.length) {
-    list.innerHTML = `
-      <div class="empty-message">
-        No notifications available.
+function renderCertificates(rows){
+  const box=$("certificatesBox");if(!box)return;
+  if(!rows.length){box.className="box empty";box.textContent="No certificates available yet.";return;}
+  box.className="box records";
+  box.innerHTML=rows.map((r,i)=>`
+    <article class="record-card">
+      <div class="record-head"><strong>${esc(valueFor(r,["certificate_name","title","name","certificate_title"],`Certificate ${i+1}`))}</strong><span>${esc(valueFor(r,["status","certificate_status"],"Issued"))}</span></div>
+      <div class="record-grid">
+        <div><small>Certificate No.</small><b>${esc(valueFor(r,["certificate_number","certificate_no","number","serial_number"]))}</b></div>
+        <div><small>Issue Date</small><b>${esc(fmtDate(firstValue(r,["issue_date","issued_at","date","created_at"])))}</b></div>
+        <div><small>Course</small><b>${esc(valueFor(r,["course_name","course","program_name"]))}</b></div>
+        <div><small>Verification</small><b>${esc(valueFor(r,["verification_code","verification_id"]))}</b></div>
       </div>
-    `;
-
-    return;
-  }
-
-  list.innerHTML = notifications
-    .map(notification => {
-      return `
-        <div class="notification-item">
-          <strong>
-            ${escapeHtml(
-              notification.title ||
-              "Notification"
-            )}
-          </strong>
-
-          <p>
-            ${escapeHtml(
-              notification.message ||
-              ""
-            )}
-          </p>
-
-          <small>
-            ${escapeHtml(
-              formatDate(
-                notification.created_at
-              )
-            )}
-          </small>
-        </div>
-      `;
-    })
-    .join("");
+    </article>`).join("");
 }
 
-// ------------------------------------------------------------
-// MARK NOTIFICATIONS READ
-// ------------------------------------------------------------
-
-async function markAllNotificationsRead() {
-  if (!currentStudent?.id) return;
-
-  const { error } = await supabaseClient
-    .from("student_notifications")
-    .update({
-      is_read: true
-    })
-    .eq("student_id", currentStudent.id)
-    .eq("is_read", false);
-
-  if (error) {
-    console.error(
-      "Mark notifications read error:",
-      error
-    );
-
-    alert("Unable to mark notifications as read.");
-    return;
-  }
-
-  await loadNotifications(currentStudent.id);
+function renderPayments(rows){
+  const box=$("paymentsBox");if(!box)return;
+  if(!rows.length){box.className="box empty";box.textContent="No payment records available yet.";return;}
+  box.className="box records";
+  box.innerHTML=rows.map((r,i)=>`
+    <article class="record-card">
+      <div class="record-head"><strong>${esc(valueFor(r,["description","payment_type","title","invoice_number"],`Payment ${i+1}`))}</strong><span>${esc(valueFor(r,["status","payment_status"],"—"))}</span></div>
+      <div class="record-grid">
+        <div><small>Amount</small><b>${esc(valueFor(r,["amount","paid_amount","total_amount","fee"]))}</b></div>
+        <div><small>Method</small><b>${esc(valueFor(r,["payment_method","method","paid_via"]))}</b></div>
+        <div><small>Receipt / Invoice</small><b>${esc(valueFor(r,["receipt_number","receipt_no","invoice_number","transaction_id"]))}</b></div>
+        <div><small>Date</small><b>${esc(fmtDate(firstValue(r,["payment_date","paid_at","date","created_at"])))}</b></div>
+      </div>
+    </article>`).join("");
 }
 
-// ------------------------------------------------------------
-// LAST LOGIN
-// ------------------------------------------------------------
+async function loadPortal(){
+  try{
+    clearStatus();
+    const user=await currentUser();
+    if(!user){window.location.replace("index.html");return;}
+    showStatus("Loading your complete student portal...","info");
 
-async function updateLastLogin(studentId, userId) {
-  const { error } = await supabaseClient
-    .from("students")
-    .update({
-      last_login_at: new Date().toISOString()
-    })
-    .eq("id", studentId)
-    .eq("auth_user_id", userId);
+    const student=await loadStudent(user);
+    const [institution,relations]=await Promise.all([loadInstitution(student),loadAcademicRelations(student)]);
+    renderStudent(student,institution,relations,user);
 
-  if (error) {
-    console.warn(
-      "Unable to update last login:",
-      error.message
-    );
+    const [grades,certificates,payments]=await Promise.all([
+      loadPortalRows("grades",student,user),
+      loadPortalRows("certificates",student,user),
+      loadPortalRows("payments",student,user)
+    ]);
+
+    renderGrades(grades);
+    renderCertificates(certificates);
+    renderPayments(payments);
+
+    showStatus("Student portal loaded successfully.","success");
+    setTimeout(clearStatus,2500);
+  }catch(error){
+    console.error("STUDENT PORTAL ERROR:",error);
+    showStatus(error?.message||"Unable to load student portal.","error");
   }
 }
 
-// ------------------------------------------------------------
-// LOGOUT
-// ------------------------------------------------------------
+$("logoutBtn")?.addEventListener("click",async()=>{
+  const b=$("logoutBtn");b.disabled=true;b.textContent="LOGGING OUT...";
+  const {error}=await supabase.auth.signOut();
+  if(error){console.error(error);b.disabled=false;b.textContent="LOGOUT";showStatus("Logout failed.","error");return;}
+  sessionStorage.clear();window.location.replace("index.html");
+});
 
-async function logoutStudent() {
-  try {
-    await supabaseClient.auth.signOut();
-  } finally {
-    window.location.href = "login.html";
-  }
-}
+supabase.auth.onAuthStateChange((event,session)=>{
+  if(event==="SIGNED_OUT"&&!session)window.location.replace("index.html");
+});
 
-// ------------------------------------------------------------
-// MAIN PORTAL
-// ------------------------------------------------------------
-
-async function loadStudentPortal() {
-  try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-
-    currentUser = user;
-
-    // 1. Profile
-    const profile =
-      await loadStudentProfile(user.id);
-
-    currentProfile = profile;
-
-    // 2. Student
-    const student =
-      await loadStudent(user.id);
-
-    currentStudent = student;
-
-    // 3. Student information
-    renderStudent(
-      student,
-      profile,
-      user
-    );
-
-    // 4. Academic relationships
-    const academic =
-      await loadAcademicData(student.id);
-
-    renderAcademicData(academic);
-
-    // 5. Results
-    await loadResults(student.id);
-
-    // 6. Certificates
-    await loadCertificates(student.id);
-
-    // 7. Notifications
-    await loadNotifications(student.id);
-
-    // 8. Last login
-    await updateLastLogin(
-      student.id,
-      user.id
-    );
-
-    // 9. Show portal
-    hidePortalLoading();
-
-    console.log(
-      "✅ Student Portal V6 loaded successfully:",
-      student.student_id
-    );
-
-  } catch (error) {
-    console.error(
-      "Student Portal V6 Error:",
-      error
-    );
-
-    showPortalError(
-      error.message ||
-      "Unable to load student portal."
-    );
-  }
-}
-
-// ------------------------------------------------------------
-// DOM READY
-// ------------------------------------------------------------
-
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
-
-    loadStudentPortal();
-
-    const logoutBtn =
-      $("logoutBtn");
-
-    if (logoutBtn) {
-      logoutBtn.addEventListener(
-        "click",
-        logoutStudent
-      );
-    }
-
-    const markAllReadBtn =
-      $("markAllReadBtn");
-
-    if (markAllReadBtn) {
-      markAllReadBtn.addEventListener(
-        "click",
-        markAllNotificationsRead
-      );
-    }
-  }
-);
-
-// ------------------------------------------------------------
-// AUTH STATE
-// If student logs out from another tab/device
-// ------------------------------------------------------------
-
-supabaseClient.auth.onAuthStateChange(
-  (event, session) => {
-
-    if (
-      event === "SIGNED_OUT" ||
-      !session
-    ) {
-      window.location.href =
-        "login.html";
-    }
-  }
-);
+loadPortal();
+})();
