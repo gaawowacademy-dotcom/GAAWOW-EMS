@@ -1,18 +1,125 @@
-/*
- GAAWOW EMS - Student Portal V7.3
- SCHEMA-SAFE VERSION
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAAWOW EMS | Student Portal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033}
+.header{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:15px}
+.brand{display:flex;align-items:center;gap:12px}.brand img{width:46px;height:46px;background:#fff;border-radius:10px;padding:4px;object-fit:contain}
+.brand h1{font-size:18px;margin:0}.brand p{font-size:11px;color:#f0c94a;margin:4px 0 0}
+.logout{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;padding:9px 13px;border-radius:9px;cursor:pointer}
+.wrap{max-width:1200px;margin:auto;padding:18px 14px 45px}
+.message{display:none;padding:12px 14px;border-radius:10px;margin-bottom:15px;font-size:13px}
+.message.error{display:block;background:#fee2e2;color:#991b1b}.message.success{display:block;background:#dcfce7;color:#166534}
+.loading{text-align:center;padding:45px;color:#64748b}
+.hero{background:#fff;border-radius:16px;padding:20px;box-shadow:0 5px 20px rgba(0,0,0,.06);display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:18px;border-left:4px solid #D4AF37}
+.student-head{display:flex;gap:15px;align-items:center}.avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;background:#e8eef8;display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:800;color:#0B1E63;overflow:hidden}
+.hero h2{margin:0;color:#0B1E63}.hero p{margin:5px 0;color:#64748b;font-size:13px}.badge{display:inline-block;padding:6px 10px;border-radius:20px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
+.card{background:#fff;border-radius:14px;padding:15px;box-shadow:0 5px 18px rgba(0,0,0,.05);border-top:4px solid #0B4DA2;min-width:0}
+.card:nth-child(2){border-top-color:#D4AF37}.card:nth-child(3){border-top-color:#16A34A}.card:nth-child(4){border-top-color:#7C3AED}
+.card small{display:block;color:#64748b;font-size:11px;text-transform:uppercase}.card strong{display:block;margin-top:6px;font-size:18px;color:#0B1E63;overflow-wrap:anywhere}
+.section{background:#fff;border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 5px 18px rgba(0,0,0,.05)}
+.section h3{margin:0 0 14px;color:#0B1E63}
+.info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.item{background:#f8fafc;border-radius:10px;padding:12px;min-width:0}
+.item b{display:block;color:#64748b;font-size:10px;text-transform:uppercase;margin-bottom:5px}.item span{font-size:13px;overflow-wrap:anywhere}
+.table-wrap{overflow-x:auto}.table{width:100%;border-collapse:collapse;min-width:650px}.table th,.table td{padding:10px 9px;border-bottom:1px solid #edf0f4;text-align:left;font-size:12px}.table th{background:#f8fafc;color:#475569;font-size:10px;text-transform:uppercase}
+.empty{text-align:center;padding:20px;color:#94a3b8;font-size:13px}.money{font-weight:700}.status{padding:5px 8px;border-radius:15px;font-size:10px;font-weight:700;background:#eef2ff;color:#3730a3}
+a{color:#0B4DA2;font-weight:700;text-decoration:none}.portal-tag{font-size:11px;font-weight:700;background:#D4AF37;color:#172033;padding:7px 10px;border-radius:18px}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.info{grid-template-columns:repeat(2,1fr)}.hero{align-items:flex-start;flex-direction:column}}
+@media(max-width:520px){.grid,.info{grid-template-columns:1fr}.header{padding:12px}.brand h1{font-size:16px}.portal-tag{display:none}}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+    <div><h1>GAAWOW EMS</h1><p>Student Education Management Portal</p></div>
+  </div>
+  <span class="portal-tag">STUDENT PORTAL V8</span>
+  <button class="logout" id="logoutBtn">Logout</button>
+</header>
 
- IMPORTANT:
- - This file never requests a department field from the students table.
- - Department is resolved through:
-     enrollments.course_id -> courses.department_id -> departments.id
- - Enrollment date comes from enrollments.enrollment_date.
- - Class comes from enrollments.class_id -> classes.id.
- - No non-existent students columns are requested.
-*/
+<main class="wrap">
+  <div id="message" class="message"></div>
+  <div id="loading" class="loading">Loading student portal...</div>
 
+  <div id="portal" style="display:none">
+    <section class="hero">
+      <div class="student-head">
+        <div id="photo" class="avatar">G</div>
+        <div>
+          <h2 id="studentName">—</h2>
+          <p id="studentId">Student ID: —</p>
+          <span class="badge" id="studentStatus">—</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card"><small>Student ID</small><strong id="topStudentId">—</strong></div>
+      <div class="card"><small>Course</small><strong id="courseName">—</strong></div>
+      <div class="card"><small>Class</small><strong id="className">—</strong></div>
+      <div class="card"><small>Department</small><strong id="departmentName">—</strong></div>
+    </section>
+
+    <section class="section">
+      <h3>🎓 Academic Information</h3>
+      <div class="info" id="academicInfo"></div>
+    </section>
+
+    <section class="section">
+      <h3>📊 Academic Progress</h3>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Academic Year</th><th>Total Courses</th><th>Completed</th><th>Attendance</th><th>Average</th><th>Remarks</th></tr></thead>
+        <tbody id="progressBody"></tbody>
+      </table></div>
+    </section>
+
+    <section class="section">
+      <h3>📚 Grades</h3>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Score</th><th>Grade</th><th>Remarks</th><th>Date</th></tr></thead>
+        <tbody id="gradesBody"></tbody>
+      </table></div>
+    </section>
+
+    <section class="section">
+      <h3>🎓 Certificates</h3>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Certificate No.</th><th>Course</th><th>Issue Date</th><th>Expiry</th><th>Status</th><th>Open</th></tr></thead>
+        <tbody id="certificatesBody"></tbody>
+      </table></div>
+    </section>
+
+    <section class="section">
+      <h3>💳 Payments</h3>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Amount</th><th>Currency</th><th>Method</th><th>Reference</th><th>Status</th><th>Paid At</th></tr></thead>
+        <tbody id="paymentsBody"></tbody>
+      </table></div>
+    </section>
+
+    <section class="section">
+      <h3>👤 Profile</h3>
+      <div class="info" id="profileInfo"></div>
+    </section>
+  </div>
+</main>
+
+<script>
 (() => {
   "use strict";
+
+  /* ============================================================
+     GAAWOW EMS STUDENT PORTAL V8
+     SINGLE-FILE VERSION
+     The old external student-portal.js is NOT loaded.
+     ============================================================ */
 
   const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
   const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
@@ -25,395 +132,362 @@
     }
   });
 
-  const $ = (id) => document.getElementById(id);
-  const text = (value, fallback = "—") =>
-    value === null || value === undefined || String(value).trim() === ""
-      ? fallback
-      : String(value);
+  const $ = id => document.getElementById(id);
 
-  const esc = (value) =>
-    String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+  function esc(v) {
+    return String(v ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
 
-  const date = (value) => {
-    if (!value) return "—";
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return String(value);
-    return d.toLocaleDateString();
-  };
+  function val(v, fallback="—") {
+    return v === null || v === undefined || String(v).trim() === "" ? fallback : String(v);
+  }
 
-  const money = (value) => {
-    if (value === null || value === undefined || value === "") return "—";
-    const n = Number(value);
-    return Number.isFinite(n) ? n.toLocaleString() : String(value);
-  };
+  function fmtDate(v) {
+    if (!v) return "—";
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleDateString();
+  }
+
+  function fmtNumber(v) {
+    if (v === null || v === undefined || v === "") return "—";
+    const n = Number(v);
+    return Number.isFinite(n) ? n.toLocaleString() : String(v);
+  }
+
+  function errorMessage(err) {
+    return err?.message || err?.details || err?.hint || "Unknown database error.";
+  }
 
   function showError(message) {
     const el = $("message");
-    if (!el) return;
     el.textContent = message;
     el.className = "message error";
     el.style.display = "block";
   }
 
-  function clearError() {
+  function clearMessage() {
     const el = $("message");
-    if (!el) return;
     el.textContent = "";
     el.className = "message";
     el.style.display = "none";
   }
 
-  function setLoading(on) {
-    $("loading").style.display = on ? "block" : "none";
-    $("portal").style.display = on ? "none" : "block";
-  }
-
-  function emptyRow(tbodyId, colspan, message) {
-    const el = $(tbodyId);
-    if (el) {
-      el.innerHTML = `<tr><td colspan="${colspan}" class="empty">${esc(message)}</td></tr>`;
-    }
+  function emptyRow(id, colspan, message) {
+    const el = $(id);
+    if (el) el.innerHTML = `<tr><td colspan="${colspan}" class="empty">${esc(message)}</td></tr>`;
   }
 
   async function getSession() {
     const { data, error } = await sb.auth.getSession();
     if (error) throw error;
-
     if (!data?.session?.user?.id) {
       throw new Error("Login session is missing or expired. Please login again.");
     }
-
     return data.session;
   }
 
-  /*
-   * Generic read helper.
-   * Secondary sections are allowed to fail without destroying the whole
-   * portal, while the primary student record remains a hard requirement.
-   */
-  async function read(table, columns, filters = [], options = {}) {
-    let q = sb.from(table).select(columns);
-
-    for (const [method, column, value] of filters) {
-      if (method === "eq") q = q.eq(column, value);
-      else if (method === "in") q = q.in(column, value);
-      else if (method === "order") q = q.order(column, options.order || { ascending: false });
-      else if (method === "limit") q = q.limit(value);
-    }
-
-    const result = await q;
-    if (result.error) throw result.error;
-    return result.data || [];
+  async function selectRows(table, columns, filterColumn, filterValue, orderColumn=null) {
+    let q = sb.from(table).select(columns).eq(filterColumn, filterValue);
+    if (orderColumn) q = q.order(orderColumn, { ascending:false });
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
   }
 
-  function renderStudent(student) {
-    $("studentName").textContent = text(student.full_name);
-    $("studentId").textContent = `Student ID: ${text(student.student_id)}`;
-    $("studentStatus").textContent = text(student.status);
+  async function selectOneById(table, columns, id) {
+    if (!id) return null;
+    const { data, error } = await sb.from(table).select(columns).eq("id", id).maybeSingle();
+    if (error) throw error;
+    return data || null;
+  }
+
+  function renderStudent(s) {
+    $("studentName").textContent = val(s.full_name);
+    $("studentId").textContent = `Student ID: ${val(s.student_id)}`;
+    $("topStudentId").textContent = val(s.student_id);
+    $("studentStatus").textContent = val(s.status);
 
     const photo = $("photo");
-    if (student.photo_url) {
-      photo.innerHTML = `<img src="${esc(student.photo_url)}" alt="Student photo"
-        style="width:100%;height:100%;border-radius:50%;object-fit:cover"
-        onerror="this.parentElement.textContent='G'">`;
+    if (s.photo_url) {
+      photo.innerHTML = `<img src="${esc(s.photo_url)}" alt="Student photo"
+        style="width:100%;height:100%;object-fit:cover"
+        onerror="this.remove();this.parentElement.textContent='G'">`;
     } else {
-      const initial = String(student.full_name || "G").trim().charAt(0).toUpperCase() || "G";
-      photo.textContent = initial;
+      photo.textContent = (s.full_name || "G").trim().charAt(0).toUpperCase() || "G";
     }
 
     $("profileInfo").innerHTML = `
-      <div class="item"><b>Full Name</b><span>${esc(text(student.full_name))}</span></div>
-      <div class="item"><b>Email</b><span>${esc(text(student.email))}</span></div>
-      <div class="item"><b>Phone</b><span>${esc(text(student.phone))}</span></div>
-      <div class="item"><b>Gender</b><span>${esc(text(student.gender))}</span></div>
-      <div class="item"><b>Date of Birth</b><span>${esc(date(student.date_of_birth))}</span></div>
-      <div class="item"><b>Admission Date</b><span>${esc(date(student.admission_date))}</span></div>
-      <div class="item"><b>Address</b><span>${esc(text(student.address))}</span></div>
-      <div class="item"><b>Account</b><span>${student.account_enabled === true ? "Enabled" : "Disabled"}</span></div>
-      <div class="item"><b>Last Login</b><span>${esc(date(student.last_login_at))}</span></div>
+      <div class="item"><b>Full Name</b><span>${esc(val(s.full_name))}</span></div>
+      <div class="item"><b>Email</b><span>${esc(val(s.email))}</span></div>
+      <div class="item"><b>Phone</b><span>${esc(val(s.phone))}</span></div>
+      <div class="item"><b>Gender</b><span>${esc(val(s.gender))}</span></div>
+      <div class="item"><b>Date of Birth</b><span>${esc(fmtDate(s.date_of_birth))}</span></div>
+      <div class="item"><b>Admission Date</b><span>${esc(fmtDate(s.admission_date))}</span></div>
+      <div class="item"><b>Address</b><span>${esc(val(s.address))}</span></div>
+      <div class="item"><b>Account</b><span>${s.account_enabled === true ? "Enabled" : "Disabled"}</span></div>
     `;
   }
 
   function renderAcademic(enrollment, course, department, cls, institution) {
-    $("courseName").textContent = text(course?.name);
-    $("className").textContent = text(cls?.name);
-    $("departmentName").textContent = text(department?.name);
+    $("courseName").textContent = val(course?.name);
+    $("className").textContent = val(cls?.name);
+    $("departmentName").textContent = val(department?.name);
 
     $("academicInfo").innerHTML = `
-      <div class="item"><b>Institution</b><span>${esc(text(institution?.name))}</span></div>
-      <div class="item"><b>Course / Program</b><span>${esc(text(course?.name))}</span></div>
-      <div class="item"><b>Course Code</b><span>${esc(text(course?.code))}</span></div>
-      <div class="item"><b>Department</b><span>${esc(text(department?.name))}</span></div>
-      <div class="item"><b>Class</b><span>${esc(text(cls?.name))}</span></div>
-      <div class="item"><b>Class Code</b><span>${esc(text(cls?.code))}</span></div>
-      <div class="item"><b>Academic Year</b><span>${esc(text(cls?.academic_year || enrollment?.academic_year))}</span></div>
-      <div class="item"><b>Enrollment Number</b><span>${esc(text(enrollment?.enrollment_number))}</span></div>
-      <div class="item"><b>Enrollment Date</b><span>${esc(date(enrollment?.enrollment_date))}</span></div>
-      <div class="item"><b>Start Date</b><span>${esc(date(enrollment?.start_date))}</span></div>
-      <div class="item"><b>End Date</b><span>${esc(date(enrollment?.end_date))}</span></div>
-      <div class="item"><b>Enrollment Status</b><span>${esc(text(enrollment?.status))}</span></div>
+      <div class="item"><b>Institution</b><span>${esc(val(institution?.name))}</span></div>
+      <div class="item"><b>Course / Program</b><span>${esc(val(course?.name))}</span></div>
+      <div class="item"><b>Course Code</b><span>${esc(val(course?.code))}</span></div>
+      <div class="item"><b>Department</b><span>${esc(val(department?.name))}</span></div>
+      <div class="item"><b>Class</b><span>${esc(val(cls?.name))}</span></div>
+      <div class="item"><b>Class Code</b><span>${esc(val(cls?.code))}</span></div>
+      <div class="item"><b>Academic Year</b><span>${esc(val(cls?.academic_year))}</span></div>
+      <div class="item"><b>Enrollment Number</b><span>${esc(val(enrollment?.enrollment_number))}</span></div>
+      <div class="item"><b>Enrollment Date</b><span>${esc(fmtDate(enrollment?.enrollment_date))}</span></div>
+      <div class="item"><b>Start Date</b><span>${esc(fmtDate(enrollment?.start_date))}</span></div>
+      <div class="item"><b>End Date</b><span>${esc(fmtDate(enrollment?.end_date))}</span></div>
+      <div class="item"><b>Enrollment Status</b><span>${esc(val(enrollment?.status))}</span></div>
+      <div class="item"><b>Institution Code</b><span>${esc(val(institution?.code))}</span></div>
+      <div class="item"><b>Course Duration</b><span>${course?.duration_months == null ? "—" : esc(course.duration_months + " months")}</span></div>
+      <div class="item"><b>Course Fee</b><span>${course?.fee == null ? "—" : esc(fmtNumber(course.fee))}</span></div>
     `;
   }
 
   function renderProgress(rows) {
-    const body = $("progressBody");
     if (!rows.length) {
       emptyRow("progressBody", 6, "No academic progress records available yet.");
       return;
     }
-
-    body.innerHTML = rows.map(r => `
+    $("progressBody").innerHTML = rows.map(r => `
       <tr>
-        <td>${esc(text(r.academic_year))}</td>
-        <td>${esc(text(r.total_courses))}</td>
-        <td>${esc(text(r.completed_courses))}</td>
-        <td>${esc(r.attendance_percentage == null ? "—" : `${r.attendance_percentage}%`)}</td>
-        <td>${esc(r.average_score == null ? "—" : r.average_score)}</td>
-        <td>${esc(text(r.remarks))}</td>
-      </tr>
-    `).join("");
-
-    const latest = rows[0];
-    $("averageScore").textContent =
-      latest?.average_score == null ? "—" : String(latest.average_score);
+        <td>${esc(val(r.academic_year))}</td>
+        <td>${esc(val(r.total_courses))}</td>
+        <td>${esc(val(r.completed_courses))}</td>
+        <td>${r.attendance_percentage == null ? "—" : esc(r.attendance_percentage + "%")}</td>
+        <td>${r.average_score == null ? "—" : esc(r.average_score)}</td>
+        <td>${esc(val(r.remarks))}</td>
+      </tr>`).join("");
   }
 
   function renderGrades(rows) {
-    const body = $("gradesBody");
     if (!rows.length) {
       emptyRow("gradesBody", 4, "No grade records available yet.");
       return;
     }
-
-    body.innerHTML = rows.map(r => `
+    $("gradesBody").innerHTML = rows.map(r => `
       <tr>
-        <td>${esc(r.score == null ? "—" : r.score)}</td>
-        <td><span class="status">${esc(text(r.grade))}</span></td>
-        <td>${esc(text(r.remarks))}</td>
-        <td>${esc(date(r.created_at))}</td>
-      </tr>
-    `).join("");
+        <td>${r.score == null ? "—" : esc(r.score)}</td>
+        <td><span class="status">${esc(val(r.grade))}</span></td>
+        <td>${esc(val(r.remarks))}</td>
+        <td>${esc(fmtDate(r.created_at))}</td>
+      </tr>`).join("");
   }
 
   function renderCertificates(rows) {
-    const body = $("certificatesBody");
     if (!rows.length) {
       emptyRow("certificatesBody", 6, "No certificates available yet.");
       return;
     }
-
-    body.innerHTML = rows.map(r => {
-      const verify = r.verification_url || r.certificate_url || r.pdf_url;
-      return `
-        <tr>
-          <td>${esc(text(r.certificate_no || r.certificate_id))}</td>
-          <td>${esc(text(r.course_name_snapshot))}</td>
-          <td>${esc(date(r.issue_date))}</td>
-          <td>${esc(date(r.expiry_date))}</td>
-          <td><span class="status">${esc(text(r.status))}</span></td>
-          <td>${verify ? `<a href="${esc(verify)}" target="_blank" rel="noopener">Open</a>` : "—"}</td>
-        </tr>
-      `;
+    $("certificatesBody").innerHTML = rows.map(r => {
+      const link = r.verification_url || r.certificate_url || r.pdf_url;
+      return `<tr>
+        <td>${esc(val(r.certificate_no || r.certificate_id))}</td>
+        <td>${esc(val(r.course_name_snapshot))}</td>
+        <td>${esc(fmtDate(r.issue_date))}</td>
+        <td>${esc(fmtDate(r.expiry_date))}</td>
+        <td><span class="status">${esc(val(r.status))}</span></td>
+        <td>${link ? `<a href="${esc(link)}" target="_blank" rel="noopener">Open</a>` : "—"}</td>
+      </tr>`;
     }).join("");
   }
 
   function renderPayments(rows) {
-    const body = $("paymentsBody");
     if (!rows.length) {
       emptyRow("paymentsBody", 6, "No payment records available yet.");
       return;
     }
-
-    body.innerHTML = rows.map(r => `
+    $("paymentsBody").innerHTML = rows.map(r => `
       <tr>
-        <td class="money">${esc(money(r.amount))}</td>
-        <td>${esc(text(r.currency))}</td>
-        <td>${esc(text(r.payment_method))}</td>
-        <td>${esc(text(r.transaction_reference || r.provider_transaction_id))}</td>
-        <td><span class="status">${esc(text(r.status))}</span></td>
-        <td>${esc(date(r.paid_at || r.created_at))}</td>
-      </tr>
-    `).join("");
+        <td class="money">${esc(fmtNumber(r.amount))}</td>
+        <td>${esc(val(r.currency))}</td>
+        <td>${esc(val(r.payment_method))}</td>
+        <td>${esc(val(r.transaction_reference || r.provider_transaction_id))}</td>
+        <td><span class="status">${esc(val(r.status))}</span></td>
+        <td>${esc(fmtDate(r.paid_at || r.created_at))}</td>
+      </tr>`).join("");
   }
 
   async function loadPortal() {
-    clearError();
-    setLoading(true);
+    clearMessage();
+    $("loading").style.display = "block";
+    $("portal").style.display = "none";
 
     try {
       const session = await getSession();
-      const userId = session.user.id;
+      const uid = session.user.id;
 
       /*
-       * PRIMARY STUDENT QUERY
-       * Schema-safe: there is NO department_id here.
+       * RULE: The students table query contains ONLY confirmed students columns.
+       * There is NO department_id and NO enrollment_date here.
        */
-      const students = await read(
-        "students",
-        "id,institution_id,profile_id,student_id,full_name,gender,date_of_birth,phone,email,address,photo_url,admission_date,status,account_enabled,auth_user_id,login_username,account_created_at,last_login_at,password_changed_at,created_at,updated_at",
-        [["eq", "auth_user_id", userId]]
-      );
+      const studentColumns =
+        "id,institution_id,profile_id,student_id,full_name,gender,date_of_birth,phone,email,address,photo_url,admission_date,status,account_enabled,auth_user_id,login_username,account_created_at,last_login_at,password_changed_at,created_at,updated_at";
+
+      const students = await selectRows("students", studentColumns, "auth_user_id", uid);
 
       if (!students.length) {
-        throw new Error(
-          "Student record not found for this login account. Please contact the GAAWOW administrator."
-        );
+        throw new Error("Student record not found for this login account. Please contact the GAAWOW administrator.");
       }
 
       const student = students[0];
       renderStudent(student);
 
-      /*
-       * INSTITUTION
-       */
       let institution = null;
-      try {
-        const rows = await read(
-          "institutions",
-          "id,name,code,email,phone,address,city,country,logo_url,website_url,is_active",
-          [["eq", "id", student.institution_id]]
-        );
-        institution = rows[0] || null;
-      } catch (e) {
-        console.warn("Institution load failed:", e);
-      }
-
-      /*
-       * ENROLLMENT
-       * Enrollment date is here, NOT the students table enrollment-date field.
-       */
       let enrollment = null;
-      try {
-        const rows = await read(
-          "enrollments",
-          "id,institution_id,student_id,course_id,class_id,enrollment_number,enrollment_date,start_date,end_date,status,created_at,updated_at",
-          [["eq", "student_id", student.id], ["order", "created_at"]],
-          { order: { ascending: false } }
-        );
-        enrollment = rows[0] || null;
-      } catch (e) {
-        console.warn("Enrollment load failed:", e);
-      }
-
       let course = null;
       let department = null;
       let cls = null;
 
-      if (enrollment?.course_id) {
-        try {
-          const rows = await read(
+      try {
+        institution = await selectOneById(
+          "institutions",
+          "id,name,code,email,phone,address,city,country,logo_url,website_url,is_active",
+          student.institution_id
+        );
+      } catch(e) {
+        console.warn("Institution:", e);
+      }
+
+      try {
+        const rows = await selectRows(
+          "enrollments",
+          "id,institution_id,student_id,course_id,class_id,enrollment_number,enrollment_date,start_date,end_date,status,created_at,updated_at",
+          "student_id",
+          student.id,
+          "created_at"
+        );
+        enrollment = rows[0] || null;
+      } catch(e) {
+        console.warn("Enrollment:", e);
+      }
+
+      /*
+       * RULE: Department is NOT taken from students.
+       * Correct relationship:
+       * students -> enrollments -> courses -> departments
+       */
+      try {
+        if (enrollment?.course_id) {
+          course = await selectOneById(
             "courses",
             "id,institution_id,department_id,name,code,description,duration_months,fee,is_active,created_at,updated_at",
-            [["eq", "id", enrollment.course_id]]
+            enrollment.course_id
           );
-          course = rows[0] || null;
-        } catch (e) {
-          console.warn("Course load failed:", e);
         }
+      } catch(e) {
+        console.warn("Course:", e);
       }
 
-      if (course?.department_id) {
-        try {
-          const rows = await read(
+      try {
+        if (course?.department_id) {
+          department = await selectOneById(
             "departments",
             "id,institution_id,name,code,description,head_profile_id,is_active,created_at,updated_at",
-            [["eq", "id", course.department_id]]
+            course.department_id
           );
-          department = rows[0] || null;
-        } catch (e) {
-          console.warn("Department load failed:", e);
         }
+      } catch(e) {
+        console.warn("Department:", e);
       }
 
-      if (enrollment?.class_id) {
-        try {
-          const rows = await read(
+      try {
+        if (enrollment?.class_id) {
+          cls = await selectOneById(
             "classes",
             "id,institution_id,course_id,name,code,academic_year,teacher_id,room,start_date,end_date,is_active,created_at,updated_at,status",
-            [["eq", "id", enrollment.class_id]]
+            enrollment.class_id
           );
-          cls = rows[0] || null;
-        } catch (e) {
-          console.warn("Class load failed:", e);
         }
+      } catch(e) {
+        console.warn("Class:", e);
       }
 
       renderAcademic(enrollment, course, department, cls, institution);
 
-      /*
-       * SECONDARY DATA
-       */
       try {
-        const rows = await read(
+        const rows = await selectRows(
           "academic_progress",
           "id,institution_id,student_id,course_id,academic_year,total_courses,completed_courses,attendance_percentage,average_score,remarks,created_at,updated_at",
-          [["eq", "student_id", student.id], ["order", "created_at"]],
-          { order: { ascending: false } }
+          "student_id",
+          student.id,
+          "created_at"
         );
         renderProgress(rows);
-      } catch (e) {
-        console.warn("Academic progress load failed:", e);
+      } catch(e) {
+        console.warn("Academic progress:", e);
         emptyRow("progressBody", 6, "Academic progress could not be loaded.");
       }
 
       try {
-        const rows = await read(
+        const rows = await selectRows(
           "grades",
           "id,institution_id,exam_id,student_id,score,grade,remarks,entered_by,created_at,updated_at",
-          [["eq", "student_id", student.id], ["order", "created_at"]],
-          { order: { ascending: false } }
+          "student_id",
+          student.id,
+          "created_at"
         );
         renderGrades(rows);
-      } catch (e) {
-        console.warn("Grades load failed:", e);
+      } catch(e) {
+        console.warn("Grades:", e);
         emptyRow("gradesBody", 4, "Grades could not be loaded.");
       }
 
       try {
-        const rows = await read(
+        const rows = await selectRows(
           "certificates",
           "id,institution_id,student_id,course_id,certificate_no,certificate_id,verify_code,hash_code,issue_date,expiry_date,status,certificate_url,pdf_url,qr_url,student_name_snapshot,course_name_snapshot,issued_by,created_at,updated_at,certificate_type,template_url,student_photo_url,verification_url",
-          [["eq", "student_id", student.id], ["order", "created_at"]],
-          { order: { ascending: false } }
+          "student_id",
+          student.id,
+          "created_at"
         );
         renderCertificates(rows);
-      } catch (e) {
-        console.warn("Certificates load failed:", e);
+      } catch(e) {
+        console.warn("Certificates:", e);
         emptyRow("certificatesBody", 6, "Certificates could not be loaded.");
       }
 
       try {
-        const rows = await read(
+        const rows = await selectRows(
           "payments",
           "id,institution_id,invoice_id,student_id,amount,currency,payment_method,provider,provider_transaction_id,transaction_reference,payer_phone,status,paid_at,metadata,created_at",
-          [["eq", "student_id", student.id], ["order", "created_at"]],
-          { order: { ascending: false } }
+          "student_id",
+          student.id,
+          "created_at"
         );
         renderPayments(rows);
-      } catch (e) {
-        console.warn("Payments load failed:", e);
+      } catch(e) {
+        console.warn("Payments:", e);
         emptyRow("paymentsBody", 6, "Payments could not be loaded.");
       }
 
-      setLoading(false);
-    } catch (error) {
-      console.error("STUDENT PORTAL LOAD ERROR:", error);
-      setLoading(false);
-      showError(error?.message || "Student portal could not be loaded.");
+      $("loading").style.display = "none";
+      $("portal").style.display = "block";
+
+    } catch(err) {
+      console.error("GAAWOW PORTAL ERROR:", err);
+      $("loading").style.display = "none";
+      $("portal").style.display = "none";
+      showError(errorMessage(err));
     }
   }
 
-  $("logoutBtn")?.addEventListener("click", async () => {
-    try {
-      await sb.auth.signOut();
-    } finally {
-      window.location.href = "login.html";
-    }
+  $("logoutBtn").addEventListener("click", async () => {
+    await sb.auth.signOut();
+    window.location.href = "login.html";
   });
 
   sb.auth.onAuthStateChange((event, session) => {
@@ -424,3 +498,6 @@
 
   document.addEventListener("DOMContentLoaded", loadPortal);
 })();
+</script>
+</body>
+</html>
