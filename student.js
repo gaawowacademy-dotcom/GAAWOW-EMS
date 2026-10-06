@@ -59,7 +59,7 @@ async function currentUser(){
 async function loadStudent(user){
   const {data,error}=await supabase.from("students").select(`
     id,student_id,full_name,email,phone,gender,date_of_birth,
-    enrollment_date,admission_date,status,photo_url,auth_user_id,account_enabled,
+    admission_date,status,photo_url,auth_user_id,account_enabled,
     institution_id,department_id,course_id,class_id
   `).eq("auth_user_id",user.id).maybeSingle();
   if(error)throw error;
