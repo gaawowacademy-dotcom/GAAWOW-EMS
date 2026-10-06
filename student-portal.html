@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
 
   <meta
@@ -15,22 +17,41 @@
 
   <meta
     name="description"
-    content="GAAWOW Academy Student Portal"
+    content="GAAWOW Academy Student Education Management Portal"
   >
 
-  <title>Student Portal | GAAWOW ACADEMY</title>
+  <title>
+    Student Portal | GAAWOW ACADEMY
+  </title>
 
-  <link rel="stylesheet" href="student-portal.css">
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- ========================================================
+       CSS
+  ========================================================= -->
+
+  <link
+    rel="stylesheet"
+    href="./student-portal.css"
+  >
+
+
+  <!-- ========================================================
+       SUPABASE
+  ========================================================= -->
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
 </head>
+
 
 <body>
 
-<!-- =========================================================
-     LOADING
-========================================================= -->
+
+<!-- ==========================================================
+     LOADING SCREEN
+=========================================================== -->
 
 <div
   id="portalLoading"
@@ -50,20 +71,25 @@
 </div>
 
 
-<!-- =========================================================
-     PORTAL APP
-========================================================= -->
+
+<!-- ==========================================================
+     STUDENT PORTAL
+=========================================================== -->
 
 <div
   id="studentPortal"
   class="portal-app"
 >
 
-  <!-- =======================================================
-       TOPBAR
-  ======================================================== -->
+
+  <!-- ========================================================
+       TOP BAR
+  ========================================================= -->
 
   <header class="topbar">
+
+
+    <!-- BRAND -->
 
     <div class="brand">
 
@@ -79,13 +105,15 @@
         </strong>
 
         <span>
-          Student Portal
+          Student Education Management Portal
         </span>
 
       </div>
 
     </div>
 
+
+    <!-- ACTIONS -->
 
     <div class="top-actions">
 
@@ -115,9 +143,10 @@
   </header>
 
 
-  <!-- =======================================================
+
+  <!-- ========================================================
        MAIN
-  ======================================================== -->
+  ========================================================= -->
 
   <main
     id="portalContent"
@@ -125,9 +154,9 @@
   >
 
 
-    <!-- =====================================================
+    <!-- ======================================================
          MESSAGE
-    ====================================================== -->
+    ======================================================= -->
 
     <div
       id="portalMessage"
@@ -136,11 +165,13 @@
     ></div>
 
 
-    <!-- =====================================================
-         WELCOME CARD
-    ====================================================== -->
+
+    <!-- ======================================================
+         WELCOME
+    ======================================================= -->
 
     <section class="welcome-card">
+
 
       <div class="welcome-content">
 
@@ -149,7 +180,7 @@
         </span>
 
         <h1 id="welcomeStudentName">
-          Student
+          Student 👋
         </h1>
 
         <p>
@@ -171,12 +202,14 @@
 
       </div>
 
+
     </section>
 
 
-    <!-- =====================================================
-         STUDENT OVERVIEW
-    ====================================================== -->
+
+    <!-- ======================================================
+         OVERVIEW CARDS
+    ======================================================= -->
 
     <section class="dashboard-grid">
 
@@ -275,14 +308,17 @@
 
       </article>
 
+
     </section>
 
 
-    <!-- =====================================================
-         STUDENT PROFILE
-    ====================================================== -->
+
+    <!-- ======================================================
+         PROFILE
+    ======================================================= -->
 
     <section class="content-card">
+
 
       <div class="section-header">
 
@@ -301,12 +337,16 @@
       </div>
 
 
+
       <div class="profile-layout">
 
 
-        <!-- PHOTO -->
+        <!-- ==================================================
+             PHOTO
+        =================================================== -->
 
         <div class="profile-photo-area">
+
 
           <div class="profile-photo">
 
@@ -331,13 +371,19 @@
 
           </div>
 
+
         </div>
 
 
-        <!-- PROFILE FIELDS -->
+
+        <!-- ==================================================
+             PROFILE DATA
+        =================================================== -->
 
         <div class="profile-grid">
 
+
+          <!-- FULL NAME -->
 
           <div class="field">
 
@@ -352,6 +398,8 @@
           </div>
 
 
+          <!-- STUDENT ID -->
+
           <div class="field">
 
             <span>
@@ -364,6 +412,8 @@
 
           </div>
 
+
+          <!-- EMAIL -->
 
           <div class="field">
 
@@ -378,6 +428,8 @@
           </div>
 
 
+          <!-- PHONE -->
+
           <div class="field">
 
             <span>
@@ -390,6 +442,8 @@
 
           </div>
 
+
+          <!-- GENDER -->
 
           <div class="field">
 
@@ -404,6 +458,23 @@
           </div>
 
 
+          <!-- DATE OF BIRTH -->
+
+          <div class="field">
+
+            <span>
+              Date of Birth
+            </span>
+
+            <strong id="profileDateOfBirth">
+              —
+            </strong>
+
+          </div>
+
+
+          <!-- ADMISSION DATE -->
+
           <div class="field">
 
             <span>
@@ -417,6 +488,23 @@
           </div>
 
 
+          <!-- ENROLLMENT DATE -->
+
+          <div class="field">
+
+            <span>
+              Enrollment Date
+            </span>
+
+            <strong id="studentEnrollmentDate">
+              —
+            </strong>
+
+          </div>
+
+
+          <!-- ADDRESS -->
+
           <div class="field">
 
             <span>
@@ -429,6 +517,8 @@
 
           </div>
 
+
+          <!-- ACCOUNT STATUS -->
 
           <div class="field">
 
@@ -446,6 +536,23 @@
           </div>
 
 
+          <!-- USERNAME -->
+
+          <div class="field">
+
+            <span>
+              Username
+            </span>
+
+            <strong id="loginUsername">
+              —
+            </strong>
+
+          </div>
+
+
+          <!-- LAST LOGIN -->
+
           <div class="field">
 
             <span>
@@ -458,6 +565,7 @@
 
           </div>
 
+
         </div>
 
       </div>
@@ -465,13 +573,16 @@
     </section>
 
 
-    <!-- =====================================================
+
+    <!-- ======================================================
          ACADEMIC INFORMATION
-    ====================================================== -->
+    ======================================================= -->
 
     <section class="content-card academic-card">
 
+
       <div class="section-header">
+
 
         <div>
 
@@ -484,15 +595,17 @@
           </h2>
 
           <p>
-            Your current institution, department, course and class.
+            Your current institution, department,
+            course, class and academic year.
           </p>
 
         </div>
 
+
         <div class="academic-status-badge">
 
           <span>
-            Status
+            Enrollment Status
           </span>
 
           <strong
@@ -504,15 +617,20 @@
 
         </div>
 
+
       </div>
 
 
-      <!-- MAIN ACADEMIC GRID -->
+
+      <!-- ====================================================
+           ACADEMIC SUMMARY
+      ===================================================== -->
 
       <div
         id="academicSummary"
         class="academic-summary"
       >
+
 
         <div class="academic-summary-grid">
 
@@ -560,7 +678,7 @@
           <div class="academic-item">
 
             <span>
-              Course
+              Course / Program
             </span>
 
             <strong id="courseName">
@@ -625,16 +743,19 @@
 
           </div>
 
+
         </div>
 
       </div>
 
+
     </section>
 
 
-    <!-- =====================================================
-         ACADEMIC QUICK INFO
-    ====================================================== -->
+
+    <!-- ======================================================
+         QUICK ACADEMIC INFORMATION
+    ======================================================= -->
 
     <section class="academic-quick-grid">
 
@@ -719,14 +840,17 @@
 
       </div>
 
+
     </section>
 
 
-    <!-- =====================================================
+
+    <!-- ======================================================
          GRADES
-    ====================================================== -->
+    ======================================================= -->
 
     <section class="content-card">
+
 
       <div class="section-header">
 
@@ -746,6 +870,7 @@
 
         </div>
 
+
         <div class="section-badge">
           GRADES
         </div>
@@ -757,16 +882,24 @@
         id="gradesContainer"
         class="grades-container"
       >
+
+        <div class="empty-state">
+          Loading grades...
+        </div>
+
       </div>
+
 
     </section>
 
 
-    <!-- =====================================================
+
+    <!-- ======================================================
          RESULTS
-    ====================================================== -->
+    ======================================================= -->
 
     <section class="content-card">
+
 
       <div class="section-header">
 
@@ -780,13 +913,18 @@
             My Results
           </h2>
 
+          <p>
+            Your published examination results.
+          </p>
+
         </div>
+
 
         <div
           id="resultsCountBadge"
           class="section-badge"
         >
-          RESULTS
+          0 RESULTS
         </div>
 
       </div>
@@ -798,19 +936,22 @@
       >
 
         <div class="empty-state">
-          Results will appear here.
+          Loading results...
         </div>
 
       </div>
 
+
     </section>
 
 
-    <!-- =====================================================
+
+    <!-- ======================================================
          CERTIFICATES
-    ====================================================== -->
+    ======================================================= -->
 
     <section class="content-card">
+
 
       <div class="section-header">
 
@@ -829,6 +970,7 @@
           </p>
 
         </div>
+
 
         <div class="section-badge">
           CERTIFICATES
@@ -849,22 +991,16 @@
       </div>
 
 
-      <!-- Compatibility ID -->
-
-      <div
-        id="certificatesList"
-        class="certificate-list"
-        style="display:none;"
-      ></div>
-
     </section>
 
 
-    <!-- =====================================================
+
+    <!-- ======================================================
          PAYMENTS
-    ====================================================== -->
+    ======================================================= -->
 
     <section class="content-card">
+
 
       <div class="section-header">
 
@@ -883,6 +1019,7 @@
           </p>
 
         </div>
+
 
         <div class="section-badge">
           PAYMENTS
@@ -903,24 +1040,19 @@
       </div>
 
 
-      <!-- Compatibility ID -->
-
-      <div
-        id="paymentsList"
-        class="payments-list"
-        style="display:none;"
-      ></div>
-
     </section>
 
 
-    <!-- =====================================================
+
+    <!-- ======================================================
          NOTIFICATIONS
-    ====================================================== -->
+    ======================================================= -->
 
     <section class="content-card">
 
+
       <div class="section-header">
+
 
         <div>
 
@@ -935,13 +1067,26 @@
         </div>
 
 
-        <button
-          id="markAllReadBtn"
-          class="secondary-btn"
-          type="button"
-        >
-          Mark all as read
-        </button>
+        <div>
+
+          <span
+            id="notificationsCount"
+            class="notification-count"
+          >
+            0
+          </span>
+
+
+          <button
+            id="markAllReadBtn"
+            class="secondary-btn"
+            type="button"
+          >
+            Mark all as read
+          </button>
+
+        </div>
+
 
       </div>
 
@@ -957,34 +1102,42 @@
 
       </div>
 
+
     </section>
+
 
 
   </main>
 
 
-  <!-- =======================================================
+
+  <!-- ========================================================
        FOOTER
-  ======================================================== -->
+  ========================================================= -->
 
   <footer class="portal-footer">
+
 
     <img
       src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
       alt="GAAWOW Academy"
     >
 
+
     <strong>
       GAAWOW ACADEMY
     </strong>
+
 
     <span>
       Ilayska Aqoonta iyo Xirfadda
     </span>
 
+
     <small>
       Burhakaba, Bay, Somalia
     </small>
+
 
     <button
       id="studentLogoutBtn"
@@ -994,20 +1147,24 @@
       Logout
     </button>
 
+
   </footer>
 
 
 </div>
 
 
-<!-- =========================================================
+
+<!-- ==========================================================
      STUDENT PORTAL JS
-========================================================= -->
+=========================================================== -->
 
 <script
-  src="./student-portal.js?v=6.3.0"
+  src="./student-portal.js?v=6.4.0"
   defer
 ></script>
 
+
 </body>
+
 </html>
