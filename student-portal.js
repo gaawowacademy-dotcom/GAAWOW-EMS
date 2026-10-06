@@ -1,2997 +1,1760 @@
 /* ============================================================
-   GAAWOW ACADEMY / GAAWOW EMS
-   STUDENT PORTAL JS V6.4 FINAL
+   GAAWOW EMS - students.js V6
+   Copy/paste-ready for the HTML supplied with this project.
 
-   PURPOSE
-   ------------------------------------------------------------
-   - Authenticated student
-   - Student profile
-   - Enrollment
-   - Institution
-   - Department
-   - Course / Program
-   - Class
-   - Academic Year
-   - Enrollment Status
-   - Grades
-   - Results
-   - Certificates
-   - Payments
-   - Notifications
-   - Logout
-
-   IMPORTANT
-   ------------------------------------------------------------
-   - NO student identity is hard-coded
-   - NO academic_year_id is required
-   - Enrollment is loaded from the authenticated student
-   - HTML IDs are aligned with this JS
+   IMPORTANT:
+   - Browser uses ONLY the Supabase publishable/anon key.
+   - Auth Admin / secret key is NEVER placed here.
+   - Student account creation/reset goes through the Edge Function:
+       /functions/v1/create-student-account
    ============================================================ */
 
-"use strict";
+(() => {
+  "use strict";
 
+  function boot() {
+    if (!window.supabase || typeof window.supabase.createClient !== "function") {
+      console.error("GAAWOW Students: Supabase browser library is not loaded.");
+      const message = document.getElementById("message");
+      if (message) {
+        message.textContent = "System could not start: Supabase library is not loaded. Please refresh the page.";
+        message.className = "message error";
+        message.style.display = "block";
+      }
+      return;
+    }
 
-/* ============================================================
-   1. SUPABASE CONFIG
-   ============================================================ */
+  const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+  const SUPABASE_ANON_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-const SUPABASE_ANON_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  const ACCOUNT_FUNCTION_URL =
+    `${SUPABASE_URL}/functions/v1/create-student-account`;
 
-
-if (!window.supabase) {
-  console.error("Supabase library was not loaded.");
-  throw new Error("Supabase library was not loaded.");
-}
-
-
-const supabaseClient =
-  window.supabase.createClient(
+  const supabase = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY,
     {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
+        detectSessionInUrl: true,
+      },
     }
   );
 
+  // ------------------------------------------------------------
+  // DOM
+  // ------------------------------------------------------------
 
-/* ============================================================
-   2. GLOBAL STATE
-   ============================================================ */
+  const $ = (id) => document.getElementById(id);
 
-let currentUser = null;
-let currentStudent = null;
-let currentEnrollment = null;
+  const els = {
+    message: $("message"),
+    form: $("studentForm"),
+    formTitle: $("formTitle"),
+    editStudentDbId: $("editStudentDbId"),
 
-let currentInstitution = null;
-let currentCourse = null;
-let currentDepartment = null;
-let currentClass = null;
+    institutionSelect: $("institutionSelect"),
+    studentId: $("studentId"),
+    fullName: $("fullName"),
+    gender: $("gender"),
+    dateOfBirth: $("dateOfBirth"),
+    phone: $("phone"),
+    email: $("email"),
+    admissionDate: $("admissionDate"),
+    status: $("status"),
+    address: $("address"),
 
-let gradesData = [];
-let resultsData = [];
-let certificatesData = [];
-let paymentsData = [];
-let notificationsData = [];
+    photoInput: $("photoInput"),
+    photoPreview: $("photoPreview"),
+    photoPlaceholder: $("photoPlaceholder"),
 
+    accountStatus: $("accountStatus"),
+    createAccountButton: $("createAccountButton"),
+    resetPasswordButton: $("resetPasswordButton"),
 
-/* ============================================================
-   3. DOM HELPERS
-   ============================================================ */
+    progressWrap: $("progressWrap"),
+    progressBar: $("progressBar"),
+    progressText: $("progressText"),
 
-function $(id) {
-  return document.getElementById(id);
-}
+    saveButton: $("saveButton"),
+    resetFormButton: $("resetFormButton"),
+    addStudentButton: $("addStudentButton"),
+    refreshStudentsButton: $("refreshStudentsButton"),
 
+    searchInput: $("searchInput"),
+    statusFilter: $("statusFilter"),
+    studentsTableBody: $("studentsTableBody"),
 
-function setText(id, value, fallback = "—") {
+    totalStudents: $("totalStudents"),
+    activeStudents: $("activeStudents"),
+    graduatedStudents: $("graduatedStudents"),
+    otherStudents: $("otherStudents"),
 
-  const el = $(id);
+    profileModal: $("profileModal"),
+    closeProfileModal: $("closeProfileModal"),
+    profileContent: $("profileContent"),
+  };
 
-  if (!el) {
-    return;
-  }
+  let students = [];
+  let editingStudent = null;
+  let searchTimer = null;
 
-  const valid =
-    value !== undefined &&
-    value !== null &&
-    String(value).trim() !== "";
+  // ------------------------------------------------------------
+  // Responsive table fix
+  // ------------------------------------------------------------
 
-  el.textContent =
-    valid ? String(value) : fallback;
-}
+  function ensureResponsiveStudentTable() {
+    const tbody = els.studentsTableBody;
+    if (!tbody) return;
 
+    const table = tbody.closest("table");
+    if (!table) return;
 
-function setHTML(id, html) {
+    // Prevent the wide student table from forcing the whole page
+    // wider than the phone viewport. The table itself remains wide
+    // enough to keep every column readable and scrolls horizontally.
+    let wrapper = table.parentElement;
 
-  const el = $(id);
+    if (!wrapper?.classList.contains("students-table-scroll")) {
+      wrapper = document.createElement("div");
+      wrapper.className = "students-table-scroll";
+      table.parentNode.insertBefore(wrapper, table);
+      wrapper.appendChild(table);
+    }
 
-  if (!el) {
-    return;
-  }
+    if (!document.getElementById("studentsResponsiveStyles")) {
+      const style = document.createElement("style");
+      style.id = "studentsResponsiveStyles";
+      style.textContent = `
+        html, body {
+          max-width: 100%;
+          overflow-x: hidden;
+        }
 
-  el.innerHTML = html;
-}
+        .students-table-scroll {
+          width: 100%;
+          max-width: 100%;
+          overflow-x: auto;
+          overflow-y: visible;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior-x: contain;
+          scrollbar-width: thin;
+          border-radius: 12px;
+        }
 
+        .students-table-scroll table {
+          width: max-content;
+          min-width: 1050px;
+          max-width: none;
+          table-layout: auto;
+        }
 
-function escapeHTML(value) {
+        .students-table-scroll th,
+        .students-table-scroll td {
+          white-space: nowrap;
+        }
 
-  if (
-    value === undefined ||
-    value === null
-  ) {
-    return "";
-  }
+        .students-table-scroll td:nth-child(3),
+        .students-table-scroll td:nth-child(6) {
+          white-space: normal;
+          min-width: 150px;
+          max-width: 260px;
+        }
 
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+        .students-table-scroll .actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          min-width: 250px;
+        }
 
+        @media (max-width: 768px) {
+          .students-table-scroll {
+            margin-left: 0;
+            margin-right: 0;
+            width: 100%;
+            max-width: 100%;
+          }
 
-/* ============================================================
-   4. VALUE FINDER
-   ============================================================ */
+          .students-table-scroll table {
+            min-width: 1050px;
+          }
 
-function firstValue(
-  object,
-  keys,
-  fallback = null
-) {
+          .students-table-scroll th,
+          .students-table-scroll td {
+            padding: 8px 10px;
+          }
 
-  if (!object) {
-    return fallback;
-  }
+          .students-table-scroll .btn-small {
+            min-height: 34px;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
 
-  for (const key of keys) {
-
-    if (
-      object[key] !== undefined &&
-      object[key] !== null &&
-      String(object[key]).trim() !== ""
-    ) {
-      return object[key];
+    // Add a small accessibility/UX hint once, without changing the
+    // existing HTML markup or table actions.
+    if (!wrapper.querySelector(".students-table-scroll-hint")) {
+      const hint = document.createElement("div");
+      hint.className = "students-table-scroll-hint";
+      hint.textContent = "Swipe left/right to view all student columns";
+      hint.style.cssText =
+        "font-size:12px;color:#64748b;padding:7px 2px 0;text-align:center;";
+      wrapper.appendChild(hint);
     }
   }
 
-  return fallback;
-}
+  // ------------------------------------------------------------
+  // Helpers
+  // ------------------------------------------------------------
 
-
-/* ============================================================
-   5. DATE FORMATTER
-   ============================================================ */
-
-function formatDate(value) {
-
-  if (!value) {
-    return "—";
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-
-  return date.toLocaleDateString(
-    "en-GB",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    }
-  );
-}
-
-
-/* ============================================================
-   6. LOADING
-   ============================================================ */
-
-function showPortalLoading() {
-
-  const loading = $("portalLoading");
-  const app = $("studentPortal");
-
-  if (loading) {
-    loading.style.display = "flex";
-  }
-
-  if (app) {
-    app.style.display = "none";
-  }
-}
-
-
-function hidePortalLoading() {
-
-  const loading = $("portalLoading");
-  const app = $("studentPortal");
-
-  if (loading) {
-    loading.style.display = "none";
-  }
-
-  if (app) {
-    app.style.display = "";
-  }
-}
-
-
-/* ============================================================
-   7. MESSAGE
-   ============================================================ */
-
-function showMessage(
-  message,
-  type = "info"
-) {
-
-  const el = $("portalMessage");
-
-  if (!el) {
-    return;
-  }
-
-  el.textContent = message;
-  el.className = `message ${type}`;
-  el.style.display = "block";
-}
-
-
-function clearMessage() {
-
-  const el = $("portalMessage");
-
-  if (!el) {
-    return;
-  }
-
-  el.textContent = "";
-  el.className = "message";
-  el.style.display = "none";
-}
-
-
-/* ============================================================
-   8. LOGOUT
-   ============================================================ */
-
-async function logoutStudent() {
-
-  try {
-
-    await supabaseClient.auth.signOut();
-
-  } catch (error) {
-
-    console.error(
-      "Logout error:",
-      error
-    );
-
-  } finally {
-
-    window.location.href =
-      "student-login.html";
-  }
-}
-
-
-/* ============================================================
-   9. AUTH USER
-   ============================================================ */
-
-async function getAuthenticatedUser() {
-
-  const {
-    data,
-    error
-  } = await supabaseClient.auth.getUser();
-
-  if (error) {
-
-    console.error(
-      "Authentication error:",
-      error
-    );
-
-    return null;
-  }
-
-  return data?.user || null;
-}
-
-
-/* ============================================================
-   10. LOAD STUDENT
-   ============================================================ */
-
-async function loadStudent(userId) {
-
-  if (!userId) {
-    return null;
-  }
-
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .from("students")
-    .select("*")
-    .eq(
-      "auth_user_id",
-      userId
-    )
-    .maybeSingle();
-
-  if (error) {
-
-    console.error(
-      "Student query error:",
-      error
-    );
-
-    throw error;
-  }
-
-  return data || null;
-}
-
-
-/* ============================================================
-   11. LOAD ENROLLMENT
-   ============================================================ */
-
-async function loadEnrollment(student) {
-
-  if (!student) {
-    return null;
-  }
-
-  const studentUuid =
-    firstValue(
-      student,
-      ["id", "student_uuid"]
-    );
-
-  const studentId =
-    firstValue(
-      student,
-      [
-        "student_id",
-        "student_number",
-        "registration_number"
-      ]
-    );
-
-
-  /*
-     IMPORTANT
-     ----------------------------------------------------------
-     We do NOT use academic_year_id.
-     We first search using student_id.
-  */
-
-  let rows = [];
-
-
-  /* ----------------------------------------------------------
-     OPTION 1: students.id
-  ---------------------------------------------------------- */
-
-  if (studentUuid) {
-
-    const result =
-      await supabaseClient
-        .from("enrollments")
-        .select("*")
-        .eq(
-          "student_id",
-          studentUuid
-        );
-
-    if (
-      !result.error &&
-      Array.isArray(result.data)
-    ) {
-      rows = result.data;
-    }
-  }
-
-
-  /* ----------------------------------------------------------
-     OPTION 2: student_id contains student number
-  ---------------------------------------------------------- */
-
-  if (
-    !rows.length &&
-    studentId
-  ) {
-
-    const result =
-      await supabaseClient
-        .from("enrollments")
-        .select("*")
-        .eq(
-          "student_id",
-          studentId
-        );
-
-    if (
-      !result.error &&
-      Array.isArray(result.data)
-    ) {
-      rows = result.data;
-    }
-  }
-
-
-  /* ----------------------------------------------------------
-     OPTION 3: student_uuid
-  ---------------------------------------------------------- */
-
-  if (
-    !rows.length &&
-    studentUuid
-  ) {
-
-    const result =
-      await supabaseClient
-        .from("enrollments")
-        .select("*")
-        .eq(
-          "student_uuid",
-          studentUuid
-        );
-
-    if (
-      !result.error &&
-      Array.isArray(result.data)
-    ) {
-      rows = result.data;
-    }
-  }
-
-
-  if (!rows.length) {
-    return null;
-  }
-
-
-  /* ----------------------------------------------------------
-     PREFER ACTIVE ENROLLMENT
-  ---------------------------------------------------------- */
-
-  const active =
-    rows.find(row => {
-
-      const status =
-        String(
-          firstValue(
-            row,
-            [
-              "status",
-              "enrollment_status",
-              "student_status"
-            ],
-            ""
-          )
-        ).toLowerCase();
-
-      return (
-        status === "active" ||
-        status === "enrolled"
-      );
+  function showMessage(text, type = "success") {
+    if (!els.message) return;
+
+    els.message.textContent = text;
+    els.message.className = `message ${type}`;
+    els.message.style.display = "block";
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
     });
-
-
-  return active || rows[0];
-}
-
-
-/* ============================================================
-   12. GENERIC RECORD
-   ============================================================ */
-
-async function getRecordById(
-  tableName,
-  id
-) {
-
-  if (!id) {
-    return null;
   }
 
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .from(tableName)
-    .select("*")
-    .eq(
-      "id",
-      id
-    )
-    .maybeSingle();
-
-  if (error) {
-
-    console.warn(
-      `${tableName} relation unavailable:`,
-      error.message
-    );
-
-    return null;
+  function hideMessage() {
+    if (!els.message) return;
+    els.message.style.display = "none";
+    els.message.textContent = "";
+    els.message.className = "message";
   }
 
-  return data || null;
-}
+  function setProgress(percent, text = "") {
+    if (!els.progressWrap) return;
 
-
-/* ============================================================
-   13. LOAD ACADEMIC RELATIONS
-   ============================================================ */
-
-async function loadAcademicRelations(
-  enrollment
-) {
-
-  currentInstitution = null;
-  currentCourse = null;
-  currentDepartment = null;
-  currentClass = null;
-
-
-  if (!enrollment) {
-    return;
+    els.progressWrap.style.display = "block";
+    els.progressBar.style.width = `${Math.max(
+      0,
+      Math.min(100, percent)
+    )}%`;
+    els.progressText.textContent = text;
   }
 
+  function hideProgress() {
+    if (!els.progressWrap) return;
 
-  /* ==========================================================
-     INSTITUTION
-  ========================================================== */
-
-  const institutionId =
-    firstValue(
-      enrollment,
-      [
-        "institution_id",
-        "institution_uuid",
-        "institutionId"
-      ]
-    );
-
-
-  if (institutionId) {
-
-    currentInstitution =
-      await getRecordById(
-        "institutions",
-        institutionId
-      );
+    els.progressWrap.style.display = "none";
+    els.progressBar.style.width = "0%";
+    els.progressText.textContent = "";
   }
 
+  function formatDate(value) {
+    if (!value) return "—";
 
-  if (
-    !currentInstitution &&
-    enrollment.institution &&
-    typeof enrollment.institution === "object"
-  ) {
-
-    currentInstitution =
-      enrollment.institution;
-  }
-
-
-  /* ==========================================================
-     COURSE
-  ========================================================== */
-
-  const courseId =
-    firstValue(
-      enrollment,
-      [
-        "course_id",
-        "course_uuid",
-        "courseId",
-        "program_id",
-        "program_uuid"
-      ]
-    );
-
-
-  if (courseId) {
-
-    currentCourse =
-      await getRecordById(
-        "courses",
-        courseId
-      );
-
-
-    if (!currentCourse) {
-
-      currentCourse =
-        await getRecordById(
-          "programs",
-          courseId
-        );
-    }
-  }
-
-
-  if (
-    !currentCourse &&
-    enrollment.course &&
-    typeof enrollment.course === "object"
-  ) {
-
-    currentCourse =
-      enrollment.course;
-  }
-
-
-  /* ==========================================================
-     DEPARTMENT
-  ========================================================== */
-
-  let departmentId =
-    firstValue(
-      enrollment,
-      [
-        "department_id",
-        "department_uuid",
-        "departmentId"
-      ]
-    );
-
-
-  if (
-    !departmentId &&
-    currentCourse
-  ) {
-
-    departmentId =
-      firstValue(
-        currentCourse,
-        [
-          "department_id",
-          "department_uuid",
-          "departmentId"
-        ]
-      );
-  }
-
-
-  if (departmentId) {
-
-    currentDepartment =
-      await getRecordById(
-        "departments",
-        departmentId
-      );
-  }
-
-
-  if (
-    !currentDepartment &&
-    enrollment.department &&
-    typeof enrollment.department === "object"
-  ) {
-
-    currentDepartment =
-      enrollment.department;
-  }
-
-
-  /* ==========================================================
-     CLASS
-  ========================================================== */
-
-  const classId =
-    firstValue(
-      enrollment,
-      [
-        "class_id",
-        "class_uuid",
-        "classId"
-      ]
-    );
-
-
-  if (classId) {
-
-    currentClass =
-      await getRecordById(
-        "classes",
-        classId
-      );
-  }
-
-
-  if (
-    !currentClass &&
-    enrollment.class &&
-    typeof enrollment.class === "object"
-  ) {
-
-    currentClass =
-      enrollment.class;
-  }
-}
-
-
-/* ============================================================
-   14. ACADEMIC YEAR
-   ============================================================ */
-
-function getAcademicYear() {
-
-  const sources = [
-    currentEnrollment,
-    currentClass,
-    currentCourse,
-    currentInstitution
-  ];
-
-
-  for (const source of sources) {
-
-    if (!source) {
-      continue;
-    }
-
-
-    const value =
-      firstValue(
-        source,
-        [
-          "academic_year",
-          "academicYear",
-          "school_year",
-          "academic_session",
-          "session",
-          "year_name",
-          "academic_year_name",
-          "year"
-        ]
-      );
-
-
-    if (value) {
+    try {
+      return new Intl.DateTimeFormat("en-GB", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      }).format(new Date(value));
+    } catch {
       return value;
     }
   }
 
+  function statusBadge(status) {
+    const normalized = String(status ?? "").toLowerCase();
 
-  return "—";
-}
+    const className =
+      normalized === "active"
+        ? "status-active"
+        : normalized === "graduated"
+        ? "status-graduated"
+        : normalized === "suspended"
+        ? "status-suspended"
+        : "status-inactive";
 
-
-/* ============================================================
-   15. STUDENT NAME
-   ============================================================ */
-
-function getStudentFullName() {
-
-  const directName =
-    firstValue(
-      currentStudent,
-      [
-        "full_name",
-        "name",
-        "student_name",
-        "display_name"
-      ]
-    );
-
-
-  if (directName) {
-    return directName;
+    return `<span class="status ${className}">${escapeHtml(
+      status || "inactive"
+    )}</span>`;
   }
 
-
-  const firstName =
-    firstValue(
-      currentStudent,
-      [
-        "first_name",
-        "firstname"
-      ],
-      ""
-    );
-
-
-  const middleName =
-    firstValue(
-      currentStudent,
-      [
-        "middle_name",
-        "middlename"
-      ],
-      ""
-    );
-
-
-  const lastName =
-    firstValue(
-      currentStudent,
-      [
-        "last_name",
-        "lastname",
-        "surname"
-      ],
-      ""
-    );
-
-
-  return [
-    firstName,
-    middleName,
-    lastName
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim() || "Student";
-}
-
-
-/* ============================================================
-   16. STUDENT ID
-   ============================================================ */
-
-function getStudentId() {
-
-  return firstValue(
-    currentStudent,
-    [
-      "student_id",
-      "student_number",
-      "registration_number",
-      "reg_no"
-    ],
-    "—"
-  );
-}
-
-
-/* ============================================================
-   17. RENDER PROFILE
-   ============================================================ */
-
-function renderStudentProfile() {
-
-  if (!currentStudent) {
-    return;
-  }
-
-
-  const fullName =
-    getStudentFullName();
-
-  const studentId =
-    getStudentId();
-
-
-  const email =
-    firstValue(
-      currentStudent,
-      [
-        "email",
-        "student_email"
-      ],
-      currentUser?.email || "—"
-    );
-
-
-  const phone =
-    firstValue(
-      currentStudent,
-      [
-        "phone",
-        "phone_number",
-        "mobile",
-        "mobile_number"
-      ]
-    );
-
-
-  const gender =
-    firstValue(
-      currentStudent,
-      [
-        "gender",
-        "sex"
-      ]
-    );
-
-
-  const dob =
-    firstValue(
-      currentStudent,
-      [
-        "date_of_birth",
-        "dob",
-        "birth_date"
-      ]
-    );
-
-
-  const address =
-    firstValue(
-      currentStudent,
-      [
-        "address",
-        "student_address",
-        "residence"
-      ]
-    );
-
-
-  const admissionDate =
-    firstValue(
-      currentStudent,
-      [
-        "admission_date",
-        "date_admitted",
-        "registered_at"
-      ]
-    );
-
-
-  const photo =
-    firstValue(
-      currentStudent,
-      [
-        "photo_url",
-        "profile_photo",
-        "profile_image",
-        "image_url",
-        "avatar_url",
-        "photo"
-      ]
-    );
-
-
-  /* ----------------------------------------------------------
-     NAME
-  ---------------------------------------------------------- */
-
-  setText(
-    "studentName",
-    fullName
-  );
-
-  setText(
-    "welcomeStudentName",
-    `${fullName} 👋`
-  );
-
-  setText(
-    "profileName",
-    fullName
-  );
-
-
-  /* ----------------------------------------------------------
-     STUDENT ID
-  ---------------------------------------------------------- */
-
-  setText(
-    "studentNumber",
-    studentId
-  );
-
-  setText(
-    "profileStudentId",
-    studentId
-  );
-
-  setText(
-    "studentId",
-    studentId
-  );
-
-
-  /* ----------------------------------------------------------
-     PROFILE
-  ---------------------------------------------------------- */
-
-  setText(
-    "studentFullName",
-    fullName
-  );
-
-  setText(
-    "studentEmail",
-    email
-  );
-
-  setText(
-    "studentPhone",
-    phone
-  );
-
-  setText(
-    "studentGender",
-    gender
-  );
-
-  setText(
-    "studentAddress",
-    address
-  );
-
-
-  /* ----------------------------------------------------------
-     DOB
-  ---------------------------------------------------------- */
-
-  setText(
-    "profileDateOfBirth",
-    formatDate(dob)
-  );
-
-
-  /* ----------------------------------------------------------
-     ADMISSION DATE
-  ---------------------------------------------------------- */
-
-  setText(
-    "admissionDate",
-    formatDate(admissionDate)
-  );
-
-
-  /* ----------------------------------------------------------
-     ENROLLMENT DATE
-  ---------------------------------------------------------- */
-
-  const enrollmentDate =
-    firstValue(
-      currentEnrollment,
-      [
-        "enrollment_date",
-        "admission_date",
-        "start_date",
-        "created_at"
-      ]
-    );
-
-
-  setText(
-    "studentEnrollmentDate",
-    formatDate(enrollmentDate)
-  );
-
-
-  /* ----------------------------------------------------------
-     LAST LOGIN
-  ---------------------------------------------------------- */
-
-  const lastLogin =
-    firstValue(
-      currentStudent,
-      [
-        "last_login_at",
-        "last_login",
-        "last_seen_at"
-      ]
-    );
-
-
-  setText(
-    "lastLogin",
-    formatDate(lastLogin)
-  );
-
-
-  /* ----------------------------------------------------------
-     USERNAME
-  ---------------------------------------------------------- */
-
-  const username =
-    firstValue(
-      currentStudent,
-      [
-        "login_username",
-        "username",
-        "student_username"
-      ],
-      currentUser?.email || "—"
-    );
-
-
-  setText(
-    "loginUsername",
-    username
-  );
-
-
-  /* ----------------------------------------------------------
-     PHOTO
-  ---------------------------------------------------------- */
-
-  const photoEl =
-    $("studentPhoto");
-
-
-  if (photoEl) {
-
-    photoEl.src =
-      photo ||
-      "https://i.ibb.co/4ZCRpm30/gaawow-logo.png";
-
-
-    photoEl.onerror =
-      function () {
-
-        this.onerror = null;
-
-        this.src =
-          "https://i.ibb.co/4ZCRpm30/gaawow-logo.png";
-      };
-  }
-
-
-  /* ----------------------------------------------------------
-     ACCOUNT STATUS
-  ---------------------------------------------------------- */
-
-  const accountEnabled =
-    currentStudent.account_enabled;
-
-
-  const accountStatus =
-    firstValue(
-      currentStudent,
-      [
-        "account_status",
-        "status"
-      ],
-      "active"
-    );
-
-
-  const accountActive =
-    accountEnabled === false
-      ? false
-      : String(accountStatus)
-          .toLowerCase() !== "inactive";
-
-
-  renderAccountStatus(
-    accountActive
-  );
-}
-
-
-/* ============================================================
-   18. ACCOUNT STATUS
-   ============================================================ */
-
-function renderAccountStatus(
-  active
-) {
-
-  const value =
-    active
-      ? "Active"
-      : "Inactive";
-
-
-  const accountStatus =
-    $("accountStatus");
-
-
-  if (accountStatus) {
-
-    accountStatus.textContent =
-      value;
-
-    accountStatus.classList.toggle(
-      "inactive",
-      !active
-    );
-  }
-
-
-  setText(
-    "studentAccountStatus",
-    value
-  );
-}
-
-
-/* ============================================================
-   19. ENROLLMENT STATUS
-   ============================================================ */
-
-function getEnrollmentStatus() {
-
-  return firstValue(
-    currentEnrollment,
-    [
-      "enrollment_status",
-      "status",
-      "student_status"
-    ],
-    "Active"
-  );
-}
-
-
-/* ============================================================
-   20. RENDER ACADEMIC INFORMATION
-   ============================================================ */
-
-function renderAcademicInformation() {
-
-  const institutionName =
-    firstValue(
-      currentInstitution,
-      [
-        "name",
-        "institution_name",
-        "title"
-      ]
-    ) ||
-    firstValue(
-      currentEnrollment,
-      [
-        "institution_name"
-      ]
-    );
-
-
-  const institutionCode =
-    firstValue(
-      currentInstitution,
-      [
-        "code",
-        "institution_code",
-        "short_code"
-      ]
-    ) ||
-    firstValue(
-      currentEnrollment,
-      [
-        "institution_code"
-      ]
-    );
-
-
-  const courseName =
-    firstValue(
-      currentCourse,
-      [
-        "name",
-        "course_name",
-        "title",
-        "program_name"
-      ]
-    ) ||
-    firstValue(
-      currentEnrollment,
-      [
-        "course_name",
-        "program_name"
-      ]
-    );
-
-
-  const courseCode =
-    firstValue(
-      currentCourse,
-      [
-        "code",
-        "course_code",
-        "program_code"
-      ]
-    ) ||
-    firstValue(
-      currentEnrollment,
-      [
-        "course_code",
-        "program_code"
-      ]
-    );
-
-
-  const departmentName =
-    firstValue(
-      currentDepartment,
-      [
-        "name",
-        "department_name",
-        "title"
-      ]
-    ) ||
-    firstValue(
-      currentEnrollment,
-      [
-        "department_name"
-      ]
-    );
-
-
-  const departmentCode =
-    firstValue(
-      currentDepartment,
-      [
-        "code",
-        "department_code"
-      ]
-    ) ||
-    firstValue(
-      currentEnrollment,
-      [
-        "department_code"
-      ]
-    );
-
-
-  const className =
-    firstValue(
-      currentClass,
-      [
-        "name",
-        "class_name",
-        "title"
-      ]
-    ) ||
-    firstValue(
-      currentEnrollment,
-      [
-        "class_name"
-      ]
-    );
-
-
-  const classCode =
-    firstValue(
-      currentClass,
-      [
-        "code",
-        "class_code"
-      ]
-    ) ||
-    firstValue(
-      currentEnrollment,
-      [
-        "class_code"
-      ]
-    );
-
-
-  const academicYear =
-    getAcademicYear();
-
-
-  const enrollmentStatus =
-    getEnrollmentStatus();
-
-
-  /* ----------------------------------------------------------
-     TOP CARDS
-  ---------------------------------------------------------- */
-
-  setText(
-    "institutionName",
-    institutionName
-  );
-
-  setText(
-    "courseName",
-    courseName
-  );
-
-  setText(
-    "departmentName",
-    departmentName
-  );
-
-  setText(
-    "className",
-    className
-  );
-
-  setText(
-    "academicYear",
-    academicYear
-  );
-
-
-  setText(
-    "institutionCode",
-    institutionCode
-  );
-
-  setText(
-    "courseCode",
-    courseCode
-  );
-
-  setText(
-    "departmentCode",
-    departmentCode
-  );
-
-  setText(
-    "classCode",
-    classCode
-  );
-
-
-  /* ----------------------------------------------------------
-     QUICK CARDS
-  ---------------------------------------------------------- */
-
-  setText(
-    "studentInstitution",
-    institutionName
-  );
-
-  setText(
-    "studentCourse",
-    courseName
-  );
-
-  setText(
-    "studentDepartment",
-    departmentName
-  );
-
-  setText(
-    "studentClass",
-    className
-  );
-
-  setText(
-    "studentAcademicYear",
-    academicYear
-  );
-
-
-  /* ----------------------------------------------------------
-     STATUS
-  ---------------------------------------------------------- */
-
-  setText(
-    "enrollmentStatus",
-    enrollmentStatus
-  );
-
-  setText(
-    "studentEnrollmentStatus",
-    enrollmentStatus
-  );
-
-  setText(
-    "enrollmentStatusValue",
-    enrollmentStatus
-  );
-
-  setText(
-    "academicStatus",
-    enrollmentStatus
-  );
-
-
-  /* ----------------------------------------------------------
-     SUMMARY
-  ---------------------------------------------------------- */
-
-  const summary =
-    $("academicSummary");
-
-
-  if (!summary) {
-    return;
-  }
-
-
-  summary.innerHTML = `
-
-    <div class="academic-summary-grid">
-
-      <div class="academic-item">
-
-        <span>Institution</span>
-
-        <strong>
-          ${escapeHTML(
-            institutionName || "—"
-          )}
-        </strong>
-
-        <small>
-          ${escapeHTML(
-            institutionCode || ""
-          )}
-        </small>
-
-      </div>
-
-
-      <div class="academic-item">
-
-        <span>Department</span>
-
-        <strong>
-          ${escapeHTML(
-            departmentName || "—"
-          )}
-        </strong>
-
-        <small>
-          ${escapeHTML(
-            departmentCode || ""
-          )}
-        </small>
-
-      </div>
-
-
-      <div class="academic-item">
-
-        <span>Course / Program</span>
-
-        <strong>
-          ${escapeHTML(
-            courseName || "—"
-          )}
-        </strong>
-
-        <small>
-          ${escapeHTML(
-            courseCode || ""
-          )}
-        </small>
-
-      </div>
-
-
-      <div class="academic-item">
-
-        <span>Class</span>
-
-        <strong>
-          ${escapeHTML(
-            className || "—"
-          )}
-        </strong>
-
-        <small>
-          ${escapeHTML(
-            classCode || ""
-          )}
-        </small>
-
-      </div>
-
-
-      <div class="academic-item">
-
-        <span>Academic Year</span>
-
-        <strong>
-          ${escapeHTML(
-            academicYear || "—"
-          )}
-        </strong>
-
-      </div>
-
-
-      <div class="academic-item">
-
-        <span>Enrollment Status</span>
-
-        <strong class="academic-status">
-          ${escapeHTML(
-            enrollmentStatus || "Active"
-          )}
-        </strong>
-
-      </div>
-
-    </div>
-  `;
-}
-
-
-/* ============================================================
-   21. GENERIC STUDENT TABLE LOADER
-   ============================================================ */
-
-async function loadStudentTable(
-  tableName,
-  student
-) {
-
-  const studentUuid =
-    firstValue(
-      student,
-      ["id", "student_uuid"]
-    );
-
-
-  const studentNumber =
-    firstValue(
-      student,
-      [
-        "student_id",
-        "student_number"
-      ]
-    );
-
-
-  const enrollmentId =
-    currentEnrollment?.id;
-
-
-  /* ----------------------------------------------------------
-     TRY student_id = UUID
-  ---------------------------------------------------------- */
-
-  if (studentUuid) {
-
-    const result =
-      await supabaseClient
-        .from(tableName)
-        .select("*")
-        .eq(
-          "student_id",
-          studentUuid
-        );
-
-
-    if (
-      !result.error &&
-      Array.isArray(result.data)
-    ) {
-
-      return result.data;
+  function accountBadge(student) {
+    if (student.auth_user_id) {
+      return `<span class="status status-active">Account Active</span>`;
     }
+
+    return `<span class="status status-inactive">No Account</span>`;
   }
 
+  function getInitials(name) {
+    const parts = String(name ?? "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
 
-  /* ----------------------------------------------------------
-     TRY student_id = STUDENT NUMBER
-  ---------------------------------------------------------- */
+    if (!parts.length) return "ST";
 
-  if (studentNumber) {
-
-    const result =
-      await supabaseClient
-        .from(tableName)
-        .select("*")
-        .eq(
-          "student_id",
-          studentNumber
-        );
-
-
-    if (
-      !result.error &&
-      Array.isArray(result.data)
-    ) {
-
-      return result.data;
-    }
+    return parts
+      .slice(0, 2)
+      .map((x) => x[0].toUpperCase())
+      .join("");
   }
 
+  function placeholderAvatar(name) {
+    const initials = escapeHtml(getInitials(name));
 
-  /* ----------------------------------------------------------
-     TRY student_uuid
-  ---------------------------------------------------------- */
-
-  if (studentUuid) {
-
-    const result =
-      await supabaseClient
-        .from(tableName)
-        .select("*")
-        .eq(
-          "student_uuid",
-          studentUuid
-        );
-
-
-    if (
-      !result.error &&
-      Array.isArray(result.data)
-    ) {
-
-      return result.data;
-    }
-  }
-
-
-  /* ----------------------------------------------------------
-     TRY enrollment_id
-  ---------------------------------------------------------- */
-
-  if (enrollmentId) {
-
-    const result =
-      await supabaseClient
-        .from(tableName)
-        .select("*")
-        .eq(
-          "enrollment_id",
-          enrollmentId
-        );
-
-
-    if (
-      !result.error &&
-      Array.isArray(result.data)
-    ) {
-
-      return result.data;
-    }
-  }
-
-
-  return [];
-}
-
-
-/* ============================================================
-   22. LOAD GRADES
-   ============================================================ */
-
-async function loadGrades() {
-
-  gradesData = [];
-
-
-  if (!currentStudent) {
-    renderGrades();
-    return;
-  }
-
-
-  gradesData =
-    await loadStudentTable(
-      "grades",
-      currentStudent
-    );
-
-
-  renderGrades();
-}
-
-
-/* ============================================================
-   23. RENDER GRADES
-   ============================================================ */
-
-function renderGrades() {
-
-  const container =
-    $("gradesContainer");
-
-
-  if (!container) {
-    return;
-  }
-
-
-  setText(
-    "resultsCount",
-    gradesData.length,
-    "0"
-  );
-
-
-  if (!gradesData.length) {
-
-    container.innerHTML = `
-      <div class="empty-state">
-        No grade records available yet.
+    return `
+      <div class="initials" aria-label="Student">
+        ${initials}
       </div>
     `;
-
-    return;
   }
 
-
-  const rows =
-    gradesData.map(
-      (grade, index) => {
-
-        const subject =
-          firstValue(
-            grade,
-            [
-              "subject_name",
-              "subject",
-              "course_name",
-              "name"
-            ],
-            "Subject"
-          );
-
-
-        const exam =
-          firstValue(
-            grade,
-            [
-              "exam_name",
-              "exam",
-              "assessment_name"
-            ],
-            "—"
-          );
-
-
-        const score =
-          firstValue(
-            grade,
-            [
-              "score",
-              "marks",
-              "total_score"
-            ],
-            "—"
-          );
-
-
-        const maxScore =
-          firstValue(
-            grade,
-            [
-              "max_score",
-              "total_marks",
-              "maximum_score"
-            ]
-          );
-
-
-        const letter =
-          firstValue(
-            grade,
-            [
-              "letter_grade",
-              "grade_letter",
-              "grade",
-              "result"
-            ],
-            "—"
-          );
-
-
-        return `
-
-          <tr>
-
-            <td>
-              ${index + 1}
-            </td>
-
-            <td>
-              ${escapeHTML(subject)}
-            </td>
-
-            <td>
-              ${escapeHTML(exam)}
-            </td>
-
-            <td>
-              ${escapeHTML(score)}
-              ${
-                maxScore
-                  ? ` / ${escapeHTML(maxScore)}`
-                  : ""
-              }
-            </td>
-
-            <td>
-              ${escapeHTML(letter)}
-            </td>
-
-          </tr>
-
-        `;
-      }
-    )
-    .join("");
-
-
-  container.innerHTML = `
-
-    <div class="table-responsive">
-
-      <table class="student-table">
-
-        <thead>
-
-          <tr>
-            <th>#</th>
-            <th>Subject</th>
-            <th>Exam</th>
-            <th>Score</th>
-            <th>Grade</th>
-          </tr>
-
-        </thead>
-
-        <tbody>
-          ${rows}
-        </tbody>
-
-      </table>
-
-    </div>
-
-  `;
-}
-
-
-/* ============================================================
-   24. LOAD RESULTS
-   ============================================================ */
-
-async function loadResults() {
-
-  resultsData = [];
-
-
-  if (!currentStudent) {
-    renderResults();
-    return;
+  function todayISO() {
+    return new Date().toISOString().slice(0, 10);
   }
 
+  // ------------------------------------------------------------
+  // Supabase session
+  // ------------------------------------------------------------
 
-  resultsData =
-    await loadStudentTable(
-      "results",
-      currentStudent
-    );
+  async function getSessionOrThrow() {
+    let {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
 
+    if (error) throw error;
 
-  /*
-     If results table contains unpublished records,
-     filter only when is_published exists.
-  */
+    // A session can exist locally while its access token is no longer
+    // usable. Refresh once before declaring the Super Admin logged out.
+    if (!session?.access_token) {
+      session = await refreshSession();
+    }
 
-  if (
-    resultsData.length &&
-    Object.prototype.hasOwnProperty.call(
-      resultsData[0],
-      "is_published"
-    )
-  ) {
-
-    resultsData =
-      resultsData.filter(
-        item =>
-          item.is_published === true
+    if (!session?.access_token) {
+      throw new Error(
+        "Login session is missing or expired. Please login again as Super Admin."
       );
-  }
+    }
 
-
-  renderResults();
-}
-
-
-/* ============================================================
-   25. RENDER RESULTS
-   ============================================================ */
-
-function renderResults() {
-
-  const container =
-    $("resultsContainer");
-
-
-  if (!container) {
-    return;
-  }
-
-
-  setText(
-    "resultsCountBadge",
-    `${resultsData.length} RESULTS`
-  );
-
-
-  if (!resultsData.length) {
-
-    container.innerHTML = `
-      <div class="empty-state">
-        No published results available yet.
-      </div>
-    `;
-
-    return;
-  }
-
-
-  const rows =
-    resultsData.map(
-      (result, index) => {
-
-        const subject =
-          firstValue(
-            result,
-            [
-              "subject_name",
-              "subject",
-              "course_name",
-              "name"
-            ],
-            "Subject"
-          );
-
-
-        const score =
-          firstValue(
-            result,
-            [
-              "score",
-              "marks",
-              "total_score"
-            ],
-            "—"
-          );
-
-
-        const grade =
-          firstValue(
-            result,
-            [
-              "grade",
-              "letter_grade",
-              "grade_letter",
-              "result"
-            ],
-            "—"
-          );
-
-
-        const status =
-          firstValue(
-            result,
-            [
-              "status",
-              "result_status"
-            ],
-            "Published"
-          );
-
-
-        return `
-
-          <tr>
-
-            <td>
-              ${index + 1}
-            </td>
-
-            <td>
-              ${escapeHTML(subject)}
-            </td>
-
-            <td>
-              ${escapeHTML(score)}
-            </td>
-
-            <td>
-              ${escapeHTML(grade)}
-            </td>
-
-            <td>
-              ${escapeHTML(status)}
-            </td>
-
-          </tr>
-
-        `;
-      }
-    )
-    .join("");
-
-
-  container.innerHTML = `
-
-    <div class="table-responsive">
-
-      <table class="student-table">
-
-        <thead>
-
-          <tr>
-            <th>#</th>
-            <th>Subject</th>
-            <th>Score</th>
-            <th>Grade</th>
-            <th>Status</th>
-          </tr>
-
-        </thead>
-
-        <tbody>
-          ${rows}
-        </tbody>
-
-      </table>
-
-    </div>
-
-  `;
-}
-
-
-/* ============================================================
-   26. LOAD CERTIFICATES
-   ============================================================ */
-
-async function loadCertificates() {
-
-  certificatesData = [];
-
-
-  if (!currentStudent) {
-    renderCertificates();
-    return;
-  }
-
-
-  certificatesData =
-    await loadStudentTable(
-      "certificates",
-      currentStudent
+    // Confirm the token belongs to a real authenticated user.
+    const { data, error: userError } = await supabase.auth.getUser(
+      session.access_token
     );
 
+    if (userError || !data?.user) {
+      session = await refreshSession();
 
-  renderCertificates();
-}
+      if (!session?.access_token) {
+        throw new Error(
+          "Login session is missing or expired. Please login again as Super Admin."
+        );
+      }
+    }
 
-
-/* ============================================================
-   27. RENDER CERTIFICATES
-   ============================================================ */
-
-function renderCertificates() {
-
-  const container =
-    $("certificatesContainer");
-
-
-  setText(
-    "certificatesCount",
-    certificatesData.length,
-    "0"
-  );
-
-
-  if (!container) {
-    return;
+    return session;
   }
 
+  async function refreshSession() {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.refreshSession();
 
-  if (!certificatesData.length) {
+    if (error) {
+      console.warn("SESSION REFRESH:", error);
+      return null;
+    }
 
-    container.innerHTML = `
-      <div class="empty-state">
-        No certificates available yet.
-      </div>
+    return session;
+  }
+
+  // ------------------------------------------------------------
+  // Edge Function request
+  // ------------------------------------------------------------
+
+  async function callAccountFunction(payload) {
+    let session = await getSessionOrThrow();
+
+    async function request(currentSession) {
+      return fetch(ACCOUNT_FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${currentSession.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    let response = await request(session);
+
+    // If the function rejects the JWT, refresh once and retry with the
+    // NEW access token. The Authorization header is always explicit.
+    if (response.status === 401 || response.status === 403) {
+      const refreshed = await refreshSession();
+
+      if (!refreshed?.access_token) {
+        throw new Error(
+          "Login session is missing or expired. Please login again as Super Admin."
+        );
+      }
+
+      response = await request(refreshed);
+    }
+
+    let result = null;
+
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error(
+        `Edge Function returned invalid JSON (${response.status}).`
+      );
+    }
+
+    if (!response.ok || result?.success === false) {
+      const message =
+        result?.error ||
+        result?.message ||
+        `Student account request failed (${response.status}).`;
+
+      const error = new Error(message);
+      error.code = result?.code || `HTTP_${response.status}`;
+      error.status = response.status;
+      throw error;
+    }
+
+    return result;
+  }
+
+  // ------------------------------------------------------------
+  // Institutions
+  // ------------------------------------------------------------
+
+  async function loadInstitutions() {
+    if (!els.institutionSelect) return;
+
+    els.institutionSelect.innerHTML =
+      `<option value="">Loading institutions...</option>`;
+
+    const { data, error } = await supabase
+      .from("institutions")
+      .select("id, name")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.error("INSTITUTIONS ERROR:", error);
+
+      els.institutionSelect.innerHTML =
+        `<option value="">Unable to load institutions</option>`;
+
+      showMessage(
+        `Institutions could not be loaded: ${error.message}`,
+        "error"
+      );
+
+      return;
+    }
+
+    els.institutionSelect.innerHTML =
+      `<option value="">Select institution</option>`;
+
+    for (const institution of data ?? []) {
+      const option = document.createElement("option");
+
+      option.value = institution.id;
+      option.textContent = institution.name || institution.id;
+
+      els.institutionSelect.appendChild(option);
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Student ID
+  // Format: GA-2026-000119
+  // ------------------------------------------------------------
+
+  async function generateNextStudentId() {
+    const year = new Date().getFullYear();
+
+    const { data, error } = await supabase
+      .from("students")
+      .select("student_id")
+      .like("student_id", `GA-${year}-%`)
+      .order("student_id", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error("STUDENT ID ERROR:", error);
+      throw new Error(
+        `Unable to generate Student ID: ${error.message}`
+      );
+    }
+
+    let nextNumber = 1;
+
+    const latest = data?.[0]?.student_id ?? "";
+
+    const match = latest.match(
+      new RegExp(`^GA-${year}-(\\d+)$`)
+    );
+
+    if (match) {
+      nextNumber = Number(match[1]) + 1;
+    }
+
+    return `GA-${year}-${String(nextNumber).padStart(6, "0")}`;
+  }
+
+  // ------------------------------------------------------------
+  // Load students
+  // ------------------------------------------------------------
+
+  async function loadStudents() {
+    if (!els.studentsTableBody) return;
+
+    els.studentsTableBody.innerHTML = `
+      <tr>
+        <td colspan="10" class="empty">
+          Loading students...
+        </td>
+      </tr>
     `;
 
-    return;
+    let query = supabase
+      .from("students")
+      .select(`
+        id,
+        institution_id,
+        student_id,
+        full_name,
+        gender,
+        date_of_birth,
+        phone,
+        email,
+        address,
+        photo_url,
+        admission_date,
+        status,
+        emergency_contact_name,
+        emergency_contact_phone,
+        created_at,
+        updated_at,
+        account_enabled,
+        auth_user_id,
+        login_username,
+        account_created_at,
+        last_login_at,
+        password_changed_at
+      `)
+      .order("created_at", { ascending: false });
+
+    const selectedStatus = els.statusFilter?.value?.trim();
+
+    if (selectedStatus) {
+      query = query.eq("status", selectedStatus);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("STUDENTS LOAD ERROR:", error);
+
+      els.studentsTableBody.innerHTML = `
+        <tr>
+          <td colspan="10" class="empty">
+            Could not load students.
+          </td>
+        </tr>
+      `;
+
+      showMessage(
+        `Students could not be loaded: ${error.message}`,
+        "error"
+      );
+
+      return;
+    }
+
+    students = data ?? [];
+
+    renderStudents();
+    updateStats();
   }
 
+  // ------------------------------------------------------------
+  // Search/filter
+  // ------------------------------------------------------------
 
-  container.innerHTML =
-    certificatesData
-      .map(
-        certificate => {
+  function getFilteredStudents() {
+    const term = String(
+      els.searchInput?.value ?? ""
+    )
+      .trim()
+      .toLowerCase();
 
-          const title =
-            firstValue(
-              certificate,
-              [
-                "certificate_name",
-                "title",
-                "name",
-                "certificate_type"
-              ],
-              "Certificate"
-            );
+    if (!term) return students;
 
+    return students.filter((student) => {
+      const searchable = [
+        student.student_id,
+        student.full_name,
+        student.phone,
+        student.email,
+        student.gender,
+        student.status,
+        student.login_username,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
 
-          const status =
-            firstValue(
-              certificate,
-              [
-                "status"
-              ],
-              "Issued"
-            );
+      return searchable.includes(term);
+    });
+  }
 
+  // ------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------
 
-          const number =
-            firstValue(
-              certificate,
-              [
-                "certificate_number",
-                "certificate_no",
-                "serial_number"
-              ]
-            );
+  function renderStudents() {
+    const filtered = getFilteredStudents();
 
+    if (!filtered.length) {
+      els.studentsTableBody.innerHTML = `
+        <tr>
+          <td colspan="10" class="empty">
+            No students found.
+          </td>
+        </tr>
+      `;
+      return;
+    }
 
-          const date =
-            firstValue(
-              certificate,
-              [
-                "issue_date",
-                "issued_at",
-                "created_at"
-              ]
-            );
+    els.studentsTableBody.innerHTML = filtered
+      .map((student) => {
+        const photo = student.photo_url
+          ? `
+            <img
+              src="${escapeHtml(student.photo_url)}"
+              class="student-photo"
+              alt="Student photo"
+              onerror="this.outerHTML='${placeholderAvatar(
+                student.full_name
+              ).replaceAll("'", "&#039;")}'"
+            >
+          `
+          : placeholderAvatar(student.full_name);
 
+        return `
+          <tr>
+            <td>${photo}</td>
 
-          return `
+            <td>
+              <strong>${escapeHtml(student.student_id)}</strong>
+            </td>
 
-            <div class="certificate-item">
+            <td>
+              <strong>${escapeHtml(student.full_name)}</strong>
+            </td>
 
-              <div>
+            <td>${escapeHtml(student.gender || "—")}</td>
 
-                <strong>
-                  ${escapeHTML(title)}
-                </strong>
+            <td>${escapeHtml(student.phone || "—")}</td>
+
+            <td>${escapeHtml(student.email || "—")}</td>
+
+            <td>${statusBadge(student.status)}</td>
+
+            <td>${escapeHtml(
+              formatDate(student.admission_date)
+            )}</td>
+
+            <td>${accountBadge(student)}</td>
+
+            <td>
+              <div class="actions">
+
+                <button
+                  type="button"
+                  class="btn-small action-view"
+                  data-action="view"
+                  data-id="${escapeHtml(student.id)}"
+                >
+                  View
+                </button>
+
+                <button
+                  type="button"
+                  class="btn-small action-edit"
+                  data-action="edit"
+                  data-id="${escapeHtml(student.id)}"
+                >
+                  Edit
+                </button>
 
                 ${
-                  number
+                  student.auth_user_id
                     ? `
-                      <small>
-                        Certificate No:
-                        ${escapeHTML(number)}
-                      </small>
+                      <button
+                        type="button"
+                        class="btn-small action-reset-password"
+                        data-action="reset"
+                        data-id="${escapeHtml(student.id)}"
+                      >
+                        Reset Password
+                      </button>
                     `
-                    : ""
+                    : `
+                      <button
+                        type="button"
+                        class="btn-small action-create-account"
+                        data-action="create-account"
+                        data-id="${escapeHtml(student.id)}"
+                      >
+                        Create Account
+                      </button>
+                    `
                 }
 
-              </div>
-
-
-              <div>
-
-                <span class="status-pill">
-                  ${escapeHTML(status)}
-                </span>
-
-                <small>
-                  ${escapeHTML(
-                    formatDate(date)
-                  )}
-                </small>
+                <button
+                  type="button"
+                  class="btn-small action-delete"
+                  data-action="delete"
+                  data-id="${escapeHtml(student.id)}"
+                >
+                  Delete
+                </button>
 
               </div>
-
-            </div>
-
-          `;
-        }
-      )
+            </td>
+          </tr>
+        `;
+      })
       .join("");
-}
-
-
-/* ============================================================
-   28. LOAD PAYMENTS
-   ============================================================ */
-
-async function loadPayments() {
-
-  paymentsData = [];
-
-
-  if (!currentStudent) {
-    renderPayments();
-    return;
   }
 
+  function updateStats() {
+    const total = students.length;
 
-  paymentsData =
-    await loadStudentTable(
-      "payments",
-      currentStudent
-    );
-
-
-  renderPayments();
-}
-
-
-/* ============================================================
-   29. RENDER PAYMENTS
-   ============================================================ */
-
-function renderPayments() {
-
-  const container =
-    $("paymentsContainer");
-
-
-  setText(
-    "paymentsCount",
-    paymentsData.length,
-    "0"
-  );
-
-
-  if (!container) {
-    return;
-  }
-
-
-  if (!paymentsData.length) {
-
-    container.innerHTML = `
-      <div class="empty-state">
-        No payment records available yet.
-      </div>
-    `;
-
-    return;
-  }
-
-
-  container.innerHTML =
-    paymentsData
-      .map(
-        payment => {
-
-          const amount =
-            firstValue(
-              payment,
-              [
-                "amount",
-                "paid_amount",
-                "payment_amount"
-              ],
-              "0"
-            );
-
-
-          const status =
-            firstValue(
-              payment,
-              [
-                "status",
-                "payment_status"
-              ],
-              "Paid"
-            );
-
-
-          const method =
-            firstValue(
-              payment,
-              [
-                "payment_method",
-                "method",
-                "channel"
-              ],
-              "—"
-            );
-
-
-          const date =
-            firstValue(
-              payment,
-              [
-                "payment_date",
-                "paid_at",
-                "created_at"
-              ]
-            );
-
-
-          const reference =
-            firstValue(
-              payment,
-              [
-                "reference",
-                "transaction_id",
-                "receipt_number"
-              ]
-            );
-
-
-          return `
-
-            <div class="payment-item">
-
-              <strong>
-                ${escapeHTML(amount)}
-              </strong>
-
-              <span class="status-pill">
-                ${escapeHTML(status)}
-              </span>
-
-              <small>
-                Method:
-                ${escapeHTML(method)}
-              </small>
-
-              <small>
-                Date:
-                ${escapeHTML(
-                  formatDate(date)
-                )}
-              </small>
-
-              ${
-                reference
-                  ? `
-                    <small>
-                      Reference:
-                      ${escapeHTML(reference)}
-                    </small>
-                  `
-                  : ""
-              }
-
-            </div>
-
-          `;
-        }
-      )
-      .join("");
-}
-
-
-/* ============================================================
-   30. LOAD NOTIFICATIONS
-   ============================================================ */
-
-async function loadNotifications() {
-
-  notificationsData = [];
-
-
-  if (!currentStudent) {
-    renderNotifications();
-    return;
-  }
-
-
-  notificationsData =
-    await loadStudentTable(
-      "student_notifications",
-      currentStudent
-    );
-
-
-  renderNotifications();
-}
-
-
-/* ============================================================
-   31. RENDER NOTIFICATIONS
-   ============================================================ */
-
-function renderNotifications() {
-
-  const container =
-    $("notificationsList");
-
-
-  if (!container) {
-    return;
-  }
-
-
-  const unread =
-    notificationsData.filter(
-      item =>
-        item.is_read === false ||
-        (
-          item.is_read === undefined &&
-          !item.read_at
-        )
+    const active = students.filter(
+      (x) => String(x.status).toLowerCase() === "active"
     ).length;
 
+    const graduated = students.filter(
+      (x) => String(x.status).toLowerCase() === "graduated"
+    ).length;
 
-  setText(
-    "notificationsCount",
-    unread
-  );
+    const other = total - active - graduated;
 
+    if (els.totalStudents) els.totalStudents.textContent = total;
+    if (els.activeStudents) els.activeStudents.textContent = active;
+    if (els.graduatedStudents) els.graduatedStudents.textContent = graduated;
+    if (els.otherStudents) els.otherStudents.textContent = other;
+  }
 
-  if (!notificationsData.length) {
+  // ------------------------------------------------------------
+  // Photo
+  // ------------------------------------------------------------
 
-    container.innerHTML = `
-      <div class="empty-state">
-        No notifications available.
+  function previewPhoto() {
+    const file = els.photoInput?.files?.[0];
+
+    if (!file) {
+      clearPhotoPreview();
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      els.photoInput.value = "";
+      showMessage(
+        "Photo is too large. Maximum size is 10MB.",
+        "error"
+      );
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      els.photoPreview.src = reader.result;
+      els.photoPreview.style.display = "block";
+      els.photoPlaceholder.style.display = "none";
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function clearPhotoPreview() {
+    els.photoPreview.removeAttribute("src");
+    els.photoPreview.style.display = "none";
+    els.photoPlaceholder.style.display = "block";
+  }
+
+  async function uploadPhoto(studentDbId, file) {
+    if (!file) return null;
+
+    setProgress(35, "Optimizing student photo...");
+
+    const extension =
+      file.type === "image/png"
+        ? "png"
+        : file.type === "image/webp"
+        ? "webp"
+        : "jpg";
+
+    const path =
+      `students/${studentDbId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from("student-photos")
+      .upload(path, file, {
+        upsert: false,
+        contentType: file.type,
+      });
+
+    if (error) {
+      throw new Error(
+        `Photo upload failed: ${error.message}`
+      );
+    }
+
+    const { data } = supabase.storage
+      .from("student-photos")
+      .getPublicUrl(path);
+
+    return data.publicUrl;
+  }
+
+  // ------------------------------------------------------------
+  // Form
+  // ------------------------------------------------------------
+
+  function resetAccountUI() {
+    els.accountStatus.textContent = "No Account";
+    els.accountStatus.className =
+      "status status-inactive";
+
+    els.createAccountButton.style.display = "none";
+    els.resetPasswordButton.style.display = "none";
+  }
+
+  function updateAccountUI(student) {
+    if (!student) {
+      resetAccountUI();
+      return;
+    }
+
+    if (student.auth_user_id) {
+      els.accountStatus.textContent =
+        student.account_enabled
+          ? "Account Active"
+          : "Account Disabled";
+
+      els.accountStatus.className =
+        student.account_enabled
+          ? "status status-active"
+          : "status status-inactive";
+
+      els.createAccountButton.style.display = "none";
+      els.resetPasswordButton.style.display = "inline-flex";
+    } else {
+      els.accountStatus.textContent = "No Account";
+      els.accountStatus.className =
+        "status status-inactive";
+
+      els.createAccountButton.style.display =
+        "inline-flex";
+
+      els.resetPasswordButton.style.display = "none";
+    }
+  }
+
+  function clearForm() {
+    editingStudent = null;
+
+    els.form.reset();
+    els.editStudentDbId.value = "";
+    els.formTitle.textContent = "Add Student";
+    els.saveButton.textContent = "Save Student";
+
+    clearPhotoPreview();
+    resetAccountUI();
+
+    els.admissionDate.value = todayISO();
+    els.status.value = "active";
+
+    generateNextStudentId()
+      .then((id) => {
+        if (!editingStudent) {
+          els.studentId.value = id;
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        els.studentId.value = "";
+        showMessage(error.message, "error");
+      });
+
+    hideProgress();
+  }
+
+  function fillForm(student) {
+    editingStudent = student;
+
+    els.editStudentDbId.value = student.id;
+    els.institutionSelect.value =
+      student.institution_id ?? "";
+
+    els.studentId.value =
+      student.student_id ?? "";
+
+    els.fullName.value =
+      student.full_name ?? "";
+
+    els.gender.value =
+      student.gender ?? "";
+
+    els.dateOfBirth.value =
+      student.date_of_birth ?? "";
+
+    els.phone.value =
+      student.phone ?? "";
+
+    els.email.value =
+      student.email ?? "";
+
+    els.admissionDate.value =
+      student.admission_date ?? "";
+
+    els.status.value =
+      student.status ?? "active";
+
+    els.address.value =
+      student.address ?? "";
+
+    if (student.photo_url) {
+      els.photoPreview.src = student.photo_url;
+      els.photoPreview.style.display = "block";
+      els.photoPlaceholder.style.display = "none";
+    } else {
+      clearPhotoPreview();
+    }
+
+    els.formTitle.textContent =
+      `Edit Student — ${student.student_id}`;
+
+    els.saveButton.textContent =
+      "Update Student";
+
+    updateAccountUI(student);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function formData() {
+    return {
+      institution_id:
+        els.institutionSelect.value || null,
+
+      student_id:
+        els.studentId.value.trim(),
+
+      full_name:
+        els.fullName.value.trim(),
+
+      gender:
+        els.gender.value || null,
+
+      date_of_birth:
+        els.dateOfBirth.value || null,
+
+      phone:
+        els.phone.value.trim() || null,
+
+      email:
+        els.email.value.trim().toLowerCase() || null,
+
+      admission_date:
+        els.admissionDate.value,
+
+      status:
+        els.status.value,
+
+      address:
+        els.address.value.trim() || null,
+    };
+  }
+
+  // ------------------------------------------------------------
+  // Save student
+  // ------------------------------------------------------------
+
+  async function saveStudent(event) {
+    event.preventDefault();
+    hideMessage();
+
+    const values = formData();
+
+    if (!values.institution_id) {
+      showMessage(
+        "Please select an institution.",
+        "error"
+      );
+      return;
+    }
+
+    if (!values.student_id) {
+      showMessage(
+        "Student ID could not be generated.",
+        "error"
+      );
+      return;
+    }
+
+    if (!values.full_name) {
+      showMessage(
+        "Full name is required.",
+        "error"
+      );
+      return;
+    }
+
+    if (!values.admission_date) {
+      showMessage(
+        "Admission date is required.",
+        "error"
+      );
+      return;
+    }
+
+    if (values.email) {
+      const emailOK =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+          values.email
+        );
+
+      if (!emailOK) {
+        showMessage(
+          "Please enter a valid email address.",
+          "error"
+        );
+        return;
+      }
+    }
+
+    els.saveButton.disabled = true;
+
+    try {
+      setProgress(15, "Saving student record...");
+
+      if (editingStudent) {
+        const { error } = await supabase
+          .from("students")
+          .update({
+            institution_id: values.institution_id,
+            full_name: values.full_name,
+            gender: values.gender,
+            date_of_birth: values.date_of_birth,
+            phone: values.phone,
+            email: values.email,
+            admission_date: values.admission_date,
+            status: values.status,
+            address: values.address,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editingStudent.id);
+
+        if (error) throw error;
+
+        const file = els.photoInput.files?.[0];
+
+        if (file) {
+          const photoUrl = await uploadPhoto(
+            editingStudent.id,
+            file
+          );
+
+          if (photoUrl) {
+            const { error: photoUpdateError } =
+              await supabase
+                .from("students")
+                .update({
+                  photo_url: photoUrl,
+                  updated_at:
+                    new Date().toISOString(),
+                })
+                .eq("id", editingStudent.id);
+
+            if (photoUpdateError) {
+              throw photoUpdateError;
+            }
+          }
+        }
+
+        showMessage(
+          "Student record updated successfully.",
+          "success"
+        );
+      } else {
+        const { data, error } = await supabase
+          .from("students")
+          .insert({
+            ...values,
+          })
+          .select("*")
+          .single();
+
+        if (error) throw error;
+
+        setProgress(30, "Student created. Uploading photo...");
+
+        const file = els.photoInput.files?.[0];
+
+        if (file) {
+          const photoUrl = await uploadPhoto(
+            data.id,
+            file
+          );
+
+          if (photoUrl) {
+            const { error: photoUpdateError } =
+              await supabase
+                .from("students")
+                .update({
+                  photo_url: photoUrl,
+                  updated_at:
+                    new Date().toISOString(),
+                })
+                .eq("id", data.id);
+
+            if (photoUpdateError) {
+              throw photoUpdateError;
+            }
+          }
+        }
+
+        showMessage(
+          `Student ${data.student_id} created successfully.`,
+          "success"
+        );
+      }
+
+      setProgress(100, "Completed.");
+      await loadStudents();
+
+      setTimeout(() => {
+        clearForm();
+      }, 300);
+    } catch (error) {
+      console.error("SAVE STUDENT ERROR:", error);
+
+      showMessage(
+        error?.message ||
+          "Student could not be saved.",
+        "error"
+      );
+    } finally {
+      els.saveButton.disabled = false;
+      setTimeout(hideProgress, 500);
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Student account dialogs
+  // ------------------------------------------------------------
+
+  function generateTemporaryPassword() {
+    const chars =
+      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+
+    return Array.from(bytes, (byte) =>
+      chars[byte % chars.length]
+    ).join("");
+  }
+
+  function askPassword(title) {
+    const generated = generateTemporaryPassword();
+
+    const password = window.prompt(
+      `${title}\n\nEnter a password with at least 8 characters.\n\nSuggested temporary password:\n${generated}`,
+      generated
+    );
+
+    if (password === null) return null;
+
+    const value = password.trim();
+
+    if (value.length < 8) {
+      showMessage(
+        "Password must contain at least 8 characters.",
+        "error"
+      );
+      return null;
+    }
+
+    return value;
+  }
+
+  async function createStudentAccount(student) {
+    if (!student?.id) return;
+
+    if (student.auth_user_id) {
+      showMessage(
+        "This student already has an account. Use Reset Password.",
+        "warning"
+      );
+      return;
+    }
+
+    if (!student.email) {
+      showMessage(
+        "Add a valid student email first, then save the student.",
+        "warning"
+      );
+      return;
+    }
+
+    const password = askPassword(
+      `Create login account for ${student.full_name}`
+    );
+
+    if (!password) return;
+
+    const confirmed = window.confirm(
+      `Create student login account?\n\nStudent: ${student.full_name}\nID: ${student.student_id}\nEmail: ${student.email}`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setProgress(
+        20,
+        "Verifying Super Admin and creating account..."
+      );
+
+      const result = await callAccountFunction({
+        action: "create",
+        student_db_id: student.id,
+        student_id: student.student_id,
+        email: student.email,
+        full_name: student.full_name,
+        password,
+      });
+
+      setProgress(
+        100,
+        "Student login account created."
+      );
+
+      showMessage(
+        `${result.message}\n\nUsername: ${student.email}\nTemporary password: ${password}`,
+        "success"
+      );
+
+      await loadStudents();
+
+      const fresh = students.find(
+        (x) => x.id === student.id
+      );
+
+      if (fresh) {
+        updateAccountUI(fresh);
+        editingStudent = fresh;
+      }
+    } catch (error) {
+      console.error(
+        "CREATE STUDENT ACCOUNT ERROR:",
+        error
+      );
+
+      showMessage(
+        error?.message ||
+          "Student account could not be created.",
+        "error"
+      );
+    } finally {
+      setTimeout(hideProgress, 800);
+    }
+  }
+
+  async function resetStudentPassword(student) {
+    if (!student?.auth_user_id) {
+      showMessage(
+        "This student has no login account.",
+        "warning"
+      );
+      return;
+    }
+
+    const password = askPassword(
+      `Reset password for ${student.full_name}`
+    );
+
+    if (!password) return;
+
+    const confirmed = window.confirm(
+      `Reset password for ${student.full_name}?\n\nStudent ID: ${student.student_id}`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setProgress(
+        20,
+        "Resetting student password..."
+      );
+
+      const result = await callAccountFunction({
+        action: "reset",
+        student_db_id: student.id,
+        student_id: student.student_id,
+        password,
+      });
+
+      setProgress(
+        100,
+        "Password reset successfully."
+      );
+
+      showMessage(
+        `${result.message}\n\nNew temporary password: ${password}`,
+        "success"
+      );
+
+      await loadStudents();
+    } catch (error) {
+      console.error(
+        "RESET PASSWORD ERROR:",
+        error
+      );
+
+      showMessage(
+        error?.message ||
+          "Password could not be reset.",
+        "error"
+      );
+    } finally {
+      setTimeout(hideProgress, 800);
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Delete
+  // ------------------------------------------------------------
+
+  async function deleteStudent(student) {
+    if (!student?.id) return;
+
+    const confirmed = window.confirm(
+      `DELETE STUDENT?\n\n${student.full_name}\n${student.student_id}\n\nThis removes the student record.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from("students")
+        .delete()
+        .eq("id", student.id);
+
+      if (error) throw error;
+
+      showMessage(
+        "Student deleted successfully.",
+        "success"
+      );
+
+      await loadStudents();
+
+      if (editingStudent?.id === student.id) {
+        clearForm();
+      }
+    } catch (error) {
+      console.error("DELETE STUDENT ERROR:", error);
+
+      showMessage(
+        `Student could not be deleted: ${error.message}`,
+        "error"
+      );
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Profile modal
+  // ------------------------------------------------------------
+
+  function showProfile(student) {
+    const photo = student.photo_url
+      ? `
+        <img
+          src="${escapeHtml(student.photo_url)}"
+          class="profile-photo"
+          alt="Student photo"
+        >
+      `
+      : placeholderAvatar(student.full_name);
+
+    els.profileContent.innerHTML = `
+      <div class="profile-top">
+        ${photo}
+
+        <div>
+          <div class="profile-name">
+            ${escapeHtml(student.full_name)}
+          </div>
+
+          <div class="profile-id">
+            ${escapeHtml(student.student_id)}
+          </div>
+
+          <div style="margin-top:8px;">
+            ${statusBadge(student.status)}
+            ${accountBadge(student)}
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-grid">
+
+        <div class="profile-item">
+          <strong>Institution ID</strong>
+          <span>${escapeHtml(
+            student.institution_id || "—"
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Gender</strong>
+          <span>${escapeHtml(
+            student.gender || "—"
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Date of Birth</strong>
+          <span>${escapeHtml(
+            formatDate(student.date_of_birth)
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Phone</strong>
+          <span>${escapeHtml(
+            student.phone || "—"
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Email</strong>
+          <span>${escapeHtml(
+            student.email || "—"
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Admission Date</strong>
+          <span>${escapeHtml(
+            formatDate(student.admission_date)
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Login Username</strong>
+          <span>${escapeHtml(
+            student.login_username || "—"
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Account Created</strong>
+          <span>${escapeHtml(
+            formatDate(student.account_created_at)
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Last Login</strong>
+          <span>${escapeHtml(
+            formatDate(student.last_login_at)
+          )}</span>
+        </div>
+
+        <div class="profile-item">
+          <strong>Address</strong>
+          <span>${escapeHtml(
+            student.address || "—"
+          )}</span>
+        </div>
+
       </div>
     `;
 
-    return;
+    els.profileModal.classList.add("show");
+    els.profileModal.setAttribute(
+      "aria-hidden",
+      "false"
+    );
   }
 
-
-  container.innerHTML =
-    notificationsData
-      .map(
-        notification => {
-
-          const title =
-            firstValue(
-              notification,
-              [
-                "title",
-                "subject",
-                "notification_title"
-              ],
-              "Notification"
-            );
-
-
-          const message =
-            firstValue(
-              notification,
-              [
-                "message",
-                "body",
-                "content",
-                "description"
-              ],
-              ""
-            );
-
-
-          const unread =
-            notification.is_read === false;
-
-
-          return `
-
-            <div
-              class="
-                notification-item
-                ${unread ? "unread" : ""}
-              "
-            >
-
-              <strong>
-                ${escapeHTML(title)}
-              </strong>
-
-              <p>
-                ${escapeHTML(message)}
-              </p>
-
-              <small>
-                ${escapeHTML(
-                  formatDate(
-                    notification.created_at
-                  )
-                )}
-              </small>
-
-            </div>
-
-          `;
-        }
-      )
-      .join("");
-}
-
-
-/* ============================================================
-   32. MARK NOTIFICATIONS READ
-   ============================================================ */
-
-async function markAllNotificationsRead() {
-
-  if (!currentStudent?.id) {
-    return;
+  function closeProfile() {
+    els.profileModal.classList.remove("show");
+    els.profileModal.setAttribute(
+      "aria-hidden",
+      "true"
+    );
   }
 
+  // ------------------------------------------------------------
+  // Table actions
+  // ------------------------------------------------------------
 
-  const result =
-    await supabaseClient
-      .from("student_notifications")
-      .update({
-        is_read: true,
-        read_at:
-          new Date().toISOString()
-      })
-      .eq(
-        "student_id",
-        currentStudent.id
-      )
-      .eq(
-        "is_read",
-        false
-      );
-
-
-  if (result.error) {
-
-    console.warn(
-      "Could not mark notifications:",
-      result.error
+  async function handleTableAction(event) {
+    const button = event.target.closest(
+      "button[data-action]"
     );
 
-    return;
-  }
+    if (!button) return;
 
+    const action = button.dataset.action;
+    const id = button.dataset.id;
 
-  await loadNotifications();
-}
+    const student = students.find(
+      (x) => x.id === id
+    );
 
-
-/* ============================================================
-   33. LOAD ALL PORTAL DATA
-   ============================================================ */
-
-async function loadStudentPortal() {
-
-  showPortalLoading();
-  clearMessage();
-
-
-  try {
-
-    /* --------------------------------------------------------
-       AUTH
-    -------------------------------------------------------- */
-
-    currentUser =
-      await getAuthenticatedUser();
-
-
-    if (!currentUser) {
-
-      window.location.href =
-        "student-login.html";
-
+    if (!student) {
+      showMessage(
+        "Student record is no longer available. Refresh the page.",
+        "warning"
+      );
       return;
     }
 
-
-    console.log(
-      "Authenticated user:",
-      currentUser.id
-    );
-
-
-    /* --------------------------------------------------------
-       STUDENT
-    -------------------------------------------------------- */
-
-    currentStudent =
-      await loadStudent(
-        currentUser.id
-      );
-
-
-    if (!currentStudent) {
-
-      throw new Error(
-        "Student account was not found for this login."
-      );
-    }
-
-
-    console.log(
-      "Student loaded:",
-      currentStudent
-    );
-
-
-    /* --------------------------------------------------------
-       ENROLLMENT
-    -------------------------------------------------------- */
-
-    currentEnrollment =
-      await loadEnrollment(
-        currentStudent
-      );
-
-
-    console.log(
-      "Enrollment loaded:",
-      currentEnrollment
-    );
-
-
-    /* --------------------------------------------------------
-       PROFILE
-    -------------------------------------------------------- */
-
-    renderStudentProfile();
-
-
-    /* --------------------------------------------------------
-       ACADEMIC RELATIONS
-    -------------------------------------------------------- */
-
-    if (currentEnrollment) {
-
-      await loadAcademicRelations(
-        currentEnrollment
-      );
-    }
-
-
-    /* --------------------------------------------------------
-       ACADEMIC INFORMATION
-    -------------------------------------------------------- */
-
-    renderAcademicInformation();
-
-
-    /* --------------------------------------------------------
-       OTHER DATA
-    -------------------------------------------------------- */
-
-    await Promise.allSettled([
-
-      loadGrades(),
-
-      loadResults(),
-
-      loadCertificates(),
-
-      loadPayments(),
-
-      loadNotifications()
-
-    ]);
-
-
-    /* --------------------------------------------------------
-       SHOW
-    -------------------------------------------------------- */
-
-    hidePortalLoading();
-
-
-    console.log(
-      "GAAWOW Student Portal V6.4 loaded successfully."
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Student Portal V6.4 error:",
-      error
-    );
-
-
-    showPortalError(error);
-  }
-}
-
-
-/* ============================================================
-   34. ERROR
-   ============================================================ */
-
-function showPortalError(error) {
-
-  hidePortalLoading();
-
-
-  const message =
-    error?.message ||
-    "Unable to load student information.";
-
-
-  showMessage(
-    message,
-    "error"
-  );
-}
-
-
-/* ============================================================
-   35. LOGOUT BUTTONS
-   ============================================================ */
-
-function setupLogoutButtons() {
-
-  const buttons = [
-    $("logoutBtn"),
-    $("studentLogoutBtn")
-  ];
-
-
-  buttons.forEach(button => {
-
-    if (!button) {
+    if (action === "view") {
+      showProfile(student);
       return;
     }
 
+    if (action === "edit") {
+      fillForm(student);
+      return;
+    }
 
-    button.addEventListener(
+    if (action === "create-account") {
+      await createStudentAccount(student);
+      return;
+    }
+
+    if (action === "reset") {
+      await resetStudentPassword(student);
+      return;
+    }
+
+    if (action === "delete") {
+      await deleteStudent(student);
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Events
+  // ------------------------------------------------------------
+
+  function bindEvents() {
+    els.form?.addEventListener(
+      "submit",
+      saveStudent
+    );
+
+    els.photoInput?.addEventListener(
+      "change",
+      previewPhoto
+    );
+
+    els.resetFormButton?.addEventListener(
       "click",
-      logoutStudent
+      () => {
+        clearForm();
+        hideMessage();
+      }
     );
 
-  });
-}
+    els.addStudentButton?.addEventListener(
+      "click",
+      () => {
+        clearForm();
 
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      }
+    );
 
-/* ============================================================
-   36. NOTIFICATION BUTTON
-   ============================================================ */
+    els.refreshStudentsButton?.addEventListener(
+      "click",
+      async () => {
+        await loadStudents();
+      }
+    );
 
-function setupNotificationButton() {
+    els.statusFilter?.addEventListener(
+      "change",
+      loadStudents
+    );
 
-  const button =
-    $("markAllReadBtn");
+    els.searchInput?.addEventListener(
+      "input",
+      () => {
+        clearTimeout(searchTimer);
 
+        searchTimer = setTimeout(
+          renderStudents,
+          120
+        );
+      }
+    );
 
-  if (!button) {
-    return;
+    els.studentsTableBody?.addEventListener(
+      "click",
+      handleTableAction
+    );
+
+    els.createAccountButton?.addEventListener(
+      "click",
+      async () => {
+        if (editingStudent) {
+          await createStudentAccount(
+            editingStudent
+          );
+        }
+      }
+    );
+
+    els.resetPasswordButton?.addEventListener(
+      "click",
+      async () => {
+        if (editingStudent) {
+          await resetStudentPassword(
+            editingStudent
+          );
+        }
+      }
+    );
+
+    els.closeProfileModal?.addEventListener(
+      "click",
+      closeProfile
+    );
+
+    els.profileModal?.addEventListener(
+      "click",
+      (event) => {
+        if (event.target === els.profileModal) {
+          closeProfile();
+        }
+      }
+    );
+
+    document.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key === "Escape") {
+          closeProfile();
+        }
+      }
+    );
+
+    supabase.auth.onAuthStateChange(
+      (event) => {
+        if (
+          event === "SIGNED_OUT" ||
+          event === "TOKEN_REFRESHED"
+        ) {
+          if (event === "SIGNED_OUT") {
+            showMessage(
+              "Your login session has ended. Please login again.",
+              "warning"
+            );
+          }
+        }
+      }
+    );
   }
 
+  // ------------------------------------------------------------
+  // Startup
+  // ------------------------------------------------------------
 
-  button.addEventListener(
-    "click",
-    markAllNotificationsRead
-  );
-}
+  async function init() {
+    try {
+      hideMessage();
 
-
-/* ============================================================
-   37. AUTH STATE
-   ============================================================ */
-
-function setupAuthListener() {
-
-  supabaseClient.auth.onAuthStateChange(
-    (
-      event,
-      session
-    ) => {
+      const session = await getSessionOrThrow();
 
       console.log(
-        "Auth event:",
-        event
+        "GAAWOW Students V6 session:",
+        session.user.id
       );
 
+      bindEvents();
+      ensureResponsiveStudentTable();
 
-      if (
-        event === "SIGNED_OUT"
-      ) {
+      await loadInstitutions();
 
-        window.location.href =
-          "student-login.html";
+      await loadStudents();
 
-        return;
+      clearForm();
+    } catch (error) {
+      console.error("STUDENTS INIT ERROR:", error);
+
+      showMessage(
+        error?.message ||
+          "Unable to initialize Students page.",
+        "error"
+      );
+
+      if (els.studentsTableBody) {
+        els.studentsTableBody.innerHTML = `
+          <tr>
+            <td colspan="10" class="empty">
+              Login session required.
+            </td>
+          </tr>
+        `;
       }
-
-
-      if (
-        event === "SIGNED_IN" &&
-        session?.user
-      ) {
-
-        currentUser =
-          session.user;
-      }
-
     }
-  );
-}
-
-
-/* ============================================================
-   38. DEBUG
-   ============================================================ */
-
-function exposeDebugData() {
-
-  window.GAAWOW_PORTAL = {
-
-    get user() {
-      return currentUser;
-    },
-
-    get student() {
-      return currentStudent;
-    },
-
-    get enrollment() {
-      return currentEnrollment;
-    },
-
-    get institution() {
-      return currentInstitution;
-    },
-
-    get course() {
-      return currentCourse;
-    },
-
-    get department() {
-      return currentDepartment;
-    },
-
-    get class() {
-      return currentClass;
-    },
-
-    get academicYear() {
-      return getAcademicYear();
-    },
-
-    get grades() {
-      return gradesData;
-    },
-
-    get results() {
-      return resultsData;
-    },
-
-    get certificates() {
-      return certificatesData;
-    },
-
-    get payments() {
-      return paymentsData;
-    },
-
-    get notifications() {
-      return notificationsData;
-    }
-
-  };
-}
-
-
-/* ============================================================
-   39. INITIALIZE
-   ============================================================ */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  async () => {
-
-    console.log(
-      "GAAWOW Student Portal V6.4 starting..."
-    );
-
-
-    setupLogoutButtons();
-
-    setupNotificationButton();
-
-    setupAuthListener();
-
-    exposeDebugData();
-
-    await loadStudentPortal();
-
   }
-);
 
+  init();
+  }
 
-/* ============================================================
-   END
-   ============================================================ */
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
+})();
