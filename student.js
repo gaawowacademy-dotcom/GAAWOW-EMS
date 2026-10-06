@@ -2,10 +2,21 @@
 "use strict";
 
 const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-const SUPABASE_KEY = "sb_publishable_2AvWfupKf1b_s0RjIbAi5g_RqLCs145";
+const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+const PORTAL_VERSION = "7.2.0";
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: "pkce"
+  },
+  global: {
+    headers: {
+      "x-gaawow-portal-version": PORTAL_VERSION
+    }
+  }
 });
 const $ = id => document.getElementById(id);
 
@@ -16,8 +27,32 @@ function showStatus(msg,type="info"){const e=$("status");if(!e)return;e.classNam
 function clearStatus(){const e=$("status");if(e)e.className="status";}
 
 async function currentUser(){
-  const {data,error}=await supabase.auth.getUser();
-  if(error)throw error;
+  // First use the persisted session. If it is missing/expired, refresh once.
+  let {data:{session},error:sessionError}=await supabase.auth.getSession();
+  if(sessionError) throw sessionError;
+
+  if(!session?.access_token){
+    const refreshed=await supabase.auth.refreshSession();
+    if(refreshed.error) throw refreshed.error;
+    session=refreshed.data.session;
+  }
+
+  if(!session?.access_token){
+    const e=new Error("Login session is missing or expired. Please login again.");
+    e.code="SESSION_MISSING";
+    throw e;
+  }
+
+  const {data,error}=await supabase.auth.getUser(session.access_token);
+  if(error){
+    const message=String(error.message||"");
+    if(/invalid api key/i.test(message)){
+      const e=new Error("Supabase rejected the Publishable API key. Confirm the current Publishable key in Supabase → Settings → API, then refresh this portal.");
+      e.code="INVALID_API_KEY";
+      throw e;
+    }
+    throw error;
+  }
   return data.user;
 }
 
@@ -113,8 +148,17 @@ function renderStudent(s,institution,relations,user){
 
   const img=$("studentPhoto");
   if(img){
-    if(s.photo_url){img.src=s.photo_url;img.alt=`Photo of ${s.full_name||"student"}`;}
-    else {img.removeAttribute("src");img.alt="No student photo";}
+    if(s.photo_url){
+      img.src=s.photo_url;
+      img.alt=`Photo of ${s.full_name||"student"}`;
+      img.onerror=()=>{
+        img.removeAttribute("src");
+        img.alt="No student photo";
+      };
+    } else {
+      img.removeAttribute("src");
+      img.alt="No student photo";
+    }
   }
 }
 
@@ -196,7 +240,12 @@ async function loadPortal(){
     setTimeout(clearStatus,2500);
   }catch(error){
     console.error("STUDENT PORTAL ERROR:",error);
-    showStatus(error?.message||"Unable to load student portal.","error");
+    const msg=String(error?.message||"Unable to load student portal.");
+    if(error?.code==="INVALID_API_KEY" || /invalid api key/i.test(msg)){
+      showStatus("Invalid API key. V7.2 is using the configured Supabase Publishable key. Refresh the page after confirming the key in Supabase → Settings → API.","error");
+    } else {
+      showStatus(msg,"error");
+    }
   }
 }
 
