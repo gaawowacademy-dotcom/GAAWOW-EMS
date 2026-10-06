@@ -420,16 +420,6 @@ body{
   border-radius:10px;
 }
 
-.grade-error{
-  text-align:center;
-  padding:18px 15px;
-  color:#991b1b;
-  background:#fff1f2;
-  border:1px solid #fecdd3;
-  border-radius:10px;
-  font-size:12px;
-}
-
 a{
   color:#0B4DA2;
   font-weight:700;
@@ -585,7 +575,6 @@ a:hover{
     style="display:none"
   >
 
-
     <!-- STUDENT HERO -->
     <section class="hero">
 
@@ -600,9 +589,7 @@ a:hover{
 
         <div>
 
-          <h2 id="studentName">
-            —
-          </h2>
+          <h2 id="studentName">—</h2>
 
           <p id="studentId">
             Student ID: —
@@ -703,8 +690,6 @@ a:hover{
         📚 Grades
       </h3>
 
-
-      <!-- YEAR FILTER -->
       <div class="grades-controls">
 
         <p class="grades-note">
@@ -717,12 +702,12 @@ a:hover{
             Academic Year:
           </label>
 
-          <select
-            id="gradeYear"
-          >
+          <select id="gradeYear">
+
             <option value="ALL">
               All Years
             </option>
+
           </select>
 
         </div>
@@ -730,14 +715,11 @@ a:hover{
       </div>
 
 
-      <!-- GRADES SUMMARY -->
       <div class="grades-summary">
 
         <div class="summary-card">
 
-          <small>
-            Total Subjects
-          </small>
+          <small>Total Subjects</small>
 
           <strong id="gradeTotalSubjects">
             0
@@ -748,9 +730,7 @@ a:hover{
 
         <div class="summary-card">
 
-          <small>
-            Average Score
-          </small>
+          <small>Average Score</small>
 
           <strong id="gradeAverage">
             0%
@@ -761,9 +741,7 @@ a:hover{
 
         <div class="summary-card">
 
-          <small>
-            Highest Score
-          </small>
+          <small>Highest Score</small>
 
           <strong id="gradeHighest">
             0%
@@ -774,9 +752,7 @@ a:hover{
 
         <div class="summary-card">
 
-          <small>
-            Lowest Score
-          </small>
+          <small>Lowest Score</small>
 
           <strong id="gradeLowest">
             0%
@@ -787,9 +763,7 @@ a:hover{
 
         <div class="summary-card">
 
-          <small>
-            Overall Grade
-          </small>
+          <small>Overall Grade</small>
 
           <strong id="gradeOverall">
             —
@@ -800,7 +774,6 @@ a:hover{
       </div>
 
 
-      <!-- GRADES TABLE -->
       <div class="table-wrap">
 
         <table class="table">
@@ -908,7 +881,6 @@ a:hover{
       ></div>
 
     </section>
-
 
   </div>
 
@@ -1153,14 +1125,11 @@ function renderStudent(s){
   $("studentName").textContent =
     val(s.full_name);
 
-
   $("studentId").textContent =
     `Student ID: ${val(s.student_id)}`;
 
-
   $("topStudentId").textContent =
     val(s.student_id);
-
 
   $("studentStatus").textContent =
     val(s.status);
@@ -1259,10 +1228,8 @@ function renderAcademic(
   $("courseName").textContent =
     val(c?.name);
 
-
   $("className").textContent =
     val(cl?.name);
-
 
   $("departmentName").textContent =
     val(d?.name);
@@ -1519,7 +1486,6 @@ function populateGradeYears(){
   const select =
     $("gradeYear");
 
-
   const current =
     select.value || "ALL";
 
@@ -1677,10 +1643,8 @@ function renderGradeSummary(results){
   $("gradeAverage").textContent =
     `${average.toFixed(1)}%`;
 
-
   $("gradeHighest").textContent =
     `${highest.toFixed(1)}%`;
-
 
   $("gradeLowest").textContent =
     `${lowest.toFixed(1)}%`;
@@ -1775,9 +1739,7 @@ function renderGrades(results){
             ${
               r.score == null
                 ? "—"
-                : esc(
-                    num(r.score)
-                  )
+                : esc(num(r.score))
             }
             ${
               r.max_score != null
@@ -1909,214 +1871,8 @@ function applyGradeFilter(){
 
 
 /* =========================================================
-   SAFE RELATED FETCHERS
-   These prevent one RLS-related failure from
-   deleting all grade rows.
-========================================================= */
-
-async function fetchSubjectsMap(
-  subjectIds
-){
-
-  const map = new Map();
-
-
-  const ids =
-    [
-      ...new Set(
-        subjectIds.filter(Boolean)
-      )
-    ];
-
-
-  if(!ids.length){
-    return map;
-  }
-
-
-  const {
-    data,
-    error
-  } =
-    await sb
-      .from("subjects")
-      .select(`
-        id,
-        name,
-        code
-      `)
-      .in("id",ids);
-
-
-  if(error){
-
-    console.warn(
-      "Subjects lookup failed:",
-      error
-    );
-
-    return map;
-
-  }
-
-
-  (data || []).forEach(row => {
-
-    map.set(
-      row.id,
-      row
-    );
-
-  });
-
-
-  return map;
-
-}
-
-
-async function fetchExamsMap(
-  examIds
-){
-
-  const map = new Map();
-
-
-  const ids =
-    [
-      ...new Set(
-        examIds.filter(Boolean)
-      )
-    ];
-
-
-  if(!ids.length){
-    return map;
-  }
-
-
-  const {
-    data,
-    error
-  } =
-    await sb
-      .from("exams")
-      .select(`
-        id,
-        title,
-        exam_type,
-        exam_date,
-        max_score,
-        class_id
-      `)
-      .in("id",ids);
-
-
-  if(error){
-
-    console.warn(
-      "Exams lookup failed:",
-      error
-    );
-
-    return map;
-
-  }
-
-
-  (data || []).forEach(row => {
-
-    map.set(
-      row.id,
-      row
-    );
-
-  });
-
-
-  return map;
-
-}
-
-
-async function fetchClassesMap(
-  classIds
-){
-
-  const map = new Map();
-
-
-  const ids =
-    [
-      ...new Set(
-        classIds.filter(Boolean)
-      )
-    ];
-
-
-  if(!ids.length){
-    return map;
-  }
-
-
-  const {
-    data,
-    error
-  } =
-    await sb
-      .from("classes")
-      .select(`
-        id,
-        name,
-        code,
-        academic_year
-      `)
-      .in("id",ids);
-
-
-  if(error){
-
-    console.warn(
-      "Classes lookup failed:",
-      error
-    );
-
-    return map;
-
-  }
-
-
-  (data || []).forEach(row => {
-
-    map.set(
-      row.id,
-      row
-    );
-
-  });
-
-
-  return map;
-
-}
-
-
-/* =========================================================
-   LOAD GRADES FROM RESULTS
-   V8.2 FIX
-
-   IMPORTANT:
-   The old V8.1 version used one embedded query:
-
-   results
-      -> subjects
-      -> exams
-      -> classes
-
-   This version deliberately separates those
-   requests so an RLS/relationship problem in
-   one related table cannot make all results
-   appear as zero.
+   LOAD GRADES V8.2
+   RESULTS + SUBJECTS + EXAMS + CLASSES
 ========================================================= */
 
 async function loadGrades(
@@ -2124,13 +1880,36 @@ async function loadGrades(
 ){
 
   /*
-    STEP 1
-    Fetch RESULTS only.
+    V8.2 FIX
+
+    We DO NOT use nested:
+
+      subjects(...)
+      exams(...)
+      classes(...)
+
+    because the current RLS setup can return
+    the result rows while nested related rows
+    appear as null.
+
+    Instead:
+
+      1. Load results
+      2. Load subjects separately
+      3. Load exams separately
+      4. Load classes separately
+      5. Join them in JavaScript
   */
 
+
+  /* -----------------------------------------
+     STEP 1
+     RESULTS
+  ----------------------------------------- */
+
   const {
-    data,
-    error
+    data: results,
+    error: resultsError
   } =
     await sb
       .from("results")
@@ -2165,117 +1944,274 @@ async function loadGrades(
       );
 
 
-  if(error){
-
-    /*
-      This is the REAL results query.
-      If it fails, we must expose the
-      actual Supabase error.
-    */
-
-    throw new Error(
-      `Results query failed: ${errText(error)}`
-    );
-
+  if(resultsError){
+    throw resultsError;
   }
 
 
   const source =
-    data || [];
+    results || [];
 
 
-  /*
-    STEP 2
-    Collect foreign keys.
-  */
+  if(!source.length){
+
+    allGradeResults = [];
+
+    populateGradeYears();
+
+    applyGradeFilter();
+
+    return;
+
+  }
+
+
+  /* -----------------------------------------
+     STEP 2
+     COLLECT IDs
+  ----------------------------------------- */
 
   const subjectIds =
-    source
-      .map(r => r.subject_id)
-      .filter(Boolean);
+    [
+      ...new Set(
+        source
+          .map(r => r.subject_id)
+          .filter(Boolean)
+      )
+    ];
 
 
   const examIds =
-    source
-      .map(r => r.exam_id)
-      .filter(Boolean);
-
-
-  /*
-    STEP 3
-    Fetch subjects and exams independently.
-  */
-
-  const [
-    subjectsMap,
-    examsMap
-  ] =
-    await Promise.all([
-      fetchSubjectsMap(
-        subjectIds
-      ),
-      fetchExamsMap(
-        examIds
+    [
+      ...new Set(
+        source
+          .map(r => r.exam_id)
+          .filter(Boolean)
       )
-    ]);
+    ];
 
 
-  /*
-    STEP 4
-    Get class IDs from exams.
-  */
+  /* -----------------------------------------
+     STEP 3
+     SUBJECTS
+  ----------------------------------------- */
+
+  let subjects = [];
+
+
+  if(subjectIds.length){
+
+    const {
+      data,
+      error
+    } =
+      await sb
+        .from("subjects")
+        .select(`
+          id,
+          institution_id,
+          course_id,
+          name,
+          code,
+          max_score,
+          is_active
+        `)
+        .in(
+          "id",
+          subjectIds
+        );
+
+
+    if(error){
+
+      console.warn(
+        "Subjects could not be loaded:",
+        error
+      );
+
+    }else{
+
+      subjects =
+        data || [];
+
+    }
+
+  }
+
+
+  /* -----------------------------------------
+     STEP 4
+     EXAMS
+  ----------------------------------------- */
+
+  let exams = [];
+
+
+  if(examIds.length){
+
+    const {
+      data,
+      error
+    } =
+      await sb
+        .from("exams")
+        .select(`
+          id,
+          institution_id,
+          course_id,
+          class_id,
+          title,
+          exam_type,
+          exam_date,
+          max_score,
+          duration_minutes,
+          description
+        `)
+        .in(
+          "id",
+          examIds
+        );
+
+
+    if(error){
+
+      console.warn(
+        "Exams could not be loaded:",
+        error
+      );
+
+    }else{
+
+      exams =
+        data || [];
+
+    }
+
+  }
+
+
+  /* -----------------------------------------
+     STEP 5
+     COLLECT CLASS IDs FROM EXAMS
+  ----------------------------------------- */
 
   const classIds =
-    source
-      .map(r => {
-
-        const exam =
-          examsMap.get(
-            r.exam_id
-          );
-
-        return exam?.class_id;
-
-      })
-      .filter(Boolean);
+    [
+      ...new Set(
+        exams
+          .map(e => e.class_id)
+          .filter(Boolean)
+      )
+    ];
 
 
-  /*
-    STEP 5
-    Fetch classes independently.
-  */
+  /* -----------------------------------------
+     STEP 6
+     CLASSES
+  ----------------------------------------- */
 
-  const classesMap =
-    await fetchClassesMap(
-      classIds
+  let classes = [];
+
+
+  if(classIds.length){
+
+    const {
+      data,
+      error
+    } =
+      await sb
+        .from("classes")
+        .select(`
+          id,
+          institution_id,
+          course_id,
+          name,
+          code,
+          academic_year,
+          teacher_id,
+          room,
+          start_date,
+          end_date,
+          is_active,
+          status
+        `)
+        .in(
+          "id",
+          classIds
+        );
+
+
+    if(error){
+
+      console.warn(
+        "Classes could not be loaded:",
+        error
+      );
+
+    }else{
+
+      classes =
+        data || [];
+
+    }
+
+  }
+
+
+  /* -----------------------------------------
+     STEP 7
+     CREATE LOOKUP MAPS
+  ----------------------------------------- */
+
+  const subjectMap =
+    new Map(
+      subjects.map(
+        x => [x.id,x]
+      )
     );
 
 
-  /*
-    STEP 6
-    Build the final portal grade rows.
-  */
+  const examMap =
+    new Map(
+      exams.map(
+        x => [x.id,x]
+      )
+    );
+
+
+  const classMap =
+    new Map(
+      classes.map(
+        x => [x.id,x]
+      )
+    );
+
+
+  /* -----------------------------------------
+     STEP 8
+     JOIN RESULTS
+  ----------------------------------------- */
 
   allGradeResults =
     source.map(r => {
 
       const subject =
-        subjectsMap.get(
+        subjectMap.get(
           r.subject_id
         ) || null;
 
 
       const exam =
-        examsMap.get(
+        examMap.get(
           r.exam_id
         ) || null;
 
 
       const classRow =
         exam?.class_id
-          ? classesMap.get(
+          ? classMap.get(
               exam.class_id
-            ) || null
+            )
           : null;
 
 
@@ -2297,16 +2233,13 @@ async function loadGrades(
           r.exam_id,
 
         academic_year:
-          classRow?.academic_year ??
-          null,
+          classRow?.academic_year ?? null,
 
         subject_name:
-          subject?.name ??
-          null,
+          subject?.name ?? null,
 
         subject_code:
-          subject?.code ??
-          null,
+          subject?.code ?? null,
 
         score:
           r.score,
@@ -2314,6 +2247,7 @@ async function loadGrades(
         max_score:
           r.max_score ??
           exam?.max_score ??
+          subject?.max_score ??
           null,
 
         percentage:
@@ -2326,28 +2260,22 @@ async function loadGrades(
           r.remarks,
 
         exam_title:
-          exam?.title ??
-          null,
+          exam?.title ?? null,
 
         exam_type:
-          exam?.exam_type ??
-          null,
+          exam?.exam_type ?? null,
 
         exam_date:
-          exam?.exam_date ??
-          null,
+          exam?.exam_date ?? null,
 
         class_id:
-          exam?.class_id ??
-          null,
+          exam?.class_id ?? null,
 
         class_name:
-          classRow?.name ??
-          null,
+          classRow?.name ?? null,
 
         class_code:
-          classRow?.code ??
-          null,
+          classRow?.code ?? null,
 
         created_at:
           r.created_at
@@ -2357,43 +2285,14 @@ async function loadGrades(
     });
 
 
-  /*
-    STEP 7
-    Populate year selector.
-  */
+  /* -----------------------------------------
+     STEP 9
+     FILTER / RENDER
+  ----------------------------------------- */
 
   populateGradeYears();
 
-
-  /*
-    STEP 8
-    Render.
-  */
-
   applyGradeFilter();
-
-
-  /*
-    Diagnostic information.
-    Does not expose passwords or tokens.
-  */
-
-  console.info(
-    "GAAWOW Grades V8.2:",
-    {
-      publishedResults:
-        source.length,
-
-      subjectsLoaded:
-        subjectsMap.size,
-
-      examsLoaded:
-        examsMap.size,
-
-      classesLoaded:
-        classesMap.size
-    }
-  );
 
 }
 
@@ -2987,8 +2886,8 @@ async function load(){
 
     }catch(e){
 
-      console.error(
-        "GAAWOW RESULTS / GRADES ERROR",
+      console.warn(
+        "Results / Grades",
         e
       );
 
@@ -3000,33 +2899,9 @@ async function load(){
       populateGradeYears();
 
 
-      $("gradeTotalSubjects").textContent =
-        "0";
-
-      $("gradeAverage").textContent =
-        "—";
-
-      $("gradeHighest").textContent =
-        "—";
-
-      $("gradeLowest").textContent =
-        "—";
-
-      $("gradeOverall").textContent =
-        "—";
-
-
-      $("gradesBody").innerHTML = `
-        <tr>
-          <td colspan="8">
-            <div class="grade-error">
-              <strong>Grades could not be loaded.</strong>
-              <br>
-              ${esc(errText(e))}
-            </div>
-          </td>
-        </tr>
-      `;
+      renderGrades(
+        []
+      );
 
     }
 
