@@ -1,7 +1,25 @@
 /* =========================================================
    GAAWOW EMS
    TEACHER MANAGEMENT
-   teacher.js V4
+   teacher.js V5
+
+   Features:
+   - Super Admin only
+   - Teacher Auth creation
+   - profiles.email
+   - Institution
+   - Active / Inactive
+   - Search
+   - View
+   - Edit
+   - Delete via Edge Function
+   - Teacher photo upload
+   - Supabase Storage
+   ========================================================= */
+
+
+/* =========================================================
+   SUPABASE
    ========================================================= */
 
 const SUPABASE_URL =
@@ -10,13 +28,22 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
+
 const CREATE_TEACHER_FUNCTION_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co/functions/v1/create-teacher";
+  `${SUPABASE_URL}/functions/v1/create-teacher`;
 
 
-/* =========================================================
-   SUPABASE CLIENT
-   ========================================================= */
+const DELETE_TEACHER_FUNCTION_URL =
+  `${SUPABASE_URL}/functions/v1/delete-teacher`;
+
+
+const TEACHER_PHOTO_BUCKET =
+  "teacher-photos";
+
+
+const MAX_PHOTO_SIZE =
+  2 * 1024 * 1024;
+
 
 const supabaseClient =
   window.supabase.createClient(
@@ -26,14 +53,24 @@ const supabaseClient =
 
 
 /* =========================================================
-   GLOBAL STATE
+   STATE
    ========================================================= */
 
 let teachers = [];
+
 let institutions = [];
 
 let currentUser = null;
+
 let currentProfile = null;
+
+
+/* =========================================================
+   DEFAULT AVATAR
+   ========================================================= */
+
+const DEFAULT_AVATAR =
+  "https://via.placeholder.com/120?text=Teacher";
 
 
 /* =========================================================
@@ -48,50 +85,84 @@ document.addEventListener(
 
       await checkAccess();
 
+
       const searchInput =
-        document.getElementById("searchInput");
+        document.getElementById(
+          "searchInput"
+        );
+
 
       const institutionFilter =
         document.getElementById(
           "institutionFilter"
         );
 
+
       const statusFilter =
         document.getElementById(
           "statusFilter"
         );
+
 
       const teacherForm =
         document.getElementById(
           "teacherForm"
         );
 
+
+      const photoFile =
+        document.getElementById(
+          "photoFile"
+        );
+
+
       if (searchInput) {
+
         searchInput.addEventListener(
           "input",
           renderTeachers
         );
+
       }
 
+
       if (institutionFilter) {
+
         institutionFilter.addEventListener(
           "change",
           renderTeachers
         );
+
       }
 
+
       if (statusFilter) {
+
         statusFilter.addEventListener(
           "change",
           renderTeachers
         );
+
       }
 
+
       if (teacherForm) {
+
         teacherForm.addEventListener(
           "submit",
           saveTeacher
         );
+
+      }
+
+
+      if (photoFile) {
+
+        photoFile.addEventListener(
+          "change",
+          handlePhotoSelect
+        );
+
       }
 
     } catch (error) {
@@ -108,7 +179,7 @@ document.addEventListener(
 
 
 /* =========================================================
-   CHECK SUPER ADMIN ACCESS
+   ACCESS
    ========================================================= */
 
 async function checkAccess() {
@@ -130,7 +201,8 @@ async function checkAccess() {
       "Your login session has expired. Please login again."
     );
 
-    location.href = "index.html";
+    location.href =
+      "index.html";
 
     return;
   }
@@ -139,10 +211,6 @@ async function checkAccess() {
   currentUser =
     sessionData.session.user;
 
-
-  /* -----------------------------------------
-     LOAD CURRENT PROFILE
-     ----------------------------------------- */
 
   const {
     data: profile,
@@ -170,7 +238,7 @@ async function checkAccess() {
   if (error) {
 
     console.error(
-      "Current profile error:",
+      "Profile error:",
       error
     );
 
@@ -202,10 +270,6 @@ async function checkAccess() {
   currentProfile =
     profile;
 
-
-  /* -----------------------------------------
-     SUPER ADMIN ONLY
-     ----------------------------------------- */
 
   if (
     profile.role !==
@@ -240,10 +304,6 @@ async function checkAccess() {
   }
 
 
-  /* -----------------------------------------
-     LOAD DATA
-     ----------------------------------------- */
-
   await loadInstitutions();
 
   await loadTeachers();
@@ -251,7 +311,7 @@ async function checkAccess() {
 
 
 /* =========================================================
-   LOAD INSTITUTIONS
+   INSTITUTIONS
    ========================================================= */
 
 async function loadInstitutions() {
@@ -281,7 +341,7 @@ async function loadInstitutions() {
     );
 
     alert(
-      "Failed to load institutions.\n\n" +
+      "Failed to load institutions:\n\n" +
       error.message
     );
 
@@ -297,6 +357,7 @@ async function loadInstitutions() {
     document.getElementById(
       "institutionFilter"
     );
+
 
   const select =
     document.getElementById(
@@ -327,7 +388,7 @@ async function loadInstitutions() {
   institutions.forEach(
     institution => {
 
-      const safeName =
+      const name =
         escapeHtml(
           institution.name
         );
@@ -337,7 +398,7 @@ async function loadInstitutions() {
 
         filter.innerHTML +=
           `<option value="${institution.id}">
-             ${safeName}
+             ${name}
            </option>`;
 
       }
@@ -347,7 +408,7 @@ async function loadInstitutions() {
 
         select.innerHTML +=
           `<option value="${institution.id}">
-             ${safeName}
+             ${name}
            </option>`;
 
       }
@@ -374,11 +435,13 @@ async function loadTeachers() {
 
     tbody.innerHTML =
       `<tr>
-         <td colspan="7"
-             class="loading">
-           Loading teachers...
-         </td>
-       </tr>`;
+        <td
+          colspan="7"
+          class="loading"
+        >
+          Loading teachers...
+        </td>
+      </tr>`;
 
   }
 
@@ -414,7 +477,7 @@ async function loadTeachers() {
   if (error) {
 
     console.error(
-      "Teachers load error:",
+      "Teachers error:",
       error
     );
 
@@ -423,13 +486,15 @@ async function loadTeachers() {
 
       tbody.innerHTML =
         `<tr>
-           <td colspan="7"
-               class="empty">
-             Failed to load teachers.
-             <br><br>
-             ${escapeHtml(error.message)}
-           </td>
-         </tr>`;
+          <td
+            colspan="7"
+            class="empty"
+          >
+            Failed to load teachers.
+            <br><br>
+            ${escapeHtml(error.message)}
+          </td>
+        </tr>`;
 
     }
 
@@ -467,7 +532,7 @@ async function loadTeachers() {
 
 
 /* =========================================================
-   RENDER TEACHERS
+   RENDER
    ========================================================= */
 
 function renderTeachers() {
@@ -481,42 +546,29 @@ function renderTeachers() {
   if (!tbody) return;
 
 
-  const searchInput =
-    document.getElementById(
-      "searchInput"
-    );
-
-
-  const institutionFilter =
-    document.getElementById(
-      "institutionFilter"
-    );
-
-
-  const statusFilter =
-    document.getElementById(
-      "statusFilter"
-    );
-
-
   const search =
-    searchInput
-      ? searchInput.value
-          .toLowerCase()
-          .trim()
-      : "";
+    (
+      document.getElementById(
+        "searchInput"
+      )?.value ||
+      ""
+    )
+      .toLowerCase()
+      .trim();
 
 
   const institutionId =
-    institutionFilter
-      ? institutionFilter.value
-      : "";
+    document.getElementById(
+      "institutionFilter"
+    )?.value ||
+    "";
 
 
   const status =
-    statusFilter
-      ? statusFilter.value
-      : "";
+    document.getElementById(
+      "statusFilter"
+    )?.value ||
+    "";
 
 
   const filtered =
@@ -587,11 +639,13 @@ function renderTeachers() {
 
     tbody.innerHTML =
       `<tr>
-         <td colspan="7"
-             class="empty">
-           No teachers found.
-         </td>
-       </tr>`;
+        <td
+          colspan="7"
+          class="empty"
+        >
+          No teachers found.
+        </td>
+      </tr>`;
 
     return;
   }
@@ -601,6 +655,11 @@ function renderTeachers() {
     filtered
       .map(
         (teacher, index) => {
+
+          const avatar =
+            teacher.avatar_url ||
+            DEFAULT_AVATAR;
+
 
           const statusClass =
             teacher.is_active
@@ -614,16 +673,6 @@ function renderTeachers() {
               : "Inactive";
 
 
-          const teacherName =
-            teacher.full_name ||
-            "Unnamed Teacher";
-
-
-          const email =
-            teacher.email ||
-            "Email not set";
-
-
           return `
             <tr>
 
@@ -632,24 +681,42 @@ function renderTeachers() {
               </td>
 
               <td>
-                <strong>
-                  ${escapeHtml(
-                    teacherName
-                  )}
-                </strong>
 
-                <div style="
-                  font-size:12px;
-                  color:#777;
-                  margin-top:3px;
-                ">
-                  ${escapeHtml(email)}
+                <div class="teacher-cell">
+
+                  <img
+                    class="teacher-photo"
+                    src="${escapeHtml(avatar)}"
+                    alt="Teacher"
+                    onerror="this.src='${DEFAULT_AVATAR}'"
+                  >
+
+                  <div>
+
+                    <div class="teacher-name">
+                      ${escapeHtml(
+                        teacher.full_name ||
+                        "Unnamed Teacher"
+                      )}
+                    </div>
+
+                    <div class="teacher-email">
+                      ${escapeHtml(
+                        teacher.email ||
+                        "Email not set"
+                      )}
+                    </div>
+
+                  </div>
+
                 </div>
+
               </td>
 
               <td>
                 ${escapeHtml(
-                  teacher.phone || "—"
+                  teacher.phone ||
+                  "—"
                 )}
               </td>
 
@@ -665,9 +732,13 @@ function renderTeachers() {
               </td>
 
               <td>
-                <span class="status ${statusClass}">
+
+                <span
+                  class="status ${statusClass}"
+                >
                   ${statusText}
                 </span>
+
               </td>
 
               <td>
@@ -729,20 +800,17 @@ function renderTeachers() {
 
 function openAddTeacher() {
 
-  const form =
-    document.getElementById(
+  document
+    .getElementById(
       "teacherForm"
-    );
-
-
-  if (form) {
-    form.reset();
-  }
+    )
+    ?.reset();
 
 
   document.getElementById(
     "editId"
-  ).value = "";
+  ).value =
+    "";
 
 
   document.getElementById(
@@ -763,18 +831,16 @@ function openAddTeacher() {
     );
 
 
-  if (email) {
+  email.disabled =
+    false;
 
-    email.disabled =
-      false;
 
-    email.readOnly =
-      false;
+  email.readOnly =
+    false;
 
-    email.required =
-      true;
 
-  }
+  email.required =
+    true;
 
 
   const password =
@@ -783,28 +849,21 @@ function openAddTeacher() {
     );
 
 
-  if (password) {
-
-    password.value = "";
-
-    password.required =
-      true;
-
-  }
+  password.value =
+    "";
 
 
-  const status =
-    document.getElementById(
-      "isActive"
-    );
+  password.required =
+    true;
 
 
-  if (status) {
+  document.getElementById(
+    "isActive"
+  ).value =
+    "true";
 
-    status.value =
-      "true";
 
-  }
+  resetPhoto();
 
 
   document.getElementById(
@@ -816,21 +875,341 @@ function openAddTeacher() {
 
 
 /* =========================================================
-   CLOSE TEACHER MODAL
+   CLOSE
    ========================================================= */
 
 function closeTeacherModal() {
 
-  const modal =
+  document.getElementById(
+    "teacherModal"
+  )?.classList.remove(
+    "show"
+  );
+
+}
+
+
+/* =========================================================
+   PHOTO SELECT
+   ========================================================= */
+
+function handlePhotoSelect(event) {
+
+  const file =
+    event.target.files?.[0];
+
+
+  if (!file) {
+    return;
+  }
+
+
+  const status =
     document.getElementById(
-      "teacherModal"
+      "uploadStatus"
     );
 
 
-  if (modal) {
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+  ];
 
-    modal.classList.remove(
-      "show"
+
+  if (
+    !allowedTypes.includes(
+      file.type
+    )
+  ) {
+
+    alert(
+      "Invalid image type.\n\n" +
+      "Please choose JPG, PNG or WEBP."
+    );
+
+
+    event.target.value =
+      "";
+
+
+    return;
+  }
+
+
+  if (
+    file.size >
+    MAX_PHOTO_SIZE
+  ) {
+
+    alert(
+      "Image is too large.\n\n" +
+      "Maximum allowed size is 2 MB."
+    );
+
+
+    event.target.value =
+      "";
+
+
+    return;
+  }
+
+
+  const reader =
+    new FileReader();
+
+
+  reader.onload =
+    function () {
+
+      document.getElementById(
+        "photoPreview"
+      ).src =
+        reader.result;
+
+    };
+
+
+  reader.readAsDataURL(
+    file
+  );
+
+
+  if (status) {
+
+    status.textContent =
+      `Selected: ${file.name}`;
+
+    status.style.color =
+      "#0b4da2";
+
+  }
+
+}
+
+
+/* =========================================================
+   UPLOAD PHOTO
+   ========================================================= */
+
+async function uploadTeacherPhoto(
+  file,
+  teacherId
+) {
+
+  if (!file) {
+    return null;
+  }
+
+
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+  ];
+
+
+  if (
+    !allowedTypes.includes(
+      file.type
+    )
+  ) {
+
+    throw new Error(
+      "Only JPG, PNG and WEBP images are allowed."
+    );
+
+  }
+
+
+  if (
+    file.size >
+    MAX_PHOTO_SIZE
+  ) {
+
+    throw new Error(
+      "Teacher photo must be 2 MB or smaller."
+    );
+
+  }
+
+
+  const extension =
+    getFileExtension(
+      file.name,
+      file.type
+    );
+
+
+  const safeTeacherId =
+    String(
+      teacherId
+    ).replace(
+      /[^a-zA-Z0-9_-]/g,
+      ""
+    );
+
+
+  const uniquePart =
+    `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 10)}`;
+
+
+  const filePath =
+    `${safeTeacherId}/${uniquePart}.${extension}`;
+
+
+  const status =
+    document.getElementById(
+      "uploadStatus"
+    );
+
+
+  if (status) {
+
+    status.textContent =
+      "Uploading photo...";
+
+    status.style.color =
+      "#0b4da2";
+
+  }
+
+
+  const {
+    error
+  } =
+    await supabaseClient
+      .storage
+      .from(
+        TEACHER_PHOTO_BUCKET
+      )
+      .upload(
+        filePath,
+        file,
+        {
+          cacheControl:
+            "3600",
+
+          upsert:
+            false,
+
+          contentType:
+            file.type
+        }
+      );
+
+
+  if (error) {
+    throw error;
+  }
+
+
+  const {
+    data
+  } =
+    supabaseClient
+      .storage
+      .from(
+        TEACHER_PHOTO_BUCKET
+      )
+      .getPublicUrl(
+        filePath
+      );
+
+
+  const publicUrl =
+    data?.publicUrl;
+
+
+  if (!publicUrl) {
+
+    throw new Error(
+      "Photo uploaded, but public URL could not be generated."
+    );
+
+  }
+
+
+  if (status) {
+
+    status.textContent =
+      "Photo uploaded successfully.";
+
+    status.style.color =
+      "#16834b";
+
+  }
+
+
+  return publicUrl;
+}
+
+
+/* =========================================================
+   DELETE OLD PHOTO
+   ========================================================= */
+
+async function deleteOldTeacherPhoto(
+  avatarUrl
+) {
+
+  if (!avatarUrl) {
+    return;
+  }
+
+
+  try {
+
+    const marker =
+      `/storage/v1/object/public/${TEACHER_PHOTO_BUCKET}/`;
+
+
+    const position =
+      avatarUrl.indexOf(
+        marker
+      );
+
+
+    if (
+      position === -1
+    ) {
+
+      return;
+
+    }
+
+
+    const filePath =
+      decodeURIComponent(
+        avatarUrl.substring(
+          position +
+          marker.length
+        )
+      );
+
+
+    if (!filePath) {
+      return;
+    }
+
+
+    await supabaseClient
+      .storage
+      .from(
+        TEACHER_PHOTO_BUCKET
+      )
+      .remove([
+        filePath
+      ]);
+
+  } catch (error) {
+
+    console.warn(
+      "Old teacher photo cleanup failed:",
+      error
     );
 
   }
@@ -840,10 +1219,11 @@ function closeTeacherModal() {
 
 /* =========================================================
    SAVE TEACHER
-   CREATE / UPDATE
    ========================================================= */
 
-async function saveTeacher(event) {
+async function saveTeacher(
+  event
+) {
 
   event.preventDefault();
 
@@ -873,21 +1253,15 @@ async function saveTeacher(event) {
       .toLowerCase();
 
 
-  const phone =
-    document.getElementById(
-      "phone"
-    ).value.trim();
-
-
   const password =
     document.getElementById(
       "password"
     ).value;
 
 
-  const avatarUrl =
+  const phone =
     document.getElementById(
-      "avatarUrl"
+      "phone"
     ).value.trim();
 
 
@@ -900,7 +1274,19 @@ async function saveTeacher(event) {
   const isActive =
     document.getElementById(
       "isActive"
-    ).value === "true";
+    ).value ===
+    "true";
+
+
+  const photoInput =
+    document.getElementById(
+      "photoFile"
+    );
+
+
+  const selectedPhoto =
+    photoInput?.files?.[0] ||
+    null;
 
 
   /* -----------------------------------------
@@ -917,7 +1303,10 @@ async function saveTeacher(event) {
   }
 
 
-  if (!editId && !email) {
+  if (
+    !editId &&
+    !email
+  ) {
 
     alert(
       "Please enter teacher email."
@@ -940,7 +1329,10 @@ async function saveTeacher(event) {
   }
 
 
-  if (!editId && !password) {
+  if (
+    !editId &&
+    !password
+  ) {
 
     alert(
       "Please enter teacher password."
@@ -973,10 +1365,6 @@ async function saveTeacher(event) {
   }
 
 
-  /* -----------------------------------------
-     DISABLE BUTTON
-     ----------------------------------------- */
-
   saveBtn.disabled =
     true;
 
@@ -990,50 +1378,227 @@ async function saveTeacher(event) {
   try {
 
     /* =====================================================
-       UPDATE EXISTING TEACHER
+       CREATE
        ===================================================== */
 
-    if (editId) {
+    if (!editId) {
 
       const {
-        error
+        data: sessionData,
+        error: sessionError
       } =
         await supabaseClient
-          .from("profiles")
-          .update({
+          .auth
+          .getSession();
 
-            full_name:
-              fullName,
 
-            phone:
-              phone || null,
+      if (
+        sessionError ||
+        !sessionData?.session
+      ) {
 
-            avatar_url:
-              avatarUrl || null,
+        throw new Error(
+          "Your Super Admin session has expired. Please login again."
+        );
 
-            institution_id:
-              institutionId,
+      }
 
-            is_active:
-              isActive,
 
-            updated_at:
-              new Date().toISOString()
+      const accessToken =
+        sessionData
+          .session
+          .access_token;
 
-          })
-          .eq(
-            "id",
-            editId
+
+      /* -----------------------------------------
+         CREATE AUTH + PROFILE
+         ----------------------------------------- */
+
+      const response =
+        await fetch(
+          CREATE_TEACHER_FUNCTION_URL,
+          {
+
+            method:
+              "POST",
+
+            headers: {
+
+              "Content-Type":
+                "application/json",
+
+              "Authorization":
+                `Bearer ${accessToken}`,
+
+              "apikey":
+                SUPABASE_KEY
+
+            },
+
+            body:
+              JSON.stringify({
+
+                email:
+                  email,
+
+                password:
+                  password,
+
+                full_name:
+                  fullName,
+
+                phone:
+                  phone ||
+                  null,
+
+                avatar_url:
+                  null,
+
+                institution_id:
+                  institutionId,
+
+                is_active:
+                  isActive
+
+              })
+
+          }
+        );
+
+
+      let result =
+        null;
+
+
+      try {
+
+        result =
+          await response.json();
+
+      } catch {
+
+        result =
+          null;
+
+      }
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          result?.error ||
+          result?.message ||
+          `Create Teacher failed. HTTP ${response.status}`
+        );
+
+      }
+
+
+      if (
+        result?.success === false
+      ) {
+
+        throw new Error(
+          result.error ||
+          "Teacher creation failed."
+        );
+
+      }
+
+
+      const newTeacherId =
+        result?.teacher?.id;
+
+
+      /*
+       * IMPORTANT:
+       * Upload photo AFTER Auth/Profile creation.
+       * This gives us the teacher UUID for the
+       * storage folder.
+       */
+
+      if (
+        selectedPhoto &&
+        newTeacherId
+      ) {
+
+        try {
+
+          const photoUrl =
+            await uploadTeacherPhoto(
+              selectedPhoto,
+              newTeacherId
+            );
+
+
+          const {
+            error:
+              photoDbError
+          } =
+            await supabaseClient
+              .from(
+                "profiles"
+              )
+              .update({
+                avatar_url:
+                  photoUrl,
+
+                updated_at:
+                  new Date()
+                    .toISOString()
+              })
+              .eq(
+                "id",
+                newTeacherId
+              );
+
+
+          if (
+            photoDbError
+          ) {
+
+            /*
+             * Profile exists.
+             * Photo uploaded.
+             * URL failed to save.
+             *
+             * Do not delete the teacher.
+             */
+
+            console.error(
+              "Saving avatar URL failed:",
+              photoDbError
+            );
+
+            alert(
+              "Teacher account was created, but the photo URL could not be saved.\n\n" +
+              photoDbError.message
+            );
+
+          }
+
+        } catch (
+          photoError
+        ) {
+
+          console.error(
+            "Teacher photo upload error:",
+            photoError
           );
 
 
-      if (error) {
-        throw error;
+          alert(
+            "Teacher account was created, but the photo upload failed.\n\n" +
+            photoError.message
+          );
+
+        }
+
       }
 
 
       alert(
-        "Teacher profile updated successfully!"
+        "Teacher account created successfully!"
       );
 
 
@@ -1048,127 +1613,125 @@ async function saveTeacher(event) {
 
 
     /* =====================================================
-       CREATE NEW TEACHER
+       UPDATE EXISTING TEACHER
        ===================================================== */
 
-    const {
-      data: sessionData,
-      error: sessionError
-    } =
-      await supabaseClient.auth.getSession();
+    const existingTeacher =
+      teachers.find(
+        item =>
+          item.id ===
+          editId
+      );
 
 
-    if (
-      sessionError ||
-      !sessionData ||
-      !sessionData.session
-    ) {
+    if (!existingTeacher) {
 
       throw new Error(
-        "Your Super Admin session has expired. Please login again."
+        "Existing teacher record could not be found."
       );
 
     }
 
 
-    const accessToken =
-      sessionData.session.access_token;
-
-
-    const response =
-      await fetch(
-        CREATE_TEACHER_FUNCTION_URL,
-        {
-          method: "POST",
-
-          headers: {
-
-            "Content-Type":
-              "application/json",
-
-            "Authorization":
-              `Bearer ${accessToken}`,
-
-            "apikey":
-              SUPABASE_KEY
-
-          },
-
-          body:
-            JSON.stringify({
-
-              email:
-                email,
-
-              password:
-                password,
-
-              full_name:
-                fullName,
-
-              phone:
-                phone || null,
-
-              avatar_url:
-                avatarUrl || null,
-
-              institution_id:
-                institutionId,
-
-              is_active:
-                isActive
-
-            })
-
-        }
-      );
-
-
-    let resultData =
+    let newPhotoUrl =
+      existingTeacher.avatar_url ||
       null;
 
 
-    try {
+    /* -----------------------------------------
+       UPLOAD NEW PHOTO IF SELECTED
+       ----------------------------------------- */
 
-      resultData =
-        await response.json();
+    if (selectedPhoto) {
 
-    } catch {
-
-      resultData =
-        null;
+      newPhotoUrl =
+        await uploadTeacherPhoto(
+          selectedPhoto,
+          editId
+        );
 
     }
 
 
-    if (!response.ok) {
+    /* -----------------------------------------
+       UPDATE PROFILE
+       ----------------------------------------- */
 
-      const message =
-        resultData?.error ||
-        resultData?.message ||
-        `Create Teacher failed. HTTP ${response.status}`;
+    const {
+      error:
+        updateError
+    } =
+      await supabaseClient
+        .from(
+          "profiles"
+        )
+        .update({
 
-      throw new Error(
-        message
-      );
+          full_name:
+            fullName,
+
+          phone:
+            phone ||
+            null,
+
+          avatar_url:
+            newPhotoUrl,
+
+          institution_id:
+            institutionId,
+
+          is_active:
+            isActive,
+
+          updated_at:
+            new Date()
+              .toISOString()
+
+        })
+        .eq(
+          "id",
+          editId
+        )
+        .eq(
+          "role",
+          "teacher"
+        );
+
+
+    if (updateError) {
+
+      /*
+       * If a new photo was uploaded but profile
+       * update failed, we intentionally do not
+       * delete the old photo automatically.
+       */
+
+      throw updateError;
+
     }
 
+
+    /* -----------------------------------------
+       DELETE OLD PHOTO
+       AFTER DB UPDATE SUCCESS
+       ----------------------------------------- */
 
     if (
-      resultData &&
-      resultData.success === false
+      selectedPhoto &&
+      existingTeacher.avatar_url &&
+      newPhotoUrl !==
+        existingTeacher.avatar_url
     ) {
 
-      throw new Error(
-        resultData.error ||
-        "Teacher creation failed."
+      await deleteOldTeacherPhoto(
+        existingTeacher.avatar_url
       );
 
     }
 
 
     alert(
-      "Teacher account created successfully!"
+      "Teacher profile updated successfully!"
     );
 
 
@@ -1194,7 +1757,6 @@ async function saveTeacher(event) {
       )
     );
 
-
   } finally {
 
     saveBtn.disabled =
@@ -1215,7 +1777,9 @@ async function saveTeacher(event) {
    EDIT TEACHER
    ========================================================= */
 
-function editTeacher(id) {
+function editTeacher(
+  id
+) {
 
   const teacher =
     teachers.find(
@@ -1243,14 +1807,12 @@ function editTeacher(id) {
   document.getElementById(
     "fullName"
   ).value =
-    teacher.full_name || "";
+    teacher.full_name ||
+    "";
 
 
   /* -----------------------------------------
      EMAIL
-     -----------------------------------------
-     Email is displayed from profiles.email.
-     Auth email is not changed from client side.
      ----------------------------------------- */
 
   const email =
@@ -1259,21 +1821,21 @@ function editTeacher(id) {
     );
 
 
-  if (email) {
+  email.value =
+    teacher.email ||
+    "";
 
-    email.value =
-      teacher.email || "";
 
-    email.disabled =
-      true;
+  email.disabled =
+    true;
 
-    email.readOnly =
-      true;
 
-    email.required =
-      false;
+  email.readOnly =
+    true;
 
-  }
+
+  email.required =
+    false;
 
 
   /* -----------------------------------------
@@ -1286,15 +1848,16 @@ function editTeacher(id) {
     );
 
 
-  if (password) {
+  password.value =
+    "";
 
-    password.value =
-      "";
 
-    password.required =
-      false;
+  password.required =
+    false;
 
-  }
+
+  password.placeholder =
+    "Leave empty to keep current password";
 
 
   /* -----------------------------------------
@@ -1304,19 +1867,15 @@ function editTeacher(id) {
   document.getElementById(
     "phone"
   ).value =
-    teacher.phone || "";
-
-
-  document.getElementById(
-    "avatarUrl"
-  ).value =
-    teacher.avatar_url || "";
+    teacher.phone ||
+    "";
 
 
   document.getElementById(
     "institutionId"
   ).value =
-    teacher.institution_id || "";
+    teacher.institution_id ||
+    "";
 
 
   document.getElementById(
@@ -1326,6 +1885,41 @@ function editTeacher(id) {
       ? "true"
       : "false";
 
+
+  /* -----------------------------------------
+     PHOTO
+     ----------------------------------------- */
+
+  document.getElementById(
+    "photoPreview"
+  ).src =
+    teacher.avatar_url ||
+    DEFAULT_AVATAR;
+
+
+  document.getElementById(
+    "photoFile"
+  ).value =
+    "";
+
+
+  document.getElementById(
+    "uploadStatus"
+  ).textContent =
+    teacher.avatar_url
+      ? "Current photo"
+      : "No photo uploaded";
+
+
+  document.getElementById(
+    "uploadStatus"
+  ).style.color =
+    "#777";
+
+
+  /* -----------------------------------------
+     MODAL
+     ----------------------------------------- */
 
   document.getElementById(
     "modalTitle"
@@ -1352,7 +1946,9 @@ function editTeacher(id) {
    VIEW TEACHER
    ========================================================= */
 
-function viewTeacher(id) {
+function viewTeacher(
+  id
+) {
 
   const teacher =
     teachers.find(
@@ -1373,30 +1969,16 @@ function viewTeacher(id) {
 
   const avatar =
     teacher.avatar_url ||
-    "https://via.placeholder.com/100";
+    DEFAULT_AVATAR;
 
 
-  const email =
-    teacher.email ||
-    "Not provided";
-
-
-  const status =
-    teacher.is_active
-      ? "Active"
-      : "Inactive";
-
-
-  const viewContent =
+  const content =
     document.getElementById(
       "viewContent"
     );
 
 
-  if (!viewContent) return;
-
-
-  viewContent.innerHTML = `
+  content.innerHTML = `
 
     <div class="profile-box">
 
@@ -1404,7 +1986,7 @@ function viewTeacher(id) {
         class="avatar"
         src="${escapeHtml(avatar)}"
         alt="Teacher"
-        onerror="this.src='https://via.placeholder.com/100'"
+        onerror="this.src='${DEFAULT_AVATAR}'"
       >
 
       <div>
@@ -1418,7 +2000,10 @@ function viewTeacher(id) {
 
         <div class="detail">
           <strong>Email:</strong>
-          ${escapeHtml(email)}
+          ${escapeHtml(
+            teacher.email ||
+            "Not provided"
+          )}
         </div>
 
         <div class="detail">
@@ -1451,7 +2036,11 @@ function viewTeacher(id) {
 
         <div class="detail">
           <strong>Status:</strong>
-          ${status}
+          ${
+            teacher.is_active
+              ? "Active"
+              : "Inactive"
+          }
         </div>
 
       </div>
@@ -1471,33 +2060,27 @@ function viewTeacher(id) {
 
 
 /* =========================================================
-   CLOSE VIEW MODAL
+   CLOSE VIEW
    ========================================================= */
 
 function closeViewModal() {
 
-  const modal =
-    document.getElementById(
-      "viewModal"
-    );
-
-
-  if (modal) {
-
-    modal.classList.remove(
-      "show"
-    );
-
-  }
+  document.getElementById(
+    "viewModal"
+  )?.classList.remove(
+    "show"
+  );
 
 }
 
 
 /* =========================================================
-   TOGGLE TEACHER STATUS
+   TOGGLE STATUS
    ========================================================= */
 
-async function toggleTeacher(id) {
+async function toggleTeacher(
+  id
+) {
 
   const teacher =
     teachers.find(
@@ -1544,19 +2127,26 @@ async function toggleTeacher(id) {
       error
     } =
       await supabaseClient
-        .from("profiles")
+        .from(
+          "profiles"
+        )
         .update({
 
           is_active:
             newStatus,
 
           updated_at:
-            new Date().toISOString()
+            new Date()
+              .toISOString()
 
         })
         .eq(
           "id",
           id
+        )
+        .eq(
+          "role",
+          "teacher"
         );
 
 
@@ -1594,10 +2184,13 @@ async function toggleTeacher(id) {
 
 
 /* =========================================================
-   DELETE TEACHER PROFILE
+   DELETE TEACHER
+   Uses delete-teacher Edge Function
    ========================================================= */
 
-async function deleteTeacher(id) {
+async function deleteTeacher(
+  id
+) {
 
   const teacher =
     teachers.find(
@@ -1618,11 +2211,31 @@ async function deleteTeacher(id) {
 
   const confirmed =
     confirm(
-      "WARNING\n\n" +
-      "This will delete the teacher profile.\n\n" +
-      `Teacher: ${teacher.full_name || ""}\n` +
-      `Email: ${teacher.email || ""}\n\n` +
-      "Do you want to continue?"
+
+      "⚠️ DELETE TEACHER\n\n" +
+
+      "Teacher: " +
+      (
+        teacher.full_name ||
+        "Unnamed Teacher"
+      ) +
+
+      "\nEmail: " +
+      (
+        teacher.email ||
+        "No email"
+      ) +
+
+      "\n\nThis will permanently delete:\n" +
+
+      "• Teacher Profile\n" +
+
+      "• Supabase Auth Account\n\n" +
+
+      "This action cannot be undone.\n\n" +
+
+      "Continue?"
+
     );
 
 
@@ -1634,24 +2247,107 @@ async function deleteTeacher(id) {
   try {
 
     const {
-      error
+      data: sessionData,
+      error: sessionError
     } =
       await supabaseClient
-        .from("profiles")
-        .delete()
-        .eq(
-          "id",
-          id
-        );
+        .auth
+        .getSession();
 
 
-    if (error) {
-      throw error;
+    if (
+      sessionError ||
+      !sessionData?.session
+    ) {
+
+      throw new Error(
+        "Your Super Admin session has expired. Please login again."
+      );
+
+    }
+
+
+    const accessToken =
+      sessionData
+        .session
+        .access_token;
+
+
+    const response =
+      await fetch(
+        DELETE_TEACHER_FUNCTION_URL,
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              `Bearer ${accessToken}`,
+
+            "apikey":
+              SUPABASE_KEY
+
+          },
+
+          body:
+            JSON.stringify({
+
+              teacher_id:
+                id
+
+            })
+
+        }
+      );
+
+
+    let result =
+      null;
+
+
+    try {
+
+      result =
+        await response.json();
+
+    } catch {
+
+      result =
+        null;
+
+    }
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        result?.error ||
+        result?.message ||
+        `Delete Teacher failed. HTTP ${response.status}`
+      );
+
+    }
+
+
+    if (
+      result?.success !== true
+    ) {
+
+      throw new Error(
+        result?.error ||
+        "Teacher deletion failed."
+      );
+
     }
 
 
     alert(
-      "Teacher profile deleted successfully."
+      "Teacher profile and Auth account deleted successfully."
     );
 
 
@@ -1661,14 +2357,17 @@ async function deleteTeacher(id) {
   } catch (error) {
 
     console.error(
-      "Delete teacher error:",
+      "Delete Teacher Error:",
       error
     );
 
 
     alert(
       "Failed to delete teacher:\n\n" +
-      error.message
+      (
+        error?.message ||
+        "Unknown error"
+      )
     );
 
   }
@@ -1677,10 +2376,137 @@ async function deleteTeacher(id) {
 
 
 /* =========================================================
+   RESET PHOTO
+   ========================================================= */
+
+function resetPhoto() {
+
+  const preview =
+    document.getElementById(
+      "photoPreview"
+    );
+
+
+  const input =
+    document.getElementById(
+      "photoFile"
+    );
+
+
+  const status =
+    document.getElementById(
+      "uploadStatus"
+    );
+
+
+  if (preview) {
+
+    preview.src =
+      DEFAULT_AVATAR;
+
+  }
+
+
+  if (input) {
+
+    input.value =
+      "";
+
+  }
+
+
+  if (status) {
+
+    status.textContent =
+      "No photo selected.";
+
+    status.style.color =
+      "#777";
+
+  }
+
+}
+
+
+/* =========================================================
+   FILE EXTENSION
+   ========================================================= */
+
+function getFileExtension(
+  filename,
+  mimeType
+) {
+
+  const name =
+    String(
+      filename || ""
+    );
+
+
+  const dot =
+    name.lastIndexOf(
+      "."
+    );
+
+
+  if (
+    dot !== -1 &&
+    dot <
+      name.length - 1
+  ) {
+
+    const ext =
+      name
+        .substring(dot + 1)
+        .toLowerCase();
+
+
+    if (
+      ["jpg", "jpeg", "png", "webp"]
+        .includes(ext)
+    ) {
+
+      return ext ===
+        "jpeg"
+        ? "jpg"
+        : ext;
+
+    }
+
+  }
+
+
+  if (
+    mimeType ===
+    "image/png"
+  ) {
+
+    return "png";
+
+  }
+
+
+  if (
+    mimeType ===
+    "image/webp"
+  ) {
+
+    return "webp";
+
+  }
+
+
+  return "jpg";
+}
+
+
+/* =========================================================
    EMAIL VALIDATION
    ========================================================= */
 
-function isValidEmail(email) {
+function isValidEmail(
+  email
+) {
 
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     .test(email);
@@ -1692,7 +2518,9 @@ function isValidEmail(email) {
    ESCAPE HTML
    ========================================================= */
 
-function escapeHtml(value) {
+function escapeHtml(
+  value
+) {
 
   return String(
     value ?? ""
@@ -1722,7 +2550,7 @@ function escapeHtml(value) {
 
 
 /* =========================================================
-   MODAL OUTSIDE CLICK
+   OUTSIDE MODAL CLICK
    ========================================================= */
 
 document.addEventListener(
@@ -1753,34 +2581,23 @@ document.addEventListener(
 
 
 /* =========================================================
-   PASSWORD SHOW / HIDE
-   Supports existing HTML password toggle button
+   ESC KEY
    ========================================================= */
 
-function togglePassword() {
+document.addEventListener(
+  "keydown",
+  event => {
 
-  const password =
-    document.getElementById(
-      "password"
-    );
+    if (
+      event.key ===
+      "Escape"
+    ) {
 
+      closeTeacherModal();
 
-  if (!password) return;
+      closeViewModal();
 
-
-  if (
-    password.type ===
-    "password"
-  ) {
-
-    password.type =
-      "text";
-
-  } else {
-
-    password.type =
-      "password";
+    }
 
   }
-
-}
+);
