@@ -1,5 +1,5 @@
 /* =========================================================
-   GAAWOW EMS — TEACHER MANAGEMENT V6.2
+   GAAWOW EMS — TEACHER MANAGEMENT V6.3
    Fix: Teacher page stuck on "Loading teachers..."
    Keeps Teacher Photo / Storage functionality.
    ========================================================= */
@@ -50,6 +50,16 @@ window.addEventListener("unhandledrejection", event => {
 
 function $(id) {
   return document.getElementById(id);
+}
+
+/* Admin navigation is intentionally kept inside the Teacher module.
+   It never changes authentication or removes any existing feature. */
+function goToAdmin() {
+  window.location.href = "super-admin.html";
+}
+
+function goToDashboard() {
+  window.location.href = "dashboard.html";
 }
 
 function escapeHtml(value) {
@@ -780,6 +790,8 @@ function setupEvents() {
   });
 }
 
+window.goToAdmin = goToAdmin;
+window.goToDashboard = goToDashboard;
 window.openAddTeacher = openAddTeacher;
 window.closeTeacherModal = closeTeacherModal;
 window.closeViewModal = closeViewModal;
