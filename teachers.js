@@ -1,3 +1,9 @@
+/* =========================================================
+   GAAWOW EMS
+   TEACHER MANAGEMENT
+   teacher.js V4
+   ========================================================= */
+
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
@@ -7,11 +13,21 @@ const SUPABASE_KEY =
 const CREATE_TEACHER_FUNCTION_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co/functions/v1/create-teacher";
 
+
+/* =========================================================
+   SUPABASE CLIENT
+   ========================================================= */
+
 const supabaseClient =
   window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
   );
+
+
+/* =========================================================
+   GLOBAL STATE
+   ========================================================= */
 
 let teachers = [];
 let institutions = [];
@@ -20,50 +36,80 @@ let currentUser = null;
 let currentProfile = null;
 
 
-/* ================================
-   START
-================================ */
+/* =========================================================
+   DOM READY
+   ========================================================= */
 
 document.addEventListener(
   "DOMContentLoaded",
   async () => {
 
-    await checkAccess();
+    try {
 
-    document
-      .getElementById("searchInput")
-      .addEventListener(
-        "input",
-        renderTeachers
+      await checkAccess();
+
+      const searchInput =
+        document.getElementById("searchInput");
+
+      const institutionFilter =
+        document.getElementById(
+          "institutionFilter"
+        );
+
+      const statusFilter =
+        document.getElementById(
+          "statusFilter"
+        );
+
+      const teacherForm =
+        document.getElementById(
+          "teacherForm"
+        );
+
+      if (searchInput) {
+        searchInput.addEventListener(
+          "input",
+          renderTeachers
+        );
+      }
+
+      if (institutionFilter) {
+        institutionFilter.addEventListener(
+          "change",
+          renderTeachers
+        );
+      }
+
+      if (statusFilter) {
+        statusFilter.addEventListener(
+          "change",
+          renderTeachers
+        );
+      }
+
+      if (teacherForm) {
+        teacherForm.addEventListener(
+          "submit",
+          saveTeacher
+        );
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Teacher page initialization error:",
+        error
       );
 
-    document
-      .getElementById("institutionFilter")
-      .addEventListener(
-        "change",
-        renderTeachers
-      );
+    }
 
-    document
-      .getElementById("statusFilter")
-      .addEventListener(
-        "change",
-        renderTeachers
-      );
-
-    document
-      .getElementById("teacherForm")
-      .addEventListener(
-        "submit",
-        saveTeacher
-      );
   }
 );
 
 
-/* ================================
-   CHECK SUPER ADMIN
-================================ */
+/* =========================================================
+   CHECK SUPER ADMIN ACCESS
+   ========================================================= */
 
 async function checkAccess() {
 
@@ -73,16 +119,30 @@ async function checkAccess() {
   } =
     await supabaseClient.auth.getSession();
 
+
   if (
     sessionError ||
+    !sessionData ||
     !sessionData.session
   ) {
+
+    alert(
+      "Your login session has expired. Please login again."
+    );
+
     location.href = "index.html";
+
     return;
   }
 
+
   currentUser =
     sessionData.session.user;
+
+
+  /* -----------------------------------------
+     LOAD CURRENT PROFILE
+     ----------------------------------------- */
 
   const {
     data: profile,
@@ -90,16 +150,43 @@ async function checkAccess() {
   } =
     await supabaseClient
       .from("profiles")
-      .select(
-        "id,full_name,phone,avatar_url,role,institution_id,is_active"
-      )
+      .select(`
+        id,
+        full_name,
+        email,
+        phone,
+        avatar_url,
+        role,
+        institution_id,
+        is_active
+      `)
       .eq(
         "id",
         currentUser.id
       )
-      .single();
+      .maybeSingle();
 
-  if (error || !profile) {
+
+  if (error) {
+
+    console.error(
+      "Current profile error:",
+      error
+    );
+
+    alert(
+      "Unable to verify your profile.\n\n" +
+      error.message
+    );
+
+    location.href =
+      "dashboard.html";
+
+    return;
+  }
+
+
+  if (!profile) {
 
     alert(
       "Profile not found."
@@ -111,7 +198,14 @@ async function checkAccess() {
     return;
   }
 
-  currentProfile = profile;
+
+  currentProfile =
+    profile;
+
+
+  /* -----------------------------------------
+     SUPER ADMIN ONLY
+     ----------------------------------------- */
 
   if (
     profile.role !==
@@ -119,7 +213,7 @@ async function checkAccess() {
   ) {
 
     alert(
-      "Access denied. Super Admin only."
+      "Access denied.\n\nSuper Admin only."
     );
 
     location.href =
@@ -128,15 +222,37 @@ async function checkAccess() {
     return;
   }
 
+
+  if (
+    profile.is_active === false
+  ) {
+
+    alert(
+      "Your account is inactive."
+    );
+
+    await supabaseClient.auth.signOut();
+
+    location.href =
+      "index.html";
+
+    return;
+  }
+
+
+  /* -----------------------------------------
+     LOAD DATA
+     ----------------------------------------- */
+
   await loadInstitutions();
 
   await loadTeachers();
 }
 
 
-/* ================================
+/* =========================================================
    LOAD INSTITUTIONS
-================================ */
+   ========================================================= */
 
 async function loadInstitutions() {
 
@@ -146,7 +262,9 @@ async function loadInstitutions() {
   } =
     await supabaseClient
       .from("institutions")
-      .select("id,name")
+      .select(
+        "id,name"
+      )
       .order(
         "name",
         {
@@ -154,20 +272,26 @@ async function loadInstitutions() {
         }
       );
 
+
   if (error) {
 
-    console.error(error);
+    console.error(
+      "Institutions error:",
+      error
+    );
 
     alert(
-      "Failed to load institutions:\n\n" +
+      "Failed to load institutions.\n\n" +
       error.message
     );
 
     return;
   }
 
+
   institutions =
     data || [];
+
 
   const filter =
     document.getElementById(
@@ -179,34 +303,64 @@ async function loadInstitutions() {
       "institutionId"
     );
 
-  filter.innerHTML =
-    `<option value="">All Institutions</option>`;
 
-  select.innerHTML =
-    `<option value="">Select Institution</option>`;
+  if (filter) {
+
+    filter.innerHTML =
+      `<option value="">
+        All Institutions
+      </option>`;
+
+  }
+
+
+  if (select) {
+
+    select.innerHTML =
+      `<option value="">
+        Select Institution
+      </option>`;
+
+  }
+
 
   institutions.forEach(
     institution => {
 
-      filter.innerHTML += `
-        <option value="${institution.id}">
-          ${escapeHtml(institution.name)}
-        </option>
-      `;
+      const safeName =
+        escapeHtml(
+          institution.name
+        );
 
-      select.innerHTML += `
-        <option value="${institution.id}">
-          ${escapeHtml(institution.name)}
-        </option>
-      `;
+
+      if (filter) {
+
+        filter.innerHTML +=
+          `<option value="${institution.id}">
+             ${safeName}
+           </option>`;
+
+      }
+
+
+      if (select) {
+
+        select.innerHTML +=
+          `<option value="${institution.id}">
+             ${safeName}
+           </option>`;
+
+      }
+
     }
   );
+
 }
 
 
-/* ================================
+/* =========================================================
    LOAD TEACHERS
-================================ */
+   ========================================================= */
 
 async function loadTeachers() {
 
@@ -215,13 +369,19 @@ async function loadTeachers() {
       "teachersTableBody"
     );
 
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="7" class="loading">
-        Loading teachers...
-      </td>
-    </tr>
-  `;
+
+  if (tbody) {
+
+    tbody.innerHTML =
+      `<tr>
+         <td colspan="7"
+             class="loading">
+           Loading teachers...
+         </td>
+       </tr>`;
+
+  }
+
 
   const {
     data,
@@ -232,6 +392,7 @@ async function loadTeachers() {
       .select(`
         id,
         full_name,
+        email,
         phone,
         avatar_url,
         role,
@@ -249,25 +410,32 @@ async function loadTeachers() {
         }
       );
 
+
   if (error) {
 
     console.error(
-      "Teachers error:",
+      "Teachers load error:",
       error
     );
 
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="empty">
-          Failed to load teachers.
-          <br><br>
-          ${escapeHtml(error.message)}
-        </td>
-      </tr>
-    `;
+
+    if (tbody) {
+
+      tbody.innerHTML =
+        `<tr>
+           <td colspan="7"
+               class="empty">
+             Failed to load teachers.
+             <br><br>
+             ${escapeHtml(error.message)}
+           </td>
+         </tr>`;
+
+    }
 
     return;
   }
+
 
   teachers =
     (data || []).map(
@@ -280,23 +448,27 @@ async function loadTeachers() {
               teacher.institution_id
           );
 
+
         return {
           ...teacher,
+
           institution_name:
             institution
               ? institution.name
               : "Unknown Institution"
         };
+
       }
     );
+
 
   renderTeachers();
 }
 
 
-/* ================================
-   RENDER
-================================ */
+/* =========================================================
+   RENDER TEACHERS
+   ========================================================= */
 
 function renderTeachers() {
 
@@ -305,82 +477,125 @@ function renderTeachers() {
       "teachersTableBody"
     );
 
-  const search =
-    document
-      .getElementById(
-        "searchInput"
-      )
-      .value
-      .toLowerCase()
-      .trim();
 
-  const institutionId =
+  if (!tbody) return;
+
+
+  const searchInput =
+    document.getElementById(
+      "searchInput"
+    );
+
+
+  const institutionFilter =
     document.getElementById(
       "institutionFilter"
-    ).value;
+    );
 
-  const status =
+
+  const statusFilter =
     document.getElementById(
       "statusFilter"
-    ).value;
+    );
 
-  let filtered =
+
+  const search =
+    searchInput
+      ? searchInput.value
+          .toLowerCase()
+          .trim()
+      : "";
+
+
+  const institutionId =
+    institutionFilter
+      ? institutionFilter.value
+      : "";
+
+
+  const status =
+    statusFilter
+      ? statusFilter.value
+      : "";
+
+
+  const filtered =
     teachers.filter(
       teacher => {
 
-        const matchesSearch =
-          !search ||
+        const fullName =
           String(
             teacher.full_name || ""
-          )
-            .toLowerCase()
-            .includes(search) ||
+          ).toLowerCase();
 
+
+        const email =
+          String(
+            teacher.email || ""
+          ).toLowerCase();
+
+
+        const phone =
           String(
             teacher.phone || ""
-          )
-            .toLowerCase()
-            .includes(search) ||
+          ).toLowerCase();
 
+
+        const id =
           String(
             teacher.id || ""
-          )
-            .toLowerCase()
-            .includes(search);
+          ).toLowerCase();
+
+
+        const matchesSearch =
+          !search ||
+          fullName.includes(search) ||
+          email.includes(search) ||
+          phone.includes(search) ||
+          id.includes(search);
+
 
         const matchesInstitution =
           !institutionId ||
           teacher.institution_id ===
             institutionId;
 
+
         const matchesStatus =
           !status ||
           (
-            status === "active"
-              ? teacher.is_active === true
-              : teacher.is_active === false
+            status === "active" &&
+            teacher.is_active === true
+          ) ||
+          (
+            status === "inactive" &&
+            teacher.is_active === false
           );
+
 
         return (
           matchesSearch &&
           matchesInstitution &&
           matchesStatus
         );
+
       }
     );
 
+
   if (!filtered.length) {
 
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="empty">
-          No teachers found.
-        </td>
-      </tr>
-    `;
+    tbody.innerHTML =
+      `<tr>
+         <td colspan="7"
+             class="empty">
+           No teachers found.
+         </td>
+       </tr>`;
 
     return;
   }
+
 
   tbody.innerHTML =
     filtered
@@ -392,10 +607,22 @@ function renderTeachers() {
               ? "active"
               : "inactive";
 
+
           const statusText =
             teacher.is_active
               ? "Active"
               : "Inactive";
+
+
+          const teacherName =
+            teacher.full_name ||
+            "Unnamed Teacher";
+
+
+          const email =
+            teacher.email ||
+            "Email not set";
+
 
           return `
             <tr>
@@ -407,16 +634,22 @@ function renderTeachers() {
               <td>
                 <strong>
                   ${escapeHtml(
-                    teacher.full_name ||
-                    "Unnamed Teacher"
+                    teacherName
                   )}
                 </strong>
+
+                <div style="
+                  font-size:12px;
+                  color:#777;
+                  margin-top:3px;
+                ">
+                  ${escapeHtml(email)}
+                </div>
               </td>
 
               <td>
                 ${escapeHtml(
-                  teacher.phone ||
-                  "—"
+                  teacher.phone || "—"
                 )}
               </td>
 
@@ -442,28 +675,38 @@ function renderTeachers() {
                 <div class="actions">
 
                   <button
+                    type="button"
                     class="action-btn view"
-                    onclick="viewTeacher('${teacher.id}')">
+                    onclick="viewTeacher('${teacher.id}')"
+                  >
                     View
                   </button>
 
                   <button
+                    type="button"
                     class="action-btn edit"
-                    onclick="editTeacher('${teacher.id}')">
+                    onclick="editTeacher('${teacher.id}')"
+                  >
                     Edit
                   </button>
 
                   <button
+                    type="button"
                     class="action-btn toggle"
-                    onclick="toggleTeacher('${teacher.id}')">
-                    ${teacher.is_active
-                      ? "Disable"
-                      : "Activate"}
+                    onclick="toggleTeacher('${teacher.id}')"
+                  >
+                    ${
+                      teacher.is_active
+                        ? "Disable"
+                        : "Activate"
+                    }
                   </button>
 
                   <button
+                    type="button"
                     class="action-btn delete"
-                    onclick="deleteTeacher('${teacher.id}')">
+                    onclick="deleteTeacher('${teacher.id}')"
+                  >
                     Delete
                   </button>
 
@@ -473,122 +716,186 @@ function renderTeachers() {
 
             </tr>
           `;
+
         }
       )
       .join("");
 }
 
 
-/* ================================
-   OPEN ADD
-================================ */
+/* =========================================================
+   OPEN ADD TEACHER
+   ========================================================= */
 
 function openAddTeacher() {
 
-  document
-    .getElementById(
+  const form =
+    document.getElementById(
       "teacherForm"
-    )
-    .reset();
-
-  document
-    .getElementById(
-      "editId"
-    )
-    .value = "";
-
-  document
-    .getElementById(
-      "modalTitle"
-    )
-    .textContent =
-      "Add Teacher";
-
-  document
-    .getElementById(
-      "saveBtn"
-    )
-    .textContent =
-      "Create Teacher";
-
-  document
-    .getElementById(
-      "password"
-    ).required = true;
-
-  document
-    .getElementById(
-      "teacherModal"
-    )
-    .classList.add(
-      "show"
     );
+
+
+  if (form) {
+    form.reset();
+  }
+
+
+  document.getElementById(
+    "editId"
+  ).value = "";
+
+
+  document.getElementById(
+    "modalTitle"
+  ).textContent =
+    "Add Teacher";
+
+
+  document.getElementById(
+    "saveBtn"
+  ).textContent =
+    "Create Teacher";
+
+
+  const email =
+    document.getElementById(
+      "email"
+    );
+
+
+  if (email) {
+
+    email.disabled =
+      false;
+
+    email.readOnly =
+      false;
+
+    email.required =
+      true;
+
+  }
+
+
+  const password =
+    document.getElementById(
+      "password"
+    );
+
+
+  if (password) {
+
+    password.value = "";
+
+    password.required =
+      true;
+
+  }
+
+
+  const status =
+    document.getElementById(
+      "isActive"
+    );
+
+
+  if (status) {
+
+    status.value =
+      "true";
+
+  }
+
+
+  document.getElementById(
+    "teacherModal"
+  ).classList.add(
+    "show"
+  );
 }
 
 
-/* ================================
-   CLOSE MODAL
-================================ */
+/* =========================================================
+   CLOSE TEACHER MODAL
+   ========================================================= */
 
 function closeTeacherModal() {
 
-  document
-    .getElementById(
+  const modal =
+    document.getElementById(
       "teacherModal"
-    )
-    .classList.remove(
+    );
+
+
+  if (modal) {
+
+    modal.classList.remove(
       "show"
     );
+
+  }
+
 }
 
 
-/* ================================
-   SAVE / CREATE TEACHER
-================================ */
+/* =========================================================
+   SAVE TEACHER
+   CREATE / UPDATE
+   ========================================================= */
 
 async function saveTeacher(event) {
 
   event.preventDefault();
+
 
   const saveBtn =
     document.getElementById(
       "saveBtn"
     );
 
+
   const editId =
     document.getElementById(
       "editId"
     ).value.trim();
+
 
   const fullName =
     document.getElementById(
       "fullName"
     ).value.trim();
 
+
   const email =
     document.getElementById(
       "email"
-    ).value.trim();
+    ).value.trim()
+      .toLowerCase();
+
 
   const phone =
     document.getElementById(
       "phone"
     ).value.trim();
 
+
   const password =
     document.getElementById(
       "password"
     ).value;
+
 
   const avatarUrl =
     document.getElementById(
       "avatarUrl"
     ).value.trim();
 
+
   const institutionId =
     document.getElementById(
       "institutionId"
     ).value;
+
 
   const isActive =
     document.getElementById(
@@ -596,10 +903,14 @@ async function saveTeacher(event) {
     ).value === "true";
 
 
+  /* -----------------------------------------
+     VALIDATION
+     ----------------------------------------- */
+
   if (!fullName) {
 
     alert(
-      "Please enter teacher name."
+      "Please enter teacher full name."
     );
 
     return;
@@ -616,10 +927,36 @@ async function saveTeacher(event) {
   }
 
 
+  if (
+    !editId &&
+    !isValidEmail(email)
+  ) {
+
+    alert(
+      "Please enter a valid email address."
+    );
+
+    return;
+  }
+
+
   if (!editId && !password) {
 
     alert(
       "Please enter teacher password."
+    );
+
+    return;
+  }
+
+
+  if (
+    !editId &&
+    password.length < 6
+  ) {
+
+    alert(
+      "Password must contain at least 6 characters."
     );
 
     return;
@@ -636,7 +973,13 @@ async function saveTeacher(event) {
   }
 
 
-  saveBtn.disabled = true;
+  /* -----------------------------------------
+     DISABLE BUTTON
+     ----------------------------------------- */
+
+  saveBtn.disabled =
+    true;
+
 
   saveBtn.textContent =
     editId
@@ -646,9 +989,9 @@ async function saveTeacher(event) {
 
   try {
 
-    /* ============================
-       EDIT EXISTING TEACHER
-    ============================ */
+    /* =====================================================
+       UPDATE EXISTING TEACHER
+       ===================================================== */
 
     if (editId) {
 
@@ -690,20 +1033,23 @@ async function saveTeacher(event) {
 
 
       alert(
-        "Teacher updated successfully!"
+        "Teacher profile updated successfully!"
       );
+
 
       closeTeacherModal();
 
+
       await loadTeachers();
+
 
       return;
     }
 
 
-    /* ============================
+    /* =====================================================
        CREATE NEW TEACHER
-    ============================ */
+       ===================================================== */
 
     const {
       data: sessionData,
@@ -714,12 +1060,14 @@ async function saveTeacher(event) {
 
     if (
       sessionError ||
+      !sessionData ||
       !sessionData.session
     ) {
 
       throw new Error(
         "Your Super Admin session has expired. Please login again."
       );
+
     }
 
 
@@ -731,7 +1079,6 @@ async function saveTeacher(event) {
       await fetch(
         CREATE_TEACHER_FUNCTION_URL,
         {
-
           method: "POST",
 
           headers: {
@@ -772,17 +1119,25 @@ async function saveTeacher(event) {
                 isActive
 
             })
+
         }
       );
 
 
-    let resultData = null;
+    let resultData =
+      null;
+
 
     try {
+
       resultData =
         await response.json();
-    } catch (jsonError) {
-      resultData = null;
+
+    } catch {
+
+      resultData =
+        null;
+
     }
 
 
@@ -799,6 +1154,19 @@ async function saveTeacher(event) {
     }
 
 
+    if (
+      resultData &&
+      resultData.success === false
+    ) {
+
+      throw new Error(
+        resultData.error ||
+        "Teacher creation failed."
+      );
+
+    }
+
+
     alert(
       "Teacher account created successfully!"
     );
@@ -806,36 +1174,46 @@ async function saveTeacher(event) {
 
     closeTeacherModal();
 
+
     await loadTeachers();
 
 
   } catch (error) {
 
     console.error(
-      "Create Teacher Error:",
+      "Teacher Save Error:",
       error
     );
 
+
     alert(
       "Failed to create/update teacher:\n\n" +
-      error.message
+      (
+        error?.message ||
+        "Unknown error"
+      )
     );
+
 
   } finally {
 
-    saveBtn.disabled = false;
+    saveBtn.disabled =
+      false;
+
 
     saveBtn.textContent =
       editId
         ? "Update Teacher"
         : "Create Teacher";
+
   }
+
 }
 
 
-/* ================================
-   EDIT
-================================ */
+/* =========================================================
+   EDIT TEACHER
+   ========================================================= */
 
 function editTeacher(id) {
 
@@ -844,6 +1222,7 @@ function editTeacher(id) {
       item =>
         item.id === id
     );
+
 
   if (!teacher) {
 
@@ -855,112 +1234,123 @@ function editTeacher(id) {
   }
 
 
-  document
-    .getElementById(
-      "editId"
-    )
-    .value =
-      teacher.id;
+  document.getElementById(
+    "editId"
+  ).value =
+    teacher.id;
 
 
-  document
-    .getElementById(
-      "fullName"
-    )
-    .value =
-      teacher.full_name || "";
+  document.getElementById(
+    "fullName"
+  ).value =
+    teacher.full_name || "";
 
 
-  document
-    .getElementById(
+  /* -----------------------------------------
+     EMAIL
+     -----------------------------------------
+     Email is displayed from profiles.email.
+     Auth email is not changed from client side.
+     ----------------------------------------- */
+
+  const email =
+    document.getElementById(
       "email"
-    )
-    .value = "";
-
-
-  document
-    .getElementById(
-      "email"
-    )
-    .disabled = true;
-
-
-  document
-    .getElementById(
-      "password"
-    )
-    .value = "";
-
-
-  document
-    .getElementById(
-      "password"
-    ).required = false;
-
-
-  document
-    .getElementById(
-      "phone"
-    )
-    .value =
-      teacher.phone || "";
-
-
-  document
-    .getElementById(
-      "avatarUrl"
-    )
-    .value =
-      teacher.avatar_url || "";
-
-
-  document
-    .getElementById(
-      "institutionId"
-    )
-    .value =
-      teacher.institution_id || "";
-
-
-  document
-    .getElementById(
-      "isActive"
-    )
-    .value =
-      teacher.is_active
-        ? "true"
-        : "false";
-
-
-  document
-    .getElementById(
-      "modalTitle"
-    )
-    .textContent =
-      "Edit Teacher";
-
-
-  document
-    .getElementById(
-      "saveBtn"
-    )
-    .textContent =
-      "Update Teacher";
-
-
-  document
-    .getElementById(
-      "teacherModal"
-    )
-    .classList.add(
-      "show"
     );
+
+
+  if (email) {
+
+    email.value =
+      teacher.email || "";
+
+    email.disabled =
+      true;
+
+    email.readOnly =
+      true;
+
+    email.required =
+      false;
+
+  }
+
+
+  /* -----------------------------------------
+     PASSWORD
+     ----------------------------------------- */
+
+  const password =
+    document.getElementById(
+      "password"
+    );
+
+
+  if (password) {
+
+    password.value =
+      "";
+
+    password.required =
+      false;
+
+  }
+
+
+  /* -----------------------------------------
+     OTHER FIELDS
+     ----------------------------------------- */
+
+  document.getElementById(
+    "phone"
+  ).value =
+    teacher.phone || "";
+
+
+  document.getElementById(
+    "avatarUrl"
+  ).value =
+    teacher.avatar_url || "";
+
+
+  document.getElementById(
+    "institutionId"
+  ).value =
+    teacher.institution_id || "";
+
+
+  document.getElementById(
+    "isActive"
+  ).value =
+    teacher.is_active
+      ? "true"
+      : "false";
+
+
+  document.getElementById(
+    "modalTitle"
+  ).textContent =
+    "Edit Teacher";
+
+
+  document.getElementById(
+    "saveBtn"
+  ).textContent =
+    "Update Teacher";
+
+
+  document.getElementById(
+    "teacherModal"
+  ).classList.add(
+    "show"
+  );
+
 }
 
 
-/* ================================
-   VIEW
-================================ */
+/* =========================================================
+   VIEW TEACHER
+   ========================================================= */
 
 function viewTeacher(id) {
 
@@ -970,109 +1360,142 @@ function viewTeacher(id) {
         item.id === id
     );
 
+
   if (!teacher) {
+
+    alert(
+      "Teacher not found."
+    );
+
     return;
   }
+
 
   const avatar =
     teacher.avatar_url ||
     "https://via.placeholder.com/100";
 
 
-  document
-    .getElementById(
+  const email =
+    teacher.email ||
+    "Not provided";
+
+
+  const status =
+    teacher.is_active
+      ? "Active"
+      : "Inactive";
+
+
+  const viewContent =
+    document.getElementById(
       "viewContent"
-    )
-    .innerHTML = `
+    );
 
-      <div class="profile-box">
 
-        <img
-          class="avatar"
-          src="${escapeHtml(avatar)}"
-          alt="Teacher">
+  if (!viewContent) return;
 
-        <div>
 
-          <div class="profile-name">
-            ${escapeHtml(
-              teacher.full_name ||
-              "Unnamed Teacher"
-            )}
-          </div>
+  viewContent.innerHTML = `
 
-          <div class="detail">
-            <strong>Role:</strong>
-            Teacher
-          </div>
+    <div class="profile-box">
 
-          <div class="detail">
-            <strong>Phone:</strong>
-            ${escapeHtml(
-              teacher.phone ||
-              "Not provided"
-            )}
-          </div>
+      <img
+        class="avatar"
+        src="${escapeHtml(avatar)}"
+        alt="Teacher"
+        onerror="this.src='https://via.placeholder.com/100'"
+      >
 
-          <div class="detail">
-            <strong>Institution:</strong>
-            ${escapeHtml(
-              teacher.institution_name ||
-              "Unknown"
-            )}
-          </div>
+      <div>
 
-          <div class="detail">
-            <strong>User ID:</strong>
-            ${escapeHtml(
-              teacher.id
-            )}
-          </div>
+        <div class="profile-name">
+          ${escapeHtml(
+            teacher.full_name ||
+            "Unnamed Teacher"
+          )}
+        </div>
 
-          <div class="detail">
-            <strong>Status:</strong>
-            ${
-              teacher.is_active
-                ? "Active"
-                : "Inactive"
-            }
-          </div>
+        <div class="detail">
+          <strong>Email:</strong>
+          ${escapeHtml(email)}
+        </div>
 
+        <div class="detail">
+          <strong>Role:</strong>
+          Teacher
+        </div>
+
+        <div class="detail">
+          <strong>Phone:</strong>
+          ${escapeHtml(
+            teacher.phone ||
+            "Not provided"
+          )}
+        </div>
+
+        <div class="detail">
+          <strong>Institution:</strong>
+          ${escapeHtml(
+            teacher.institution_name ||
+            "Unknown"
+          )}
+        </div>
+
+        <div class="detail">
+          <strong>User ID:</strong>
+          ${escapeHtml(
+            teacher.id
+          )}
+        </div>
+
+        <div class="detail">
+          <strong>Status:</strong>
+          ${status}
         </div>
 
       </div>
+
+    </div>
+
   `;
 
 
-  document
-    .getElementById(
-      "viewModal"
-    )
-    .classList.add(
-      "show"
-    );
+  document.getElementById(
+    "viewModal"
+  ).classList.add(
+    "show"
+  );
+
 }
 
 
-/* ================================
-   CLOSE VIEW
-================================ */
+/* =========================================================
+   CLOSE VIEW MODAL
+   ========================================================= */
 
 function closeViewModal() {
 
-  document
-    .getElementById(
+  const modal =
+    document.getElementById(
       "viewModal"
-    )
-    .classList.remove(
+    );
+
+
+  if (modal) {
+
+    modal.classList.remove(
       "show"
     );
+
+  }
+
 }
 
 
-/* ================================
-   TOGGLE STATUS
-================================ */
+/* =========================================================
+   TOGGLE TEACHER STATUS
+   ========================================================= */
 
 async function toggleTeacher(id) {
 
@@ -1082,12 +1505,20 @@ async function toggleTeacher(id) {
         item.id === id
     );
 
+
   if (!teacher) {
+
+    alert(
+      "Teacher not found."
+    );
+
     return;
   }
 
+
   const newStatus =
     !teacher.is_active;
+
 
   const action =
     newStatus
@@ -1095,53 +1526,76 @@ async function toggleTeacher(id) {
       : "disable";
 
 
-  if (
-    !confirm(
-      `Are you sure you want to ${action} this teacher?`
-    )
-  ) {
+  const confirmed =
+    confirm(
+      `Are you sure you want to ${action} this teacher?\n\n` +
+      `${teacher.full_name || ""}`
+    );
+
+
+  if (!confirmed) {
     return;
   }
 
 
-  const {
-    error
-  } =
-    await supabaseClient
-      .from("profiles")
-      .update({
+  try {
 
-        is_active:
-          newStatus,
+    const {
+      error
+    } =
+      await supabaseClient
+        .from("profiles")
+        .update({
 
-        updated_at:
-          new Date().toISOString()
+          is_active:
+            newStatus,
 
-      })
-      .eq(
-        "id",
-        id
-      );
+          updated_at:
+            new Date().toISOString()
+
+        })
+        .eq(
+          "id",
+          id
+        );
 
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
+
 
     alert(
-      "Failed:\n\n" +
+      newStatus
+        ? "Teacher activated successfully."
+        : "Teacher disabled successfully."
+    );
+
+
+    await loadTeachers();
+
+
+  } catch (error) {
+
+    console.error(
+      "Toggle teacher error:",
+      error
+    );
+
+
+    alert(
+      "Failed to change teacher status:\n\n" +
       error.message
     );
 
-    return;
   }
 
-
-  await loadTeachers();
 }
 
 
-/* ================================
-   DELETE
-================================ */
+/* =========================================================
+   DELETE TEACHER PROFILE
+   ========================================================= */
 
 async function deleteTeacher(id) {
 
@@ -1151,15 +1605,24 @@ async function deleteTeacher(id) {
         item.id === id
     );
 
+
   if (!teacher) {
+
+    alert(
+      "Teacher not found."
+    );
+
     return;
   }
 
 
   const confirmed =
     confirm(
-      "Delete this teacher profile?\n\n" +
-      (teacher.full_name || "")
+      "WARNING\n\n" +
+      "This will delete the teacher profile.\n\n" +
+      `Teacher: ${teacher.full_name || ""}\n` +
+      `Email: ${teacher.email || ""}\n\n` +
+      "Do you want to continue?"
     );
 
 
@@ -1168,41 +1631,66 @@ async function deleteTeacher(id) {
   }
 
 
-  const {
-    error
-  } =
-    await supabaseClient
-      .from("profiles")
-      .delete()
-      .eq(
-        "id",
-        id
-      );
+  try {
+
+    const {
+      error
+    } =
+      await supabaseClient
+        .from("profiles")
+        .delete()
+        .eq(
+          "id",
+          id
+        );
 
 
-  if (error) {
+    if (error) {
+      throw error;
+    }
+
+
+    alert(
+      "Teacher profile deleted successfully."
+    );
+
+
+    await loadTeachers();
+
+
+  } catch (error) {
+
+    console.error(
+      "Delete teacher error:",
+      error
+    );
+
 
     alert(
       "Failed to delete teacher:\n\n" +
       error.message
     );
 
-    return;
   }
 
-
-  alert(
-    "Teacher profile deleted successfully."
-  );
-
-
-  await loadTeachers();
 }
 
 
-/* ================================
+/* =========================================================
+   EMAIL VALIDATION
+   ========================================================= */
+
+function isValidEmail(email) {
+
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    .test(email);
+
+}
+
+
+/* =========================================================
    ESCAPE HTML
-================================ */
+   ========================================================= */
 
 function escapeHtml(value) {
 
@@ -1229,12 +1717,13 @@ function escapeHtml(value) {
       /'/g,
       "&#039;"
     );
+
 }
 
 
-/* ================================
-   MODAL CLICK OUTSIDE
-================================ */
+/* =========================================================
+   MODAL OUTSIDE CLICK
+   ========================================================= */
 
 document.addEventListener(
   "click",
@@ -1244,15 +1733,54 @@ document.addEventListener(
       event.target.id ===
       "teacherModal"
     ) {
+
       closeTeacherModal();
+
     }
+
 
     if (
       event.target.id ===
       "viewModal"
     ) {
+
       closeViewModal();
+
     }
 
   }
 );
+
+
+/* =========================================================
+   PASSWORD SHOW / HIDE
+   Supports existing HTML password toggle button
+   ========================================================= */
+
+function togglePassword() {
+
+  const password =
+    document.getElementById(
+      "password"
+    );
+
+
+  if (!password) return;
+
+
+  if (
+    password.type ===
+    "password"
+  ) {
+
+    password.type =
+      "text";
+
+  } else {
+
+    password.type =
+      "password";
+
+  }
+
+}
