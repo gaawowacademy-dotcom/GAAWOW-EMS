@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GAAWOW EMS — Teachers</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--navy:#0B1E63;--blue:#0B4DA2;--gold:#D4AF37;--green:#198754;--red:#dc3545;--gray:#f5f7fa;--text:#172033;--muted:#6b7280;--border:#e5e7eb;--white:#fff}
+    *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--gray);color:var(--text)}
+    .topbar{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:15px}
+    .brand{font-weight:800;font-size:20px}.brand small{display:block;font-weight:400;font-size:12px;opacity:.85;margin-top:3px}.add-btn{border:0;background:var(--gold);color:#111;padding:11px 16px;border-radius:10px;font-weight:800;cursor:pointer}
+    .container{max-width:1400px;margin:auto;padding:22px}.filters{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:18px;box-shadow:0 4px 18px rgba(0,0,0,.04)}
+    input,select{width:100%;padding:12px;border:1px solid #d7dce5;border-radius:9px;background:#fff;color:var(--text);font-size:14px}label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}.field{margin-bottom:14px}
+    .table-wrap{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:auto;box-shadow:0 4px 18px rgba(0,0,0,.04)}table{width:100%;border-collapse:collapse;min-width:1050px}th,td{padding:13px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}th{background:#f8fafc;font-size:12px;text-transform:uppercase;color:#566070}tr:hover td{background:#fbfcfe}
+    .teacher-cell{display:flex;align-items:center;gap:10px;min-width:230px}.teacher-cell small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.teacher-thumb{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #eef0f4;background:#eef1f6}
+    .status{display:inline-block;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800}.status.active{background:#dcfce7;color:#166534}.status.inactive{background:#fee2e2;color:#991b1b}
+    .actions{display:flex;gap:6px;flex-wrap:wrap}.action-btn{border:0;border-radius:7px;padding:7px 9px;font-size:11px;font-weight:700;cursor:pointer}.view{background:#e8eefc;color:var(--navy)}.edit{background:#fff3cd;color:#7a5a00}.toggle{background:#e2f6ec;color:#176b43}.delete{background:#fde2e2;color:#9d1c1c}
+    .empty,.loading{text-align:center;padding:35px;color:var(--muted)}.message{margin-bottom:14px;padding:12px 14px;border-radius:10px;background:#e8f1ff;color:#153b73}.message[hidden]{display:none}
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:1000;align-items:center;justify-content:center;padding:18px}.modal.show{display:flex}.modal-card{background:#fff;width:min(720px,100%);max-height:92vh;overflow:auto;border-radius:16px;box-shadow:0 20px 70px rgba(0,0,0,.25)}.modal-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}.modal-head h2{margin:0;font-size:19px}.close{border:0;background:#f1f3f6;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer}.modal-body{padding:20px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}.modal-actions{display:flex;justify-content:flex-end;gap:10px;padding-top:8px}.btn{border:0;border-radius:9px;padding:11px 16px;font-weight:800;cursor:pointer}.btn.primary{background:var(--navy);color:#fff}.btn.secondary{background:#edf0f4;color:#263043}.btn.danger{background:var(--red);color:#fff}
+    .photo-area{display:flex;align-items:center;gap:18px;padding:12px;border:1px dashed #cbd5e1;border-radius:12px;background:#fafcff}.photo-preview{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);background:#eef1f6}.photo-help{font-size:12px;color:var(--muted);margin-top:6px}.photo-status{font-size:12px;color:#475569;margin-top:5px;word-break:break-word}
+    .profile-box{display:flex;gap:22px;align-items:flex-start}.avatar-large{width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid var(--gold);background:#eef1f6}.profile-name{font-size:22px;font-weight:800;margin-bottom:12px}.detail{margin:7px 0;font-size:14px}.password-wrap{position:relative}.password-wrap input{padding-right:85px}.password-wrap button{position:absolute;right:6px;top:6px;height:34px;border:0;border-radius:7px;background:#eef1f6;cursor:pointer;font-size:11px}
+    @media(max-width:760px){.container{padding:12px}.filters{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.full{grid-column:auto}.topbar{padding:14px}.brand{font-size:16px}.add-btn{padding:9px 11px}.profile-box{flex-direction:column}.modal{padding:8px}}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">GAAWOW EMS — Teachers<small>Super Admin • Teacher Management</small></div>
+    <button type="button" class="add-btn" onclick="openAddTeacher()">＋ Add Teacher</button>
+  </header>
+
+  <main class="container">
+    <div id="jsLoadError" class="message" hidden></div>
+    <div id="messageBox" class="message" hidden></div>
+
+    <section class="filters">
+      <div><label for="searchInput">Search</label><input id="searchInput" type="search" placeholder="Name, email, phone or ID"></div>
+      <div><label for="institutionFilter">Institution</label><select id="institutionFilter"><option value="">All Institutions</option></select></div>
+      <div><label for="statusFilter">Status</label><select id="statusFilter"><option value="">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+    </section>
+
+    <section class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Teacher</th><th>Phone</th><th>Institution</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="teachersTableBody"><tr><td colspan="7" class="loading">Loading teachers...</td></tr></tbody>
+      </table>
+    </section>
+  </main>
+
+  <div id="teacherModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head"><h2 id="modalTitle">Add Teacher</h2><button type="button" class="close" onclick="closeTeacherModal()">×</button></div>
+      <form id="teacherForm" class="modal-body">
+        <input type="hidden" id="editId">
+        <div class="grid">
+          <div class="field"><label for="fullName">Full Name *</label><input id="fullName" required autocomplete="name"></div>
+          <div class="field"><label for="email">Email *</label><input id="email" type="email" required autocomplete="email"></div>
+          <div class="field"><label for="password">Password *</label><div class="password-wrap"><input id="password" type="password" autocomplete="new-password"><button type="button" onclick="const p=document.getElementById('password');p.type=p.type==='password'?'text':'password'">Show</button></div></div>
+          <div class="field"><label for="phone">Phone</label><input id="phone" type="tel" autocomplete="tel"></div>
+          <div class="field full"><label>Teacher Photo</label><div class="photo-area"><img id="photoPreview" class="photo-preview" alt="Teacher photo"><div style="flex:1"><input id="photoFile" type="file" accept="image/jpeg,image/png,image/webp"><div class="photo-help">JPG, PNG or WEBP • Maximum 2 MB</div><div id="photoStatus" class="photo-status"></div></div></div></div>
+          <div class="field"><label for="institutionId">Institution *</label><select id="institutionId" required><option value="">Select Institution</option></select></div>
+          <div class="field"><label for="isActive">Status</label><select id="isActive"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+        </div>
+        <div class="modal-actions"><button type="button" class="btn secondary" onclick="closeTeacherModal()">Cancel</button><button id="saveBtn" type="submit" class="btn primary">Create Teacher</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="viewModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head"><h2>Teacher Profile</h2><button type="button" class="close" onclick="closeViewModal()">×</button></div>
+      <div id="viewContent" class="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="teacher.js?v=6.2"></script>
+<script>
+(function(){
+  const el=document.getElementById("jsLoadError");
+  window.__teacherJsLoaded=false;
+  setTimeout(function(){
+    if(!window.__teacherJsLoaded && el){
+      el.hidden=false;
+      el.textContent="Teacher JavaScript could not be loaded. Check that teacher.js is in the same GitHub Pages folder as teacher.html.";
+    }
+  },8000);
+})();
+</script>
+</body>
+</html>
