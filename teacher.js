@@ -1,7 +1,7 @@
 /* =========================================================
-   GAAWOW EMS — TEACHER MANAGEMENT V6.3
-   Fix: Teacher page stuck on "Loading teachers..."
-   Keeps Teacher Photo / Storage functionality.
+   GAAWOW EMS — TEACHER MANAGEMENT V7.0
+   Official rebuild: preserves Supabase, Super Admin security, teacher CRUD, institutions, filters and photo storage.
+   Fixes JavaScript load guard and keeps teacher loading independent from institutions.
    ========================================================= */
 
 const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
@@ -33,7 +33,7 @@ let currentUser = null;
 let currentProfile = null;
 let selectedPhotoFile = null;
 
-/* Tell the HTML bootstrap that teacher.js loaded successfully. */
+/* Tell the HTML bootstrap that teacher.js itself loaded successfully. */
 window.__teacherJsLoaded = true;
 
 window.addEventListener("error", event => {
@@ -50,16 +50,6 @@ window.addEventListener("unhandledrejection", event => {
 
 function $(id) {
   return document.getElementById(id);
-}
-
-/* Admin navigation is intentionally kept inside the Teacher module.
-   It never changes authentication or removes any existing feature. */
-function goToAdmin() {
-  window.location.href = "super-admin.html";
-}
-
-function goToDashboard() {
-  window.location.href = "dashboard.html";
 }
 
 function escapeHtml(value) {
@@ -181,7 +171,7 @@ async function getSessionOrRedirect() {
   );
 
   if (error || !data?.session) {
-    window.location.href = "index.html";
+    window.location.href = "./index.html";
     return null;
   }
 
@@ -219,7 +209,7 @@ async function checkAccess() {
   if (error || !profile) {
     console.error("Profile error:", error);
     alert("Profile could not be loaded.\n\n" + (error?.message || "Profile not found."));
-    window.location.href = "dashboard.html";
+    window.location.href = "./dashboard.html";
     return false;
   }
 
@@ -227,7 +217,7 @@ async function checkAccess() {
 
   if (profile.role !== "super_admin" || profile.is_active !== true) {
     alert("Access denied. Super Admin only.");
-    window.location.href = "dashboard.html";
+    window.location.href = "./dashboard.html";
     return false;
   }
 
@@ -790,8 +780,6 @@ function setupEvents() {
   });
 }
 
-window.goToAdmin = goToAdmin;
-window.goToDashboard = goToDashboard;
 window.openAddTeacher = openAddTeacher;
 window.closeTeacherModal = closeTeacherModal;
 window.closeViewModal = closeViewModal;
