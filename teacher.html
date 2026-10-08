@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GAAWOW EMS — Teachers</title>
+  <title>GAAWOW EMS — Teacher Management</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{--navy:#0B1E63;--blue:#0B4DA2;--gold:#D4AF37;--green:#198754;--red:#dc3545;--gray:#f5f7fa;--text:#172033;--muted:#6b7280;--border:#e5e7eb;--white:#fff}
@@ -27,8 +27,8 @@
   <header class="topbar">
     <div class="brand">GAAWOW EMS — Teachers<small>Super Admin • Teacher Management</small></div>
     <div class="top-actions">
-      <a class="nav-btn" href="super-admin.html">← Super Admin</a>
-      <a class="nav-btn" href="dashboard.html">Dashboard</a>
+      <a class="nav-btn" href="./super-admin.html">← Super Admin</a>
+      <a class="nav-btn" href="./dashboard.html">Dashboard</a>
       <button type="button" class="add-btn" onclick="openAddTeacher()">＋ Add Teacher</button>
     </div>
   </header>
@@ -77,28 +77,22 @@
     </div>
   </div>
 
-  <script src="teacher.js?v=6.3"></script>
-<script>
-(function(){
-  const el=document.getElementById("jsLoadError");
+  <!-- Teacher JavaScript load guard: set BEFORE loading teacher.js. -->
   <script>
-  window.__teacherJsLoaded = false;
-</script>
-
-<script src="./teacher.js?v=6.4"></script>
-
-<script>
-(function () {
-  const el = document.getElementById("jsLoadError");
-
-  setTimeout(function () {
-    if (!window.__teacherJsLoaded && el) {
-      el.hidden = false;
-      el.textContent =
-        "Teacher JavaScript could not be loaded. Please check teacher.js.";
-    }
-  }, 8000);
-})();
-</script>
+    window.__teacherJsLoaded = false;
+  </script>
+  <script src="./teacher.js?v=7.0"></script>
+  <script>
+    (function () {
+      const el = document.getElementById("jsLoadError");
+      setTimeout(function () {
+        if (!window.__teacherJsLoaded && el) {
+          el.hidden = false;
+          el.textContent =
+            "Teacher JavaScript could not be loaded. Check that teacher.js is in the same GitHub Pages folder as teacher.html.";
+        }
+      }, 8000);
+    })();
+  </script>
 </body>
 </html>
