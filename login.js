@@ -1,35 +1,61 @@
 // ============================================================
-// GAAWOW EMS — SECURE ROLE-BASED LOGIN
-// Supabase Auth → profiles.role → Student/Staff Dashboard
+// GAAWOW EMS — SECURE ROLE-BASED LOGIN V8
+// Supabase Auth → profiles.role → Authorized Portal
+//
+// ROLE ROUTING:
+// super_admin  → dashboard.html
+// school_admin → school-dashboard.html
+// teacher      → teacher-portal.html
+// parent       → parent.html
+// student      → student.html
 // ============================================================
+
+"use strict";
 
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-const SUPABASE_ANON_KEY =
-  "YOUR_SUPABASE_PUBLISHABLE_KEY";
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_2AvWfupKf1b_s0RjIbAi5g_RqLCs145";
 
 const supabaseClient =
   window.supabase.createClient(
     SUPABASE_URL,
-    SUPABASE_ANON_KEY
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: "pkce"
+      }
+    }
   );
 
-// ------------------------------------------------------------
-// CONFIGURATION
-// ------------------------------------------------------------
+
+// ============================================================
+// REDIRECT CONFIGURATION
+// ============================================================
 
 const REDIRECTS = {
-  super_admin: "dashboard.html",
-  school_admin: "school-dashboard.html",
-  teacher: "teacher.html",
-  parent: "parent.html",
-  student: "student.html"
+  super_admin: "./dashboard.html",
+
+  school_admin: "./school-dashboard.html",
+
+  // IMPORTANT:
+  // Teacher MUST NOT go to teacher.html.
+  // teacher.html is Super Admin Teacher Management.
+  teacher: "./teacher-portal.html",
+
+  parent: "./parent.html",
+
+  student: "./student.html"
 };
 
-// ------------------------------------------------------------
+
+// ============================================================
 // DOM
-// ------------------------------------------------------------
+// ============================================================
 
 const emailInput =
   document.getElementById("email") ||
@@ -47,192 +73,307 @@ const messageEl =
   document.getElementById("loginMessage") ||
   document.getElementById("message");
 
-// ------------------------------------------------------------
+
+// ============================================================
 // MESSAGE
-// ------------------------------------------------------------
+// ============================================================
 
 function showMessage(message, type = "error") {
+
   if (!messageEl) {
     console.log(message);
     return;
   }
 
   messageEl.textContent = message;
-  messageEl.className = `login-message ${type}`;
-  messageEl.style.display = "block";
+
+  messageEl.className =
+    `login-message ${type}`;
+
+  messageEl.style.display =
+    "block";
 }
 
+
 function clearMessage() {
+
   if (!messageEl) return;
 
   messageEl.textContent = "";
-  messageEl.style.display = "none";
+
+  messageEl.style.display =
+    "none";
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
 // LOADING
-// ------------------------------------------------------------
+// ============================================================
 
 function setLoading(loading) {
+
   if (!loginBtn) return;
 
-  loginBtn.disabled = loading;
+  loginBtn.disabled =
+    loading;
 
   if (loading) {
+
     loginBtn.dataset.originalText =
       loginBtn.textContent;
 
-    loginBtn.textContent = "Signing in...";
+    loginBtn.textContent =
+      "Signing in...";
+
   } else {
+
     loginBtn.textContent =
       loginBtn.dataset.originalText ||
-      "Login";
+      "🔐 Sign In";
   }
 }
 
-// ------------------------------------------------------------
-// GET CURRENT USER ROLE
-// ------------------------------------------------------------
 
-async function getUserRole(userId) {
-  const { data, error } =
-    await supabaseClient
-      .from("profiles")
-      .select(`
-        id,
-        full_name,
-        role,
-        is_active,
-        institution_id
-      `)
-      .eq("id", userId)
-      .maybeSingle();
+// ============================================================
+// GET USER PROFILE
+// ============================================================
+
+async function getUserProfile(userId) {
+
+  if (!userId) {
+    throw new Error(
+      "Authenticated user ID is missing."
+    );
+  }
+
+  const {
+    data,
+    error
+  } = await supabaseClient
+    .from("profiles")
+    .select(`
+      id,
+      full_name,
+      role,
+      is_active,
+      institution_id
+    `)
+    .eq("id", userId)
+    .maybeSingle();
+
 
   if (error) {
-    console.error("Profile lookup error:", error);
+
+    console.error(
+      "Profile lookup error:",
+      error
+    );
+
     throw new Error(
       "Unable to verify your account profile."
     );
   }
 
+
   if (!data) {
+
     throw new Error(
       "Your account profile was not found."
     );
   }
 
+
   if (data.is_active !== true) {
+
     throw new Error(
       "Your account is inactive. Please contact the administrator."
     );
   }
 
+
   return data;
 }
 
-// ------------------------------------------------------------
-// VERIFY STUDENT ACCOUNT
-// ------------------------------------------------------------
+
+// ============================================================
+// VERIFY STUDENT
+// ============================================================
 
 async function verifyStudent(userId) {
-  const { data, error } =
-    await supabaseClient
-      .from("students")
-      .select(`
-        id,
-        student_id,
-        full_name,
-        profile_id,
-        auth_user_id,
-        account_enabled,
-        login_username
-      `)
-      .eq("auth_user_id", userId)
-      .maybeSingle();
+
+  const {
+    data,
+    error
+  } = await supabaseClient
+    .from("students")
+    .select(`
+      id,
+      student_id,
+      full_name,
+      profile_id,
+      auth_user_id,
+      account_enabled,
+      login_username
+    `)
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+
 
   if (error) {
-    console.error("Student lookup error:", error);
+
+    console.error(
+      "Student lookup error:",
+      error
+    );
 
     throw new Error(
       "Unable to verify your student account."
     );
   }
 
+
   if (!data) {
+
     throw new Error(
       "Student account record was not found."
     );
   }
 
-  if (data.account_enabled !== true) {
-    throw new Error(
-      "Your student account is disabled."
-    );
-  }
 
-  // Important security check:
-  // students.auth_user_id must match logged-in Auth user
   if (data.auth_user_id !== userId) {
+
     throw new Error(
       "Student account verification failed."
     );
   }
 
-  // profile_id should normally point to the same profile
+
+  if (data.account_enabled !== true) {
+
+    throw new Error(
+      "Your student account is disabled."
+    );
+  }
+
+
   if (
     data.profile_id !== null &&
     data.profile_id !== userId
   ) {
+
     throw new Error(
       "Student profile linkage is invalid."
     );
   }
 
+
   return data;
 }
 
-// ------------------------------------------------------------
-// UPDATE LAST LOGIN
-// ------------------------------------------------------------
 
-async function updateLastLogin(userId, role) {
+// ============================================================
+// UPDATE STUDENT LAST LOGIN
+// ============================================================
+
+async function updateStudentLastLogin(userId) {
+
   try {
-    if (role === "student") {
-      await supabaseClient
-        .from("students")
-        .update({
-          last_login_at: new Date().toISOString()
-        })
-        .eq("auth_user_id", userId);
-    }
+
+    await supabaseClient
+      .from("students")
+      .update({
+        last_login_at:
+          new Date().toISOString()
+      })
+      .eq(
+        "auth_user_id",
+        userId
+      );
+
   } catch (error) {
-    // Do not block login because analytics failed
+
     console.warn(
       "Last login update failed:",
       error
     );
+
+  }
+
+}
+
+
+// ============================================================
+// STORE ROLE SESSION
+// ============================================================
+
+function storeRoleSession(profile, user) {
+
+  sessionStorage.setItem(
+    "user_role",
+    profile.role
+  );
+
+  sessionStorage.setItem(
+    "user_id",
+    user.id
+  );
+
+  if (profile.full_name) {
+
+    sessionStorage.setItem(
+      "user_name",
+      profile.full_name
+    );
+  }
+
+  if (profile.institution_id) {
+
+    sessionStorage.setItem(
+      "institution_id",
+      profile.institution_id
+    );
   }
 }
 
-// ------------------------------------------------------------
-// REDIRECT BY ROLE
-// ------------------------------------------------------------
 
-async function redirectByRole(profile, user) {
-  const role = profile.role;
+// ============================================================
+// ROLE REDIRECT
+// ============================================================
 
-  console.log("Authenticated user:", user.id);
-  console.log("Profile role:", role);
+async function redirectByRole(
+  profile,
+  user
+) {
+
+  const role =
+    String(profile.role || "")
+      .trim()
+      .toLowerCase();
+
+
+  console.log(
+    "Authenticated user:",
+    user.id
+  );
+
+  console.log(
+    "Profile role:",
+    role
+  );
+
 
   // ----------------------------------------------------------
   // STUDENT
   // ----------------------------------------------------------
 
   if (role === "student") {
-    const student =
-      await verifyStudent(user.id);
 
-    // Optional session information
+    const student =
+      await verifyStudent(
+        user.id
+      );
+
+
     sessionStorage.setItem(
       "student_id",
       student.student_id
@@ -243,15 +384,16 @@ async function redirectByRole(profile, user) {
       student.full_name
     );
 
-    sessionStorage.setItem(
-      "user_role",
-      "student"
+    storeRoleSession(
+      profile,
+      user
     );
 
-    await updateLastLogin(
-      user.id,
-      "student"
+
+    await updateStudentLastLogin(
+      user.id
     );
+
 
     window.location.replace(
       REDIRECTS.student
@@ -260,15 +402,18 @@ async function redirectByRole(profile, user) {
     return;
   }
 
+
   // ----------------------------------------------------------
   // SUPER ADMIN
   // ----------------------------------------------------------
 
   if (role === "super_admin") {
-    sessionStorage.setItem(
-      "user_role",
-      "super_admin"
+
+    storeRoleSession(
+      profile,
+      user
     );
+
 
     window.location.replace(
       REDIRECTS.super_admin
@@ -277,15 +422,18 @@ async function redirectByRole(profile, user) {
     return;
   }
 
+
   // ----------------------------------------------------------
   // SCHOOL ADMIN
   // ----------------------------------------------------------
 
   if (role === "school_admin") {
-    sessionStorage.setItem(
-      "user_role",
-      "school_admin"
+
+    storeRoleSession(
+      profile,
+      user
     );
+
 
     window.location.replace(
       REDIRECTS.school_admin
@@ -294,15 +442,23 @@ async function redirectByRole(profile, user) {
     return;
   }
 
+
   // ----------------------------------------------------------
   // TEACHER
   // ----------------------------------------------------------
 
   if (role === "teacher") {
-    sessionStorage.setItem(
-      "user_role",
-      "teacher"
+
+    storeRoleSession(
+      profile,
+      user
     );
+
+
+    console.log(
+      "Teacher detected → Teacher Portal"
+    );
+
 
     window.location.replace(
       REDIRECTS.teacher
@@ -311,15 +467,18 @@ async function redirectByRole(profile, user) {
     return;
   }
 
+
   // ----------------------------------------------------------
   // PARENT
   // ----------------------------------------------------------
 
   if (role === "parent") {
-    sessionStorage.setItem(
-      "user_role",
-      "parent"
+
+    storeRoleSession(
+      profile,
+      user
     );
+
 
     window.location.replace(
       REDIRECTS.parent
@@ -328,81 +487,110 @@ async function redirectByRole(profile, user) {
     return;
   }
 
+
+  // ----------------------------------------------------------
+  // UNKNOWN ROLE
+  // ----------------------------------------------------------
+
   throw new Error(
-    "Your account role is not supported."
+    `Your account role "${role}" is not supported.`
   );
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
 // LOGIN
-// ------------------------------------------------------------
+// ============================================================
 
 async function login() {
+
   clearMessage();
 
   const email =
-    emailInput?.value.trim() || "";
+    emailInput?.value
+      .trim()
+      .toLowerCase() || "";
 
   const password =
     passwordInput?.value || "";
 
+
   if (!email) {
+
     showMessage(
-      "Please enter your email or username."
+      "Please enter your email address."
     );
+
     return;
   }
 
+
   if (!password) {
+
     showMessage(
       "Please enter your password."
     );
+
     return;
   }
 
+
   setLoading(true);
 
+
   try {
+
     // --------------------------------------------------------
-    // SUPABASE AUTH
+    // AUTHENTICATION
     // --------------------------------------------------------
 
     const {
       data: authData,
       error: authError
-    } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
+    } =
+      await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
 
     if (authError) {
+
       console.error(
         "Supabase login error:",
         authError
       );
 
       throw new Error(
-        "Invalid email/username or password."
+        "Invalid email or password."
       );
     }
 
+
     if (!authData?.user) {
+
       throw new Error(
         "Login failed. No authenticated user returned."
       );
     }
 
-    const user = authData.user;
+
+    const user =
+      authData.user;
+
 
     // --------------------------------------------------------
     // PROFILE
     // --------------------------------------------------------
 
     const profile =
-      await getUserRole(user.id);
+      await getUserProfile(
+        user.id
+      );
+
 
     // --------------------------------------------------------
-    // ROLE REDIRECT
+    // ROLE ROUTING
     // --------------------------------------------------------
 
     await redirectByRole(
@@ -410,63 +598,93 @@ async function login() {
       user
     );
 
-  } catch (error) {
+  }
+
+
+  catch (error) {
+
     console.error(
       "LOGIN ERROR:",
       error
     );
 
-    // If something fails after Auth login,
-    // sign the user out so there is no half-authenticated state.
+
     try {
+
       await supabaseClient.auth.signOut();
+
     } catch (_) {}
+
 
     showMessage(
       error.message ||
       "Login failed. Please try again."
     );
 
-  } finally {
-    setLoading(false);
   }
+
+
+  finally {
+
+    setLoading(false);
+
+  }
+
 }
 
-// ------------------------------------------------------------
+
+// ============================================================
 // LOGIN BUTTON
-// ------------------------------------------------------------
+// ============================================================
 
 if (loginBtn) {
+
   loginBtn.addEventListener(
     "click",
     login
   );
+
 }
 
-// ------------------------------------------------------------
-// ENTER KEY
-// ------------------------------------------------------------
 
-[emailInput, passwordInput]
+// ============================================================
+// ENTER KEY
+// ============================================================
+
+[
+  emailInput,
+  passwordInput
+]
   .filter(Boolean)
   .forEach(input => {
+
     input.addEventListener(
       "keydown",
       event => {
-        if (event.key === "Enter") {
+
+        if (
+          event.key === "Enter"
+        ) {
+
           event.preventDefault();
+
           login();
         }
+
       }
     );
+
   });
 
-// ------------------------------------------------------------
+
+// ============================================================
 // CHECK EXISTING SESSION
-// ------------------------------------------------------------
+// ============================================================
 
 async function checkExistingSession() {
+
   try {
+
     const {
       data: {
         session
@@ -474,28 +692,47 @@ async function checkExistingSession() {
     } =
       await supabaseClient.auth.getSession();
 
+
     if (!session?.user) {
       return;
     }
 
+
     const profile =
-      await getUserRole(
+      await getUserProfile(
         session.user.id
       );
+
 
     await redirectByRole(
       profile,
       session.user
     );
 
-  } catch (error) {
+  }
+
+
+  catch (error) {
+
     console.warn(
       "Existing session check:",
       error.message
     );
 
-    await supabaseClient.auth.signOut();
+
+    try {
+
+      await supabaseClient.auth.signOut();
+
+    } catch (_) {}
+
   }
+
 }
+
+
+// ============================================================
+// START
+// ============================================================
 
 checkExistingSession();
