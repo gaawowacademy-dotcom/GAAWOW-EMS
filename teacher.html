@@ -81,13 +81,23 @@
 <script>
 (function(){
   const el=document.getElementById("jsLoadError");
-  window.__teacherJsLoaded=false;
-  setTimeout(function(){
-    if(!window.__teacherJsLoaded && el){
-      el.hidden=false;
-      el.textContent="Teacher JavaScript could not be loaded. Check that teacher.js is in the same GitHub Pages folder as teacher.html.";
+  <script>
+  window.__teacherJsLoaded = false;
+</script>
+
+<script src="./teacher.js?v=6.4"></script>
+
+<script>
+(function () {
+  const el = document.getElementById("jsLoadError");
+
+  setTimeout(function () {
+    if (!window.__teacherJsLoaded && el) {
+      el.hidden = false;
+      el.textContent =
+        "Teacher JavaScript could not be loaded. Please check teacher.js.";
     }
-  },8000);
+  }, 8000);
 })();
 </script>
 </body>
