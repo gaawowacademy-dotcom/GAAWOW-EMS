@@ -1,4 +1,7 @@
-/* =========================================================
+console.log(
+  "GAAWOW TEACHER PORTAL VERSION: 20261009-FIX1"
+);
+* =========================================================
    GAAWOW EMS — TEACHER PORTAL V1
    Teacher-only authentication and profile portal
    ========================================================= */
