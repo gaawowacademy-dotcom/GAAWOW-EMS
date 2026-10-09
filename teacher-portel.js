@@ -263,25 +263,28 @@ async function loadTeacherProfile() {
   }
 
 
-  /*
-    SECURITY CHECK #1
-  */
+  const role = String(profile.role || "")
+  .trim()
+  .toLowerCase();
 
-  if (
-    profile.role !== "teacher"
-  ) {
+console.log("Teacher Portal Debug:", {
+  userId: currentUser.id,
+  email: currentUser.email,
+  profileId: profile.id,
+  role: role,
+  isActive: profile.is_active
+});
 
-    alert(
-      "Access denied.\n\n" +
-      "This portal is for teachers only."
-    );
+if (role !== "teacher") {
+  alert(
+    "Access denied.\n\n" +
+    "This portal is for teachers only.\n" +
+    "Detected role: " + (role || "missing")
+  );
 
-    window.location.href =
-      DASHBOARD_PAGE;
-
-    return false;
-  }
-
+  window.location.replace(LOGIN_PAGE);
+  return false;
+}
 
   /*
     SECURITY CHECK #2
