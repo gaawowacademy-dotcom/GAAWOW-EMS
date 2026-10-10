@@ -444,21 +444,16 @@ async function redirectByRole(
 
 
   // ----------------------------------------------------------
-// TEACHER
+// TEACHER LOGIN
 // ----------------------------------------------------------
-
 if (role === "teacher") {
-
   storeRoleSession(profile, user);
 
   console.log("Teacher login confirmed.");
   console.log("Teacher email:", user.email);
   console.log("Teacher role:", profile.role);
 
-  window.location.replace(
-    REDIRECTS.teacher
-  );
-
+  window.location.replace("./teacher-portal.html");
   return;
 }
   // ----------------------------------------------------------
