@@ -444,35 +444,23 @@ async function redirectByRole(
 
 
   // ----------------------------------------------------------
-  // TEACHER
-  // ----------------------------------------------------------
+// TEACHER
+// ----------------------------------------------------------
 
-  if (role === "teacher") {
+if (role === "teacher") {
+
   storeRoleSession(profile, user);
 
-  alert(
-    "Teacher login confirmed.\n" +
-    "Email: " + user.email + "\n" +
-    "Role: " + profile.role + "\n" +
-    "Opening Teacher Portal..."
+  console.log("Teacher login confirmed.");
+  console.log("Teacher email:", user.email);
+  console.log("Teacher role:", profile.role);
+
+  window.location.replace(
+    REDIRECTS.teacher
   );
 
-  window.location.href = "./teacher-portal.html";
   return;
 }
-    console.log(
-      "Teacher detected → Teacher Portal"
-    );
-
-
-    window.location.replace(
-      REDIRECTS.teacher
-    );
-
-    return;
-  }
-
-
   // ----------------------------------------------------------
   // PARENT
   // ----------------------------------------------------------
