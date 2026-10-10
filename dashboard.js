@@ -51,7 +51,8 @@ async function checkDashboardAccess() {
 
     const user =
       sessionData.session.user;
-
+console.log("CURRENT AUTH USER ID:", user.id);
+console.log("CURRENT AUTH EMAIL:", user.email);
 
     /* -----------------------------------------
        LOAD PROFILE
