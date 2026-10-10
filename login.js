@@ -448,13 +448,18 @@ async function redirectByRole(
   // ----------------------------------------------------------
 
   if (role === "teacher") {
+  storeRoleSession(profile, user);
 
-    storeRoleSession(
-      profile,
-      user
-    );
+  alert(
+    "Teacher login confirmed.\n" +
+    "Email: " + user.email + "\n" +
+    "Role: " + profile.role + "\n" +
+    "Opening Teacher Portal..."
+  );
 
-
+  window.location.href = "./teacher-portal.html";
+  return;
+}
     console.log(
       "Teacher detected → Teacher Portal"
     );
