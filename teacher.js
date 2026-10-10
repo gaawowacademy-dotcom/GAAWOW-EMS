@@ -4,10 +4,11 @@
    Fixes JavaScript load guard and keeps teacher loading independent from institutions.
    ========================================================= */
 
-const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiic.supabase.co";
 const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-const CREATE_TEACHER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/create-teacher`;
+const CREATE_TEACHER_FUNCTION_URL =
+  `${SUPABASE_URL}/functions/v1/create-teacher-account`;
 const DELETE_TEACHER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/delete-teacher`;
 const TEACHER_PHOTO_BUCKET = "teacher-photos";
 const MAX_PHOTO_SIZE = 2 * 1024 * 1024;
@@ -517,6 +518,7 @@ async function updateTeacherProfile(id, payload) {
 }
 
 async function createTeacher(payload, accessToken) {
+async function createTeacher(payload, accessToken) {
   const response = await withTimeout(
     fetch(CREATE_TEACHER_FUNCTION_URL, {
       method: "POST",
@@ -531,7 +533,10 @@ async function createTeacher(payload, accessToken) {
   );
 
   let result = null;
-  try { result = await response.json(); } catch (_) {}
+
+  try {
+    result = await response.json();
+  } catch (_) {}
 
   if (!response.ok) {
     throw new Error(
@@ -543,7 +548,6 @@ async function createTeacher(payload, accessToken) {
 
   return result;
 }
-
 function extractCreatedTeacherId(result) {
   return (
     result?.teacher?.id ||
