@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1E63">
+  <title>Teacher Portal | GAAWOW EMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --navy:#0B1E63; --royal:#0B4DA2; --gold:#D4AF37;
+      --white:#fff; --gray:#F5F7FA; --text:#18233d; --muted:#68738a;
+      --border:#e5eaf2; --green:#16845b; --red:#c0392b;
+      --shadow:0 12px 30px rgba(11,30,99,.08);
+      --radius:18px;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif; background:var(--gray); color:var(--text); }
+    button,input,select,textarea { font:inherit; }
+    button { cursor:pointer; }
+    .app { min-height:100vh; }
+    .topbar { position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 24px; color:#fff; background:linear-gradient(115deg,var(--navy),var(--royal)); box-shadow:0 8px 22px rgba(11,30,99,.18); }
+    .brand { display:flex; align-items:center; gap:12px; min-width:0; }
+    .brand img { width:48px; height:48px; object-fit:contain; background:#fff; border-radius:12px; padding:4px; }
+    .brand h1 { margin:0; font-size:17px; font-weight:800; letter-spacing:.3px; }
+    .brand p { margin:4px 0 0; font-size:11px; opacity:.82; }
+    .top-actions { display:flex; align-items:center; gap:10px; }
+    .role-badge { border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.12); padding:8px 12px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.7px; }
+    .logout { border:0; color:var(--navy); background:var(--gold); font-weight:800; padding:10px 14px; border-radius:11px; }
+    .layout { display:grid; grid-template-columns:245px minmax(0,1fr); max-width:1600px; margin:auto; }
+    .sidebar { padding:22px 14px; border-right:1px solid var(--border); background:#fff; min-height:calc(100vh - 76px); }
+    .side-label { padding:0 12px; margin:5px 0 12px; font-size:10px; font-weight:800; color:#8a94a8; letter-spacing:1.3px; text-transform:uppercase; }
+    .nav-btn { width:100%; display:flex; align-items:center; gap:12px; border:0; border-radius:12px; padding:12px 13px; margin:4px 0; color:#4d5a73; background:transparent; text-align:left; font-size:13px; font-weight:700; }
+    .nav-btn .icon { width:23px; text-align:center; font-size:17px; }
+    .nav-btn:hover,.nav-btn.active { color:var(--navy); background:#edf3ff; }
+    .nav-btn.active { box-shadow:inset 3px 0 0 var(--gold); }
+    .sidebar-note { margin:26px 5px 0; padding:15px; background:#fff9e6; border:1px solid #f2e2a9; border-radius:14px; font-size:11px; line-height:1.6; color:#725a12; }
+    main { min-width:0; padding:26px; }
+    .welcome { position:relative; overflow:hidden; padding:25px; color:#fff; border-radius:var(--radius); background:linear-gradient(120deg,var(--navy),#125bb2); box-shadow:var(--shadow); }
+    .welcome:after { content:""; position:absolute; width:230px; height:230px; right:-50px; top:-95px; border:35px solid rgba(255,255,255,.08); border-radius:50%; }
+    .welcome .eyebrow { color:#f4d975; font-size:11px; letter-spacing:1.5px; font-weight:800; text-transform:uppercase; }
+    .welcome h2 { margin:10px 0 8px; font-size:clamp(22px,3vw,30px); }
+    .welcome p { margin:0; color:#e0eaff; font-size:13px; line-height:1.7; max-width:680px; }
+    .welcome-meta { display:flex; flex-wrap:wrap; gap:9px; margin-top:17px; }
+    .meta-pill { padding:8px 11px; border:1px solid rgba(255,255,255,.23); background:rgba(255,255,255,.09); border-radius:999px; font-size:11px; }
+    .section-head { display:flex; align-items:end; justify-content:space-between; gap:12px; margin:26px 0 14px; }
+    .section-head h3 { margin:0; font-size:17px; color:var(--navy); }
+    .section-head p { margin:5px 0 0; color:var(--muted); font-size:12px; }
+    .stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+    .stat-card,.panel { background:#fff; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+    .stat-card { padding:18px; min-width:0; }
+    .stat-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .stat-label { color:var(--muted); font-size:12px; font-weight:700; }
+    .stat-icon { display:grid; place-items:center; width:39px; height:39px; border-radius:12px; background:#edf3ff; font-size:19px; }
+    .stat-value { margin:14px 0 5px; color:var(--navy); font-size:28px; font-weight:800; }
+    .stat-foot { color:#8590a5; font-size:11px; }
+    .grid-two { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr); gap:16px; margin-top:16px; }
+    .panel { padding:20px; min-width:0; }
+    .panel h3 { margin:0 0 5px; font-size:15px; color:var(--navy); }
+    .panel .sub { margin:0 0 15px; font-size:11px; color:var(--muted); }
+    .quick-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:11px; }
+    .quick { border:1px solid var(--border); background:#fff; border-radius:14px; padding:15px 12px; text-align:left; transition:.15s; }
+    .quick:hover { transform:translateY(-2px); border-color:#c3d4f6; background:#f8faff; }
+    .quick .qicon { font-size:22px; display:block; margin-bottom:12px; }
+    .quick strong { display:block; font-size:12px; color:var(--navy); }
+    .quick span { display:block; margin-top:5px; font-size:10px; line-height:1.5; color:var(--muted); }
+    .table-wrap { width:100%; overflow:auto; }
+    table { width:100%; border-collapse:collapse; font-size:12px; min-width:480px; }
+    th { text-align:left; color:#7b879b; font-size:10px; text-transform:uppercase; letter-spacing:.6px; background:#f8faff; }
+    th,td { padding:12px 10px; border-bottom:1px solid #edf0f5; }
+    td { color:#3f4c64; }
+    tbody tr:last-child td { border-bottom:0; }
+    .pill { display:inline-block; border-radius:999px; padding:5px 8px; background:#edf3ff; color:var(--royal); font-size:10px; font-weight:800; }
+    .empty { text-align:center; padding:26px 10px; color:var(--muted); font-size:12px; }
+    .content-view { display:none; }
+    .content-view.active { display:block; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+    .toolbar input,.toolbar select,.field input,.field textarea,.field select { width:100%; border:1px solid #dce3ee; border-radius:10px; padding:11px 12px; outline:none; background:#fff; color:var(--text); }
+    .toolbar input { max-width:330px; }
+    .toolbar input:focus,.field input:focus,.field textarea:focus,.field select:focus { border-color:var(--royal); box-shadow:0 0 0 3px rgba(11,77,162,.08); }
+    .btn { border:0; border-radius:10px; padding:10px 13px; background:var(--royal); color:#fff; font-size:12px; font-weight:800; }
+    .btn.gold { background:var(--gold); color:var(--navy); }
+    .btn.light { background:#edf3ff; color:var(--navy); }
+    .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .field label { display:block; margin-bottom:6px; font-size:11px; color:#5d6880; font-weight:800; }
+    .field.full { grid-column:1/-1; }
+    .notice { padding:12px 14px; border-radius:11px; background:#edf3ff; color:#244579; font-size:12px; line-height:1.6; margin-bottom:14px; }
+    .notice.error { background:#fff0ef; color:#9c2d26; }
+    .notice.success { background:#eaf8f0; color:#146b48; }
+    .profile-line { display:flex; align-items:center; gap:14px; margin-bottom:20px; }
+    .avatar { display:grid; place-items:center; width:54px; height:54px; border-radius:16px; background:linear-gradient(135deg,var(--navy),var(--royal)); color:#fff; font-size:21px; font-weight:800; }
+    .profile-line h4 { margin:0 0 5px; color:var(--navy); }
+    .profile-line p { margin:0; font-size:12px; color:var(--muted); }
+    .footer { padding:20px 10px 5px; text-align:center; color:#8993a5; font-size:10px; line-height:1.8; }
+    .loading-screen { min-height:100vh; display:grid; place-items:center; padding:25px; background:var(--gray); }
+    .loading-box { max-width:440px; width:100%; text-align:center; background:#fff; padding:30px; border-radius:20px; box-shadow:var(--shadow); }
+    .loading-box img { width:74px; height:74px; object-fit:contain; }
+    .loading-box h2 { color:var(--navy); font-size:19px; }
+    .loading-box p { color:var(--muted); font-size:13px; line-height:1.7; }
+    .spinner { width:25px; height:25px; margin:18px auto 0; border:3px solid #dce5f4; border-top-color:var(--royal); border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .mobile-menu { display:none; }
+    @media(max-width:1050px) { .stats { grid-template-columns:repeat(2,minmax(0,1fr)); } .grid-two { grid-template-columns:1fr; } }
+    @media(max-width:760px) {
+      .topbar { padding:12px 14px; } .brand img { width:41px;height:41px; } .brand h1 {font-size:14px;} .brand p {font-size:9px;}
+      .role-badge {display:none;} .layout {display:block;} .sidebar {display:none; min-height:0; padding:10px 14px; border-right:0; border-bottom:1px solid var(--border);}
+      .sidebar.open {display:block;} .mobile-menu {display:inline-block; border:1px solid rgba(255,255,255,.3); color:#fff; background:transparent; border-radius:9px; padding:8px 10px; margin-right:8px;}
+      main {padding:15px;} .welcome {padding:20px;} .stats {gap:10px;} .stat-card {padding:14px;} .stat-value {font-size:24px;}
+      .quick-grid {grid-template-columns:repeat(2,minmax(0,1fr));} .panel {padding:15px;} .form-grid {grid-template-columns:1fr;}
+      .logout {padding:9px 10px; font-size:11px;}
+    }
+    @media(max-width:390px) { .stats {grid-template-columns:1fr 1fr;} .brand p {display:none;} .quick-grid {grid-template-columns:1fr 1fr;} }
+  </style>
+</head>
+<body>
+<div id="loadingScreen" class="loading-screen">
+  <div class="loading-box">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="Gaawow Academy Logo">
+    <h2>GAAWOW EMS Teacher Portal</h2>
+    <p id="loadingMessage">Waxaan xaqiijinaynaa login-kaaga iyo rukhsadda macallinka...</p>
+    <div class="spinner" id="spinner"></div>
+  </div>
+</div>
+
+<div id="app" class="app" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <button class="mobile-menu" id="mobileMenu" aria-label="Open menu">☰</button>
+      <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Logo">
+      <div><h1>GAAWOW EMS</h1><p>Education Management &amp; Verification System</p></div>
+    </div>
+    <div class="top-actions"><span class="role-badge">TEACHER PORTAL</span><button class="logout" id="logoutBtn">Logout ↗</button></div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="side-label">Teacher Workspace</div>
+      <button class="nav-btn active" data-view="overview"><span class="icon">▦</span>Dashboard</button>
+      <button class="nav-btn" data-view="classes"><span class="icon">🏫</span>My Classes</button>
+      <button class="nav-btn" data-view="lessons"><span class="icon">📚</span>My Lessons</button>
+      <button class="nav-btn" data-view="students"><span class="icon">👨‍🎓</span>My Students</button>
+      <button class="nav-btn" data-view="attendance"><span class="icon">☑</span>Attendance</button>
+      <button class="nav-btn" data-view="exams"><span class="icon">📝</span>Exams</button>
+      <button class="nav-btn" data-view="grades"><span class="icon">📊</span>Grades</button>
+      <button class="nav-btn" data-view="profile"><span class="icon">👤</span>My Profile</button>
+      <div class="sidebar-note"><strong>GAAWOW ACADEMY</strong><br>Ilayska Aqoonta iyo Xirfadda<br><br>Fadlan ilaali xogta ardayda, hana la wadaagin cid aan loo oggolayn.</div>
+    </aside>
+
+    <main>
+      <div id="globalNotice" hidden></div>
+
+      <section class="content-view active" id="view-overview">
+        <div class="welcome">
+          <div class="eyebrow">Teacher Workspace</div>
+          <h2>Ku soo dhowow, <span id="welcomeName">Macallin</span> 👋</h2>
+          <p>Halkan waxaad ka maamuli kartaa fasalladaada, casharrada, ardayda, xaadirinta iyo xogta waxbarasho ee laguu oggolaaday.</p>
+          <div class="welcome-meta"><span class="meta-pill">🏫 <span id="institutionName">Institution-kaaga</span></span><span class="meta-pill">🔐 Teacher access</span></div>
+        </div>
+
+        <div class="section-head"><div><h3>Dashboard Overview</h3><p>Kooban xogta macallinka hadda galay.</p></div><button class="btn light" id="refreshBtn">↻ Refresh</button></div>
+        <div class="stats">
+          <article class="stat-card"><div class="stat-top"><span class="stat-label">My Classes</span><span class="stat-icon">🏫</span></div><div class="stat-value" id="classCount">—</div><div class="stat-foot">Fasallada laguu xilsaaray</div></article>
+          <article class="stat-card"><div class="stat-top"><span class="stat-label">My Lessons</span><span class="stat-icon">📚</span></div><div class="stat-value" id="lessonCount">—</div><div class="stat-foot">Casharradaada</div></article>
+          <article class="stat-card"><div class="stat-top"><span class="stat-label">My Students</span><span class="stat-icon">👨‍🎓</span></div><div class="stat-value" id="studentCount">—</div><div class="stat-foot">Ardayda fasalladaada</div></article>
+          <article class="stat-card"><div class="stat-top"><span class="stat-label">My Exams</span><span class="stat-icon">📝</span></div><div class="stat-value" id="examCount">—</div><div class="stat-foot">Imtixaannada laguu oggolaaday</div></article>
+        </div>
+
+        <div class="grid-two">
+          <div class="panel"><h3>Quick Actions</h3><p class="sub">Dooro qaybta aad rabto inaad furato.</p>
+            <div class="quick-grid">
+              <button class="quick" data-go="classes"><span class="qicon">🏫</span><strong>My Classes</strong><span>Arag fasalladaada</span></button>
+              <button class="quick" data-go="lessons"><span class="qicon">📚</span><strong>My Lessons</strong><span>Arag jadwalka casharrada</span></button>
+              <button class="quick" data-go="students"><span class="qicon">👨‍🎓</span><strong>My Students</strong><span>Arag ardayda fasalka</span></button>
+              <button class="quick" data-go="attendance"><span class="qicon">☑</span><strong>Attendance</strong><span>Arag xaadirinta</span></button>
+              <button class="quick" data-go="exams"><span class="qicon">📝</span><strong>Exams</strong><span>Arag imtixaannada</span></button>
+              <button class="quick" data-go="grades"><span class="qicon">📊</span><strong>Grades</strong><span>Arag dhibcaha laguu oggolaaday</span></button>
+            </div>
+          </div>
+          <div class="panel"><h3>My Upcoming Lessons</h3><p class="sub">Casharrada macallinka ee dhowaan dhici doona.</p><div id="upcomingLessons" class="empty">Xogta waa la soo rarayaa...</div></div>
+        </div>
+      </section>
+
+      <section class="content-view" id="view-classes">
+        <div class="section-head"><div><h3>My Classes</h3><p>Fasallada laguugu xilsaaray institution-kaaga.</p></div></div>
+        <div class="panel"><div class="toolbar"><input id="classSearch" placeholder="Raadi fasal..." aria-label="Search classes"></div><div id="classesTable"></div></div>
+      </section>
+
+      <section class="content-view" id="view-lessons">
+        <div class="section-head"><div><h3>My Lessons</h3><p>Casharrada aad dhigto.</p></div></div>
+        <div class="panel"><div class="toolbar"><input id="lessonSearch" placeholder="Raadi cashar..." aria-label="Search lessons"></div><div id="lessonsTable"></div></div>
+      </section>
+
+      <section class="content-view" id="view-students">
+        <div class="section-head"><div><h3>My Students</h3><p>Ardayda ka diiwaangashan fasalladaada, haddii RLS oggolaato.</p></div></div>
+        <div class="panel"><div class="toolbar"><input id="studentSearch" placeholder="Raadi arday..." aria-label="Search students"></div><div id="studentsTable"></div></div>
+      </section>
+
+      <section class="content-view" id="view-attendance">
+        <div class="section-head"><div><h3>Attendance</h3><p>Xaadirinta casharradaada.</p></div></div>
+        <div class="panel"><div id="attendanceTable"></div><div class="notice">Noocan V1 wuxuu soo bandhigayaa xaadirinta uu database-ku kuu oggolaado inaad akhrido. Qorista ama beddelidda xaadirinta waxaa lagu dari karaa marka la xaqiijiyo qiimayaasha status-ka ee database-kaaga.</div></div>
+      </section>
+
+      <section class="content-view" id="view-exams">
+        <div class="section-head"><div><h3>Exams</h3><p>Imtixaannada aad arki karto iyadoo la raacayo RLS.</p></div></div>
+        <div class="panel"><div class="toolbar"><input id="examSearch" placeholder="Raadi imtixaan..." aria-label="Search exams"></div><div id="examsTable"></div></div>
+      </section>
+
+      <section class="content-view" id="view-grades">
+        <div class="section-head"><div><h3>Grades</h3><p>Dhibcaha ardayda ee loo oggolaaday macallinka.</p></div></div>
+        <div class="panel"><div class="toolbar"><input id="gradeSearch" placeholder="Raadi dhibco..." aria-label="Search grades"></div><div id="gradesTable"></div></div>
+      </section>
+
+      <section class="content-view" id="view-profile">
+        <div class="section-head"><div><h3>My Profile</h3><p>Xogta akoonkaaga.</p></div></div>
+        <div class="panel"><div class="profile-line"><div class="avatar" id="profileInitials">T</div><div><h4 id="profileName">Macallin</h4><p id="profileRole">Teacher</p></div></div>
+          <div class="form-grid">
+            <div class="field"><label>Full Name</label><input id="profileFullName" readonly></div>
+            <div class="field"><label>Role</label><input id="profileRoleField" readonly></div>
+            <div class="field"><label>Phone</label><input id="profilePhone" readonly></div>
+            <div class="field"><label>Institution ID</label><input id="profileInstitution" readonly></div>
+            <div class="field full"><label>Account Status</label><input id="profileStatus" readonly></div>
+          </div>
+          <div class="notice" style="margin-top:15px;margin-bottom:0">Si loo beddelo xogta profile-ka ama password-ka, isticmaal habka maamulka ee nidaamkaaga. Boggan ma soo bandhigayo xog qarsoon ama rukhsad ka baxsan.</div>
+        </div>
+      </section>
+
+      <div class="footer"><strong>GAAWOW ACADEMY</strong><br>Ilayska Aqoonta iyo Xirfadda · Burhakaba, Bay, Somalia<br>GAAWOW EMS © <span id="year"></span></div>
+    </main>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // Frontend publishable key only. Never place a service_role/secret key in browser code.
+  const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+  const $ = (id) => document.getElementById(id);
+  const state = {
+    user: null, profile: null, classes: [], lessons: [], students: [],
+    attendance: [], exams: [], grades: [], classNames: {}
+  };
+
+  const safe = (value) => String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[ch]));
+  const dateText = value => {
+    if (!value) return "Not set";
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? safe(value) : d.toLocaleDateString();
+  };
+  const timeText = value => value ? safe(String(value).slice(0,5)) : "—";
+  const showLoading = (message, error=false) => {
+    $("loadingMessage").textContent = message;
+    $("spinner").style.display = error ? "none" : "block";
+  };
+  const failAccess = async (message, sendLogin=true) => {
+    showLoading(message, true);
+    if (sendLogin) {
+      const link = document.createElement("a");
+      link.href = "login.html";
+      link.textContent = "Ku laabo Login";
+      link.style.cssText = "display:inline-block;margin-top:12px;padding:11px 16px;border-radius:10px;background:#0B4DA2;color:white;text-decoration:none;font-weight:700";
+      document.querySelector(".loading-box").appendChild(link);
+    }
+  };
+  const setNotice = (message, type="info") => {
+    const el = $("globalNotice");
+    el.hidden = false;
+    el.className = "notice" + (type === "error" ? " error" : type === "success" ? " success" : "");
+    el.textContent = message;
+  };
+  const renderTable = (targetId, headers, rows, emptyText) => {
+    const target = $(targetId);
+    if (!rows || !rows.length) {
+      target.innerHTML = `<div class="empty">${safe(emptyText || "Xog lama helin, ama RLS ma oggola akhriska.")}</div>`;
+      return;
+    }
+    target.innerHTML = `<div class="table-wrap"><table><thead><tr>${headers.map(h=>`<th>${safe(h)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+  };
+  const tr = cells => `<tr>${cells.map(c=>`<td>${c}</td>`).join("")}</tr>`;
+  const className = id => state.classNames[id] || "Class";
+  const go = view => {
+    document.querySelectorAll(".content-view").forEach(el => el.classList.toggle("active", el.id === "view-" + view));
+    document.querySelectorAll(".nav-btn").forEach(el => el.classList.toggle("active", el.dataset.view === view));
+    $("sidebar").classList.remove("open");
+    if (view === "students" && !state.students.length) loadStudents();
+  };
+
+  document.querySelectorAll(".nav-btn").forEach(btn => btn.addEventListener("click", () => go(btn.dataset.view)));
+  document.querySelectorAll("[data-go]").forEach(btn => btn.addEventListener("click", () => go(btn.dataset.go)));
+  $("mobileMenu").addEventListener("click", () => $("sidebar").classList.toggle("open"));
+  $("refreshBtn").addEventListener("click", async () => {
+    $("refreshBtn").textContent = "Loading...";
+    await loadAll();
+    $("refreshBtn").textContent = "↻ Refresh";
+  });
+  $("logoutBtn").addEventListener("click", async () => {
+    $("logoutBtn").disabled = true;
+    await supabase.auth.signOut();
+    window.location.replace("login.html");
+  });
+
+  async function loadProfile(user) {
+    const { data, error } = await supabase.from("profiles")
+      .select("id,full_name,role,is_active,institution_id,phone,avatar_url")
+      .eq("id", user.id).maybeSingle();
+    if (error) throw new Error("Profile lama akhrin: " + error.message);
+    if (!data) throw new Error("Profile-kaaga lagama helin. Fadlan la xiriir maamulka.");
+    if (data.role !== "teacher") throw new Error("Boggan waxaa geli kara macallin (teacher) oo keliya.");
+    if (data.is_active !== true) throw new Error("Akoonkaaga waa inactive. La xiriir maamulka.");
+    if (!data.institution_id) throw new Error("Profile-kaagu ma laha institution_id. Maamulka ha saxo xogta.");
+    return data;
+  }
+
+  async function queryOrEmpty(query, label) {
+    const { data, error } = await query;
+    if (error) {
+      console.warn(label + " query:", error.message);
+      setNotice(label + ": " + error.message + ". Waxaa suuragal ah in RLS uusan oggolaan akhriska.", "error");
+      return [];
+    }
+    return data || [];
+  }
+
+  async function loadAll() {
+    const p = state.profile;
+    const uid = state.user.id;
+    // Both institution_id and teacher_id filters are applied. TEST institutions are not mixed in.
+    state.classes = await queryOrEmpty(
+      supabase.from("classes").select("id,institution_id,name,code,academic_year,teacher_id,room,start_date,end_date,is_active,status")
+        .eq("institution_id", p.institution_id).eq("teacher_id", uid).order("name"),
+      "My Classes"
+    );
+    state.classes.forEach(c => state.classNames[c.id] = c.name || c.code || "Class");
+
+    state.lessons = await queryOrEmpty(
+      supabase.from("lessons").select("id,institution_id,class_id,teacher_id,title,description,lesson_date,start_time,end_time,room")
+        .eq("institution_id", p.institution_id).eq("teacher_id", uid).order("lesson_date", {ascending:true}),
+      "My Lessons"
+    );
+
+    state.exams = await queryOrEmpty(
+      supabase.from("exams").select("id,institution_id,course_id,class_id,title,exam_type,exam_date,max_score,duration_minutes,description,created_by")
+        .eq("institution_id", p.institution_id).eq("created_by", uid).order("exam_date", {ascending:false}),
+      "Exams"
+    );
+
+    const examIds = state.exams.map(e => e.id);
+    state.grades = examIds.length ? await queryOrEmpty(
+      supabase.from("grades").select("id,institution_id,exam_id,student_id,score,grade,remarks,entered_by")
+        .eq("institution_id", p.institution_id).eq("entered_by", uid).in("exam_id", examIds),
+      "Grades"
+    ) : [];
+
+    const lessonIds = state.lessons.map(l => l.id);
+    state.attendance = lessonIds.length ? await queryOrEmpty(
+      supabase.from("attendance").select("id,institution_id,lesson_id,student_id,status,notes,recorded_at")
+        .eq("institution_id", p.institution_id).in("lesson_id", lessonIds).order("recorded_at", {ascending:false}).limit(100),
+      "Attendance"
+    ) : [];
+
+    updateOverview();
+    renderClasses();
+    renderLessons();
+    renderAttendance();
+    renderExams();
+    renderGrades();
+    renderUpcoming();
+  }
+
+  function updateOverview() {
+    $("welcomeName").textContent = state.profile.full_name || "Macallin";
+    $("institutionName").textContent = state.profile.institution_id ? "Institution-kaaga" : "Institution lama yaqaan";
+    $("classCount").textContent = state.classes.length;
+    $("lessonCount").textContent = state.lessons.length;
+    $("studentCount").textContent = state.students.length ? state.students.length : "—";
+    $("examCount").textContent = state.exams.length;
+    $("profileName").textContent = state.profile.full_name || "Macallin";
+    $("profileRole").textContent = "Teacher";
+    $("profileFullName").value = state.profile.full_name || "";
+    $("profileRoleField").value = state.profile.role || "";
+    $("profilePhone").value = state.profile.phone || "Not set";
+    $("profileInstitution").value = state.profile.institution_id || "";
+    $("profileStatus").value = state.profile.is_active ? "ACTIVE" : "INACTIVE";
+    const initials = (state.profile.full_name || "T").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase();
+    $("profileInitials").textContent = initials || "T";
+  }
+
+  function renderClasses(filter="") {
+    const q = filter.toLowerCase();
+    const list = state.classes.filter(c => [c.name,c.code,c.academic_year,c.room,c.status].join(" ").toLowerCase().includes(q));
+    renderTable("classesTable", ["Class","Code","Academic Year","Room","Status"], list.map(c=>tr([
+      `<strong>${safe(c.name || "Unnamed class")}</strong>`,
+      safe(c.code || "—"), safe(c.academic_year || "—"), safe(c.room || "—"),
+      `<span class="pill">${safe(c.status || (c.is_active ? "ACTIVE" : "INACTIVE"))}</span>`
+    ])), "Fasallo laguu xilsaaray lama helin. Hubi classes.teacher_id iyo institution_id.");
+  }
+  function renderLessons(filter="") {
+    const q = filter.toLowerCase();
+    const list = state.lessons.filter(l => [l.title,l.description,l.room,className(l.class_id)].join(" ").toLowerCase().includes(q));
+    renderTable("lessonsTable", ["Lesson","Class","Date","Time","Room"], list.map(l=>tr([
+      `<strong>${safe(l.title || "Untitled lesson")}</strong>`,
+      safe(className(l.class_id)), dateText(l.lesson_date),
+      `${timeText(l.start_time)} - ${timeText(l.end_time)}`, safe(l.room || "—")
+    ])), "Casharro laguu xilsaaray lama helin.");
+  }
+  function renderUpcoming() {
+    const now = new Date(); now.setHours(0,0,0,0);
+    const upcoming = state.lessons.filter(l => !l.lesson_date || new Date(l.lesson_date) >= now).slice(0,5);
+    if (!upcoming.length) {
+      $("upcomingLessons").innerHTML = '<div class="empty">Ma jiraan casharro soo socda oo la soo bandhigi karo.</div>';
+      return;
+    }
+    $("upcomingLessons").innerHTML = upcoming.map(l => `
+      <div style="display:flex;gap:12px;padding:11px 0;border-bottom:1px solid #edf0f5">
+        <div style="min-width:48px;text-align:center;border-radius:10px;background:#edf3ff;color:#0B1E63;padding:8px 5px;font-size:10px;font-weight:800">${safe(l.lesson_date ? new Date(l.lesson_date).toLocaleDateString(undefined,{month:"short",day:"numeric"}) : "DATE")}</div>
+        <div><strong style="display:block;font-size:12px;color:#0B1E63">${safe(l.title || "Untitled lesson")}</strong><span style="display:block;margin-top:5px;font-size:10px;color:#68738a">${safe(className(l.class_id))} · ${timeText(l.start_time)}</span></div>
+      </div>`).join("");
+  }
+  function renderAttendance() {
+    const rows = state.attendance.map(a => {
+      const lesson = state.lessons.find(l => l.id === a.lesson_id);
+      return tr([safe(lesson?.title || "Lesson"), safe(a.student_id || "—"), `<span class="pill">${safe(a.status || "—")}</span>`, dateText(a.recorded_at), safe(a.notes || "—")]);
+    });
+    renderTable("attendanceTable", ["Lesson","Student ID","Status","Recorded","Notes"], rows, "Xaadirin lama helin ama RLS ma oggola akhriska.");
+  }
+  function renderExams(filter="") {
+    const q = filter.toLowerCase();
+    const list = state.exams.filter(e => [e.title,e.exam_type,e.description].join(" ").toLowerCase().includes(q));
+    renderTable("examsTable", ["Exam","Type","Date","Max Score","Duration"], list.map(e=>tr([
+      `<strong>${safe(e.title || "Untitled exam")}</strong>`, safe(e.exam_type || "—"),
+      dateText(e.exam_date), safe(e.max_score ?? "—"), e.duration_minutes ? safe(e.duration_minutes)+" min" : "—"
+    ])), "Imtixaanno laguu oggolaaday lama helin.");
+  }
+  function renderGrades(filter="") {
+    const q = filter.toLowerCase();
+    const list = state.grades.filter(g => [g.exam_id,g.student_id,g.grade,g.score,g.remarks].join(" ").toLowerCase().includes(q));
+    renderTable("gradesTable", ["Exam ID","Student ID","Score","Grade","Remarks"], list.map(g=>tr([
+      safe(g.exam_id || "—"), safe(g.student_id || "—"), safe(g.score ?? "—"), `<span class="pill">${safe(g.grade || "—")}</span>`, safe(g.remarks || "—")
+    ])), "Dhibco laguu oggolaaday lama helin.");
+  }
+
+  async function loadStudents() {
+    const target = $("studentsTable");
+    target.innerHTML = '<div class="empty">Ardayda waa la soo rarayaa...</div>';
+    const classIds = state.classes.map(c=>c.id);
+    if (!classIds.length) {
+      state.students = [];
+      $("studentCount").textContent = "0";
+      renderTable("studentsTable", [], [], "Fasal laguu xilsaaray ma jiro.");
+      return;
+    }
+    // Student records are reached through enrollments in the teacher's assigned classes.
+    const enrollments = await queryOrEmpty(
+      supabase.from("enrollments").select("student_id,class_id,institution_id,status")
+        .eq("institution_id", state.profile.institution_id).in("class_id", classIds),
+      "Student enrollments"
+    );
+    const ids = [...new Set(enrollments.map(e=>e.student_id).filter(Boolean))];
+    if (!ids.length) {
+      state.students = [];
+      $("studentCount").textContent = "0";
+      renderTable("studentsTable", [], [], "Arday ku qoran fasalladaada lama helin, ama RLS ayaa xaddiday.");
+      return;
+    }
+    state.students = await queryOrEmpty(
+      supabase.from("students").select("id,student_id,full_name,gender,phone,status")
+        .eq("institution_id", state.profile.institution_id).in("id", ids),
+      "Students"
+    );
+    $("studentCount").textContent = state.students.length;
+    renderStudents();
+  }
+  function renderStudents(filter="") {
+    const q = filter.toLowerCase();
+    const list = state.students.filter(s => [s.full_name,s.student_id,s.gender,s.phone,s.status].join(" ").toLowerCase().includes(q));
+    renderTable("studentsTable", ["Student ID","Full Name","Gender","Phone","Status"], list.map(s=>tr([
+      safe(s.student_id || s.id), `<strong>${safe(s.full_name || "Unnamed student")}</strong>`,
+      safe(s.gender || "—"), safe(s.phone || "—"), `<span class="pill">${safe(s.status || "—")}</span>`
+    ])), "Arday lama helin.");
+  }
+
+  $("classSearch").addEventListener("input", e=>renderClasses(e.target.value));
+  $("lessonSearch").addEventListener("input", e=>renderLessons(e.target.value));
+  $("studentSearch").addEventListener("input", e=>renderStudents(e.target.value));
+  $("examSearch").addEventListener("input", e=>renderExams(e.target.value));
+  $("gradeSearch").addEventListener("input", e=>renderGrades(e.target.value));
+  $("year").textContent = new Date().getFullYear();
+
+  async function init() {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (!session?.user) {
+        window.location.replace("login.html");
+        return;
+      }
+      state.user = session.user;
+      state.profile = await loadProfile(session.user);
+      $("loadingScreen").style.display = "none";
+      $("app").hidden = false;
+      await loadAll();
+      // Refresh portal after sign-out in another tab/device.
+      supabase.auth.onAuthStateChange((event, sessionNow) => {
+        if (event === "SIGNED_OUT" || !sessionNow) window.location.replace("login.html");
+      });
+    } catch (err) {
+      console.error(err);
+      await failAccess(err.message || "Khalad ayaa dhacay. Fadlan isku day mar kale.");
+    }
+  }
+  init();
+})();
+</script>
+</body>
+</html>
