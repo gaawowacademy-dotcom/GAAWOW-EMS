@@ -4,7 +4,7 @@
    Fixes JavaScript load guard and keeps teacher loading independent from institutions.
    ========================================================= */
 
-const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiic.supabase.co";
+const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
 const CREATE_TEACHER_FUNCTION_URL =
