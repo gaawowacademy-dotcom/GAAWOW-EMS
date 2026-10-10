@@ -734,7 +734,33 @@
 
     }
 
-<script src="./login.js?v=20261008"></script>
+<!-- SUPABASE LIBRARY -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- LOGIN LOGIC: Hal mar oo keliya -->
+<script src="./login.js?v=20261010"></script>
+
+<!-- PASSWORD VISIBILITY -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const togglePassword = document.getElementById("togglePassword");
+  const passwordInput = document.getElementById("password");
+
+  if (togglePassword && passwordInput) {
+    togglePassword.addEventListener("click", function () {
+      const show = passwordInput.type === "password";
+
+      passwordInput.type = show ? "text" : "password";
+      togglePassword.textContent = show ? "Hide" : "Show";
+
+      togglePassword.setAttribute(
+        "aria-label",
+        show ? "Hide password" : "Show password"
+      );
+    });
+  }
+});
+</script>
 
 </body>
 </html>
