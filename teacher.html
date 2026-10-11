@@ -78,22 +78,27 @@
     </div>
   </div>
 
-  <!-- Teacher JavaScript load guard: set BEFORE loading teacher.js. -->
+    <!-- Teacher JavaScript load guard -->
   <script>
     window.__teacherJsLoaded = false;
   </script>
-  <script src="./teacher.js?v=8.0"></script>
+
+  <!-- Load teacher.js only once -->
+  <script src="./teacher.js?v=8.1"></script>
+
+  <!-- Check whether teacher.js loaded -->
   <script>
     (function () {
-      const el = document.getElementById("jsLoadError");
+      const errorBox = document.getElementById("jsLoadError");
+
       setTimeout(function () {
-        if (!window.__teacherJsLoaded && el) {
-          el.hidden = false;
-          el.textContent =
-            "Teacher JavaScript could not be loaded. Check that teacher.js is in the same GitHub Pages folder as teacher.html.";
+        if (!window.__teacherJsLoaded && errorBox) {
+          errorBox.hidden = false;
+          errorBox.textContent =
+            "Teacher JavaScript failed to initialize. Check teacher.js, its URL, and the browser console.";
         }
-      }, 8000);
+      }, 3000);
     })();
-<script src="./teacher.js"></script>
+  </script>
 </body>
 </html>
