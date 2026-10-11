@@ -1,22 +1,41 @@
 // ============================================================
-// GAAWOW EMS — SECURE ROLE-BASED LOGIN V8
-// Supabase Auth → profiles.role → Authorized Portal
+// GAAWOW EMS — SECURE ROLE-BASED LOGIN V9
+// Supabase Auth -> profiles.role -> Authorized Portal
 //
-// ROLE ROUTING:
-// super_admin  → dashboard.html
-// school_admin → school-dashboard.html
-// teacher      → teacher-portal.html
-// parent       → parent.html
-// student      → student.html
+// PRESERVED:
+// - Existing Supabase project configuration
+// - All five roles
+// - Student account verification
+// - Student last-login update
+// - Role session storage
+// - Existing portal filenames
+//
+// IMPROVED:
+// - Accurate authentication error handling
+// - Safer login button and form handling
+// - Profile lookup diagnostics
+// - Session validation
+// - Duplicate login prevention
+// - Teacher portal routing
 // ============================================================
 
 "use strict";
+
+// ============================================================
+// 1. SUPABASE CONFIGURATION
+// ============================================================
 
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_2AvWfupKf1b_s0RjIbAi5g_RqLCs145";
+
+if (!window.supabase) {
+  throw new Error(
+    "Supabase library is missing. Check the Supabase CDN script in login.html."
+  );
+}
 
 const supabaseClient =
   window.supabase.createClient(
@@ -34,27 +53,20 @@ const supabaseClient =
 
 
 // ============================================================
-// REDIRECT CONFIGURATION
+// 2. ROLE REDIRECTS
 // ============================================================
 
 const REDIRECTS = {
   super_admin: "./dashboard.html",
-
   school_admin: "./school-dashboard.html",
-
-  // IMPORTANT:
-  // Teacher MUST NOT go to teacher.html.
-  // teacher.html is Super Admin Teacher Management.
   teacher: "./teacher-portal.html",
-
   parent: "./parent.html",
-
   student: "./student.html"
 };
 
 
 // ============================================================
-// DOM
+// 3. DOM ELEMENTS
 // ============================================================
 
 const emailInput =
@@ -73,73 +85,118 @@ const messageEl =
   document.getElementById("loginMessage") ||
   document.getElementById("message");
 
+let loginInProgress = false;
+let redirectInProgress = false;
+
 
 // ============================================================
-// MESSAGE
+// 4. MESSAGE HANDLING
 // ============================================================
 
 function showMessage(message, type = "error") {
+  console.log(`[LOGIN ${type.toUpperCase()}]`, message);
 
   if (!messageEl) {
-    console.log(message);
     return;
   }
 
   messageEl.textContent = message;
-
-  messageEl.className =
-    `login-message ${type}`;
-
-  messageEl.style.display =
-    "block";
+  messageEl.className = `login-message ${type}`;
+  messageEl.style.display = "block";
+  messageEl.setAttribute("role", "alert");
 }
 
-
 function clearMessage() {
-
   if (!messageEl) return;
 
   messageEl.textContent = "";
-
-  messageEl.style.display =
-    "none";
+  messageEl.style.display = "none";
 }
 
 
 // ============================================================
-// LOADING
+// 5. LOADING STATE
 // ============================================================
 
 function setLoading(loading) {
-
   if (!loginBtn) return;
 
-  loginBtn.disabled =
-    loading;
+  loginBtn.disabled = loading;
 
   if (loading) {
+    if (!loginBtn.dataset.originalText) {
+      loginBtn.dataset.originalText =
+        loginBtn.textContent;
+    }
 
-    loginBtn.dataset.originalText =
-      loginBtn.textContent;
-
-    loginBtn.textContent =
-      "Signing in...";
-
+    loginBtn.textContent = "Signing in...";
+    loginBtn.setAttribute("aria-busy", "true");
   } else {
-
     loginBtn.textContent =
-      loginBtn.dataset.originalText ||
-      "🔐 Sign In";
+      loginBtn.dataset.originalText || "🔐 Sign In";
+
+    loginBtn.removeAttribute("aria-busy");
   }
 }
 
 
 // ============================================================
-// GET USER PROFILE
+// 6. NORMALIZE AUTH ERROR
+// ============================================================
+
+function getLoginErrorMessage(error) {
+  const message =
+    String(error?.message || "").toLowerCase();
+
+  if (
+    message.includes("invalid login credentials") ||
+    message.includes("invalid credentials")
+  ) {
+    return (
+      "Email ama password khaldan. " +
+      "Hubi email-ka ama dib u deji password-ka."
+    );
+  }
+
+  if (message.includes("email not confirmed")) {
+    return (
+      "Email-ka lama xaqiijin. " +
+      "Fadlan xaqiiji email-kaaga ama la xiriir maamulka."
+    );
+  }
+
+  if (
+    message.includes("too many requests") ||
+    message.includes("rate limit")
+  ) {
+    return (
+      "Isku dayo badan ayaa dhacay. " +
+      "Sug wax yar ka hor intaadan mar kale gelin."
+    );
+  }
+
+  if (
+    message.includes("failed to fetch") ||
+    message.includes("network")
+  ) {
+    return (
+      "Xiriirka internet-ka ama Supabase ayaa cilad leh. " +
+      "Hubi internet-kaaga."
+    );
+  }
+
+  return (
+    error?.message ||
+    "Login-ku wuu fashilmay. Fadlan mar kale isku day."
+  );
+}
+
+
+// ============================================================
+// 7. GET USER PROFILE
 // ============================================================
 
 async function getUserProfile(userId) {
-
   if (!userId) {
     throw new Error(
       "Authenticated user ID is missing."
@@ -161,46 +218,62 @@ async function getUserProfile(userId) {
     .eq("id", userId)
     .maybeSingle();
 
-
   if (error) {
-
     console.error(
-      "Profile lookup error:",
-      error
+      "[LOGIN] Profile lookup failed:",
+      error.message
     );
 
     throw new Error(
-      "Unable to verify your account profile."
+      "Login-ku wuu guulaystay, laakiin profile-ka lama xaqiijin. " +
+      "Hubi profiles table-ka iyo RLS policies."
     );
   }
-
 
   if (!data) {
-
     throw new Error(
-      "Your account profile was not found."
+      "Account-kaaga Auth wuu jiraa, laakiin profile-ka profiles table-ka lagama helin."
     );
   }
 
+  if (data.id !== userId) {
+    throw new Error(
+      "Profile ID-ga iyo Auth User ID-gu isma waafaqaan."
+    );
+  }
 
   if (data.is_active !== true) {
-
     throw new Error(
-      "Your account is inactive. Please contact the administrator."
+      "Account-kaagu ma shaqaynayo. La xiriir maamulka GAAWOW EMS."
     );
   }
 
+  const role =
+    String(data.role || "")
+      .trim()
+      .toLowerCase();
 
-  return data;
+  if (!Object.prototype.hasOwnProperty.call(
+    REDIRECTS,
+    role
+  )) {
+    throw new Error(
+      `Role-ka "${role || "unknown"}" lama aqoonsan. La xiriir maamulka.`
+    );
+  }
+
+  return {
+    ...data,
+    role
+  };
 }
 
 
 // ============================================================
-// VERIFY STUDENT
+// 8. VERIFY STUDENT
 // ============================================================
 
 async function verifyStudent(userId) {
-
   const {
     data,
     error
@@ -218,96 +291,84 @@ async function verifyStudent(userId) {
     .eq("auth_user_id", userId)
     .maybeSingle();
 
-
   if (error) {
-
     console.error(
-      "Student lookup error:",
-      error
+      "[LOGIN] Student lookup failed:",
+      error.message
     );
 
     throw new Error(
-      "Unable to verify your student account."
+      "Student account-ka lama xaqiijin karin. " +
+      "Hubi students table-ka iyo RLS policies."
     );
   }
-
 
   if (!data) {
-
     throw new Error(
-      "Student account record was not found."
+      "Student account record lagama helin students table-ka."
     );
   }
 
-
   if (data.auth_user_id !== userId) {
-
     throw new Error(
       "Student account verification failed."
     );
   }
 
-
   if (data.account_enabled !== true) {
-
     throw new Error(
-      "Your student account is disabled."
+      "Student account-ka waa la joojiyey. La xiriir maamulka."
     );
   }
-
 
   if (
     data.profile_id !== null &&
     data.profile_id !== userId
   ) {
-
     throw new Error(
       "Student profile linkage is invalid."
     );
   }
-
 
   return data;
 }
 
 
 // ============================================================
-// UPDATE STUDENT LAST LOGIN
+// 9. UPDATE STUDENT LAST LOGIN
 // ============================================================
 
 async function updateStudentLastLogin(userId) {
-
   try {
-
-    await supabaseClient
+    const {
+      error
+    } = await supabaseClient
       .from("students")
       .update({
-        last_login_at:
-          new Date().toISOString()
+        last_login_at: new Date().toISOString()
       })
-      .eq(
-        "auth_user_id",
-        userId
+      .eq("auth_user_id", userId);
+
+    if (error) {
+      console.warn(
+        "[LOGIN] Last-login update failed:",
+        error.message
       );
-
+    }
   } catch (error) {
-
     console.warn(
-      "Last login update failed:",
-      error
+      "[LOGIN] Last-login update exception:",
+      error?.message || error
     );
-
   }
-
 }
 
 
 // ============================================================
-// STORE ROLE SESSION
+// 10. STORE ROLE SESSION
 // ============================================================
 
 function storeRoleSession(profile, user) {
-
   sessionStorage.setItem(
     "user_role",
     profile.role
@@ -318,216 +379,191 @@ function storeRoleSession(profile, user) {
     user.id
   );
 
-  if (profile.full_name) {
-
-    sessionStorage.setItem(
-      "user_name",
-      profile.full_name
-    );
-  }
+  sessionStorage.setItem(
+    "user_name",
+    profile.full_name || user.email || ""
+  );
 
   if (profile.institution_id) {
-
     sessionStorage.setItem(
       "institution_id",
       profile.institution_id
     );
+  } else {
+    sessionStorage.removeItem("institution_id");
   }
 }
 
 
 // ============================================================
-// ROLE REDIRECT
+// 11. REDIRECT BY ROLE
 // ============================================================
 
-async function redirectByRole(
-  profile,
-  user
-) {
-
+async function redirectByRole(profile, user) {
   const role =
     String(profile.role || "")
       .trim()
       .toLowerCase();
 
-
-  console.log(
-    "Authenticated user:",
+  console.info(
+    "[LOGIN] Authenticated user:",
     user.id
   );
 
-  console.log(
-    "Profile role:",
+  console.info(
+    "[LOGIN] Role:",
     role
   );
 
+  if (!REDIRECTS[role]) {
+    throw new Error(
+      `Role-ka "${role}" lama taageero.`
+    );
+  }
 
   // ----------------------------------------------------------
   // STUDENT
   // ----------------------------------------------------------
 
   if (role === "student") {
-
     const student =
-      await verifyStudent(
-        user.id
-      );
-
+      await verifyStudent(user.id);
 
     sessionStorage.setItem(
       "student_id",
-      student.student_id
+      student.student_id || ""
     );
 
     sessionStorage.setItem(
       "student_name",
-      student.full_name
+      student.full_name || profile.full_name || ""
     );
 
-    storeRoleSession(
-      profile,
-      user
-    );
+    storeRoleSession(profile, user);
 
+    await updateStudentLastLogin(user.id);
 
-    await updateStudentLastLogin(
-      user.id
-    );
+    redirectInProgress = true;
 
-
-    window.location.replace(
-      REDIRECTS.student
-    );
+    window.location.replace(REDIRECTS.student);
 
     return;
   }
-
 
   // ----------------------------------------------------------
   // SUPER ADMIN
   // ----------------------------------------------------------
 
   if (role === "super_admin") {
+    storeRoleSession(profile, user);
 
-    storeRoleSession(
-      profile,
-      user
-    );
+    redirectInProgress = true;
 
-
-    window.location.replace(
-      REDIRECTS.super_admin
-    );
+    window.location.replace(REDIRECTS.super_admin);
 
     return;
   }
-
 
   // ----------------------------------------------------------
   // SCHOOL ADMIN
   // ----------------------------------------------------------
 
   if (role === "school_admin") {
+    storeRoleSession(profile, user);
 
-    storeRoleSession(
-      profile,
-      user
-    );
+    redirectInProgress = true;
 
-
-    window.location.replace(
-      REDIRECTS.school_admin
-    );
+    window.location.replace(REDIRECTS.school_admin);
 
     return;
   }
 
-
   // ----------------------------------------------------------
-// TEACHER LOGIN
-// ----------------------------------------------------------
-if (role === "teacher") {
-  storeRoleSession(profile, user);
+  // TEACHER
+  // ----------------------------------------------------------
 
-  console.log("Teacher login confirmed.");
-  console.log("Teacher email:", user.email);
-  console.log("Teacher role:", profile.role);
+  if (role === "teacher") {
+    storeRoleSession(profile, user);
 
-  window.location.replace("./teacher-portal.html");
-  return;
-}
+    console.info(
+      "[LOGIN] Teacher login confirmed:",
+      user.email
+    );
+
+    redirectInProgress = true;
+
+    window.location.replace(REDIRECTS.teacher);
+
+    return;
+  }
+
   // ----------------------------------------------------------
   // PARENT
   // ----------------------------------------------------------
 
   if (role === "parent") {
+    storeRoleSession(profile, user);
 
-    storeRoleSession(
-      profile,
-      user
-    );
+    redirectInProgress = true;
 
-
-    window.location.replace(
-      REDIRECTS.parent
-    );
+    window.location.replace(REDIRECTS.parent);
 
     return;
   }
 
-
-  // ----------------------------------------------------------
-  // UNKNOWN ROLE
-  // ----------------------------------------------------------
-
   throw new Error(
-    `Your account role "${role}" is not supported.`
+    `Role-ka "${role}" lama taageero.`
   );
 }
 
 
 // ============================================================
-// LOGIN
+// 12. MAIN LOGIN
 // ============================================================
 
-async function login() {
+async function login(event) {
+  if (event) {
+    event.preventDefault();
+  }
+
+  if (loginInProgress || redirectInProgress) {
+    return;
+  }
 
   clearMessage();
 
   const email =
-    emailInput?.value
+    String(emailInput?.value || "")
       .trim()
-      .toLowerCase() || "";
+      .toLowerCase();
 
   const password =
-    passwordInput?.value || "";
-
+    String(passwordInput?.value || "");
 
   if (!email) {
-
     showMessage(
-      "Please enter your email address."
+      "Fadlan geli email-kaaga."
     );
+
+    emailInput?.focus();
 
     return;
   }
-
 
   if (!password) {
-
     showMessage(
-      "Please enter your password."
+      "Fadlan geli password-kaaga."
     );
+
+    passwordInput?.focus();
 
     return;
   }
 
-
+  loginInProgress = true;
   setLoading(true);
 
-
   try {
-
     // --------------------------------------------------------
     // AUTHENTICATION
     // --------------------------------------------------------
@@ -535,192 +571,204 @@ async function login() {
     const {
       data: authData,
       error: authError
-    } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-
+    } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
 
     if (authError) {
-
       console.error(
-        "Supabase login error:",
-        authError
+        "[LOGIN] Supabase Auth error:",
+        authError.message
       );
 
       throw new Error(
-        "Invalid email or password."
+        getLoginErrorMessage(authError)
       );
     }
 
-
-    if (!authData?.user) {
-
+    if (!authData?.user?.id) {
       throw new Error(
-        "Login failed. No authenticated user returned."
+        "Supabase ma soo celin user account sax ah."
       );
     }
 
+    const user = authData.user;
 
-    const user =
-      authData.user;
-
+    console.info(
+      "[LOGIN] Authentication successful."
+    );
 
     // --------------------------------------------------------
-    // PROFILE
+    // PROFILE VERIFICATION
     // --------------------------------------------------------
 
-    const profile =
-      await getUserProfile(
-        user.id
-      );
+    let profile;
 
+    try {
+      profile = await getUserProfile(user.id);
+    } catch (profileError) {
+      /*
+       * Keep the authenticated session when profile lookup
+       * fails. This helps distinguish profile/RLS problems
+       * from invalid credentials.
+       */
+      throw profileError;
+    }
 
     // --------------------------------------------------------
     // ROLE ROUTING
     // --------------------------------------------------------
 
-    await redirectByRole(
-      profile,
-      user
-    );
+    await redirectByRole(profile, user);
 
-  }
-
-
-  catch (error) {
-
+  } catch (error) {
     console.error(
-      "LOGIN ERROR:",
+      "[LOGIN] Login process failed:",
       error
     );
 
-
-    try {
-
-      await supabaseClient.auth.signOut();
-
-    } catch (_) {}
-
+    /*
+     * Do not automatically sign out here.
+     * A profile lookup or redirect-related failure does not
+     * mean that the password was incorrect.
+     *
+     * A failed sign-in does not establish a valid session,
+     * while a successful sign-in followed by a profile error
+     * should remain diagnosable.
+     */
 
     showMessage(
-      error.message ||
-      "Login failed. Please try again."
+      error?.message ||
+      "Login-ku wuu fashilmay. Fadlan mar kale isku day."
     );
 
+  } finally {
+    loginInProgress = false;
+
+    if (!redirectInProgress) {
+      setLoading(false);
+    }
   }
-
-
-  finally {
-
-    setLoading(false);
-
-  }
-
 }
 
 
 // ============================================================
-// LOGIN BUTTON
+// 13. LOGIN BUTTON
 // ============================================================
 
 if (loginBtn) {
-
   loginBtn.addEventListener(
     "click",
     login
   );
-
+} else {
+  console.error(
+    "[LOGIN] Login button not found. " +
+    "Expected #loginBtn or #loginButton."
+  );
 }
 
 
 // ============================================================
-// ENTER KEY
+// 14. ENTER KEY
 // ============================================================
 
-[
-  emailInput,
-  passwordInput
-]
+[emailInput, passwordInput]
   .filter(Boolean)
   .forEach(input => {
-
     input.addEventListener(
       "keydown",
       event => {
-
-        if (
-          event.key === "Enter"
-        ) {
-
+        if (event.key === "Enter") {
           event.preventDefault();
-
-          login();
+          login(event);
         }
-
       }
     );
-
   });
 
 
 // ============================================================
-// CHECK EXISTING SESSION
+// 15. PREVENT FORM RELOAD
+// ============================================================
+
+const loginForm =
+  emailInput?.closest("form") ||
+  passwordInput?.closest("form");
+
+if (loginForm) {
+  loginForm.addEventListener(
+    "submit",
+    login
+  );
+}
+
+
+// ============================================================
+// 16. CHECK EXISTING SESSION
 // ============================================================
 
 async function checkExistingSession() {
-
   try {
-
     const {
-      data: {
-        session
-      }
-    } =
-      await supabaseClient.auth.getSession();
+      data,
+      error
+    } = await supabaseClient.auth.getSession();
 
+    if (error) {
+      console.warn(
+        "[LOGIN] Existing session check failed:",
+        error.message
+      );
+
+      return;
+    }
+
+    const session = data?.session;
 
     if (!session?.user) {
       return;
     }
 
-
     const profile =
-      await getUserProfile(
-        session.user.id
-      );
-
+      await getUserProfile(session.user.id);
 
     await redirectByRole(
       profile,
       session.user
     );
 
-  }
-
-
-  catch (error) {
-
+  } catch (error) {
     console.warn(
-      "Existing session check:",
-      error.message
+      "[LOGIN] Existing session could not be routed:",
+      error?.message || error
     );
 
-
-    try {
-
-      await supabaseClient.auth.signOut();
-
-    } catch (_) {}
-
+    /*
+     * Do not automatically sign out.
+     * Show the issue only if the user is still on the login
+     * page and has not started another login attempt.
+     */
+    if (!loginInProgress && !redirectInProgress) {
+      showMessage(
+        error?.message ||
+        "Session-ka lama xaqiijin karin."
+      );
+    }
   }
-
 }
 
 
 // ============================================================
-// START
+// 17. INITIALIZE
 // ============================================================
+
+if (!emailInput || !passwordInput) {
+  console.error(
+    "[LOGIN] Required login inputs are missing. " +
+    "Check login.html IDs."
+  );
+}
 
 checkExistingSession();
