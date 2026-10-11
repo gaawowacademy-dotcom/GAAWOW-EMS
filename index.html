@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
   <meta name="theme-color" content="#0B1E63">
+
+  <meta
+    name="description"
+    content="GAAWOW EMS Secure Login Portal"
+  >
 
   <title>GAAWOW EMS | Secure Login</title>
 
@@ -16,11 +24,12 @@
 
     body {
       min-height: 100vh;
+      min-height: 100dvh;
       font-family: Arial, Helvetica, sans-serif;
       background:
         radial-gradient(
           circle at top right,
-          rgba(212,175,55,.22),
+          rgba(212, 175, 55, 0.22),
           transparent 32%
         ),
         linear-gradient(135deg, #07164a, #0B4DA2);
@@ -36,11 +45,11 @@
     }
 
     .card {
-      background: #fff;
-      border: 1px solid rgba(255,255,255,.5);
+      background: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.5);
       border-radius: 24px;
       padding: 34px 28px 28px;
-      box-shadow: 0 24px 60px rgba(0,0,0,.28);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
       text-align: center;
     }
 
@@ -50,13 +59,14 @@
       max-width: 72%;
       height: auto;
       margin: 0 auto 18px;
+      object-fit: contain;
     }
 
     .brand {
       color: #0B1E63;
       font-size: 27px;
       font-weight: 800;
-      letter-spacing: .4px;
+      letter-spacing: 0.4px;
     }
 
     .gold-line {
@@ -72,34 +82,6 @@
       font-size: 14px;
       line-height: 1.6;
       margin-bottom: 24px;
-    }
-
-    .login-switch {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 22px;
-      padding: 5px;
-      background: #eef2f8;
-      border-radius: 12px;
-    }
-
-    .switch-btn {
-      border: 0;
-      border-radius: 9px;
-      padding: 12px 6px;
-      background: transparent;
-      color: #475569;
-      font-size: 13px;
-      font-weight: 800;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    .switch-btn.active {
-      color: #fff;
-      background: linear-gradient(135deg, #0B4DA2, #0B1E63);
-      box-shadow: 0 3px 9px rgba(11,30,99,.18);
     }
 
     .form-heading {
@@ -130,18 +112,21 @@
     }
 
     input {
+      display: block;
       width: 100%;
+      min-height: 48px;
       border: 1px solid #d7dce5;
       border-radius: 11px;
       padding: 14px 15px;
-      font-size: 15px;
+      font-size: 16px;
       outline: none;
-      background: #fff;
+      background: #ffffff;
+      color: #111827;
     }
 
     input:focus {
       border-color: #0B4DA2;
-      box-shadow: 0 0 0 3px rgba(11,77,162,.12);
+      box-shadow: 0 0 0 3px rgba(11, 77, 162, 0.12);
     }
 
     input:disabled {
@@ -154,7 +139,7 @@
     }
 
     .password-wrap input {
-      padding-right: 75px;
+      padding-right: 78px;
     }
 
     .toggle-password {
@@ -163,8 +148,9 @@
       top: 50%;
       transform: translateY(-50%);
       width: auto;
+      min-height: 30px;
       margin: 0;
-      padding: 6px 7px;
+      padding: 6px 8px;
       border: 0;
       border-radius: 6px;
       background: #eef2f8;
@@ -175,16 +161,19 @@
     }
 
     .submit-btn {
+      display: block;
       width: 100%;
+      min-height: 49px;
       border: 0;
       border-radius: 11px;
       padding: 14px;
       margin-top: 5px;
       background: linear-gradient(135deg, #0B4DA2, #0B1E63);
-      color: #fff;
+      color: #ffffff;
       font-size: 16px;
       font-weight: 800;
       cursor: pointer;
+      transition: filter 0.2s ease;
     }
 
     .submit-btn:hover:not(:disabled) {
@@ -192,29 +181,44 @@
     }
 
     .submit-btn:disabled {
-      opacity: .65;
+      opacity: 0.65;
       cursor: not-allowed;
     }
 
     #message {
+      display: block;
       min-height: 24px;
       margin-top: 17px;
+      padding: 0;
+      border-radius: 8px;
       font-size: 14px;
       line-height: 1.55;
       overflow-wrap: anywhere;
       white-space: pre-wrap;
+      text-align: left;
+    }
+
+    #message.error,
+    #message.success {
+      padding: 12px;
     }
 
     #message.error {
-      color: #b42318;
+      color: #842029;
+      background: #f8d7da;
+      border: 1px solid #f5c2c7;
     }
 
     #message.success {
-      color: #137333;
+      color: #155724;
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
     }
 
     #message.info {
       color: #64748b;
+      background: transparent;
+      border: 0;
     }
 
     .security-note {
@@ -242,6 +246,14 @@
       color: #94a3b8;
     }
 
+    /* Teacher Login is disabled.
+       Keep its HTML IDs available for compatibility. */
+    .login-switch,
+    #teacherLoginSection,
+    #teacherTab {
+      display: none !important;
+    }
+
     [hidden] {
       display: none !important;
     }
@@ -259,66 +271,48 @@
       .brand {
         font-size: 24px;
       }
+    }
 
-      .switch-btn {
-        font-size: 12px;
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
       }
-    }/* GAAWOW EMS: Hide Teacher Login completely */
-.login-switch,
-#teacherLoginSection,
-#teacherTab {
-  display: none !important;
-}
+    }
   </style>
 </head>
 
 <body>
 
   <main class="page">
-    <section class="card">
+    <section class="card" aria-labelledby="brand-title">
 
+      <!-- OFFICIAL GAAWOW ACADEMY LOGO -->
       <img
         class="logo"
         src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
         alt="GAAWOW Academy Logo"
+        width="155"
       >
 
-      <div class="brand">GAAWOW EMS</div>
-      <div class="gold-line"></div>
+      <div class="brand" id="brand-title">
+        GAAWOW EMS
+      </div>
+
+      <div class="gold-line" aria-hidden="true"></div>
 
       <p class="subtitle">
         Education Management &amp; Verification System
       </p>
 
-      <!-- LOGIN SELECTOR -->
-
-      <div class="login-switch" role="group" aria-label="Choose login type">
-
-        <button
-          type="button"
-          id="systemTab"
-          class="switch-btn active"
-          aria-pressed="true"
-        >
-          🔐 System Login
-        </button>
-
-        <button
-          type="button"
-          id="teacherTab"
-          class="switch-btn"
-          aria-pressed="false"
-        >
-          👨‍🏫 Teacher Login
-        </button>
-
-      </div>
-
       <!-- SYSTEM LOGIN -->
-
       <section id="systemLoginSection">
 
-        <h2 class="form-heading">System Login</h2>
+        <h2 class="form-heading">
+          System Login
+        </h2>
 
         <p class="form-description">
           Authorized administrators and system users
@@ -327,8 +321,9 @@
         <form id="loginForm" autocomplete="on">
 
           <div class="form-group">
-
-            <label for="email">Email Address</label>
+            <label for="email">
+              Email Address
+            </label>
 
             <input
               id="email"
@@ -336,17 +331,17 @@
               type="email"
               autocomplete="username"
               placeholder="Enter your email"
+              maxlength="254"
               required
             >
-
           </div>
 
           <div class="form-group">
-
-            <label for="password">Password</label>
+            <label for="password">
+              Password
+            </label>
 
             <div class="password-wrap">
-
               <input
                 id="password"
                 name="password"
@@ -359,13 +354,13 @@
               <button
                 type="button"
                 class="toggle-password"
-                data-target="password"
+                id="togglePassword"
+                aria-label="Show password"
+                aria-pressed="false"
               >
                 Show
               </button>
-
             </div>
-
           </div>
 
           <button
@@ -377,121 +372,164 @@
           </button>
 
         </form>
-
       </section>
 
-      <!-- TEACHER LOGIN -->
+      <!--
+        ACCESSIBLE STATUS MESSAGE
+        app.js can use #message to show login errors.
+      -->
+      <div
+        id="message"
+        class="info"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      ></div>
 
-      <section id="teacherLoginSection" hidden>
-
-        <h2 class="form-heading">Teacher Login</h2>
-
-        <p class="form-description">
-          Gelitaanka gaarka ah ee macallimiinta GAAWOW EMS
-        </p>
-
-        <form id="teacherLoginForm" autocomplete="on">
-
-          <div class="form-group">
-
-            <label for="teacherEmail">Teacher Email</label>
-
-            <input
-              id="teacherEmail"
-              name="teacherEmail"
-              type="email"
-              autocomplete="username"
-              placeholder="Enter your teacher email"
-              required
-              disabled
-            >
-
-          </div>
-
-          <div class="form-group">
-
-            <label for="teacherPassword">Password</label>
-
-            <div class="password-wrap">
-
-              <input
-                id="teacherPassword"
-                name="teacherPassword"
-                type="password"
-                autocomplete="current-password"
-                placeholder="Enter your password"
-                required
-                disabled
-              >
-
-              <button
-                type="button"
-                class="toggle-password"
-                data-target="teacherPassword"
-              >
-                Show
-              </button>
-
-            </div>
-
-          </div>
-
-          <button
-            id="teacherLoginBtn"
-            class="submit-btn"
-            type="submit"
-            disabled
-          >
-            LOGIN AS TEACHER
-          </button>
-
-        </form>
-
-        <p class="security-note">
-          Teacher accounts only. Your account must be active
-          and assigned the teacher role.
-        </p>
-
-      </section>
-
-      <div id="message" class="info" role="status" aria-live="polite"></div>
-
-      <div class="footer">
-        <strong>GAAWOW ACADEMY</strong><br>
+      <!-- FOOTER -->
+      <footer class="footer">
+        <strong>GAAWOW ACADEMY</strong>
+        <br>
         Ilayska Aqoonta iyo Xirfadda
 
         <div class="security">
           Secure access powered by Supabase
         </div>
-      </div>
+      </footer>
 
     </section>
   </main>
 
-  <!-- ONE LOGIN CONTROLLER -->
-<script>
-  window.addEventListener("error", function (event) {
-    document.body.insertAdjacentHTML(
-      "beforeend",
-      '<div style="position:fixed;bottom:0;left:0;right:0;background:#fff0f0;color:#b42318;padding:12px;z-index:99999;font-size:13px;overflow-wrap:anywhere;">JavaScript Error: ' +
-      String(event.message || "Unknown error") +
-      "</div>"
-    );
-  });
+  <!-- =====================================================
+       SUPABASE LIBRARY
+       Must load before app.js.
+       ===================================================== -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  window.addEventListener("unhandledrejection", function (event) {
-    document.body.insertAdjacentHTML(
-      "beforeend",
-      '<div style="position:fixed;bottom:0;left:0;right:0;background:#fff0f0;color:#b42318;padding:12px;z-index:99999;font-size:13px;overflow-wrap:anywhere;">Login Error: ' +
-      String(event.reason?.message || event.reason || "Unknown error") +
-      "</div>"
-    );
-  });
-<!-- Supabase JavaScript Library -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- =====================================================
+       LOGIN CONTROLLER
+       ===================================================== -->
+  <script>
+    (function () {
+      "use strict";
 
-<!-- GAAWOW EMS Login -->
-<script src="./app.js"></script>
+      var messageBox = document.getElementById("message");
+
+      function showScriptError(text) {
+        if (!messageBox) return;
+
+        messageBox.textContent = text;
+        messageBox.className = "error";
+      }
+
+      window.addEventListener("error", function (event) {
+        console.error(
+          "GAAWOW EMS JavaScript error:",
+          event.message,
+          event.filename,
+          event.lineno
+        );
+
+        if (
+          event.target &&
+          event.target.tagName === "SCRIPT"
+        ) {
+          showScriptError(
+            "JavaScript file lama soo dejin. Hubi internet-ka iyo faylasha app.js."
+          );
+          return;
+        }
+
+        if (event.message) {
+          showScriptError(
+            "JavaScript error: " + event.message
+          );
+        }
+      });
+
+      window.addEventListener(
+        "unhandledrejection",
+        function (event) {
+          console.error(
+            "GAAWOW EMS rejected promise:",
+            event.reason
+          );
+
+          var reason = event.reason;
+
+          if (
+            reason &&
+            reason.message
+          ) {
+            showScriptError(
+              "System error: " + reason.message
+            );
+          }
+        }
+      );
+
+      var toggleButton =
+        document.getElementById("togglePassword");
+
+      var passwordInput =
+        document.getElementById("password");
+
+      if (toggleButton && passwordInput) {
+        toggleButton.addEventListener("click", function () {
+          var show = passwordInput.type === "password";
+
+          passwordInput.type = show
+            ? "text"
+            : "password";
+
+          toggleButton.textContent = show
+            ? "Hide"
+            : "Show";
+
+          toggleButton.setAttribute(
+            "aria-pressed",
+            String(show)
+          );
+
+          toggleButton.setAttribute(
+            "aria-label",
+            show ? "Hide password" : "Show password"
+          );
+        });
+      }
+
+      /*
+       * Confirm the Supabase library is loaded.
+       * Do not attempt authentication in this script.
+       */
+      window.addEventListener("load", function () {
+        if (
+          !window.supabase ||
+          typeof window.supabase.createClient !== "function"
+        ) {
+          showScriptError(
+            "Supabase library lama soo dejin. Hubi internet-ka, CDN-ga iyo script order-ka."
+          );
+
+          console.error(
+            "Supabase JS library unavailable."
+          );
+
+          return;
+        }
+
+        console.info(
+          "GAAWOW EMS: Supabase JavaScript library loaded."
+        );
+      });
+    })();
+  </script>
+
+  <!--
+    app.js must be in the same directory as index.html.
+    Keep only one login controller.
+  -->
+  <script src="./app.js"></script>
 
 </body>
 </html>
