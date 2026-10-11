@@ -258,42 +258,48 @@
        * STEP 1: Authenticate with Supabase.
        */
       const { data: authData, error: authError } =
-        await client.auth.signInWithPassword({
-          email,
-          password
-        });
+  await client.auth.signInWithPassword({
+    email,
+    password
+  });
 
-      if (authError) {
-        console.error("Supabase authentication failed:", authError);
+if (authError) {
+  console.error("SUPABASE AUTH ERROR:", {
+    name: authError.name,
+    message: authError.message,
+    status: authError.status,
+    code: authError.code
+  });
 
-        if (
-          authError.message &&
-          /invalid login credentials/i.test(authError.message)
-        ) {
-          throw new Error(
-            "Email ama Password waa khaldan yahay."
-          );
-        }
+  let message = "Supabase login wuu fashilmay.";
 
-        if (
-          authError.message &&
-          /email not confirmed/i.test(authError.message)
-        ) {
-          throw new Error(
-            "Email-ka weli lama xaqiijin. La xiriir maamulka."
-          );
-        }
+  if (/invalid login credentials/i.test(authError.message || "")) {
+    message =
+      "Email ama Password waa khaldan yahay, ama akoonka lama heli karo.";
+  } else if (/email not confirmed/i.test(authError.message || "")) {
+    message =
+      "Email-ka weli lama xaqiijin. Hubi Supabase Auth.";
+  } else if (authError.status === 429) {
+    message =
+      "Codsiyo badan ayaa la diray. Sug wax yar kadibna isku day.";
+  } else if (authError.status >= 500) {
+    message =
+      "Supabase server ayaa cilad qaba. Dib u tijaabi.";
+  } else {
+    message =
+      "Supabase error: " +
+      (authError.message || "Sababta lama aqoonsan.") +
+      (authError.code ? " (Code: " + authError.code + ")" : "");
+  }
 
-        throw new Error(
-          "Gelitaanka Supabase wuu fashilmay. Hubi xogta akoonka iyo Supabase Auth."
-        );
-      }
+  throw new Error(message);
+}
 
-      if (!authData.user || !authData.session) {
-        throw new Error(
-          "Supabase ma soo celin user iyo session sax ah."
-        );
-      }
+if (!authData.user || !authData.session) {
+  throw new Error(
+    "Supabase ma soo celin user iyo session sax ah."
+  );
+}
 
       /*
        * STEP 2: Read profiles.role.
