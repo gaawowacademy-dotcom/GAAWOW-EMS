@@ -1,9 +1,13 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0B1E63">
-  <title>GAAWOW EMS - Secure Login</title>  <style>
+
+  <title>GAAWOW EMS | Secure Login</title>
+
+  <style>
     * {
       box-sizing: border-box;
       margin: 0;
@@ -14,7 +18,11 @@
       min-height: 100vh;
       font-family: Arial, Helvetica, sans-serif;
       background:
-        radial-gradient(circle at top right, rgba(212,175,55,.22), transparent 32%),
+        radial-gradient(
+          circle at top right,
+          rgba(212,175,55,.22),
+          transparent 32%
+        ),
         linear-gradient(135deg, #07164a, #0B4DA2);
       display: flex;
       align-items: center;
@@ -28,7 +36,7 @@
     }
 
     .card {
-      background: rgba(255,255,255,.98);
+      background: #fff;
       border: 1px solid rgba(255,255,255,.5);
       border-radius: 24px;
       padding: 34px 28px 28px;
@@ -85,7 +93,6 @@
       font-size: 13px;
       font-weight: 800;
       cursor: pointer;
-      margin: 0;
       width: 100%;
     }
 
@@ -137,6 +144,11 @@
       box-shadow: 0 0 0 3px rgba(11,77,162,.12);
     }
 
+    input:disabled {
+      background: #f1f5f9;
+      cursor: not-allowed;
+    }
+
     .password-wrap {
       position: relative;
     }
@@ -169,10 +181,14 @@
       padding: 14px;
       margin-top: 5px;
       background: linear-gradient(135deg, #0B4DA2, #0B1E63);
-      color: white;
+      color: #fff;
       font-size: 16px;
       font-weight: 800;
       cursor: pointer;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      filter: brightness(1.08);
     }
 
     .submit-btn:disabled {
@@ -186,6 +202,19 @@
       font-size: 14px;
       line-height: 1.55;
       overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    #message.error {
+      color: #b42318;
+    }
+
+    #message.success {
+      color: #137333;
+    }
+
+    #message.info {
+      color: #64748b;
     }
 
     .security-note {
@@ -235,365 +264,212 @@
         font-size: 12px;
       }
     }
-  </style></head><body>
+  </style>
+</head>
+
+<body>
+
   <main class="page">
-    <section class="card">  <img
-    class="logo"
-    src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-    alt="GAAWOW Academy Logo"
-  >
+    <section class="card">
 
-  <div class="brand">GAAWOW EMS</div>
-  <div class="gold-line"></div>
-
-  <p class="subtitle">
-    Education Management &amp; Verification System
-  </p>
-
-  <!-- LOGIN TYPE SELECTOR -->
-  <div class="login-switch" role="group" aria-label="Choose login type">
-    <button
-      type="button"
-      id="systemTab"
-      class="switch-btn active"
-      aria-pressed="true"
-    >
-      🔐 System Login
-    </button>
-
-    <button
-      type="button"
-      id="teacherTab"
-      class="switch-btn"
-      aria-pressed="false"
-    >
-      👨‍🏫 Teacher Login
-    </button>
-  </div>
-
-  <!-- EXISTING SYSTEM LOGIN: PRESERVED -->
-  <section id="systemLoginSection">
-    <h2 class="form-heading">System Login</h2>
-    <p class="form-description">
-      Authorized administrators and system users
-    </p>
-
-    <form id="loginForm" autocomplete="on">
-
-      <div class="form-group">
-        <label for="email">Email Address</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autocomplete="username"
-          placeholder="Enter your email"
-          required
-        >
-      </div>
-
-      <div class="form-group">
-        <label for="password">Password</label>
-        <div class="password-wrap">
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autocomplete="current-password"
-            placeholder="Enter your password"
-            required
-          >
-          <button
-            type="button"
-            class="toggle-password"
-            data-target="password"
-            aria-label="Show system password"
-          >
-            Show
-          </button>
-        </div>
-      </div>
-
-      <button
-        id="loginButton"
-        class="submit-btn"
-        type="submit"
+      <img
+        class="logo"
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
       >
-        LOGIN
-      </button>
-    </form>
-  </section>
 
-  <!-- DEDICATED TEACHER LOGIN -->
-  <section id="teacherLoginSection" hidden>
-    <h2 class="form-heading">Teacher Login</h2>
-    <p class="form-description">
-      Gelitaanka gaarka ah ee macallimiinta GAAWOW EMS
-    </p>
+      <div class="brand">GAAWOW EMS</div>
+      <div class="gold-line"></div>
 
-    <form id="teacherLoginForm" autocomplete="on">
+      <p class="subtitle">
+        Education Management &amp; Verification System
+      </p>
 
-      <div class="form-group">
-        <label for="teacherEmail">Teacher Email</label>
-        <input
-          id="teacherEmail"
-          name="teacherEmail"
-          type="email"
-          autocomplete="username"
-          placeholder="Enter your teacher email"
-          required
-          disabled
+      <!-- LOGIN SELECTOR -->
+
+      <div class="login-switch" role="group" aria-label="Choose login type">
+
+        <button
+          type="button"
+          id="systemTab"
+          class="switch-btn active"
+          aria-pressed="true"
         >
+          🔐 System Login
+        </button>
+
+        <button
+          type="button"
+          id="teacherTab"
+          class="switch-btn"
+          aria-pressed="false"
+        >
+          👨‍🏫 Teacher Login
+        </button>
+
       </div>
 
-      <div class="form-group">
-        <label for="teacherPassword">Password</label>
-        <div class="password-wrap">
-          <input
-            id="teacherPassword"
-            name="teacherPassword"
-            type="password"
-            autocomplete="current-password"
-            placeholder="Enter your password"
-            required
+      <!-- SYSTEM LOGIN -->
+
+      <section id="systemLoginSection">
+
+        <h2 class="form-heading">System Login</h2>
+
+        <p class="form-description">
+          Authorized administrators and system users
+        </p>
+
+        <form id="loginForm" autocomplete="on">
+
+          <div class="form-group">
+
+            <label for="email">Email Address</label>
+
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autocomplete="username"
+              placeholder="Enter your email"
+              required
+            >
+
+          </div>
+
+          <div class="form-group">
+
+            <label for="password">Password</label>
+
+            <div class="password-wrap">
+
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                placeholder="Enter your password"
+                required
+              >
+
+              <button
+                type="button"
+                class="toggle-password"
+                data-target="password"
+              >
+                Show
+              </button>
+
+            </div>
+
+          </div>
+
+          <button
+            id="loginButton"
+            class="submit-btn"
+            type="submit"
+          >
+            LOGIN
+          </button>
+
+        </form>
+
+      </section>
+
+      <!-- TEACHER LOGIN -->
+
+      <section id="teacherLoginSection" hidden>
+
+        <h2 class="form-heading">Teacher Login</h2>
+
+        <p class="form-description">
+          Gelitaanka gaarka ah ee macallimiinta GAAWOW EMS
+        </p>
+
+        <form id="teacherLoginForm" autocomplete="on">
+
+          <div class="form-group">
+
+            <label for="teacherEmail">Teacher Email</label>
+
+            <input
+              id="teacherEmail"
+              name="teacherEmail"
+              type="email"
+              autocomplete="username"
+              placeholder="Enter your teacher email"
+              required
+              disabled
+            >
+
+          </div>
+
+          <div class="form-group">
+
+            <label for="teacherPassword">Password</label>
+
+            <div class="password-wrap">
+
+              <input
+                id="teacherPassword"
+                name="teacherPassword"
+                type="password"
+                autocomplete="current-password"
+                placeholder="Enter your password"
+                required
+                disabled
+              >
+
+              <button
+                type="button"
+                class="toggle-password"
+                data-target="teacherPassword"
+              >
+                Show
+              </button>
+
+            </div>
+
+          </div>
+
+          <button
+            id="teacherLoginBtn"
+            class="submit-btn"
+            type="submit"
             disabled
           >
-          <button
-            type="button"
-            class="toggle-password"
-            data-target="teacherPassword"
-            aria-label="Show teacher password"
-          >
-            Show
+            LOGIN AS TEACHER
           </button>
+
+        </form>
+
+        <p class="security-note">
+          Teacher accounts only. Your account must be active
+          and assigned the teacher role.
+        </p>
+
+      </section>
+
+      <div id="message" class="info" role="status" aria-live="polite"></div>
+
+      <div class="footer">
+        <strong>GAAWOW ACADEMY</strong><br>
+        Ilayska Aqoonta iyo Xirfadda
+
+        <div class="security">
+          Secure access powered by Supabase
         </div>
       </div>
 
-      <button
-        id="teacherLoginBtn"
-        class="submit-btn"
-        type="submit"
-        disabled
-      >
-        LOGIN AS TEACHER
-      </button>
-    </form>
+    </section>
+  </main>
 
-    <p class="security-note">
-      Teacher accounts only. Your account must be active
-      and assigned the teacher role.
-    </p>
-  </section>
+  <!-- LOAD SUPABASE ONCE -->
 
-  <div id="message" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <div class="footer">
-    <strong>GAAWOW ACADEMY</strong><br>
-    Ilayska Aqoonta iyo Xirfadda
-    <div class="security">
-      Secure access powered by Supabase
-    </div>
-  </div>
+  <!-- ONE LOGIN CONTROLLER -->
 
-</section>
+  <script src="./app.js?v=20"></script>
 
-  </main>  <!-- SUPABASE LIBRARY: LOAD ONCE -->  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>  <!-- KEEP EXISTING SYSTEM LOGIN -->  <script src="./app.js"></script>  <!-- TEACHER LOGIN + ROLE VERIFICATION -->  <script>
-    (() => {
-      "use strict";
-
-      const SUPABASE_URL =
-        "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-
-      const SUPABASE_KEY =
-        "sb_publishable_2AvWfupKf1b_s0RjIbAi5g_RqLCs145";
-
-      const systemTab =
-        document.getElementById("systemTab");
-
-      const teacherTab =
-        document.getElementById("teacherTab");
-
-      const systemSection =
-        document.getElementById("systemLoginSection");
-
-      const teacherSection =
-        document.getElementById("teacherLoginSection");
-
-      const teacherForm =
-        document.getElementById("teacherLoginForm");
-
-      const teacherEmail =
-        document.getElementById("teacherEmail");
-
-      const teacherPassword =
-        document.getElementById("teacherPassword");
-
-      const teacherButton =
-        document.getElementById("teacherLoginBtn");
-
-      const message =
-        document.getElementById("message");
-
-      let teacherClient = null;
-      let loginInProgress = false;
-
-      function showMessage(text, isError = true) {
-        message.textContent = text;
-        message.style.color = isError ? "#b42318" : "#137333";
-      }
-
-      function setLoginMode(mode) {
-        const isTeacher = mode === "teacher";
-
-        systemSection.hidden = isTeacher;
-        teacherSection.hidden = !isTeacher;
-
-        systemTab.classList.toggle("active", !isTeacher);
-        teacherTab.classList.toggle("active", isTeacher);
-
-        systemTab.setAttribute("aria-pressed", String(!isTeacher));
-        teacherTab.setAttribute("aria-pressed", String(isTeacher));
-
-        // Prevent hidden required inputs from blocking form submission.
-        document.getElementById("email").disabled = isTeacher;
-        document.getElementById("password").disabled = isTeacher;
-        document.getElementById("loginButton").disabled = isTeacher;
-
-        teacherEmail.disabled = !isTeacher;
-        teacherPassword.disabled = !isTeacher;
-        teacherButton.disabled = !isTeacher || loginInProgress;
-
-        showMessage("");
-      }
-
-      systemTab.addEventListener("click", () => {
-        setLoginMode("system");
-      });
-
-      teacherTab.addEventListener("click", () => {
-        setLoginMode("teacher");
-      });
-
-      document.querySelectorAll(".toggle-password").forEach((button) => {
-        button.addEventListener("click", () => {
-          const input = document.getElementById(button.dataset.target);
-
-          if (!input) return;
-
-          const show = input.type === "password";
-          input.type = show ? "text" : "password";
-          button.textContent = show ? "Hide" : "Show";
-          button.setAttribute(
-            "aria-label",
-            show ? "Hide password" : "Show password"
-          );
-        });
-      });
-
-      function getTeacherClient() {
-        if (teacherClient) return teacherClient;
-
-        if (!window.supabase || !window.supabase.createClient) {
-          throw new Error("Supabase library lama soo shuban. Dib u cusboonaysii bogga.");
-        }
-
-        teacherClient = window.supabase.createClient(
-          SUPABASE_URL,
-          SUPABASE_KEY,
-          {
-            auth: {
-              persistSession: true,
-              autoRefreshToken: true,
-              detectSessionInUrl: true
-            }
-          }
-        );
-
-        return teacherClient;
-      }
-
-      async function verifyTeacher(user) {
-        const client = getTeacherClient();
-
-        const { data: profile, error } = await client
-          .from("profiles")
-          .select("id, full_name, role, is_active")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Teacher profile check failed:", error);
-          throw new Error("Lama xaqiijin karo profile-ka. Hubi xiriirka iyo rukhsadaha Supabase.");
-        }
-
-        if (!profile) {
-          throw new Error("Akoonkan profile kuma laha nidaamka GAAWOW EMS.");
-        }
-
-        if (profile.is_active !== true) {
-          throw new Error("Akoonka macallinka ma shaqaynayo. La xiriir maamulka.");
-        }
-
-        if (profile.role !== "teacher") {
-          throw new Error("Gelitaankan waxaa loogu talagalay macallimiinta oo keliya.");
-        }
-
-        return profile;
-      }
-
-      teacherForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-
-        if (loginInProgress) return;
-
-        const email = teacherEmail.value.trim();
-        const password = teacherPassword.value;
-
-        if (!email || !password) {
-          showMessage("Fadlan geli email-ka iyo password-ka.");
-          return;
-        }
-
-        loginInProgress = true;
-        teacherButton.disabled = true;
-        teacherButton.textContent = "VERIFYING...";
-        showMessage("Akoonka macallinka waa la xaqiijinayaa...", false);
-
-        try {
-          const client = getTeacherClient();
-
-          const { data, error } = await client.auth.signInWithPassword({
-            email,
-            password
-          });
-
-          if (error || !data.user) {
-            throw new Error("Email ama password khaldan. Fadlan mar kale isku day.");
-          }
-
-          await verifyTeacher(data.user);
-
-          showMessage("Waa lagu guulaystay. Teacher Portal ayaa furmaya...", false);
-
-          window.location.replace("./teacher-portal.html");
-
-        } catch (error) {
-          console.error("Teacher login failed:", error);
-          showMessage(
-            error.message || "Gelitaanku wuu fashilmay. Mar kale isku day."
-          );
-
-        } finally {
-          loginInProgress = false;
-          teacherButton.disabled = teacherSection.hidden;
-          teacherButton.textContent = "LOGIN AS TEACHER";
-        }
-      });
-
-      <!-- SUPABASE LIBRARY: LOAD ONCE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./app.js?v=13"></script>
 </body>
 </html>
