@@ -1,4 +1,7 @@
-"use strict";
+"if (error) {
+  console.error("SUPABASE AUTH ERROR:", error);
+  throw error;
+}";
 
 const SUPABASE_URL =
 "https://mytyvqwrxnxpxnxpiicj.supabase.co";
