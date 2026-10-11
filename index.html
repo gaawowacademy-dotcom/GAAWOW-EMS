@@ -464,9 +464,25 @@
   </main>
 
   <!-- ONE LOGIN CONTROLLER -->
+<script>
+  window.addEventListener("error", function (event) {
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      '<div style="position:fixed;bottom:0;left:0;right:0;background:#fff0f0;color:#b42318;padding:12px;z-index:99999;font-size:13px;overflow-wrap:anywhere;">JavaScript Error: ' +
+      String(event.message || "Unknown error") +
+      "</div>"
+    );
+  });
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./app.js?v=20"></script>
+  window.addEventListener("unhandledrejection", function (event) {
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      '<div style="position:fixed;bottom:0;left:0;right:0;background:#fff0f0;color:#b42318;padding:12px;z-index:99999;font-size:13px;overflow-wrap:anywhere;">Login Error: ' +
+      String(event.reason?.message || event.reason || "Unknown error") +
+      "</div>"
+    );
+  });
+</script>
 
-</body>
-</html>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./app.js?v=21"></script>
