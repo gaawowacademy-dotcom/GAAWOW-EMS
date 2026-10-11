@@ -1,517 +1,441 @@
 "use strict";
 
 /* =========================================================
-   GAAWOW EMS SECURE LOGIN V2
-   One Supabase client
-   System Login + Teacher Login
-   Role-based access
+   GAAWOW EMS — SECURE LOGIN V9
+   Single System Login
+   Supabase Auth + profiles.role
+   No dependency on Teacher Login HTML elements
    ========================================================= */
 
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+(() => {
+  const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-const SUPABASE_KEY =
-  "sb_publishable_2AvWfupKf1b_s0RjIbAi5g_RqLCs145";
+  const SUPABASE_KEY =
+    "sb_publishable_2AvWfup";
 
+  const CLIENT_KEY = "gaawowEMSLoginClient";
 
-/* =========================================================
-   INITIALIZE SUPABASE ONCE
-   ========================================================= */
+  const ROLE_ROUTES = {
+    super_admin: "dashboard.html",
+    school_admin: "school-dashboard.html",
+    teacher: "teacher-portal.html",
+    parent: "parent.html",
+    student: "student.html"
+  };
 
-if (!window.supabase || !window.supabase.createClient) {
-  throw new Error(
-    "Supabase library lama soo shuban. Hubi internet-ka iyo CDN-ka."
-  );
-}
+  let supabaseClient = null;
+  let isSubmitting = false;
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
+  function byId(...ids) {
+    for (const id of ids) {
+      const element = document.getElementById(id);
+      if (element) return element;
     }
+    return null;
   }
-);
 
-
-/* =========================================================
-   DOM ELEMENTS
-   ========================================================= */
-
-const $ = (id) => document.getElementById(id);
-
-const systemTab = $("systemTab");
-const teacherTab = $("teacherTab");
-
-const systemSection = $("systemLoginSection");
-const teacherSection = $("teacherLoginSection");
-
-const loginForm = $("loginForm");
-const emailInput = $("email");
-const passwordInput = $("password");
-const loginButton = $("loginButton");
-
-const teacherLoginForm = $("teacherLoginForm");
-const teacherEmailInput = $("teacherEmail");
-const teacherPasswordInput = $("teacherPassword");
-const teacherLoginButton = $("teacherLoginBtn");
-
-const message = $("message");
-
-
-/* =========================================================
-   STATUS MESSAGE
-   ========================================================= */
-
-function showMessage(text, type = "info") {
-  if (!message) return;
-
-  message.textContent = text;
-  message.className = type;
-}
-
-
-/* =========================================================
-   ROLE ROUTES
-   ========================================================= */
-
-const ROLE_REDIRECTS = {
-  super_admin: "./dashboard.html",
-  school_admin: "./school-dashboard.html",
-  teacher: "./teacher-portal.html",
-  parent: "./parent.html",
-  student: "./student-portal.html?v=8"
-};
-
-
-/* =========================================================
-   LOGIN MODE SWITCHER
-   ========================================================= */
-
-let loginInProgress = false;
-
-function setLoginMode(mode) {
-  const isTeacher = mode === "teacher";
-
-  systemSection.hidden = isTeacher;
-  teacherSection.hidden = !isTeacher;
-
-  systemTab.classList.toggle("active", !isTeacher);
-  teacherTab.classList.toggle("active", isTeacher);
-
-  systemTab.setAttribute(
-    "aria-pressed",
-    String(!isTeacher)
-  );
-
-  teacherTab.setAttribute(
-    "aria-pressed",
-    String(isTeacher)
-  );
-
-  // Disable hidden form fields so they cannot block submission.
-
-  emailInput.disabled = isTeacher;
-  passwordInput.disabled = isTeacher;
-  loginButton.disabled = isTeacher || loginInProgress;
-
-  teacherEmailInput.disabled = !isTeacher;
-  teacherPasswordInput.disabled = !isTeacher;
-  teacherLoginButton.disabled =
-    !isTeacher || loginInProgress;
-
-  if (!loginInProgress) {
-    showMessage("", "info");
-  }
-}
-
-systemTab.addEventListener("click", () => {
-  if (!loginInProgress) {
-    setLoginMode("system");
-  }
-});
-
-teacherTab.addEventListener("click", () => {
-  if (!loginInProgress) {
-    setLoginMode("teacher");
-  }
-});
-
-
-/* =========================================================
-   SHOW / HIDE PASSWORD
-   ========================================================= */
-
-document.querySelectorAll(".toggle-password").forEach((button) => {
-  button.addEventListener("click", () => {
-    const input = $(button.dataset.target);
-
-    if (!input) return;
-
-    const show = input.type === "password";
-
-    input.type = show ? "text" : "password";
-    button.textContent = show ? "Hide" : "Show";
-
-    button.setAttribute(
-      "aria-label",
-      show ? "Hide password" : "Show password"
+  function showMessage(message, type = "error") {
+    let box = byId(
+      "login-message",
+      "loginMessage",
+      "error-message",
+      "errorMessage",
+      "message"
     );
-  });
-});
 
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "login-message";
+      box.setAttribute("role", "alert");
+      box.setAttribute("aria-live", "polite");
 
-/* =========================================================
-   LOAD CURRENT USER PROFILE
-   ========================================================= */
+      const form = byId("login-form", "loginForm");
 
-async function getUserProfile(user) {
-  const { data: profile, error } = await supabaseClient
-    .from("profiles")
-    .select(
-      "id, full_name, role, is_active, institution_id"
-    )
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    console.error("PROFILE LOOKUP ERROR:", error);
-
-    throw new Error(
-      "Akoonka waa la xaqiijiyey, laakiin profile-ka lama akhrin karo. " +
-      "Hubi profiles RLS policies-ka Supabase."
-    );
-  }
-
-  if (!profile) {
-    throw new Error(
-      "Account-kan kuma jiro profiles table-ka. " +
-      "Fadlan hubi profile-ka Supabase."
-    );
-  }
-
-  if (profile.is_active !== true) {
-    throw new Error(
-      "Akoonkaagu ma shaqaynayo. Fadlan la xiriir maamulka."
-    );
-  }
-
-  return profile;
-}
-
-
-/* =========================================================
-   VERIFY STUDENT ACCOUNT
-   ========================================================= */
-
-async function verifyStudent(user) {
-  const { data: student, error } = await supabaseClient
-    .from("students")
-    .select(
-      "id, student_id, full_name, auth_user_id, account_enabled"
-    )
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    console.error("STUDENT LOOKUP ERROR:", error);
-
-    throw new Error(
-      "Xogta ardayga lama akhrin karo. Hubi rukhsadaha students table-ka."
-    );
-  }
-
-  if (!student) {
-    throw new Error(
-      "Account-kan lama xiriirin diiwaan arday. " +
-      "Fadlan la xiriir maamulka."
-    );
-  }
-
-  if (student.account_enabled === false) {
-    throw new Error(
-      "Akoonka ardayga waa la joojiyey. Fadlan la xiriir maamulka."
-    );
-  }
-
-  sessionStorage.setItem(
-    "gaawow_student_id",
-    student.id
-  );
-
-  sessionStorage.setItem(
-    "gaawow_student_number",
-    student.student_id || ""
-  );
-
-  sessionStorage.setItem(
-    "gaawow_student_name",
-    student.full_name || ""
-  );
-
-  return student;
-}
-
-
-/* =========================================================
-   CLEAR OLD LOGIN METADATA
-   ========================================================= */
-
-function clearLoginMetadata() {
-  [
-    "gaawow_user_id",
-    "gaawow_user_email",
-    "gaawow_user_role",
-    "gaawow_student_id",
-    "gaawow_student_number",
-    "gaawow_student_name"
-  ].forEach((key) => {
-    sessionStorage.removeItem(key);
-  });
-}
-
-
-/* =========================================================
-   SAVE LOGIN METADATA
-   ========================================================= */
-
-function saveLoginMetadata(user, profile) {
-  sessionStorage.setItem(
-    "gaawow_user_id",
-    user.id
-  );
-
-  sessionStorage.setItem(
-    "gaawow_user_email",
-    user.email || ""
-  );
-
-  sessionStorage.setItem(
-    "gaawow_user_role",
-    profile.role
-  );
-}
-
-
-/* =========================================================
-   VALIDATE ROLE AND OPEN PORTAL
-   ========================================================= */
-
-async function redirectAfterLogin(user, requiredRole = null) {
-  const profile = await getUserProfile(user);
-
-  // Teacher Login must only accept the teacher role.
-
-  if (requiredRole && profile.role !== requiredRole) {
-    throw new Error(
-      requiredRole === "teacher"
-        ? "Akoonkan ma laha teacher role. Isticmaal System Login haddii aad tahay maamule."
-        : "Role-ka akoonka lama oggola."
-    );
-  }
-
-  const destination = ROLE_REDIRECTS[profile.role];
-
-  if (!destination) {
-    throw new Error(
-      "Role-ka akoonkan lama aqoonsana: " + profile.role
-    );
-  }
-
-  if (profile.role === "student") {
-    await verifyStudent(user);
-  }
-
-  saveLoginMetadata(user, profile);
-
-  console.info(
-    "GAAWOW EMS login verified:",
-    profile.role
-  );
-
-  showMessage(
-    "Login successful. Opening your portal...",
-    "success"
-  );
-
-  window.location.replace(destination);
-}
-
-
-/* =========================================================
-   FRIENDLY AUTHENTICATION ERRORS
-   ========================================================= */
-
-function getAuthErrorMessage(error) {
-  console.error("SUPABASE AUTH ERROR:", error);
-
-  const code = error?.code || "";
-  const messageText = error?.message || "";
-
-  if (
-    code === "invalid_credentials" ||
-    /invalid login credentials/i.test(messageText)
-  ) {
-    return (
-      "Supabase ma aqbalin email-ka ama password-ka. " +
-      "Hubi email-ka iyo password-ka, ama dib u deji password-ka."
-    );
-  }
-
-  if (/email not confirmed/i.test(messageText)) {
-    return (
-      "Email-ka weli lama xaqiijin. Hubi email-kaaga " +
-      "ama Authentication settings-ka Supabase."
-    );
-  }
-
-  if (/too many requests/i.test(messageText)) {
-    return (
-      "Isku dayo badan ayaa dhacay. Sug wax yar ka hor intaadan mar kale gelin."
-    );
-  }
-
-  if (/failed to fetch|networkerror|fetch failed/i.test(messageText)) {
-    return (
-      "Xiriirka Supabase wuu fashilmay. Hubi internet-ka iyo Supabase URL-ka."
-    );
-  }
-
-  return messageText ||
-    "Login-ku wuu fashilmay. Hubi Console-ka si aad u aragto sababta.";
-}
-
-
-/* =========================================================
-   SHARED LOGIN HANDLER
-   ========================================================= */
-
-async function handleLogin({
-  email,
-  password,
-  requiredRole,
-  button,
-  originalButtonText
-}) {
-  if (loginInProgress) return;
-
-  if (!email || !password) {
-    showMessage(
-      "Fadlan geli email-ka iyo password-ka.",
-      "error"
-    );
-    return;
-  }
-
-  loginInProgress = true;
-
-  loginButton.disabled = true;
-  teacherLoginButton.disabled = true;
-
-  button.textContent = "VERIFYING...";
-
-  showMessage(
-    "Waxaa la xaqiijinayaa account-kaaga...",
-    "info"
-  );
-
-  try {
-    const { data, error } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-
-    if (error) {
-      throw error;
+      if (form && form.parentNode) {
+        form.parentNode.insertBefore(box, form);
+      } else {
+        document.body.prepend(box);
+      }
     }
 
-    if (!data || !data.user) {
+    box.textContent = message;
+    box.style.display = "block";
+    box.style.padding = "12px";
+    box.style.margin = "12px 0";
+    box.style.borderRadius = "8px";
+    box.style.fontSize = "14px";
+    box.style.lineHeight = "1.5";
+    box.style.color = type === "success" ? "#155724" : "#842029";
+    box.style.background =
+      type === "success" ? "#d4edda" : "#f8d7da";
+    box.style.border =
+      type === "success"
+        ? "1px solid #c3e6cb"
+        : "1px solid #f5c2c7";
+  }
+
+  function clearMessage() {
+    const box = byId(
+      "login-message",
+      "loginMessage",
+      "error-message",
+      "errorMessage",
+      "message"
+    );
+
+    if (box) {
+      box.textContent = "";
+      box.style.display = "none";
+    }
+  }
+
+  function setLoading(loading) {
+    const button = byId(
+      "login-button",
+      "loginButton",
+      "submit-login",
+      "submitLogin",
+      "login-btn"
+    );
+
+    if (!button) return;
+
+    if (!button.dataset.originalText) {
+      button.dataset.originalText =
+        button.textContent.trim() || "Login";
+    }
+
+    button.disabled = loading;
+    button.textContent = loading
+      ? "Checking credentials..."
+      : button.dataset.originalText;
+  }
+
+  function normalizeRole(role) {
+    return String(role || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+  }
+
+  function getClient() {
+    if (supabaseClient) return supabaseClient;
+
+    if (
+      !window.supabase ||
+      typeof window.supabase.createClient !== "function"
+    ) {
       throw new Error(
-        "Supabase ma soo celin user sax ah."
+        "Supabase library lama soo dejin. Hubi index.html."
       );
     }
 
-    await redirectAfterLogin(
-      data.user,
-      requiredRole
+    if (
+      typeof SUPABASE_URL !== "string" ||
+      !SUPABASE_URL.startsWith("https://") ||
+      !SUPABASE_KEY
+    ) {
+      throw new Error("Supabase configuration sax ma aha.");
+    }
+
+    /*
+     * Hal client oo keliya.
+     * session persistence waa muhiim si login-ku u sii jiro.
+     */
+    supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY,
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      }
     );
 
-  } catch (error) {
-    console.error("GAAWOW EMS LOGIN FAILURE:", error);
+    window[CLIENT_KEY] = supabaseClient;
 
-    showMessage(
-      getAuthErrorMessage(error),
-      "error"
-    );
-
-  } finally {
-    loginInProgress = false;
-
-    loginButton.disabled = false;
-    teacherLoginButton.disabled = false;
-
-    setLoginMode(
-      teacherSection.hidden ? "system" : "teacher"
-    );
-
-    button.textContent = originalButtonText;
+    return supabaseClient;
   }
-}
 
+  async function getAuthorizedProfile(userId) {
+    const client = getClient();
 
-/* =========================================================
-   SYSTEM LOGIN
-   ========================================================= */
+    const { data, error } = await client
+      .from("profiles")
+      .select("id, full_name, role, is_active, institution_id")
+      .eq("id", userId)
+      .maybeSingle();
 
-loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
+    if (error) {
+      console.error("Profile lookup failed:", error);
+      throw new Error(
+        "Akoonka waa la xaqiijiyey, laakiin profile-ka lama akhrin karin. Hubi profiles RLS iyo xogta profile-ka."
+      );
+    }
 
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
+    if (!data) {
+      throw new Error(
+        "Profile-ka isticmaalaha lama helin. Ma jiro wax isbeddel SQL ah oo si toos ah loo samaynayo."
+      );
+    }
 
-  await handleLogin({
-    email,
-    password,
-    requiredRole: null,
-    button: loginButton,
-    originalButtonText: "LOGIN"
+    if (data.is_active === false) {
+      throw new Error(
+        "Akoonka waa la joojiyey. La xiriir maamulka GAAWOW EMS."
+      );
+    }
+
+    const role = normalizeRole(data.role);
+
+    if (!Object.prototype.hasOwnProperty.call(ROLE_ROUTES, role)) {
+      throw new Error(
+        "Doorka akoonka lama aqoonsan. La xiriir Super Admin."
+      );
+    }
+
+    return {
+      ...data,
+      role,
+      route: ROLE_ROUTES[role]
+    };
+  }
+
+  async function login(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    if (isSubmitting) return;
+
+    clearMessage();
+
+    const emailInput = byId(
+      "email",
+      "login-email",
+      "loginEmail",
+      "user-email"
+    );
+
+    const passwordInput = byId(
+      "password",
+      "login-password",
+      "loginPassword",
+      "user-password"
+    );
+
+    if (!emailInput || !passwordInput) {
+      showMessage(
+        "Email ama Password field lama helin. Hubi IDs-ka ku jira index.html."
+      );
+      console.error("Login inputs not found.");
+      return;
+    }
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+      showMessage("Fadlan geli Email iyo Password.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showMessage("Fadlan geli email sax ah.");
+      return;
+    }
+
+    isSubmitting = true;
+    setLoading(true);
+
+    try {
+      const client = getClient();
+
+      /*
+       * STEP 1: Authenticate with Supabase.
+       */
+      const { data: authData, error: authError } =
+        await client.auth.signInWithPassword({
+          email,
+          password
+        });
+
+      if (authError) {
+        console.error("Supabase authentication failed:", authError);
+
+        if (
+          authError.message &&
+          /invalid login credentials/i.test(authError.message)
+        ) {
+          throw new Error(
+            "Email ama Password waa khaldan yahay."
+          );
+        }
+
+        if (
+          authError.message &&
+          /email not confirmed/i.test(authError.message)
+        ) {
+          throw new Error(
+            "Email-ka weli lama xaqiijin. La xiriir maamulka."
+          );
+        }
+
+        throw new Error(
+          "Gelitaanka Supabase wuu fashilmay. Hubi xogta akoonka iyo Supabase Auth."
+        );
+      }
+
+      if (!authData.user || !authData.session) {
+        throw new Error(
+          "Supabase ma soo celin user iyo session sax ah."
+        );
+      }
+
+      /*
+       * STEP 2: Read profiles.role.
+       */
+      let profile;
+
+      try {
+        profile = await getAuthorizedProfile(authData.user.id);
+      } catch (profileError) {
+        /*
+         * Fail closed: logout haddii profile-ka ama rukhsadda
+         * aan la xaqiijin karin.
+         */
+        await client.auth.signOut();
+        throw profileError;
+      }
+
+      /*
+       * STEP 3: Navigate according to verified role.
+       */
+      showMessage(
+        "Login waa guulaystay. Waxaa lagu gelinayaa boggaaga...",
+        "success"
+      );
+
+      console.info("Authorized login:", {
+        role: profile.role,
+        userId: authData.user.id,
+        route: profile.route
+      });
+
+      window.location.replace(profile.route);
+
+    } catch (error) {
+      console.error("Login error:", error);
+
+      showMessage(
+        error && error.message
+          ? error.message
+          : "Khalad lama filaan ah ayaa dhacay."
+      );
+
+    } finally {
+      isSubmitting = false;
+      setLoading(false);
+    }
+  }
+
+  function initializeLogin() {
+    /*
+     * Teacher Login elements are optional.
+     * Missing elements must never stop System Login.
+     */
+    const form = byId("login-form", "loginForm");
+
+    const button = byId(
+      "login-button",
+      "loginButton",
+      "submit-login",
+      "submitLogin",
+      "login-btn"
+    );
+
+    if (form) {
+      form.addEventListener("submit", login);
+    } else if (button) {
+      button.addEventListener("click", login);
+    } else {
+      console.error(
+        "Login form/button lama helin. Hubi index.html IDs."
+      );
+      showMessage(
+        "Login button lama helin. Hubi HTML-ka bogga."
+      );
+      return;
+    }
+
+    /*
+     * Optional password visibility button.
+     */
+    const togglePassword = byId(
+      "toggle-password",
+      "togglePassword",
+      "show-password"
+    );
+
+    const passwordInput = byId(
+      "password",
+      "login-password",
+      "loginPassword",
+      "user-password"
+    );
+
+    if (togglePassword && passwordInput) {
+      togglePassword.addEventListener("click", () => {
+        const hidden = passwordInput.type === "password";
+
+        passwordInput.type = hidden ? "text" : "password";
+        togglePassword.setAttribute(
+          "aria-pressed",
+          String(hidden)
+        );
+      });
+    }
+
+    console.info("GAAWOW EMS Login V9 initialized.");
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      initializeLogin,
+      { once: true }
+    );
+  } else {
+    initializeLogin();
+  }
+
+  /*
+   * Optional diagnostic access for testing.
+   * Does not expose the password or service-role key.
+   */
+  window.GAAWOW_LOGIN = Object.freeze({
+    version: "9.0",
+    testConnection: async () => {
+      try {
+        const client = getClient();
+        const { data, error } = await client.auth.getSession();
+
+        if (error) throw error;
+
+        return {
+          ok: true,
+          sessionExists: Boolean(data.session),
+          message: "Supabase client wuu shaqaynayaa."
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          message: error.message || "Supabase connection failed."
+        };
+      }
+    }
   });
-});
-
-
-/* =========================================================
-   TEACHER LOGIN
-   ========================================================= */
-
-teacherLoginForm.addEventListener(
-  "submit",
-  async (event) => {
-    event.preventDefault();
-
-    const email = teacherEmailInput.value.trim();
-    const password = teacherPasswordInput.value;
-
-    await handleLogin({
-      email,
-      password,
-      requiredRole: "teacher",
-      button: teacherLoginButton,
-      originalButtonText: "LOGIN AS TEACHER"
-    });
-  }
-);
-
-
-/* =========================================================
-   INITIALIZE LOGIN PAGE
-   ========================================================= */
-
-clearLoginMetadata();
-
-setLoginMode("system");
-
-console.info("GAAWOW EMS Secure Login initialized.");
+})();
