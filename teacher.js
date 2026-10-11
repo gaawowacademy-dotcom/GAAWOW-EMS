@@ -523,33 +523,172 @@ async function updateTeacherProfile(id, payload) {
 }
 
 async function createTeacher(payload, accessToken) {
-  if (!accessToken) {
-    throw new Error("Login session is missing. Please sign in again.");
+/* =========================================================
+   GAAWOW EMS — CREATE TEACHER ACCOUNT V8
+   FIX:
+   - Uses the active Supabase session token.
+   - Sends the correct Edge Function request.
+   - Displays the actual server/database error details.
+   - Preserves existing teacher management functionality.
+   ========================================================= */
+
+async function createTeacher(payload, accessToken) {
+  if (!supabaseClient) {
+    throw new Error(
+      "Supabase client is unavailable. Please reload the page."
+    );
   }
 
-  const response = await withTimeout(
-    fetch(CREATE_TEACHER_FUNCTION_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${accessToken}`,
-        "apikey": SUPABASE_KEY
-      },
-      body: JSON.stringify(payload)
-    }),
-    "Creating teacher account"
-  );
+  // Get the current session if a token was not supplied.
+  let token = accessToken;
 
+  if (!token) {
+    const {
+      data,
+      error: sessionError
+    } = await withTimeout(
+      supabaseClient.auth.getSession(),
+      "Checking login session"
+    );
+
+    if (sessionError) {
+      throw new Error(
+        `Could not verify login session: ${sessionError.message}`
+      );
+    }
+
+    token = data?.session?.access_token;
+  }
+
+  if (!token) {
+    throw new Error(
+      "Your login session is missing or expired. Please sign in again."
+    );
+  }
+
+  // Validate required teacher information before sending.
+  const requiredFields = [
+    "full_name",
+    "email",
+    "institution_id",
+    "teacher_id",
+    "password"
+  ];
+
+  const missingFields = requiredFields.filter(field => {
+    return !String(payload?.[field] ?? "").trim();
+  });
+
+  if (missingFields.length > 0) {
+    throw new Error(
+      `Missing required fields: ${missingFields.join(", ")}`
+    );
+  }
+
+  // Call the correct Supabase Edge Function.
+  let response;
+
+  try {
+    response = await withTimeout(
+      fetch(CREATE_TEACHER_FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      }),
+      "Creating teacher account"
+    );
+  } catch (error) {
+    console.error(
+      "[GAAWOW TEACHER] Network/Edge Function request failed:",
+      error
+    );
+
+    throw new Error(
+      error?.message ||
+      "Could not connect to the teacher account service."
+    );
+  }
+
+  // Read the server response.
   let result;
+
   try {
     result = await response.json();
-  } catch (_) {
-    throw new Error("Supabase returned an unreadable response. Check the create-teacher-account Edge Function logs.");
+  } catch (error) {
+    console.error(
+      "[GAAWOW TEACHER] Invalid server response:",
+      error
+    );
+
+    throw new Error(
+      `The server returned an unreadable response. HTTP ${response.status}. Check the Edge Function logs.`
+    );
   }
 
-  if (!response.ok || result?.success === false || result?.error) {
+  // Log diagnostic information without exposing credentials.
+  console.info(
+    "[GAAWOW TEACHER] Create account response:",
+    {
+      httpStatus: response.status,
+      success: result?.success,
+      error: result?.error,
+      details: result?.details,
+      database_code: result?.database_code,
+      database_details: result?.database_details,
+      database_hint: result?.database_hint
+    }
+  );
+
+  // Show the actual database/function error.
+  if (
+    !response.ok ||
+    result?.success === false ||
+    result?.error
+  ) {
+    const errorParts = [];
+
+    if (result?.error) {
+      errorParts.push(result.error);
+    }
+
+    if (result?.details) {
+      errorParts.push(
+        `Technical details: ${result.details}`
+      );
+    }
+
+    if (result?.database_code) {
+      errorParts.push(
+        `Database code: ${result.database_code}`
+      );
+    }
+
+    if (result?.database_details) {
+      errorParts.push(
+        `Database details: ${result.database_details}`
+      );
+    }
+
+    if (result?.database_hint) {
+      errorParts.push(
+        `Database hint: ${result.database_hint}`
+      );
+    }
+
+    errorParts.push(`HTTP status: ${response.status}`);
+
     throw new Error(
-      result?.error || result?.message || `Create Teacher failed. HTTP ${response.status}`
+      errorParts.join("\n")
+    );
+  }
+
+  if (result?.success !== true) {
+    throw new Error(
+      "The server response did not confirm that the teacher account was created."
     );
   }
 
