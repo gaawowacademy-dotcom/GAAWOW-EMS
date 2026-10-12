@@ -1,0 +1,854 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0B1E63">
+<title>GAAWOW EMS | Settings</title><style>
+:root {
+  --navy: #0B1E63;
+  --blue: #0B4DA2;
+  --gold: #D4AF37;
+  --bg: #F5F7FA;
+  --text: #1F2937;
+  --muted: #64748B;
+  --border: #E5E7EB;
+  --green: #15803D;
+  --red: #B91C1C;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(135deg, #F5F7FA, #EEF3FA 50%, #FFF);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+header {
+  background: linear-gradient(135deg, var(--navy), var(--blue));
+  color: white;
+  padding: 18px 5%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 6px 20px rgba(11,30,99,.2);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  background: white;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.brand h1 {
+  font-size: 19px;
+}
+
+.brand p {
+  font-size: 12px;
+  margin-top: 4px;
+  opacity: .85;
+}
+
+.top-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+button, .button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 9px;
+  padding: 11px 15px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.btn-light {
+  background: white;
+  color: var(--navy);
+}
+
+.btn-gold {
+  background: var(--gold);
+  color: var(--navy);
+}
+
+.btn-primary {
+  background: var(--navy);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--blue);
+}
+
+button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+main {
+  width: min(1000px, 92%);
+  margin: 30px auto 45px;
+}
+
+.page-heading {
+  margin-bottom: 24px;
+}
+
+.page-heading h2 {
+  font-size: 28px;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+
+.page-heading p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.status-bar {
+  display: none;
+  padding: 13px 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.status-bar.show {
+  display: block;
+}
+
+.status-bar.success {
+  background: #ECFDF5;
+  border: 1px solid #BBF7D0;
+  color: var(--green);
+}
+
+.status-bar.error {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: var(--red);
+}
+
+.status-bar.info {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1D4ED8;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 8px 25px rgba(15,23,42,.06);
+  min-width: 0;
+}
+
+.card.full {
+  grid-column: 1 / -1;
+}
+
+.card-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.card-icon {
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
+  background: #EEF4FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 23px;
+  flex-shrink: 0;
+}
+
+.card-heading h3 {
+  color: var(--navy);
+  font-size: 17px;
+}
+
+.card-heading p {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+
+.field {
+  margin-bottom: 17px;
+}
+
+.field label {
+  display: block;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 7px;
+}
+
+.field input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #CBD5E1;
+  border-radius: 9px;
+  background: white;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(11,77,162,.1);
+}
+
+.field input[readonly] {
+  background: #F8FAFC;
+  color: #64748B;
+}
+
+.help-text {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 7px;
+}
+
+.account-list {
+  display: grid;
+  gap: 0;
+}
+
+.account-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 14px 0;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.account-row:last-child {
+  border-bottom: none;
+}
+
+.account-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.account-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+  text-align: right;
+  overflow-wrap: anywhere;
+  max-width: 65%;
+}
+
+.badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 30px;
+  font-size: 11px;
+  font-weight: 800;
+  background: #ECFDF5;
+  color: var(--green);
+}
+
+.security-note {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 12px;
+  line-height: 1.7;
+  margin-bottom: 18px;
+}
+
+footer {
+  text-align: center;
+  padding: 25px 15px;
+  background: var(--navy);
+  color: white;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+footer strong {
+  color: var(--gold);
+}
+
+@media(max-width:700px) {
+  header {
+    padding: 14px 4%;
+    align-items: flex-start;
+  }
+
+  .brand img {
+    width: 43px;
+    height: 43px;
+  }
+
+  .brand h1 {
+    font-size: 15px;
+  }
+
+  .brand p {
+    font-size: 10px;
+    max-width: 190px;
+    line-height: 1.5;
+  }
+
+  .top-actions {
+    flex-direction: column;
+  }
+
+  .top-actions button,
+  .top-actions .button {
+    padding: 9px 10px;
+    font-size: 11px;
+  }
+
+  main {
+    margin-top: 23px;
+  }
+
+  .page-heading h2 {
+    font-size: 23px;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card.full {
+    grid-column: auto;
+  }
+
+  .card {
+    padding: 19px;
+  }
+}
+
+@media(max-width:390px) {
+  header {
+    flex-direction: column;
+  }
+
+  .top-actions {
+    flex-direction: row;
+  }
+}
+</style></head><body><header>
+  <div class="brand">
+    <img
+      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+      alt="GAAWOW Academy Logo"
+    >
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <p>Education Management &amp; Verification System</p>
+    </div>
+  </div>  <div class="top-actions">
+    <a class="button btn-light" href="./dashboard.html">🏠 Dashboard</a>
+    <button class="btn-gold" id="refreshBtn" type="button">↻ Refresh</button>
+  </div>
+</header><main>  <section class="page-heading">
+    <h2>⚙️ Account Settings</h2>
+    <p>
+      Manage your personal profile, review your account information
+      and update your password securely.
+    </p>
+  </section>  <div id="pageMessage" class="status-bar" role="status" aria-live="polite"></div>  <div class="settings-grid"><!-- PROFILE SETTINGS -->
+<section class="card">
+  <div class="card-heading">
+    <div class="card-icon">👤</div>
+    <div>
+      <h3>My Profile</h3>
+      <p>Update your personal contact information.</p>
+    </div>
+  </div>
+
+  <form id="profileForm">
+    <div class="field">
+      <label for="fullName">Full Name</label>
+      <input
+        id="fullName"
+        name="fullName"
+        type="text"
+        maxlength="150"
+        autocomplete="name"
+        required
+      >
+    </div>
+
+    <div class="field">
+      <label for="email">Account Email</label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        readonly
+        autocomplete="email"
+      >
+      <p class="help-text">
+        Your login email is displayed here. This page does not change
+        your authentication email.
+      </p>
+    </div>
+
+    <div class="field">
+      <label for="phone">Phone Number</label>
+      <input
+        id="phone"
+        name="phone"
+        type="tel"
+        maxlength="30"
+        autocomplete="tel"
+        placeholder="Enter phone number"
+      >
+    </div>
+
+    <button class="btn-primary" id="saveProfileBtn" type="submit">
+      💾 Save Profile
+    </button>
+  </form>
+</section>
+
+<!-- ACCOUNT INFORMATION -->
+<section class="card">
+  <div class="card-heading">
+    <div class="card-icon">🏫</div>
+    <div>
+      <h3>Account Information</h3>
+      <p>Review your current EMS account details.</p>
+    </div>
+  </div>
+
+  <div class="account-list">
+    <div class="account-row">
+      <span class="account-label">Account Status</span>
+      <span class="account-value" id="accountStatus">
+        Loading...
+      </span>
+    </div>
+
+    <div class="account-row">
+      <span class="account-label">Role</span>
+      <span class="account-value" id="accountRole">Loading...</span>
+    </div>
+
+    <div class="account-row">
+      <span class="account-label">Institution ID</span>
+      <span class="account-value" id="institutionId">Loading...</span>
+    </div>
+
+    <div class="account-row">
+      <span class="account-label">Profile ID</span>
+      <span class="account-value" id="profileId">Loading...</span>
+    </div>
+
+    <div class="account-row">
+      <span class="account-label">Authentication</span>
+      <span class="account-value">Supabase Auth</span>
+    </div>
+  </div>
+
+  <p class="help-text" style="margin-top:18px">
+    Role and institution permissions are managed by the authorized
+    administrator and cannot be changed from this page.
+  </p>
+</section>
+
+<!-- PASSWORD SETTINGS -->
+<section class="card full">
+  <div class="card-heading">
+    <div class="card-icon">🔐</div>
+    <div>
+      <h3>Change Password</h3>
+      <p>Update the password for your currently signed-in account.</p>
+    </div>
+  </div>
+
+  <div class="security-note">
+    Security reminder: choose a strong, unique password. Never share
+    your password with another person.
+  </div>
+
+  <form id="passwordForm">
+    <div class="settings-grid">
+      <div class="field">
+        <label for="newPassword">New Password</label>
+        <input
+          id="newPassword"
+          type="password"
+          minlength="8"
+          maxlength="128"
+          autocomplete="new-password"
+          required
+          placeholder="At least 8 characters"
+        >
+      </div>
+
+      <div class="field">
+        <label for="confirmPassword">Confirm New Password</label>
+        <input
+          id="confirmPassword"
+          type="password"
+          minlength="8"
+          maxlength="128"
+          autocomplete="new-password"
+          required
+          placeholder="Re-enter new password"
+        >
+      </div>
+    </div>
+
+    <button class="btn-primary" id="changePasswordBtn" type="submit">
+      🔒 Update Password
+    </button>
+  </form>
+</section>
+
+  </div>
+</main><footer>
+  <strong>GAAWOW ACADEMY</strong><br>
+  Ilayska Aqoonta iyo Xirfadda<br>
+  GAAWOW EMS Account Settings
+</footer><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+"use strict";
+
+(() => {
+  const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
+  const SUPABASE_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+  const messageBox = document.getElementById("pageMessage");
+  const refreshBtn = document.getElementById("refreshBtn");
+  const saveProfileBtn = document.getElementById("saveProfileBtn");
+  const changePasswordBtn = document.getElementById("changePasswordBtn");
+
+  let supabaseClient = null;
+  let currentUser = null;
+  let currentProfile = null;
+
+  function showMessage(message, type = "info") {
+    messageBox.textContent = message;
+    messageBox.className = "status-bar show " + type;
+    messageBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function clearMessage() {
+    messageBox.textContent = "";
+    messageBox.className = "status-bar";
+  }
+
+  function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+      element.textContent =
+        value === null || value === undefined || value === ""
+          ? "Not set"
+          : String(value);
+    }
+  }
+
+  function friendlyError(error) {
+    const message = error?.message || "An unexpected error occurred.";
+
+    if (/row-level security|rls|permission denied/i.test(message)) {
+      return "Supabase rejected this change because of its security policies. Your data was not changed. Please check the relevant RLS UPDATE policy.";
+    }
+
+    if (/network|fetch/i.test(message)) {
+      return "Connection failed. Check your internet connection and try again.";
+    }
+
+    return message;
+  }
+
+  async function getSessionUser() {
+    const { data, error } = await supabaseClient.auth.getSession();
+
+    if (error) throw error;
+
+    if (!data.session?.user) {
+      window.location.replace("./login.html");
+      return null;
+    }
+
+    return data.session.user;
+  }
+
+  async function loadProfile() {
+    clearMessage();
+    refreshBtn.disabled = true;
+
+    try {
+      currentUser = await getSessionUser();
+      if (!currentUser) return;
+
+      const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("id, institution_id, full_name, phone, role, is_active, email")
+        .eq("id", currentUser.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        throw new Error(
+          "Your signed-in account has no matching profile record. Contact the system administrator."
+        );
+      }
+
+      currentProfile = data;
+
+      document.getElementById("fullName").value =
+        data.full_name || "";
+
+      document.getElementById("email").value =
+        currentUser.email || data.email || "";
+
+      document.getElementById("phone").value =
+        data.phone || "";
+
+      const role = String(data.role || "unknown")
+        .replace(/_/g, " ")
+        .toUpperCase();
+
+      setText("accountRole", role);
+      setText("institutionId", data.institution_id || "Not assigned");
+      setText("profileId", data.id);
+
+      const statusElement = document.getElementById("accountStatus");
+
+      if (data.is_active === true) {
+        statusElement.innerHTML =
+          '<span class="badge">ACTIVE</span>';
+      } else {
+        statusElement.textContent = "INACTIVE";
+      }
+
+      if (data.is_active !== true) {
+        showMessage(
+          "Your account is marked inactive. Please contact the administrator if you believe this is incorrect.",
+          "error"
+        );
+      } else {
+        showMessage("Your profile has been loaded successfully.", "success");
+      }
+
+    } catch (error) {
+      console.error("Settings profile loading error:", error);
+      showMessage(friendlyError(error), "error");
+    } finally {
+      refreshBtn.disabled = false;
+    }
+  }
+
+  async function saveProfile(event) {
+    event.preventDefault();
+    clearMessage();
+
+    if (!currentUser || !currentProfile) {
+      showMessage("Your profile has not loaded. Refresh the page and try again.", "error");
+      return;
+    }
+
+    if (currentProfile.is_active !== true) {
+      showMessage("Your account is inactive. Profile changes are disabled.", "error");
+      return;
+    }
+
+    const fullName = document.getElementById("fullName").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+
+    if (!fullName) {
+      showMessage("Please enter your full name.", "error");
+      return;
+    }
+
+    saveProfileBtn.disabled = true;
+    saveProfileBtn.textContent = "Saving...";
+
+    try {
+      const { data, error } = await supabaseClient
+        .from("profiles")
+        .update({
+          full_name: fullName,
+          phone: phone || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", currentUser.id)
+        .select("id, full_name, phone, role, is_active, institution_id, email")
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        throw new Error(
+          "No profile was updated. Check your profiles UPDATE policy and try again."
+        );
+      }
+
+      currentProfile = data;
+
+      document.getElementById("fullName").value =
+        data.full_name || "";
+
+      document.getElementById("phone").value =
+        data.phone || "";
+
+      showMessage("Profile saved successfully.", "success");
+
+    } catch (error) {
+      console.error("Settings profile update error:", error);
+      showMessage(friendlyError(error), "error");
+    } finally {
+      saveProfileBtn.disabled = false;
+      saveProfileBtn.textContent = "💾 Save Profile";
+    }
+  }
+
+  async function changePassword(event) {
+    event.preventDefault();
+    clearMessage();
+
+    if (!currentUser || !currentProfile) {
+      showMessage("Your account has not loaded. Refresh the page first.", "error");
+      return;
+    }
+
+    if (currentProfile.is_active !== true) {
+      showMessage("Your account is inactive. Password changes are disabled.", "error");
+      return;
+    }
+
+    const newPassword =
+      document.getElementById("newPassword").value;
+
+    const confirmPassword =
+      document.getElementById("confirmPassword").value;
+
+    if (newPassword.length < 8) {
+      showMessage("Your new password must contain at least 8 characters.", "error");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      showMessage("The two passwords do not match.", "error");
+      return;
+    }
+
+    changePasswordBtn.disabled = true;
+    changePasswordBtn.textContent = "Updating Password...";
+
+    try {
+      const { error } = await supabaseClient.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+
+      document.getElementById("passwordForm").reset();
+
+      showMessage(
+        "Password updated successfully. Keep your new password private.",
+        "success"
+      );
+
+    } catch (error) {
+      console.error("Password update error:", error);
+      showMessage(friendlyError(error), "error");
+    } finally {
+      changePasswordBtn.disabled = false;
+      changePasswordBtn.textContent = "🔒 Update Password";
+    }
+  }
+
+  async function initialize() {
+    try {
+      if (!window.supabase?.createClient) {
+        throw new Error(
+          "Supabase library failed to load. Refresh the page and try again."
+        );
+      }
+
+      supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY,
+        {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true
+          }
+        }
+      );
+
+      document.getElementById("profileForm")
+        .addEventListener("submit", saveProfile);
+
+      document.getElementById("passwordForm")
+        .addEventListener("submit", changePassword);
+
+      refreshBtn.addEventListener("click", loadProfile);
+
+      await loadProfile();
+
+    } catch (error) {
+      console.error("Settings initialization error:", error);
+      showMessage(friendlyError(error), "error");
+    }
+  }
+
+  initialize();
+})();
+</script></body>
+</html>
