@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>GAAWOW EMS | Notifications</title>
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  >
+
+  <style>
+    :root {
+      --navy: #0b1e63;
+      --blue: #0b4da2;
+      --gold: #d4af37;
+      --bg: #f5f7fa;
+      --white: #ffffff;
+      --text: #243047;
+      --muted: #64748b;
+      --border: #e0e6ef;
+      --green: #16803c;
+      --red: #c62828;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    .topbar {
+      background: linear-gradient(120deg, var(--navy), var(--blue));
+      color: white;
+      padding: 17px 20px;
+    }
+
+    .topbar-inner {
+      max-width: 1400px;
+      margin: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .brand p {
+      margin: 6px 0 0;
+      font-size: 13px;
+      opacity: .9;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      border: 1px solid #ffffff55;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .container {
+      width: min(1400px, 100%);
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+
+    .heading {
+      margin-bottom: 20px;
+    }
+
+    .heading h2 {
+      color: var(--navy);
+      margin: 0 0 8px;
+      font-size: 25px;
+    }
+
+    .heading p {
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .account {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: white;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 18px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #e8efff;
+      color: var(--navy);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .stat-number {
+      color: var(--navy);
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .panel {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .panel h3 {
+      color: var(--navy);
+      font-size: 18px;
+      margin: 0 0 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .field label {
+      display: block;
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 7px;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: white;
+      color: var(--text);
+      outline: none;
+    }
+
+    .field textarea {
+      min-height: 130px;
+      resize: vertical;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px #0b4da218;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .hint {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 17px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 11px 15px;
+      font-size: 13px;
+      font-weight: 700;
+      min-height: 41px;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+    }
+
+    .btn-gold {
+      background: var(--gold);
+      color: #172033;
+    }
+
+    .btn-light {
+      background: #edf2f7;
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: var(--red);
+    }
+
+    .btn:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .message {
+      display: none;
+      padding: 13px 15px;
+      border-radius: 9px;
+      margin-bottom: 16px;
+      line-height: 1.6;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.error {
+      color: #991b1b;
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+    }
+
+    .message.success {
+      color: #166534;
+      background: #dcfce7;
+      border: 1px solid #bbf7d0;
+    }
+
+    .message.info {
+      color: #1e40af;
+      background: #dbeafe;
+      border: 1px solid #bfdbfe;
+    }
+
+    .busy {
+      display: none;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .busy.show {
+      display: block;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 850px;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    thead {
+      background: #edf2fb;
+    }
+
+    th, td {
+      padding: 13px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      color: var(--navy);
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .notification-title {
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 5px;
+    }
+
+    .notification-message {
+      max-width: 360px;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.5;
+    }
+
+    .status-read {
+      color: var(--green);
+      font-weight: bold;
+    }
+
+    .status-unread {
+      color: var(--red);
+      font-weight: bold;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 35px 15px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .empty i {
+      display: block;
+      font-size: 35px;
+      margin-bottom: 12px;
+    }
+
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 10px 16px 28px;
+    }
+
+    @media (max-width: 800px) {
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .full {
+        grid-column: auto;
+      }
+
+      .panel {
+        padding: 15px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .stat {
+        padding: 13px;
+      }
+
+      .stat-number {
+        font-size: 23px;
+      }
+
+      .brand h1 {
+        font-size: 19px;
+      }
+
+      .buttons .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <h1><i class="fa-solid fa-bell"></i> GAAWOW EMS</h1>
+      <p>Education Management & Verification System</p>
+    </div>
+
+    <nav class="nav-links">
+      <a href="dashboard.html">
+        <i class="fa-solid fa-gauge"></i> Dashboard
+      </a>
+
+      <a href="student.html">
+        <i class="fa-solid fa-user-graduate"></i> Student Portal
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="heading">
+    <h2>Notifications Management</h2>
+    <p>Create, manage, and review student notifications.</p>
+  </section>
+
+  <div id="account" class="account">
+    Checking account...
+  </div>
+
+  <div id="error" class="message error" role="alert"></div>
+  <div id="success" class="message success" role="status"></div>
+  <div id="info" class="message info" role="status"></div>
+
+  <div id="busy" class="busy">
+    <i class="fa-solid fa-spinner fa-spin"></i> Please wait...
+  </div>
+
+  <section class="stats">
+    <div class="stat">
+      <div class="stat-label">
+        <i class="fa-solid fa-bell"></i> Total Records
+      </div>
+      <div id="total" class="stat-number">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">
+        <i class="fa-solid fa-users"></i> Students Notified
+      </div>
+      <div id="recipients" class="stat-number">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">
+        <i class="fa-solid fa-envelope-open"></i> Read
+      </div>
+      <div id="read" class="stat-number">0</div>
+    </div>
+
+    <div class="stat">
+      <div class="stat-label">
+        <i class="fa-solid fa-envelope"></i> Unread
+      </div>
+      <div id="unread" class="stat-number">0</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>
+      <i class="fa-solid fa-paper-plane"></i>
+      Create Notification
+    </h3>
+
+    <form id="notificationForm">
+
+      <div class="form-grid">
+
+        <div class="field">
+          <label for="title">Notification Title *</label>
+          <input
+            id="title"
+            type="text"
+            maxlength="200"
+            required
+            placeholder="Example: Examination Announcement"
+          >
+        </div>
+
+        <div class="field">
+          <label for="type">Notification Type *</label>
+          <select id="type" required>
+            <option value="announcement">Announcement</option>
+            <option value="exam">Examination</option>
+            <option value="attendance">Attendance</option>
+            <option value="payment">Payment</option>
+            <option value="academic">Academic</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="target">Send To *</label>
+          <select id="target" required>
+            <option value="institution">My Institution</option>
+            <option value="student">One Student</option>
+            <option value="all">All Institutions</option>
+          </select>
+
+          <div class="hint">
+            The available options depend on your role and institution.
+          </div>
+        </div>
+
+        <div class="field" id="institutionField">
+          <label for="institution">Institution *</label>
+          <select id="institution">
+            <option value="">Loading institutions...</option>
+          </select>
+        </div>
+
+        <div class="field full" id="studentField" hidden>
+          <label for="student">Select Student *</label>
+          <select id="student">
+            <option value="">Select an institution first</option>
+          </select>
+        </div>
+
+        <div class="field full">
+          <label for="message">Notification Message *</label>
+          <textarea
+            id="message"
+            maxlength="10000"
+            required
+            placeholder="Write the notification message here..."
+          ></textarea>
+        </div>
+
+      </div>
+
+      <div class="buttons">
+        <button type="submit" class="btn btn-primary" id="send">
+          <i class="fa-solid fa-paper-plane"></i>
+          Create & Send
+        </button>
+
+        <button type="reset" class="btn btn-light" id="resetForm">
+          <i class="fa-solid fa-rotate-left"></i>
+          Clear Form
+        </button>
+      </div>
+
+    </form>
+  </section>
+
+  <section class="panel">
+    <h3>
+      <i class="fa-solid fa-clock-rotate-left"></i>
+      Notification History
+    </h3>
+
+    <div class="buttons" style="margin-top:0;margin-bottom:15px;">
+      <button type="button" id="refresh" class="btn btn-primary">
+        <i class="fa-solid fa-rotate"></i> Refresh
+      </button>
+
+      <button type="button" id="clearFilter" class="btn btn-light">
+        <i class="fa-solid fa-filter-circle-xmark"></i> Clear Filter
+      </button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Notification</th>
+            <th>Recipient</th>
+            <th>Type</th>
+            <th>Read Status</th>
+            <th>Created</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody id="rows">
+          <tr>
+            <td colspan="7">
+              <div class="empty">
+                <i class="fa-solid fa-bell"></i>
+                Loading notifications...
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+
+</main>
+
+<footer class="footer">
+  GAAWOW EMS &copy; <span id="year"></span>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="notifications.js"></script>
+
+</body>
+</html>
