@@ -1,465 +1,829 @@
-const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+"use strict";
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+/* =========================================================
+   GAAWOW EMS — ATTENDANCE MANAGEMENT
+   Version 2.0
 
-let currentUser = null;
-let institutions = [];
-let courses = [];
-let classes = [];
-let lessons = [];
-let attendanceRows = [];
+   Files:
+   - attendance.html
+   - attendance.js
 
-const institutionSelect = document.getElementById("institutionSelect");
-const courseSelect = document.getElementById("courseSelect");
-const classSelect = document.getElementById("classSelect");
-const lessonSelect = document.getElementById("lessonSelect");
-const attendanceDate = document.getElementById("attendanceDate");
-const studentSearch = document.getElementById("studentSearch");
-const attendanceBody = document.getElementById("attendanceBody");
+   Supabase tables:
+   - profiles
+   - lessons
+   - classes
+   - enrollments
+   - students
+   - attendance
 
-const totalCount = document.getElementById("totalCount");
-const presentCount = document.getElementById("presentCount");
-const absentCount = document.getElementById("absentCount");
-const lateCount = document.getElementById("lateCount");
-const excusedCount = document.getElementById("excusedCount");
+   IMPORTANT:
+   Attendance date is derived from lessons.lesson_date.
+   The attendance table has no separate attendance_date column.
+   ========================================================= */
 
-const lessonInfo = document.getElementById("lessonInfo");
-const saveBtn = document.getElementById("saveBtn");
-const resetBtn = document.getElementById("resetBtn");
-const allPresentBtn = document.getElementById("allPresentBtn");
-const allAbsentBtn = document.getElementById("allAbsentBtn");
-
-document.addEventListener("DOMContentLoaded", init);
-
-async function init() {
-  setToday();
-
-  try {
-    const {
-      data: { session },
-      error: sessionError
-    } = await supabaseClient.auth.getSession();
-
-    if (sessionError) throw sessionError;
-
-    if (!session) {
-      window.location.href = "index.html";
-      return;
-    }
-
-    currentUser = session.user;
-
-    await checkSuperAdmin();
-    await loadInstitutions();
-
-  } catch (error) {
-    console.error(error);
-    showMessage("Unable to initialize Attendance module.", "error");
-  }
-}
-
-/* =========================
-   AUTH / ROLE
-========================= */
-
-async function checkSuperAdmin() {
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("id, full_name, role, institution_id")
-    .eq("id", currentUser.id)
-    .single();
-
-  if (error) throw error;
-
-  if (data.role !== "super_admin") {
-    alert("Access denied. Super Admin only.");
-    window.location.href = "index.html";
-    return;
-  }
-}
-
-/* =========================
-   INSTITUTIONS
-========================= */
-
-async function loadInstitutions() {
-  const { data, error } = await supabaseClient
-    .from("institutions")
-    .select("id, name")
-    .order("name");
-
-  if (error) {
-    console.error(error);
-    showMessage("Failed to load institutions.", "error");
+(() => {
+  if (window.__gaawowAttendanceLoaded) {
     return;
   }
 
-  institutions = data || [];
+  window.__gaawowAttendanceLoaded = true;
 
-  institutionSelect.innerHTML =
-    `<option value="">Select Institution</option>` +
-    institutions
-      .map(i => `<option value="${i.id}">${escapeHtml(i.name)}</option>`)
-      .join("");
+  const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-  clearSelect(courseSelect, "Select Course");
-  clearSelect(classSelect, "Select Class");
-  clearSelect(lessonSelect, "Select Lesson");
+  const SUPABASE_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-  resetAttendanceTable();
-}
-
-/* =========================
-   COURSES
-========================= */
-
-institutionSelect.addEventListener("change", async () => {
-  const institutionId = institutionSelect.value;
-
-  clearSelect(courseSelect, "Select Course");
-  clearSelect(classSelect, "Select Class");
-  clearSelect(lessonSelect, "Select Lesson");
-
-  resetAttendanceTable();
-
-  if (!institutionId) return;
-
-  await loadCourses(institutionId);
-});
-
-async function loadCourses(institutionId) {
-  const { data, error } = await supabaseClient
-    .from("courses")
-    .select("id, name, code")
-    .eq("institution_id", institutionId)
-    .eq("is_active", true)
-    .order("name");
-
-  if (error) {
-    console.error(error);
-    showMessage("Failed to load courses.", "error");
-    return;
-  }
-
-  courses = data || [];
-
-  courseSelect.innerHTML =
-    `<option value="">Select Course</option>` +
-    courses
-      .map(c =>
-        `<option value="${c.id}">
-          ${escapeHtml(c.name)}${c.code ? ` (${escapeHtml(c.code)})` : ""}
-        </option>`
-      )
-      .join("");
-}
-
-/* =========================
-   CLASSES
-========================= */
-
-courseSelect.addEventListener("change", async () => {
-  const institutionId = institutionSelect.value;
-  const courseId = courseSelect.value;
-
-  clearSelect(classSelect, "Select Class");
-  clearSelect(lessonSelect, "Select Lesson");
-
-  resetAttendanceTable();
-
-  if (!institutionId || !courseId) return;
-
-  await loadClasses(institutionId, courseId);
-});
-
-async function loadClasses(institutionId, courseId) {
-  const { data, error } = await supabaseClient
-    .from("classes")
-    .select("id, name, code, academic_year, room")
-    .eq("institution_id", institutionId)
-    .eq("course_id", courseId)
-    .eq("is_active", true)
-    .order("name");
-
-  if (error) {
-    console.error(error);
-    showMessage("Failed to load classes.", "error");
-    return;
-  }
-
-  classes = data || [];
-
-  classSelect.innerHTML =
-    `<option value="">Select Class</option>` +
-    classes
-      .map(c =>
-        `<option value="${c.id}">
-          ${escapeHtml(c.name)}
-          ${c.code ? ` (${escapeHtml(c.code)})` : ""}
-          ${c.academic_year ? ` - ${escapeHtml(c.academic_year)}` : ""}
-        </option>`
-      )
-      .join("");
-}
-
-/* =========================
-   LESSONS
-========================= */
-
-classSelect.addEventListener("change", async () => {
-  const classId = classSelect.value;
-
-  clearSelect(lessonSelect, "Select Lesson");
-  resetAttendanceTable();
-
-  if (!classId) return;
-
-  await loadLessons(classId);
-});
-
-async function loadLessons(classId) {
-  const institutionId = institutionSelect.value;
-
-  const { data, error } = await supabaseClient
-    .from("lessons")
-    .select(`
-      id,
-      class_id,
-      institution_id,
-      teacher_id,
-      title,
-      description,
-      lesson_date,
-      start_time,
-      end_time,
-      room
-    `)
-    .eq("class_id", classId)
-    .eq("institution_id", institutionId)
-    .order("lesson_date", { ascending: false })
-    .order("start_time", { ascending: true });
-
-  if (error) {
-    console.error(error);
-    showMessage("Failed to load lessons.", "error");
-    return;
-  }
-
-  lessons = data || [];
-
-  lessonSelect.innerHTML =
-    `<option value="">Select Lesson</option>` +
-    lessons
-      .map(l => {
-        const date = formatDate(l.lesson_date);
-        const time = formatTimeRange(l.start_time, l.end_time);
-
-        return `
-          <option value="${l.id}">
-            ${escapeHtml(l.title)} — ${date}${time ? ` — ${time}` : ""}
-          </option>
-        `;
-      })
-      .join("");
-}
-
-/* =========================
-   LESSON CHANGE
-========================= */
-
-lessonSelect.addEventListener("change", async () => {
-  const lessonId = lessonSelect.value;
-
-  resetAttendanceTable();
-
-  if (!lessonId) {
-    lessonInfo.innerHTML = "";
-    return;
-  }
-
-  const lesson = lessons.find(l => l.id === lessonId);
-
-  if (!lesson) return;
-
-  showLessonInfo(lesson);
-
-  attendanceDate.value = lesson.lesson_date || getToday();
-
-  await loadStudentsAndAttendance(lesson);
-});
-
-/* =========================
-   LOAD STUDENTS
-========================= */
-
-async function loadStudentsAndAttendance(lesson) {
-  attendanceBody.innerHTML = `
-    <tr>
-      <td colspan="5" class="loading">
-        Loading students...
-      </td>
-    </tr>
-  `;
-
-  const { data: enrollments, error: enrollmentError } =
-    await supabaseClient
-      .from("enrollments")
-      .select(`
-        id,
-        student_id,
-        class_id,
-        institution_id,
-        status
-      `)
-      .eq("institution_id", lesson.institution_id)
-      .eq("class_id", lesson.class_id)
-      .eq("status", "active");
-
-  if (enrollmentError) {
-    console.error(enrollmentError);
-    showMessage("Failed to load enrollments.", "error");
-    return;
-  }
-
-  if (!enrollments || enrollments.length === 0) {
-    attendanceRows = [];
-    renderAttendanceTable();
-
-    showMessage(
-      "No active students are enrolled in this class.",
-      "info"
-    );
-
-    return;
-  }
-
-  const studentIds = enrollments.map(e => e.student_id);
-
-  const { data: students, error: studentError } =
-    await supabaseClient
-      .from("students")
-      .select(`
-        id,
-        student_id,
-        full_name,
-        gender,
-        phone,
-        email,
-        status
-      `)
-      .in("id", studentIds)
-      .eq("status", "active")
-      .order("full_name");
-
-  if (studentError) {
-    console.error(studentError);
-    showMessage("Failed to load students.", "error");
-    return;
-  }
-
-  const { data: existingAttendance, error: attendanceError } =
-    await supabaseClient
-      .from("attendance")
-      .select(`
-        id,
-        student_id,
-        status,
-        notes,
-        recorded_by,
-        recorded_at
-      `)
-      .eq("lesson_id", lesson.id)
-      .eq("institution_id", lesson.institution_id);
-
-  if (attendanceError) {
-    console.error(attendanceError);
-    showMessage("Failed to load existing attendance.", "error");
-    return;
-  }
-
-  const attendanceMap = new Map(
-    (existingAttendance || []).map(row => [
-      row.student_id,
-      row
-    ])
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
   );
 
-  attendanceRows = (students || []).map(student => {
-    const existing = attendanceMap.get(student.id);
+  const $ = (id) => document.getElementById(id);
 
-    return {
-      student_id: student.id,
-      student_code: student.student_id,
-      full_name: student.full_name,
-      gender: student.gender,
-      phone: student.phone,
-      email: student.email,
+  const state = {
+    user: null,
+    profile: null,
+    role: null,
+    lessons: [],
+    selectedLesson: null,
+    students: [],
+    draft: new Map(),
+    attendanceRecords: new Map(),
+    busy: false
+  };
 
-      attendance_id: existing?.id || null,
-      status: existing?.status || "present",
-      notes: existing?.notes || ""
+  const ALLOWED_ROLES = new Set([
+    "teacher",
+    "school_admin",
+    "super_admin"
+  ]);
+
+  const VALID_STATUSES = new Set([
+    "present",
+    "absent",
+    "late",
+    "excused"
+  ]);
+
+  /* -------------------------------------------------------
+     USER INTERFACE HELPERS
+     ------------------------------------------------------- */
+
+  function showMessage(type, message) {
+    const ids = ["error", "success", "info"];
+
+    ids.forEach((id) => {
+      const element = $(id);
+
+      if (element) {
+        element.textContent = "";
+        element.classList.remove("show");
+      }
+    });
+
+    const target = $(type);
+
+    if (!target) return;
+
+    target.textContent = message;
+    target.classList.add("show");
+  }
+
+  function clearMessages() {
+    ["error", "success", "info"].forEach((id) => {
+      const element = $(id);
+
+      if (element) {
+        element.textContent = "";
+        element.classList.remove("show");
+      }
+    });
+  }
+
+  function showError(message) {
+    showMessage("error", message);
+  }
+
+  function showSuccess(message) {
+    showMessage("success", message);
+  }
+
+  function showInfo(message) {
+    showMessage("info", message);
+  }
+
+  function setBusy(value, message = "Please wait...") {
+    state.busy = Boolean(value);
+
+    const busyElement = $("busy");
+
+    if (busyElement) {
+      busyElement.classList.toggle("show", state.busy);
+
+      busyElement.innerHTML = state.busy
+        ? `<i class="fa-solid fa-spinner fa-spin"></i> ${escapeHtml(message)}`
+        : "";
+    }
+
+    [
+      "lesson",
+      "load",
+      "clearSearch",
+      "save"
+    ].forEach((id) => {
+      const element = $(id);
+
+      if (element) {
+        element.disabled = state.busy;
+      }
+    });
+
+    updateSaveButton();
+  }
+
+  function updateSaveButton() {
+    const button = $("save");
+
+    if (!button) return;
+
+    button.disabled =
+      state.busy ||
+      !state.selectedLesson ||
+      state.students.length === 0;
+
+    button.innerHTML = state.busy
+      ? '<i class="fa-solid fa-spinner fa-spin"></i> Please wait...'
+      : '<i class="fa-solid fa-floppy-disk"></i> Save Attendance';
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => {
+      const entities = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      };
+
+      return entities[char];
+    });
+  }
+
+  function formatRole(role) {
+    const labels = {
+      super_admin: "Super Admin",
+      school_admin: "School Admin",
+      teacher: "Teacher"
     };
-  });
 
-  renderAttendanceTable();
-}
+    return labels[role] || role || "Unknown";
+  }
 
-/* =========================
-   RENDER TABLE
-========================= */
+  function formatDate(value) {
+    if (!value) return "Date not set";
 
-function renderAttendanceTable() {
-  if (!attendanceRows.length) {
-    attendanceBody.innerHTML = `
+    const date = String(value).slice(0, 10);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return date;
+    }
+
+    return date;
+  }
+
+  function getFriendlyError(error, fallback) {
+    if (!error) return fallback;
+
+    const message =
+      error.message ||
+      error.details ||
+      error.hint ||
+      fallback;
+
+    return String(message);
+  }
+
+  function setEmptyRows(message, icon = "fa-users") {
+    $("rows").innerHTML = `
       <tr>
-        <td colspan="5" class="empty">
-          No students found.
+        <td colspan="5">
+          <div class="empty-state">
+            <i class="fa-solid ${icon}"></i>
+            ${escapeHtml(message)}
+          </div>
         </td>
       </tr>
     `;
 
-    updateStats();
-    return;
+    $("visibleCount").textContent = "0 students shown";
   }
 
-  attendanceBody.innerHTML = attendanceRows
-    .map((row, index) => `
-      <tr data-index="${index}">
+  function resetStats() {
+    $("total").textContent = "0";
+    $("present").textContent = "0";
+    $("absent").textContent = "0";
+    $("other").textContent = "0";
+  }
+
+  /* -------------------------------------------------------
+     AUTHENTICATION AND PROFILE
+     ------------------------------------------------------- */
+
+  async function checkSession() {
+    const {
+      data: { session },
+      error
+    } = await db.auth.getSession();
+
+    if (error) {
+      throw new Error(
+        "Could not check the login session: " + error.message
+      );
+    }
+
+    if (!session || !session.user) {
+      showError(
+        "Your session has expired or you are not logged in. Please log in again."
+      );
+
+      window.setTimeout(() => {
+        window.location.href = "index.html";
+      }, 1800);
+
+      return false;
+    }
+
+    state.user = session.user;
+
+    return true;
+  }
+
+  async function loadProfile() {
+    if (!state.user) {
+      throw new Error("No authenticated user was found.");
+    }
+
+    const { data, error } = await db
+      .from("profiles")
+      .select(
+        "id, full_name, email, role, is_active, institution_id"
+      )
+      .eq("id", state.user.id)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(
+        "Could not load your profile: " + error.message
+      );
+    }
+
+    if (!data) {
+      throw new Error(
+        "Your Supabase Auth account does not have a matching profiles record."
+      );
+    }
+
+    if (data.is_active !== true) {
+      throw new Error(
+        "Your account is inactive. Contact the Super Admin."
+      );
+    }
+
+    if (!ALLOWED_ROLES.has(data.role)) {
+      throw new Error(
+        "Your account does not have permission to open Attendance Management."
+      );
+    }
+
+    state.profile = data;
+    state.role = data.role;
+
+    const accountName =
+      data.full_name ||
+      data.email ||
+      state.user.email ||
+      "Signed-in user";
+
+    const accountEmail =
+      data.email ||
+      state.user.email ||
+      "";
+
+    $("account").innerHTML = `
+      <div class="account-info">
+        <strong>Signed in as:</strong>
+        ${escapeHtml(accountName)}
+        ${accountEmail
+          ? `<br><span>${escapeHtml(accountEmail)}</span>`
+          : ""}
+      </div>
+
+      <span class="role-badge">
+        ${escapeHtml(formatRole(data.role))}
+      </span>
+    `;
+
+    if (
+      data.role !== "super_admin" &&
+      !data.institution_id
+    ) {
+      throw new Error(
+        "Your profile does not have an institution_id. Ask the Super Admin to assign your institution."
+      );
+    }
+  }
+
+  /* -------------------------------------------------------
+     LESSONS
+     ------------------------------------------------------- */
+
+  async function loadLessons() {
+    clearMessages();
+
+    setBusy(true, "Loading lessons...");
+
+    try {
+      let query = db
+        .from("lessons")
+        .select(
+          "id, institution_id, class_id, teacher_id, title, lesson_date, start_time, end_time, room"
+        )
+        .order("lesson_date", { ascending: false })
+        .limit(500);
+
+      if (state.role === "teacher") {
+        query = query.eq("teacher_id", state.user.id);
+      } else if (state.role === "school_admin") {
+        query = query.eq(
+          "institution_id",
+          state.profile.institution_id
+        );
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error(
+          "Could not load lessons: " + error.message
+        );
+      }
+
+      let lessons = data || [];
+
+      /*
+       * For non-super-admin accounts, enforce the institution
+       * boundary in the UI as an additional safeguard.
+       * Supabase RLS remains the real security boundary.
+       */
+      if (
+        state.role !== "super_admin" &&
+        state.profile.institution_id
+      ) {
+        lessons = lessons.filter(
+          (lesson) =>
+            lesson.institution_id ===
+            state.profile.institution_id
+        );
+      }
+
+      state.lessons = lessons;
+
+      const select = $("lesson");
+
+      select.innerHTML =
+        '<option value="">-- Select a lesson --</option>';
+
+      if (lessons.length === 0) {
+        setEmptyRows(
+          "No lessons are available for your account.",
+          "fa-book-open"
+        );
+
+        showInfo(
+          state.role === "teacher"
+            ? "No lessons are assigned to your teacher account. Ask the administrator to check lessons.teacher_id."
+            : "No lessons were found for the selected institution or account."
+        );
+
+        clearStudentState();
+        return;
+      }
+
+      const classIds = [
+        ...new Set(
+          lessons
+            .map((lesson) => lesson.class_id)
+            .filter(Boolean)
+        )
+      ];
+
+      const classNames = new Map();
+
+      if (classIds.length > 0) {
+        const { data: classes, error: classError } = await db
+          .from("classes")
+          .select("id, name")
+          .in("id", classIds);
+
+        if (!classError && classes) {
+          classes.forEach((item) => {
+            classNames.set(item.id, item.name);
+          });
+        }
+      }
+
+      lessons.forEach((lesson) => {
+        const option = document.createElement("option");
+
+        option.value = lesson.id;
+
+        const title =
+          lesson.title ||
+          "Untitled lesson";
+
+        const className =
+          classNames.get(lesson.class_id) ||
+          "Class not found";
+
+        const date =
+          formatDate(lesson.lesson_date);
+
+        option.textContent =
+          `${title} | ${className} | ${date}`;
+
+        select.appendChild(option);
+      });
+
+      if (lessons.length === 1) {
+        select.value = lessons[0].id;
+        await loadStudents();
+      } else {
+        clearStudentState();
+
+        showInfo(
+          "Choose a lesson from the list to load its enrolled students."
+        );
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function getSelectedLesson() {
+    const lessonId = $("lesson").value;
+
+    return (
+      state.lessons.find(
+        (lesson) => lesson.id === lessonId
+      ) || null
+    );
+  }
+
+  /* -------------------------------------------------------
+     STUDENT AND ENROLLMENT LOADING
+     ------------------------------------------------------- */
+
+  function clearStudentState() {
+    state.selectedLesson = null;
+    state.students = [];
+    state.draft = new Map();
+    state.attendanceRecords = new Map();
+
+    $("date").value = "";
+    $("search").value = "";
+
+    resetStats();
+
+    setEmptyRows(
+      "Select a lesson to display its enrolled students."
+    );
+
+    $("saveHint").textContent =
+      "Select a lesson to load its enrolled students.";
+
+    updateSaveButton();
+  }
+
+  async function loadStudents() {
+    clearMessages();
+
+    const lesson = getSelectedLesson();
+
+    if (!lesson) {
+      clearStudentState();
+
+      showInfo("Please select a lesson first.");
+
+      return;
+    }
+
+    setBusy(true, "Loading enrolled students...");
+
+    try {
+      state.selectedLesson = lesson;
+      state.students = [];
+      state.draft = new Map();
+      state.attendanceRecords = new Map();
+
+      $("date").value =
+        lesson.lesson_date
+          ? String(lesson.lesson_date).slice(0, 10)
+          : "";
+
+      resetStats();
+
+      /*
+       * Attendance is tied to a lesson.
+       * A teacher should only load attendance for a lesson
+       * assigned to their authenticated user ID.
+       */
+      if (
+        state.role === "teacher" &&
+        lesson.teacher_id !== state.user.id
+      ) {
+        throw new Error(
+          "This lesson is not assigned to your teacher account."
+        );
+      }
+
+      if (
+        state.role !== "super_admin" &&
+        lesson.institution_id !==
+          state.profile.institution_id
+      ) {
+        throw new Error(
+          "This lesson belongs to another institution."
+        );
+      }
+
+      if (!lesson.class_id) {
+        throw new Error(
+          "This lesson does not have a class_id assigned."
+        );
+      }
+
+      /*
+       * Load active enrollments for this class and institution.
+       */
+      let enrollmentQuery = db
+        .from("enrollments")
+        .select("student_id, status")
+        .eq("class_id", lesson.class_id)
+        .eq("institution_id", lesson.institution_id)
+        .eq("status", "active");
+
+      const {
+        data: enrollments,
+        error: enrollmentError
+      } = await enrollmentQuery;
+
+      if (enrollmentError) {
+        throw new Error(
+          "Could not load class enrollments: " +
+          enrollmentError.message
+        );
+      }
+
+      const studentIds = [
+        ...new Set(
+          (enrollments || [])
+            .map((item) => item.student_id)
+            .filter(Boolean)
+        )
+      ];
+
+      if (studentIds.length === 0) {
+        state.students = [];
+
+        setEmptyRows(
+          "No active student enrollments were found for this class.",
+          "fa-user-slash"
+        );
+
+        $("saveHint").textContent =
+          "No enrolled students are available for this lesson.";
+
+        updateStats();
+        updateSaveButton();
+
+        showInfo(
+          "Check that students have active enrollments for this class and institution."
+        );
+
+        return;
+      }
+
+      /*
+       * Fetch student records by their primary IDs.
+       */
+      const { data: students, error: studentsError } = await db
+        .from("students")
+        .select(
+          "id, student_id, full_name, institution_id, status"
+        )
+        .in("id", studentIds)
+        .eq("institution_id", lesson.institution_id)
+        .eq("status", "active")
+        .order("full_name", { ascending: true });
+
+      if (studentsError) {
+        throw new Error(
+          "Could not load student records: " +
+          studentsError.message
+        );
+      }
+
+      state.students = students || [];
+
+      if (state.students.length === 0) {
+        setEmptyRows(
+          "Enrollments were found, but no active student records matched the selected institution.",
+          "fa-user-slash"
+        );
+
+        $("saveHint").textContent =
+          "No active student records are available.";
+
+        updateStats();
+        updateSaveButton();
+
+        showInfo(
+          "Verify students.institution_id, students.status, and enrollments.student_id."
+        );
+
+        return;
+      }
+
+      /*
+       * Load existing attendance for this lesson.
+       */
+      const { data: records, error: attendanceError } = await db
+        .from("attendance")
+        .select(
+          "id, lesson_id, student_id, status, notes"
+        )
+        .eq("lesson_id", lesson.id)
+        .eq("institution_id", lesson.institution_id)
+        .in(
+          "student_id",
+          state.students.map((student) => student.id)
+        );
+
+      if (attendanceError) {
+        throw new Error(
+          "Students loaded, but existing attendance could not be read: " +
+          attendanceError.message
+        );
+      }
+
+      /*
+       * Keep the original attendance row ID for updates.
+       */
+      (records || []).forEach((record) => {
+        state.attendanceRecords.set(
+          record.student_id,
+          record
+        );
+      });
+
+      /*
+       * The draft map is the source of truth.
+       * It is independent of visible table rows, so searching
+       * cannot accidentally remove students from the save.
+       */
+      state.students.forEach((student) => {
+        const existing =
+          state.attendanceRecords.get(student.id);
+
+        const status =
+          existing && VALID_STATUSES.has(
+            String(existing.status).toLowerCase()
+          )
+            ? String(existing.status).toLowerCase()
+            : "present";
+
+        state.draft.set(student.id, {
+          status,
+          notes: existing?.notes || ""
+        });
+      });
+
+      renderStudents();
+      updateStats();
+      updateSaveButton();
+
+      $("saveHint").textContent =
+        `${state.students.length} student(s) loaded. Saving will include all loaded students, including students hidden by search.`;
+
+      showSuccess(
+        `${state.students.length} student(s) loaded successfully.`
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /* -------------------------------------------------------
+     RENDERING AND SEARCH
+     ------------------------------------------------------- */
+
+  function getFilteredStudents() {
+    const search = $("search").value
+      .trim()
+      .toLowerCase();
+
+    if (!search) {
+      return state.students;
+    }
+
+    return state.students.filter((student) => {
+      const name = String(
+        student.full_name || ""
+      ).toLowerCase();
+
+      const studentId = String(
+        student.student_id || ""
+      ).toLowerCase();
+
+      return (
+        name.includes(search) ||
+        studentId.includes(search)
+      );
+    });
+  }
+
+  function renderStudents() {
+    const rows = $("rows");
+    const filteredStudents = getFilteredStudents();
+
+    $("visibleCount").textContent =
+      `${filteredStudents.length} of ${state.students.length} students shown`;
+
+    if (state.students.length === 0) {
+      setEmptyRows(
+        "No students have been loaded for this lesson."
+      );
+
+      return;
+    }
+
+    if (filteredStudents.length === 0) {
+      setEmptyRows(
+        "No students match your search. Clear the search to see all students.",
+        "fa-magnifying-glass"
+      );
+
+      return;
+    }
+
+    rows.innerHTML = "";
+
+    filteredStudents.forEach((student, index) => {
+      const draft = state.draft.get(student.id) || {
+        status: "present",
+        notes: ""
+      };
+
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td>${index + 1}</td>
+
         <td>
           <div class="student-name">
-            ${escapeHtml(row.full_name || "Unnamed Student")}
-          </div>
-          <div class="student-id">
-            ${escapeHtml(row.student_code || "")}
+            ${escapeHtml(student.full_name || "Unnamed student")}
           </div>
         </td>
 
         <td>
-          ${escapeHtml(row.gender || "-")}
+          ${escapeHtml(student.student_id || "No student ID")}
         </td>
 
         <td>
           <select
-            class="attendance-status"
-            data-index="${index}"
+            class="status-select"
+            data-student-id="${escapeHtml(student.id)}"
+            aria-label="Attendance status"
           >
-            <option value="present" ${row.status === "present" ? "selected" : ""}>
+            <option value="present"
+              ${draft.status === "present" ? "selected" : ""}>
               Present
             </option>
 
-            <option value="absent" ${row.status === "absent" ? "selected" : ""}>
+            <option value="absent"
+              ${draft.status === "absent" ? "selected" : ""}>
               Absent
             </option>
 
-            <option value="late" ${row.status === "late" ? "selected" : ""}>
+            <option value="late"
+              ${draft.status === "late" ? "selected" : ""}>
               Late
             </option>
 
-            <option value="excused" ${row.status === "excused" ? "selected" : ""}>
+            <option value="excused"
+              ${draft.status === "excused" ? "selected" : ""}>
               Excused
             </option>
           </select>
@@ -468,480 +832,395 @@ function renderAttendanceTable() {
         <td>
           <input
             type="text"
-            class="attendance-notes"
-            data-index="${index}"
-            value="${escapeAttribute(row.notes || "")}"
+            class="notes-input"
+            data-student-id="${escapeHtml(student.id)}"
+            value="${escapeHtml(draft.notes)}"
+            maxlength="500"
             placeholder="Optional notes"
+            aria-label="Attendance notes"
           >
         </td>
+      `;
 
-        <td>
-          <span class="status-badge ${getStatusClass(row.status)}">
-            ${capitalize(row.status)}
-          </span>
-        </td>
-      </tr>
-    `)
-    .join("");
-
-  document.querySelectorAll(".attendance-status")
-    .forEach(select => {
-      select.addEventListener("change", e => {
-        const index = Number(e.target.dataset.index);
-
-        attendanceRows[index].status = e.target.value;
-
-        updateBadge(index);
-        updateStats();
-      });
+      rows.appendChild(tr);
     });
-
-  document.querySelectorAll(".attendance-notes")
-    .forEach(input => {
-      input.addEventListener("input", e => {
-        const index = Number(e.target.dataset.index);
-
-        attendanceRows[index].notes = e.target.value;
-      });
-    });
-
-  updateStats();
-}
-
-/* =========================
-   SEARCH
-========================= */
-
-if (studentSearch) {
-  studentSearch.addEventListener("input", () => {
-    const search = studentSearch.value
-      .trim()
-      .toLowerCase();
-
-    document.querySelectorAll("#attendanceBody tr")
-      .forEach(row => {
-        const text = row.textContent.toLowerCase();
-
-        row.style.display =
-          !search || text.includes(search)
-            ? ""
-            : "none";
-      });
-  });
-}
-
-/* =========================
-   QUICK ACTIONS
-========================= */
-
-if (allPresentBtn) {
-  allPresentBtn.addEventListener("click", () => {
-    markAll("present");
-  });
-}
-
-if (allAbsentBtn) {
-  allAbsentBtn.addEventListener("click", () => {
-    markAll("absent");
-  });
-}
-
-function markAll(status) {
-  attendanceRows.forEach(row => {
-    row.status = status;
-  });
-
-  document.querySelectorAll(".attendance-status")
-    .forEach(select => {
-      select.value = status;
-    });
-
-  attendanceRows.forEach((_, index) => {
-    updateBadge(index);
-  });
-
-  updateStats();
-}
-
-/* =========================
-   SAVE ATTENDANCE
-========================= */
-
-if (saveBtn) {
-  saveBtn.addEventListener("click", saveAttendance);
-}
-
-async function saveAttendance() {
-  if (!institutionSelect.value) {
-    showMessage("Please select an institution.", "error");
-    return;
   }
 
-  if (!classSelect.value) {
-    showMessage("Please select a class.", "error");
-    return;
-  }
+  function updateStats() {
+    const total = state.students.length;
 
-  if (!lessonSelect.value) {
-    showMessage("Please select a lesson.", "error");
-    return;
-  }
+    let present = 0;
+    let absent = 0;
+    let other = 0;
 
-  if (!attendanceRows.length) {
-    showMessage("There are no students to save.", "error");
-    return;
-  }
+    state.students.forEach((student) => {
+      const draft = state.draft.get(student.id);
 
-  const lesson = lessons.find(
-    l => l.id === lessonSelect.value
-  );
+      const status = String(
+        draft?.status || "present"
+      ).toLowerCase();
 
-  if (!lesson) {
-    showMessage("Selected lesson was not found.", "error");
-    return;
-  }
-
-  saveBtn.disabled = true;
-  saveBtn.textContent = "Saving...";
-
-  try {
-    for (const row of attendanceRows) {
-      const payload = {
-        institution_id: institutionSelect.value,
-        lesson_id: lesson.id,
-        student_id: row.student_id,
-        status: row.status,
-        notes: row.notes || null,
-        recorded_by: currentUser.id,
-        recorded_at: new Date().toISOString()
-      };
-
-      if (row.attendance_id) {
-        const { error } = await supabaseClient
-          .from("attendance")
-          .update(payload)
-          .eq("id", row.attendance_id);
-
-        if (error) throw error;
-
+      if (status === "present") {
+        present++;
+      } else if (status === "absent") {
+        absent++;
       } else {
-        const { data, error } = await supabaseClient
-          .from("attendance")
-          .insert(payload)
-          .select("id")
-          .single();
-
-        if (error) throw error;
-
-        row.attendance_id = data.id;
+        other++;
       }
+    });
+
+    $("total").textContent = total;
+    $("present").textContent = present;
+    $("absent").textContent = absent;
+    $("other").textContent = other;
+  }
+
+  /*
+   * Save changes in the draft map before rerendering.
+   */
+  function handleTableChange(event) {
+    const target = event.target;
+
+    const studentId = target.dataset.studentId;
+
+    if (!studentId) return;
+
+    const current = state.draft.get(studentId);
+
+    if (!current) return;
+
+    if (target.classList.contains("status-select")) {
+      const status = target.value.toLowerCase();
+
+      if (!VALID_STATUSES.has(status)) {
+        showError("Invalid attendance status selected.");
+        return;
+      }
+
+      current.status = status;
     }
 
-    showMessage(
-      "Attendance saved successfully.",
-      "success"
-    );
+    if (target.classList.contains("notes-input")) {
+      current.notes = target.value;
+    }
+
+    state.draft.set(studentId, current);
 
     updateStats();
+  }
 
-  } catch (error) {
-    console.error("Save attendance error:", error);
+  /* -------------------------------------------------------
+     SAVE ATTENDANCE
+     ------------------------------------------------------- */
 
-    showMessage(
-      error.message || "Failed to save attendance.",
-      "error"
+  async function saveAttendance() {
+    clearMessages();
+
+    const lesson = state.selectedLesson;
+
+    if (!lesson) {
+      showError("Please select a lesson first.");
+      return;
+    }
+
+    if (state.students.length === 0) {
+      showError(
+        "No students are loaded. Select a lesson and load its students first."
+      );
+
+      return;
+    }
+
+    if (
+      state.role === "teacher" &&
+      lesson.teacher_id !== state.user.id
+    ) {
+      showError(
+        "You cannot save attendance for a lesson that is not assigned to you."
+      );
+
+      return;
+    }
+
+    if (
+      state.role !== "super_admin" &&
+      lesson.institution_id !==
+        state.profile.institution_id
+    ) {
+      showError(
+        "You cannot save attendance for another institution."
+      );
+
+      return;
+    }
+
+    /*
+     * IMPORTANT:
+     * Build the payload from state.students and state.draft.
+     * Never build it from visible HTML table rows.
+     * Therefore, a search filter cannot omit students.
+     */
+    const payloads = state.students.map((student) => {
+      const draft = state.draft.get(student.id) || {
+        status: "present",
+        notes: ""
+      };
+
+      return {
+        student_id: student.id,
+        status: String(draft.status).toLowerCase(),
+        notes: String(draft.notes || "").trim()
+      };
+    });
+
+    const invalid = payloads.find(
+      (item) => !VALID_STATUSES.has(item.status)
     );
 
-  } finally {
-    saveBtn.disabled = false;
-    saveBtn.textContent = "Save Attendance";
-  }
-}
+    if (invalid) {
+      showError(
+        "One or more students have an invalid attendance status."
+      );
 
-/* =========================
-   RESET
-========================= */
-
-if (resetBtn) {
-  resetBtn.addEventListener("click", () => {
-    attendanceRows = [];
-    resetAttendanceTable();
-
-    if (studentSearch) {
-      studentSearch.value = "";
+      return;
     }
 
-    lessonInfo.innerHTML = "";
-    lessonSelect.value = "";
-  });
-}
+    const confirmed = window.confirm(
+      `Save attendance for all ${payloads.length} loaded students?\n\n` +
+      "Students hidden by search will also be included."
+    );
 
-function resetAttendanceTable() {
-  attendanceRows = [];
+    if (!confirmed) return;
 
-  if (attendanceBody) {
-    attendanceBody.innerHTML = `
-      <tr>
-        <td colspan="5" class="empty">
-          Select a lesson to load students.
-        </td>
-      </tr>
-    `;
-  }
+    setBusy(true, "Saving attendance records...");
 
-  updateStats();
-}
+    try {
+      let saved = 0;
+      const failures = [];
 
-/* =========================
-   LESSON INFO
-========================= */
+      /*
+       * Update existing rows using their attendance.id.
+       * Insert a row when no existing attendance record exists.
+       *
+       * This avoids assuming a particular unique constraint
+       * for Supabase upsert.
+       */
+      for (const item of payloads) {
+        const existing =
+          state.attendanceRecords.get(item.student_id);
 
-function showLessonInfo(lesson) {
-  const time = formatTimeRange(
-    lesson.start_time,
-    lesson.end_time
-  );
+        const row = {
+          institution_id: lesson.institution_id,
+          lesson_id: lesson.id,
+          student_id: item.student_id,
+          status: item.status,
+          notes: item.notes || null,
+          recorded_by: state.user.id
+        };
 
-  lessonInfo.innerHTML = `
-    <div class="lesson-info-card">
-      <div>
-        <strong>Lesson</strong>
-        <span>${escapeHtml(lesson.title || "-")}</span>
-      </div>
+        let result;
 
-      <div>
-        <strong>Date</strong>
-        <span>${formatDate(lesson.lesson_date)}</span>
-      </div>
+        if (existing && existing.id) {
+          result = await db
+            .from("attendance")
+            .update(row)
+            .eq("id", existing.id)
+            .select(
+              "id, lesson_id, student_id, status, notes"
+            )
+            .maybeSingle();
+        } else {
+          result = await db
+            .from("attendance")
+            .insert(row)
+            .select(
+              "id, lesson_id, student_id, status, notes"
+            )
+            .single();
+        }
 
-      <div>
-        <strong>Time</strong>
-        <span>${time || "-"}</span>
-      </div>
+        if (result.error) {
+          failures.push({
+            studentId: item.student_id,
+            error: result.error.message
+          });
 
-      <div>
-        <strong>Room</strong>
-        <span>${escapeHtml(lesson.room || "-")}</span>
-      </div>
-    </div>
-  `;
-}
+          continue;
+        }
 
-/* =========================
-   STATS
-========================= */
+        if (result.data) {
+          state.attendanceRecords.set(
+            item.student_id,
+            result.data
+          );
+        }
 
-function updateStats() {
-  const total = attendanceRows.length;
+        saved++;
+      }
 
-  const present = attendanceRows.filter(
-    r => r.status === "present"
-  ).length;
+      /*
+       * Keep all the edits in the local draft map.
+       * Successful records now have their saved row IDs.
+       */
+      renderStudents();
+      updateStats();
 
-  const absent = attendanceRows.filter(
-    r => r.status === "absent"
-  ).length;
+      if (failures.length > 0) {
+        const first = failures[0];
 
-  const late = attendanceRows.filter(
-    r => r.status === "late"
-  ).length;
+        console.error(
+          "Attendance save failures:",
+          failures
+        );
 
-  const excused = attendanceRows.filter(
-    r => r.status === "excused"
-  ).length;
+        showError(
+          `Saved ${saved} of ${payloads.length} attendance record(s). ` +
+          `${failures.length} record(s) failed. ` +
+          `First error: ${first.error}. ` +
+          "Check Supabase attendance RLS policies, status enum values, and lesson assignment."
+        );
 
-  if (totalCount) totalCount.textContent = total;
-  if (presentCount) presentCount.textContent = present;
-  if (absentCount) absentCount.textContent = absent;
-  if (lateCount) lateCount.textContent = late;
-  if (excusedCount) excusedCount.textContent = excused;
-}
+        return;
+      }
 
-/* =========================
-   UPDATE BADGE
-========================= */
+      showSuccess(
+        `Attendance saved successfully for all ${saved} loaded students.`
+      );
 
-function updateBadge(index) {
-  const row = document.querySelector(
-    `tr[data-index="${index}"]`
-  );
+      $("saveHint").textContent =
+        `Saved ${saved} attendance record(s).`;
 
-  if (!row) return;
+    } catch (error) {
+      console.error("Attendance save error:", error);
 
-  const badge = row.querySelector(".status-badge");
-
-  if (!badge) return;
-
-  const status = attendanceRows[index].status;
-
-  badge.className =
-    `status-badge ${getStatusClass(status)}`;
-
-  badge.textContent = capitalize(status);
-}
-
-/* =========================
-   HELPERS
-========================= */
-
-function clearSelect(select, placeholder) {
-  if (!select) return;
-
-  select.innerHTML =
-    `<option value="">${placeholder}</option>`;
-
-  select.value = "";
-}
-
-function setToday() {
-  if (attendanceDate) {
-    attendanceDate.value = getToday();
-  }
-}
-
-function getToday() {
-  const date = new Date();
-
-  const year = date.getFullYear();
-  const month = String(
-    date.getMonth() + 1
-  ).padStart(2, "0");
-
-  const day = String(
-    date.getDate()
-  ).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function formatDate(value) {
-  if (!value) return "-";
-
-  const date = new Date(value + "T00:00:00");
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString(
-    "en-GB",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
+      showError(
+        getFriendlyError(
+          error,
+          "An unexpected error occurred while saving attendance."
+        )
+      );
+    } finally {
+      setBusy(false);
     }
-  );
-}
+  }
 
-function formatTimeRange(start, end) {
-  if (!start && !end) return "";
+  /* -------------------------------------------------------
+     EVENTS
+     ------------------------------------------------------- */
 
-  const formatTime = time => {
-    if (!time) return "";
+  function bindEvents() {
+    $("lesson").addEventListener("change", async () => {
+      clearMessages();
 
-    const parts = time.split(":");
+      if (!$("lesson").value) {
+        clearStudentState();
+        return;
+      }
 
-    let hour = Number(parts[0]);
-    const minute = parts[1] || "00";
+      try {
+        await loadStudents();
+      } catch (error) {
+        console.error(error);
 
-    const ampm = hour >= 12 ? "PM" : "AM";
+        showError(
+          getFriendlyError(
+            error,
+            "Could not load the selected lesson."
+          )
+        );
+      }
+    });
 
-    hour = hour % 12;
+    $("load").addEventListener("click", async () => {
+      try {
+        await loadStudents();
+      } catch (error) {
+        console.error(error);
 
-    if (hour === 0) {
-      hour = 12;
+        showError(
+          getFriendlyError(
+            error,
+            "Could not reload students."
+          )
+        );
+      }
+    });
+
+    $("search").addEventListener("input", () => {
+      renderStudents();
+    });
+
+    $("clearSearch").addEventListener("click", () => {
+      $("search").value = "";
+      renderStudents();
+    });
+
+    $("rows").addEventListener(
+      "change",
+      handleTableChange
+    );
+
+    $("rows").addEventListener(
+      "input",
+      handleTableChange
+    );
+
+    $("save").addEventListener("click", async () => {
+      await saveAttendance();
+    });
+  }
+
+  /* -------------------------------------------------------
+     INITIALIZATION
+     ------------------------------------------------------- */
+
+  async function init() {
+    $("year").textContent = new Date().getFullYear();
+
+    resetStats();
+
+    setEmptyRows(
+      "Checking authentication...",
+      "fa-spinner fa-spin"
+    );
+
+    setBusy(true, "Checking account...");
+
+    try {
+      const hasSession = await checkSession();
+
+      if (!hasSession) {
+        return;
+      }
+
+      await loadProfile();
+
+      bindEvents();
+
+      await loadLessons();
+
+    } catch (error) {
+      console.error(
+        "GAAWOW Attendance initialization error:",
+        error
+      );
+
+      showError(
+        getFriendlyError(
+          error,
+          "Attendance Management could not be initialized."
+        )
+      );
+
+      setEmptyRows(
+        "Attendance could not be loaded. Read the error message above.",
+        "fa-triangle-exclamation"
+      );
+    } finally {
+      setBusy(false);
     }
-
-    return `${hour}:${minute} ${ampm}`;
-  };
-
-  if (start && end) {
-    return `${formatTime(start)} - ${formatTime(end)}`;
   }
 
-  return formatTime(start || end);
-}
+  init();
 
-function getStatusClass(status) {
-  switch (status) {
-    case "present":
-      return "status-present";
-
-    case "absent":
-      return "status-absent";
-
-    case "late":
-      return "status-late";
-
-    case "excused":
-      return "status-excused";
-
-    default:
-      return "";
-  }
-}
-
-function capitalize(value) {
-  if (!value) return "";
-
-  return value.charAt(0).toUpperCase() +
-    value.slice(1);
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function escapeAttribute(value) {
-  return escapeHtml(value);
-}
-
-/* =========================
-   MESSAGE
-========================= */
-
-function showMessage(message, type = "info") {
-  let box = document.getElementById("messageBox");
-
-  if (!box) {
-    box = document.createElement("div");
-    box.id = "messageBox";
-
-    box.style.position = "fixed";
-    box.style.top = "20px";
-    box.style.right = "20px";
-    box.style.zIndex = "9999";
-    box.style.maxWidth = "360px";
-    box.style.padding = "14px 18px";
-    box.style.borderRadius = "12px";
-    box.style.fontWeight = "600";
-    box.style.boxShadow = "0 10px 30px rgba(0,0,0,.15)";
-
-    document.body.appendChild(box);
-  }
-
-  if (type === "success") {
-    box.style.background = "#16A34A";
-    box.style.color = "#fff";
-  } else if (type === "error") {
-    box.style.background = "#DC2626";
-    box.style.color = "#fff";
-  } else {
-    box.style.background = "#0B4DA2";
-    box.style.color = "#fff";
-  }
-
-  box.textContent = message;
-  box.style.display = "block";
-
-  clearTimeout(window.messageTimer);
-
-  window.messageTimer = setTimeout(() => {
-    box.style.display = "none";
-  }, 4000);
-}
+})();
