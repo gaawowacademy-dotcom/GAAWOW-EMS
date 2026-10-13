@@ -1,865 +1,696 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GAAWOW EMS | Attendance Management</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>GAAWOW EMS | Attendance Management</title>
 
-<style>
-:root{
-  --navy:#0b1e63;
-  --blue:#0b4da2;
-  --gold:#d4af37;
-  --bg:#f4f7fb;
-  --white:#fff;
-  --text:#17233c;
-  --muted:#64748b;
-  --border:#e2e8f0;
-  --green:#15803d;
-  --red:#b91c1c;
-}
-*{box-sizing:border-box}
-body{
-  margin:0;
-  background:var(--bg);
-  font-family:Arial,sans-serif;
-  color:var(--text);
-}
-header{
-  background:linear-gradient(120deg,var(--navy),var(--blue));
-  color:white;
-  padding:18px 20px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-  flex-wrap:wrap;
-}
-header h2{margin:0 0 5px}
-header nav{display:flex;gap:8px;flex-wrap:wrap}
-header a{
-  color:white;
-  text-decoration:none;
-  padding:10px 12px;
-  border:1px solid #ffffff55;
-  border-radius:8px;
-  font-size:13px;
-}
-main{
-  max-width:1150px;
-  margin:22px auto;
-  padding:0 15px;
-}
-.panel{
-  background:white;
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:18px;
-  margin-bottom:16px;
-}
-h3{margin-top:0;color:var(--navy)}
-.filters{
-  display:grid;
-  grid-template-columns:2fr 1fr 1fr;
-  gap:12px;
-}
-label{
-  display:block;
-  font-size:13px;
-  font-weight:bold;
-  margin-bottom:6px;
-}
-select,input{
-  width:100%;
-  padding:11px;
-  border:1px solid #cbd5e1;
-  border-radius:8px;
-  background:white;
-  color:var(--text);
-  font:inherit;
-}
-button{
-  background:var(--blue);
-  color:white;
-  border:0;
-  border-radius:8px;
-  padding:11px 16px;
-  font-weight:bold;
-  cursor:pointer;
-}
-button:disabled{opacity:.6;cursor:wait}
-.gold{background:var(--gold);color:#17233c}
-button.secondary{background:#475569}
-.message{
-  display:none;
-  padding:12px;
-  border-radius:8px;
-  margin-bottom:12px;
-  overflow-wrap:anywhere;
-}
-.error{background:#fee2e2;color:#991b1b}
-.success{background:#dcfce7;color:#166534}
-.muted{font-size:13px;color:var(--muted);line-height:1.5}
-.stats{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:12px;
-  margin-bottom:16px;
-}
-.stat{
-  background:white;
-  padding:16px;
-  border-radius:12px;
-  border:1px solid var(--border);
-  font-size:13px;
-}
-.stat strong{
-  display:block;
-  font-size:25px;
-  color:var(--navy);
-  margin-top:8px;
-}
-.tablewrap{overflow:auto}
-table{
-  width:100%;
-  border-collapse:collapse;
-  min-width:650px;
-}
-th,td{
-  text-align:left;
-  padding:11px;
-  border-bottom:1px solid var(--border);
-  font-size:13px;
-}
-th{background:#f1f5f9}
-.status{min-width:115px}
-.notes{min-width:150px}
-.actions{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-}
-#busy{
-  display:none;
-  margin:10px 0;
-  color:var(--blue);
-  font-size:13px;
-}
-@media(max-width:650px){
-  .filters{grid-template-columns:1fr}
-  .stats{grid-template-columns:repeat(2,1fr)}
-  header{padding:15px}
-}
-</style>
+  <meta
+    name="description"
+    content="GAAWOW EMS Attendance Management System"
+  >
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  >
+
+  <style>
+    :root {
+      --navy: #0b1e63;
+      --blue: #0b4da2;
+      --gold: #d4af37;
+      --white: #ffffff;
+      --bg: #f5f7fa;
+      --border: #e0e6ef;
+      --text: #243047;
+      --muted: #64748b;
+      --green: #16803c;
+      --red: #c62828;
+      --orange: #b45309;
+      --purple: #6d28d9;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .topbar {
+      background: linear-gradient(120deg, var(--navy), var(--blue));
+      color: var(--white);
+      padding: 17px 20px;
+      box-shadow: 0 3px 12px #00000018;
+    }
+
+    .topbar-inner {
+      max-width: 1400px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .brand p {
+      margin: 6px 0 0;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--white);
+      border: 1px solid #ffffff50;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .nav-links a:hover {
+      background: #ffffff20;
+    }
+
+    .container {
+      width: min(1400px, 100%);
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+
+    .page-heading {
+      margin-bottom: 20px;
+    }
+
+    .page-heading h2 {
+      margin: 0 0 8px;
+      color: var(--navy);
+      font-size: 25px;
+    }
+
+    .page-heading p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .account-bar {
+      background: var(--white);
+      padding: 13px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .account-info {
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .account-info strong {
+      color: var(--navy);
+    }
+
+    .role-badge {
+      display: inline-block;
+      background: #e8efff;
+      color: var(--navy);
+      padding: 4px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      padding: 18px;
+      box-shadow: 0 3px 10px #00000005;
+    }
+
+    .stat-card .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .stat-card .number {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--navy);
+    }
+
+    .stat-card i {
+      margin-right: 7px;
+    }
+
+    .panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 3px 12px #00000005;
+    }
+
+    .panel-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .panel-heading h3 {
+      color: var(--navy);
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 2fr;
+      gap: 15px;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 7px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      min-height: 43px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 11px;
+      outline: none;
+      background: var(--white);
+      color: var(--text);
+    }
+
+    .field input:focus,
+    .field select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px #0b4da218;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 7px;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 200px;
+      max-width: 420px;
+      position: relative;
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 12px;
+      top: 14px;
+      color: var(--muted);
+    }
+
+    .search-box input {
+      width: 100%;
+      min-height: 43px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 12px 10px 37px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 11px 15px;
+      font-weight: 700;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 41px;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: var(--white);
+    }
+
+    .btn-primary:hover {
+      background: var(--navy);
+    }
+
+    .btn-gold {
+      background: var(--gold);
+      color: #172033;
+    }
+
+    .btn-light {
+      background: #edf2f7;
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: var(--red);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 800px;
+      background: var(--white);
+    }
+
+    thead {
+      background: #edf2fb;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 13px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--navy);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover {
+      background: #f8faff;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .student-name {
+      font-weight: 700;
+    }
+
+    .student-id {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .status-select {
+      width: 130px;
+      padding: 9px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: var(--white);
+    }
+
+    .notes-input {
+      min-width: 150px;
+      width: 100%;
+      padding: 9px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+    }
+
+    .message {
+      display: none;
+      padding: 13px 15px;
+      border-radius: 9px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    .message.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .message.success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .message.info {
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+
+    .busy {
+      display: none;
+      padding: 12px 0;
+      color: var(--blue);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .busy.show {
+      display: block;
+    }
+
+    .empty-state {
+      padding: 35px 15px;
+      text-align: center;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .empty-state i {
+      display: block;
+      font-size: 35px;
+      color: #94a3b8;
+      margin-bottom: 12px;
+    }
+
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 10px 16px 28px;
+    }
+
+    @media (max-width: 800px) {
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        padding: 15px;
+      }
+
+      .page-heading h2 {
+        font-size: 22px;
+      }
+
+      .stat-card .number {
+        font-size: 25px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .stats {
+        gap: 9px;
+      }
+
+      .stat-card {
+        padding: 13px;
+      }
+
+      .stat-card .number {
+        font-size: 22px;
+      }
+
+      .brand h1 {
+        font-size: 19px;
+      }
+
+      .buttons,
+      .buttons .btn {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<header>
-  <div>
-    <h2>GAAWOW EMS</h2>
-    <div>Attendance Management</div>
-  </div>
-  <nav>
-    <a href="dashboard.html">Dashboard</a>
-    <a href="teacher-portal.html">Teacher Portal</a>
-  </nav>
-</header>
-
-<main>
-  <h2>Attendance Register</h2>
-  <p id="account" class="muted">Checking account and permissions...</p>
-
-  <div id="error" class="message error" role="alert"></div>
-  <div id="success" class="message success" role="status"></div>
-  <div id="busy">Please wait...</div>
-
-  <section class="stats">
-    <div class="stat">Students<strong id="total">0</strong></div>
-    <div class="stat">Present<strong id="present">0</strong></div>
-    <div class="stat">Absent<strong id="absent">0</strong></div>
-    <div class="stat">Late / Excused<strong id="other">0</strong></div>
-  </section>
-
-  <section class="panel">
-    <h3>Select Lesson</h3>
-
-    <div class="filters">
-      <div>
-        <label for="lesson">Lesson</label>
-        <select id="lesson">
-          <option value="">Loading lessons...</option>
-        </select>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <h1><i class="fa-solid fa-user-check"></i> GAAWOW EMS</h1>
+        <p>Education Management & Verification System</p>
       </div>
 
-      <div>
-        <label for="date">Attendance Date</label>
-        <input id="date" type="date">
-      </div>
+      <nav class="nav-links">
+        <a href="dashboard.html">
+          <i class="fa-solid fa-gauge"></i> Dashboard
+        </a>
 
-      <div>
-        <label for="search">Search Student</label>
-        <input id="search" type="search" placeholder="Name or Student ID">
+        <a href="teacher-portal.html">
+          <i class="fa-solid fa-chalkboard-user"></i> Teacher Portal
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section class="page-heading">
+      <h2>Attendance Management</h2>
+      <p>
+        Select a lesson, review the enrolled students, mark attendance,
+        and save the records to GAAWOW EMS.
+      </p>
+    </section>
+
+    <div id="account" class="account-bar">
+      <div class="account-info">
+        <strong>Account:</strong> Checking signed-in user...
       </div>
     </div>
 
-    <br>
+    <div id="error" class="message error" role="alert"></div>
+    <div id="success" class="message success" role="status"></div>
+    <div id="info" class="message info" role="status"></div>
 
-    <div class="actions">
-      <button id="load" type="button">Load Students</button>
-      <button id="clearSearch" class="secondary" type="button">Clear Search</button>
+    <div id="busy" class="busy">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      Please wait...
     </div>
 
-    <p class="muted">
-      Teachers can record attendance only for lessons assigned to their account.
-      Supabase Row Level Security remains responsible for final authorization.
-    </p>
-  </section>
-
-  <section class="panel">
-    <h3>Student Attendance</h3>
-
-    <div class="tablewrap">
-      <table>
-        <thead>
-          <tr>
-            <th>No.</th>
-            <th>Student ID</th>
-            <th>Full Name</th>
-            <th>Status</th>
-            <th>Notes</th>
-          </tr>
-        </thead>
-        <tbody id="rows">
-          <tr><td colspan="5">Select a lesson first.</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <br>
-    <button id="save" class="gold" type="button">Save Attendance</button>
-  </section>
-</main>
-
-<script>
-"use strict";
-
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-
-const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
-
-const db = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
-
-const $ = id => document.getElementById(id);
-
-let user = null;
-let profile = null;
-let lessons = [];
-let selectedLesson = null;
-let students = [];
-let existing = [];
-let loadedStudentIds = new Set();
-
-const statuses = [
-  ["present", "Present"],
-  ["absent", "Absent"],
-  ["late", "Late"],
-  ["excused", "Excused"]
-];
-
-const esc = value =>
-  String(value ?? "").replace(/[&<>"']/g, character => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[character]);
-
-function showError(message) {
-  $("error").textContent = message;
-  $("error").style.display = "block";
-  $("success").style.display = "none";
-}
-
-function showSuccess(message) {
-  $("success").textContent = message;
-  $("success").style.display = "block";
-  $("error").style.display = "none";
-}
-
-function clearMessages() {
-  $("error").style.display = "none";
-  $("success").style.display = "none";
-}
-
-function setBusy(busy, message = "Please wait...") {
-  $("busy").textContent = message;
-  $("busy").style.display = busy ? "block" : "none";
-
-  $("load").disabled = busy;
-  $("save").disabled = busy;
-  $("lesson").disabled = busy;
-}
-
-function localDateString(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function resetRegister(message = "Select a lesson first.") {
-  selectedLesson = null;
-  students = [];
-  existing = [];
-  loadedStudentIds = new Set();
-
-  $("rows").innerHTML =
-    `<tr><td colspan="5">${esc(message)}</td></tr>`;
-
-  updateStats();
-}
-
-async function init() {
-  setBusy(true, "Checking your login...");
-
-  try {
-    const {
-      data: { session },
-      error
-    } = await db.auth.getSession();
-
-    if (error) throw error;
-
-    if (!session) {
-      location.replace("index.html");
-      return;
-    }
-
-    user = session.user;
-
-    const result = await db
-      .from("profiles")
-      .select("id,full_name,role,is_active,institution_id")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (result.error) throw result.error;
-
-    profile = result.data;
-
-    const allowedRoles = [
-      "teacher",
-      "school_admin",
-      "super_admin"
-    ];
-
-    if (
-      !profile ||
-      profile.is_active !== true ||
-      !allowedRoles.includes(profile.role)
-    ) {
-      showError(
-        "Your account is not authorized to use Attendance Management. Contact your administrator."
-      );
-      $("account").textContent = "Access denied";
-      return;
-    }
-
-    $("account").textContent =
-      "Signed in: " +
-      (profile.full_name || user.email || "User") +
-      " | Role: " + profile.role;
-
-    $("date").value = localDateString();
-
-    await loadLessons();
-
-  } finally {
-    setBusy(false);
-  }
-}
-
-async function loadLessons() {
-  setBusy(true, "Loading assigned lessons...");
-
-  try {
-    let query = db
-      .from("lessons")
-      .select(
-        "id,institution_id,class_id,teacher_id,title,lesson_date"
-      )
-      .order("lesson_date", { ascending: false });
-
-    if (profile.role === "teacher") {
-      query = query.eq("teacher_id", user.id);
-    }
-
-    if (profile.role === "school_admin") {
-      if (!profile.institution_id) {
-        throw new Error(
-          "Your account has no institution assigned. Contact your administrator."
-        );
-      }
-
-      query = query.eq("institution_id", profile.institution_id);
-    }
-
-    const { data, error } = await query.limit(500);
-
-    if (error) throw error;
-
-    lessons = data || [];
-
-    const classIds = [
-      ...new Set(lessons.map(lesson => lesson.class_id).filter(Boolean))
-    ];
-
-    let classes = [];
-
-    if (classIds.length) {
-      const result = await db
-        .from("classes")
-        .select("id,name")
-        .in("id", classIds);
-
-      if (result.error) {
-        throw new Error(
-          "Lessons loaded, but class names could not be loaded: " +
-          result.error.message
-        );
-      }
-
-      classes = result.data || [];
-    }
-
-    const classMap = new Map(
-      classes.map(item => [item.id, item.name])
-    );
-
-    lessons = lessons.map(lesson => ({
-      ...lesson,
-      className: classMap.get(lesson.class_id) || "Class"
-    }));
-
-    $("lesson").innerHTML =
-      '<option value="">Choose lesson...</option>' +
-      lessons.map(lesson => {
-        const label =
-          (lesson.title || "Lesson") +
-          " | " + lesson.className +
-          " | " + (lesson.lesson_date || "No date");
-
-        return `<option value="${esc(lesson.id)}">${esc(label)}</option>`;
-      }).join("");
-
-    resetRegister();
-
-    if (!lessons.length) {
-      showError(
-        "No lessons are available for your account. Check lesson assignments and database permissions."
-      );
-    } else {
-      clearMessages();
-    }
-
-  } finally {
-    setBusy(false);
-  }
-}
-
-async function loadStudents() {
-  clearMessages();
-
-  const lessonId = $("lesson").value;
-
-  const lesson = lessons.find(item => item.id === lessonId);
-
-  if (!lesson) {
-    resetRegister("Choose a valid lesson first.");
-    throw new Error("Please choose a lesson.");
-  }
-
-  if (
-    profile.role === "teacher" &&
-    lesson.teacher_id !== user.id
-  ) {
-    throw new Error(
-      "This lesson is not assigned to your account."
-    );
-  }
-
-  if (
-    profile.role === "school_admin" &&
-    lesson.institution_id !== profile.institution_id
-  ) {
-    throw new Error(
-      "This lesson does not belong to your institution."
-    );
-  }
-
-  selectedLesson = lesson;
-
-  setBusy(true, "Loading enrolled students and attendance...");
-
-  try {
-    const enrollmentResult = await db
-      .from("enrollments")
-      .select("student_id")
-      .eq("class_id", lesson.class_id)
-      .eq("institution_id", lesson.institution_id);
-
-    if (enrollmentResult.error) {
-      throw new Error(
-        "Could not load class enrollments: " +
-        enrollmentResult.error.message
-      );
-    }
-
-    const studentIds = [
-      ...new Set(
-        (enrollmentResult.data || [])
-          .map(enrollment => enrollment.student_id)
-          .filter(Boolean)
-      )
-    ];
-
-    if (!studentIds.length) {
-      students = [];
-      existing = [];
-      loadedStudentIds = new Set();
-
-      render();
-
-      showError(
-        "No enrolled students were found for this class."
-      );
-      return;
-    }
-
-    const studentResult = await db
-      .from("students")
-      .select("id,student_id,full_name,institution_id")
-      .in("id", studentIds)
-      .eq("institution_id", lesson.institution_id)
-      .order("full_name", { ascending: true });
-
-    if (studentResult.error) {
-      throw new Error(
-        "Could not load student records: " +
-        studentResult.error.message
-      );
-    }
-
-    students = studentResult.data || [];
-
-    loadedStudentIds = new Set(
-      students.map(student => student.id)
-    );
-
-    if (!students.length) {
-      existing = [];
-      render();
-
-      showError(
-        "The class has enrollments, but no student records were returned. Check the students table RLS policies."
-      );
-      return;
-    }
-
-    const attendanceResult = await db
-      .from("attendance")
-      .select("id,lesson_id,student_id,status,notes")
-      .eq("lesson_id", lesson.id)
-      .eq("institution_id", lesson.institution_id)
-      .in("student_id", students.map(student => student.id));
-
-    if (attendanceResult.error) {
-      throw new Error(
-        "Could not load existing attendance. Check attendance RLS: " +
-        attendanceResult.error.message
-      );
-    }
-
-    existing = attendanceResult.data || [];
-
-    render();
-
-    showSuccess(
-      `${students.length} student(s) loaded. Check each attendance status before saving.`
-    );
-
-  } finally {
-    setBusy(false);
-  }
-}
-
-function render() {
-  const term = $("search").value.trim().toLowerCase();
-
-  const list = students.filter(student => {
-    const searchText =
-      `${student.full_name || ""} ${student.student_id || ""}`
-        .toLowerCase();
-
-    return !term || searchText.includes(term);
-  });
-
-  if (!list.length) {
-    $("rows").innerHTML =
-      '<tr><td colspan="5">No matching students.</td></tr>';
-
-    updateStats();
-    return;
-  }
-
-  $("rows").innerHTML = list.map((student, index) => {
-    const record = existing.find(
-      item => item.student_id === student.id
-    );
-
-    const currentStatus = record?.status || "present";
-
-    const statusOptions = statuses.map(([value, label]) => {
-      const selected = currentStatus === value ? "selected" : "";
-
-      return `<option value="${value}" ${selected}>${label}</option>`;
-    }).join("");
-
-    return `
-      <tr data-id="${esc(student.id)}">
-        <td>${index + 1}</td>
-        <td>${esc(student.student_id || "—")}</td>
-        <td>${esc(student.full_name || "Unnamed student")}</td>
-        <td>
-          <select class="status" aria-label="Attendance status">
-            ${statusOptions}
+    <section class="stats">
+      <div class="stat-card">
+        <div class="label">
+          <i class="fa-solid fa-users"></i> Total Students
+        </div>
+        <div class="number" id="total">0</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="label">
+          <i class="fa-solid fa-circle-check"></i> Present
+        </div>
+        <div class="number" id="present">0</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="label">
+          <i class="fa-solid fa-circle-xmark"></i> Absent
+        </div>
+        <div class="number" id="absent">0</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="label">
+          <i class="fa-solid fa-clock"></i> Other Status
+        </div>
+        <div class="number" id="other">0</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <h3><i class="fa-solid fa-book-open"></i> Select Lesson</h3>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="lesson">Lesson / Class</label>
+
+          <select id="lesson">
+            <option value="">Loading lessons...</option>
           </select>
-        </td>
-        <td>
+
+          <div class="hint">
+            Teachers can access lessons assigned to their accounts.
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="date">Lesson Date</label>
+          <input type="date" id="date" readonly>
+
+          <div class="hint">
+            Date comes from the selected lesson.
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="search">Find Student</label>
           <input
-            class="notes"
-            maxlength="500"
-            value="${esc(record?.notes || "")}"
-            placeholder="Optional notes"
-            aria-label="Attendance notes"
+            type="search"
+            id="search"
+            placeholder="Search name or student ID..."
+            autocomplete="off"
           >
-        </td>
-      </tr>
-    `;
-  }).join("");
 
-  updateStats();
-}
+          <div class="hint">
+            Search only filters the display. Saving still includes all loaded students.
+          </div>
+        </div>
+      </div>
 
-function updateStats() {
-  const rows = [
-    ...$("rows").querySelectorAll("tr[data-id]")
-  ];
+      <div class="buttons" style="margin-top: 18px;">
+        <button type="button" class="btn btn-primary" id="load">
+          <i class="fa-solid fa-rotate"></i> Reload Students
+        </button>
 
-  const counts = {
-    present: 0,
-    absent: 0,
-    late: 0,
-    excused: 0
-  };
+        <button type="button" class="btn btn-light" id="clearSearch">
+          <i class="fa-solid fa-eraser"></i> Clear Search
+        </button>
+      </div>
+    </section>
 
-  rows.forEach(row => {
-    const status = row.querySelector(".status")?.value;
+    <section class="panel">
+      <div class="panel-heading">
+        <h3><i class="fa-solid fa-clipboard-check"></i> Student Attendance</h3>
 
-    if (Object.prototype.hasOwnProperty.call(counts, status)) {
-      counts[status]++;
-    }
-  });
+        <span id="visibleCount" class="role-badge">0 students shown</span>
+      </div>
 
-  $("total").textContent = rows.length;
-  $("present").textContent = counts.present;
-  $("absent").textContent = counts.absent;
-  $("other").textContent = counts.late + counts.excused;
-}
+      <div class="toolbar">
+        <div class="hint" id="saveHint">
+          Select a lesson to load its enrolled students.
+        </div>
 
-async function saveAttendance() {
-  clearMessages();
+        <div class="buttons">
+          <button type="button" class="btn btn-gold" id="save">
+            <i class="fa-solid fa-floppy-disk"></i> Save Attendance
+          </button>
+        </div>
+      </div>
 
-  if (!selectedLesson) {
-    throw new Error("Choose a lesson and load its students first.");
-  }
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Student</th>
+              <th>Student ID</th>
+              <th>Attendance Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
 
-  if (
-    profile.role === "teacher" &&
-    selectedLesson.teacher_id !== user.id
-  ) {
-    throw new Error(
-      "You cannot record attendance for another teacher's lesson."
-    );
-  }
+          <tbody id="rows">
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  <i class="fa-solid fa-users"></i>
+                  Select a lesson to display students.
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-  if (
-    profile.role === "school_admin" &&
-    selectedLesson.institution_id !== profile.institution_id
-  ) {
-    throw new Error(
-      "You cannot record attendance for another institution."
-    );
-  }
+  </main>
 
-  if (!students.length) {
-    throw new Error("There are no students to save.");
-  }
+  <footer class="footer">
+    GAAWOW EMS &copy; <span id="year"></span>
+    | Education Management & Verification System
+  </footer>
 
-  const rows = [
-    ...$("rows").querySelectorAll("tr[data-id]")
-  ];
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="attendance.js"></script>
 
-  if (!rows.length) {
-    throw new Error(
-      "No visible students to save. Clear the search filter or reload the class."
-    );
-  }
-
-  const visibleIds = new Set(
-    rows.map(row => row.dataset.id)
-  );
-
-  if (
-    [...visibleIds].some(id => !loadedStudentIds.has(id))
-  ) {
-    throw new Error(
-      "The student list changed unexpectedly. Reload the students before saving."
-    );
-  }
-
-  const attendanceDate = $("date").value;
-
-  if (
-    !attendanceDate ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(attendanceDate)
-  ) {
-    throw new Error("Please select a valid attendance date.");
-  }
-
-  setBusy(true, "Saving attendance...");
-
-  try {
-    for (const row of rows) {
-      const studentId = row.dataset.id;
-      const oldRecord = existing.find(
-        item => item.student_id === studentId
-      );
-
-      const status = row.querySelector(".status").value;
-
-      if (!statuses.some(item => item[0] === status)) {
-        throw new Error("An invalid attendance status was selected.");
-      }
-
-      const notes =
-        row.querySelector(".notes").value.trim() || null;
-
-      const payload = {
-        institution_id: selectedLesson.institution_id,
-        lesson_id: selectedLesson.id,
-        student_id: studentId,
-        status,
-        notes,
-        recorded_by: user.id
-      };
-
-      let result;
-
-      if (oldRecord) {
-        result = await db
-          .from("attendance")
-          .update({
-            status: payload.status,
-            notes: payload.notes,
-            recorded_by: payload.recorded_by
-          })
-          .eq("id", oldRecord.id)
-          .select("id");
-      } else {
-        result = await db
-          .from("attendance")
-          .insert(payload)
-          .select("id");
-      }
-
-      if (result.error) {
-        throw new Error(
-          "Could not save attendance for " +
-          (row.children[2]?.textContent || "a student") +
-          ": " + result.error.message
-        );
-      }
-
-      if (!result.data || result.data.length === 0) {
-        throw new Error(
-          "Supabase did not confirm the attendance change. Check the RLS policies and retry."
-        );
-      }
-    }
-
-    showSuccess(
-      "Attendance saved successfully for the visible students."
-    );
-
-    await loadStudents();
-
-  } finally {
-    setBusy(false);
-  }
-}
-
-$("load").addEventListener("click", async () => {
-  try {
-    await loadStudents();
-  } catch (error) {
-    showError(error.message || "Could not load students.");
-  }
-});
-
-$("save").addEventListener("click", async () => {
-  try {
-    await saveAttendance();
-  } catch (error) {
-    showError(error.message || "Could not save attendance.");
-  }
-});
-
-$("lesson").addEventListener("change", () => {
-  clearMessages();
-  resetRegister("Press Load Students to view this lesson's students.");
-});
-
-$("search").addEventListener("input", render);
-
-$("clearSearch").addEventListener("click", () => {
-  $("search").value = "";
-  render();
-});
-
-$("rows").addEventListener("change", event => {
-  if (event.target.classList.contains("status")) {
-    updateStats();
-  }
-});
-
-init().catch(error => {
-  showError(
-    "Attendance could not load: " +
-    (error.message || "Unexpected error.")
-  );
-  $("account").textContent = "Attendance initialization failed";
-});
-</script>
 </body>
 </html>
