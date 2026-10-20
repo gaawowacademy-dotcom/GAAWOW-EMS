@@ -1,0 +1,520 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0B1E63">
+<title>GAAWOW EMS | Lessons Management</title><style>
+:root {
+  --navy:#0B1E63;
+  --blue:#0B4DA2;
+  --gold:#D4AF37;
+  --bg:#F5F7FA;
+  --text:#1F2937;
+  --muted:#64748B;
+  --border:#E2E8F0;
+}
+
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:linear-gradient(135deg,#F5F7FA,#EEF3FA,#FFF);
+  color:var(--text);
+}
+
+.topbar {
+  background:linear-gradient(135deg,var(--navy),var(--blue));
+  color:white;
+  padding:16px 22px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand img {
+  width:50px;
+  height:50px;
+  object-fit:contain;
+  background:white;
+  border-radius:10px;
+  padding:4px;
+}
+
+.brand h1 {
+  font-size:19px;
+  margin:0;
+}
+
+.brand p {
+  font-size:12px;
+  margin-top:4px;
+}
+
+.badge {
+  background:var(--gold);
+  color:var(--navy);
+  padding:8px 12px;
+  border-radius:30px;
+  font-size:11px;
+  font-weight:bold;
+}
+
+main {
+  width:min(1200px,94%);
+  margin:25px auto;
+}
+
+.header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:20px;
+}
+
+.header h2 {
+  color:var(--navy);
+  margin:0 0 8px;
+}
+
+.header p {
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5;
+}
+
+.card {
+  background:white;
+  border:1px solid var(--border);
+  border-radius:15px;
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 7px 22px #0f172a0a;
+}
+
+.card h3 {
+  color:var(--navy);
+  margin:0 0 16px;
+}
+
+.btn {
+  border:0;
+  border-radius:8px;
+  padding:11px 14px;
+  font-weight:bold;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.primary {
+  background:var(--navy);
+  color:white;
+}
+
+.primary:hover {
+  background:var(--blue);
+}
+
+.light {
+  background:#E8EEF8;
+  color:var(--navy);
+}
+
+.danger {
+  background:#FEE2E2;
+  color:#991B1B;
+}
+
+button:disabled {
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+.form-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+
+.field {
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  min-width:0;
+}
+
+.field label {
+  font-size:12px;
+  font-weight:bold;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width:100%;
+  min-height:42px;
+  border:1px solid #CBD5E1;
+  border-radius:8px;
+  padding:10px;
+  font-family:inherit;
+  font-size:13px;
+  background:white;
+}
+
+.field textarea {
+  min-height:80px;
+  resize:vertical;
+}
+
+.filters {
+  display:grid;
+  grid-template-columns:1fr 1fr 1.5fr auto;
+  gap:12px;
+  align-items:end;
+}
+
+.actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.notice {
+  display:none;
+  padding:12px;
+  margin-bottom:15px;
+  border-radius:8px;
+  font-size:13px;
+  line-height:1.5;
+  white-space:pre-wrap;
+}
+
+.notice.show {
+  display:block;
+}
+
+.notice.error {
+  background:#FEF2F2;
+  color:#991B1B;
+}
+
+.notice.success {
+  background:#F0FDF4;
+  color:#166534;
+}
+
+.notice.info {
+  background:#EFF6FF;
+  color:#1D4ED8;
+}
+
+.table-wrap {
+  overflow-x:auto;
+  border:1px solid var(--border);
+  border-radius:10px;
+}
+
+table {
+  width:100%;
+  min-width:850px;
+  border-collapse:collapse;
+  font-size:12px;
+}
+
+th {
+  background:var(--navy);
+  color:white;
+  padding:12px 10px;
+  text-align:left;
+}
+
+td {
+  padding:12px 10px;
+  border-bottom:1px solid var(--border);
+  vertical-align:top;
+}
+
+tbody tr:nth-child(even) {
+  background:#F8FAFC;
+}
+
+.empty {
+  text-align:center;
+  color:var(--muted);
+  padding:25px;
+}
+
+.modal {
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:500;
+  background:#0008;
+  padding:15px;
+  overflow:auto;
+}
+
+.modal.open {
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+}
+
+.modal-box {
+  width:min(850px,100%);
+  background:white;
+  border-radius:15px;
+  padding:20px;
+  margin:auto;
+}
+
+.modal-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:18px;
+}
+
+.modal-head h3 {
+  color:var(--navy);
+  margin:0;
+}
+
+.form-actions {
+  display:flex;
+  gap:10px;
+  margin-top:18px;
+}
+
+footer {
+  text-align:center;
+  color:var(--muted);
+  font-size:11px;
+  padding:20px;
+}
+
+@media(max-width:850px) {
+  .form-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .filters {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:550px) {
+  .topbar {
+    padding:12px;
+  }
+
+  .brand img {
+    width:42px;
+    height:42px;
+  }
+
+  .brand h1 {
+    font-size:15px;
+  }
+
+  .brand p {
+    font-size:10px;
+  }
+
+  .badge {
+    font-size:9px;
+    padding:7px;
+  }
+
+  main {
+    width:94%;
+  }
+
+  .header {
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .header .btn {
+    width:100%;
+  }
+
+  .card {
+    padding:14px;
+  }
+
+  .form-grid,
+  .filters {
+    grid-template-columns:1fr;
+  }
+
+  .form-actions .btn {
+    flex:1;
+  }
+
+  .modal {
+    padding:7px;
+  }
+
+  .modal-box {
+    padding:14px;
+  }
+}
+</style></head><body><header class="topbar">
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+         alt="GAAWOW Academy Logo">
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <p>Education Management &amp; Verification System</p>
+    </div>
+  </div>
+  <span class="badge" id="roleBadge">LESSONS</span>
+</header><main>  <section class="header">
+    <div>
+      <h2>📝 Lessons Management</h2>
+      <p>Manage lessons, classes, teachers, dates, times and rooms.</p>
+    </div>
+    <button class="btn primary" id="addLessonBtn" type="button">
+      + Add Lesson
+    </button>
+  </section>  <div id="notice" class="notice" role="status" aria-live="polite"></div>  <section class="card">
+    <h3>Search and Filter Lessons</h3><div class="filters">
+  <div class="field">
+    <label for="filterInstitution">Institution</label>
+    <select id="filterInstitution">
+      <option value="">Loading...</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="filterClass">Class</label>
+    <select id="filterClass">
+      <option value="">All Classes</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="searchLessons">Search</label>
+    <input id="searchLessons"
+           type="search"
+           placeholder="Search title, teacher or room">
+  </div>
+
+  <button class="btn light" id="refreshBtn" type="button">
+    Refresh
+  </button>
+</div>
+
+  </section>  <section class="card">
+    <h3>Lessons List (<span id="lessonCount">0</span>)</h3><div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Lesson</th>
+        <th>Institution</th>
+        <th>Class</th>
+        <th>Teacher</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Room</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+
+    <tbody id="lessonsRows">
+      <tr><td colspan="8" class="empty">Loading lessons...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+  </section></main><div class="modal" id="lessonModal">
+  <div class="modal-box"><div class="modal-head">
+  <h3 id="modalTitle">Add Lesson</h3>
+  <button class="btn light" id="closeModalBtn" type="button">Close</button>
+</div>
+
+<form id="lessonForm">
+  <input type="hidden" id="lessonId">
+
+  <div class="form-grid">
+
+    <div class="field">
+      <label for="institutionId">Institution *</label>
+      <select id="institutionId" required>
+        <option value="">Select Institution</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="classId">Class *</label>
+      <select id="classId" required>
+        <option value="">Select Class</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="teacherId">Teacher *</label>
+      <select id="teacherId" required>
+        <option value="">Select Teacher</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="lessonTitle">Lesson Title *</label>
+      <input id="lessonTitle" maxlength="180" required
+             placeholder="e.g. Anatomy">
+    </div>
+
+    <div class="field">
+      <label for="lessonDate">Lesson Date *</label>
+      <input type="date" id="lessonDate" required>
+    </div>
+
+    <div class="field">
+      <label for="room">Room</label>
+      <input id="room" maxlength="100" placeholder="Room 1">
+    </div>
+
+    <div class="field">
+      <label for="startTime">Start Time *</label>
+      <input type="time" id="startTime" required>
+    </div>
+
+    <div class="field">
+      <label for="endTime">End Time *</label>
+      <input type="time" id="endTime" required>
+    </div>
+
+    <div class="field">
+      <label for="description">Description</label>
+      <textarea id="description" maxlength="2000"></textarea>
+    </div>
+
+  </div>
+
+  <div class="form-actions">
+    <button class="btn primary" id="saveLessonBtn" type="submit">
+      Save Lesson
+    </button>
+
+    <button class="btn light" id="cancelModalBtn" type="button">
+      Cancel
+    </button>
+  </div>
+
+</form>
+
+  </div>
+</div><footer>
+  GAAWOW ACADEMY · Ilayska Aqoonta iyo Xirfadda
+</footer><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./lessons.js?v=1"></script></body>
+</html>
