@@ -1,1291 +1,980 @@
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+"use strict";
 
-const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+/* =========================================================
+   GAAWOW EMS — GRADE MANAGEMENT V2
 
-const supabaseClient =
-  supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+   Published reports:
+   1. Use published subject rows from results.
+   2. Use grades as fallback only for missing subjects.
+   3. Ignore aggregate scores greater than exam maximum.
+   4. Never add an aggregate total to subject scores.
 
-let currentUser = null;
-let institutions = [];
-let exams = [];
-let students = [];
-let grades = [];
+   Database is not altered by this file.
+   ========================================================= */
 
-let editingId = null;
+(() => {
+  const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
+  const SUPABASE_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-// ===============================
-// START
-// ===============================
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 
-document.addEventListener("DOMContentLoaded", init);
+  const $ = id => document.getElementById(id);
 
-async function init() {
+  const state = {
+    user: null,
+    profile: null,
+    institutions: [],
+    students: [],
+    exams: [],
+    grades: [],
+    results: [],
+    subjects: [],
+    reportStudentId: null
+  };
 
-  try {
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[char]));
+  }
 
+  function number(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function percent(score, maximum) {
+    maximum = number(maximum);
+    return maximum > 0
+      ? number(score) / maximum * 100
+      : 0;
+  }
+
+  function calculateGrade(value) {
+    if (value >= 90) return "A+";
+    if (value >= 80) return "A";
+    if (value >= 70) return "B";
+    if (value >= 60) return "C";
+    if (value >= 50) return "D";
+    return "F";
+  }
+
+  function gradeStyle(grade) {
+    return String(grade || "").toUpperCase() === "F"
+      ? "fail"
+      : "pass";
+  }
+
+  function normalise(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function showNotice(message, type = "info") {
+    const box = $("notice");
+
+    box.textContent = message;
+    box.className = `notice show ${type}`;
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+
+    if (type === "success") {
+      setTimeout(() => {
+        box.className = "notice";
+      }, 4500);
+    }
+  }
+
+  function clearNotice() {
+    $("notice").className = "notice";
+    $("notice").textContent = "";
+  }
+
+  function findStudent(id) {
+    return state.students.find(student => student.id === id);
+  }
+
+  function findExam(id) {
+    return state.exams.find(exam => exam.id === id);
+  }
+
+  function findSubject(id) {
+    return state.subjects.find(subject => subject.id === id);
+  }
+
+  function examTitle(id) {
+    return findExam(id)?.title || "Untitled exam";
+  }
+
+  function examMaximum(id) {
+    return number(findExam(id)?.max_score, 100) || 100;
+  }
+
+  function studentName(id) {
+    return findStudent(id)?.full_name || "Unknown student";
+  }
+
+  function subjectNameFromResult(result) {
+    const subject = findSubject(result.subject_id);
+
+    return subject?.name || examTitle(result.exam_id);
+  }
+
+  async function checkAccess() {
     const {
-      data: { session }
-    } = await supabaseClient.auth.getSession();
+      data: { session },
+      error: sessionError
+    } = await db.auth.getSession();
+
+    if (sessionError) throw sessionError;
 
     if (!session) {
       window.location.href = "index.html";
-      return;
+      return false;
     }
 
-    currentUser = session.user;
+    state.user = session.user;
 
-    await checkSuperAdmin();
-
-    await loadInstitutions();
-
-    setupEvents();
-
-    await loadGrades();
-
-  } catch (error) {
-
-    console.error(error);
-
-    showMessage(
-      error.message || "Failed to load Grade Management.",
-      "error"
-    );
-  }
-}
-
-
-// ===============================
-// SUPER ADMIN CHECK
-// ===============================
-
-async function checkSuperAdmin() {
-
-  const { data, error } =
-    await supabaseClient
+    const { data: profile, error } = await db
       .from("profiles")
-      .select("id, role, full_name")
-      .eq("id", currentUser.id)
-      .single();
+      .select("id, full_name, role, institution_id, is_active")
+      .eq("id", session.user.id)
+      .maybeSingle();
 
-  if (error) {
-    throw error;
+    if (error) throw error;
+
+    if (!profile || profile.is_active === false) {
+      await db.auth.signOut();
+      window.location.href = "index.html";
+      return false;
+    }
+
+    state.profile = profile;
+
+    if (profile.role !== "super_admin") {
+      showNotice(
+        "Access denied. This page is for Super Admin accounts.",
+        "error"
+      );
+
+      setTimeout(() => {
+        window.location.href = "dashboard.html";
+      }, 1500);
+
+      return false;
+    }
+
+    return true;
   }
 
-  if (data.role !== "super_admin") {
+  async function loadAll() {
+    clearNotice();
 
-    alert("Access denied. Super Admin only.");
+    try {
+      const requests = await Promise.all([
+        db.from("institutions").select("*").order("name"),
+        db.from("students").select("*").order("full_name"),
+        db.from("exams").select("*").order("title"),
+        db.from("grades").select("*").order("created_at", {
+          ascending: false
+        }),
+        db.from("results").select("*").order("created_at", {
+          ascending: false
+        }),
+        db.from("subjects").select("*").order("name")
+      ]);
 
-    window.location.href = "super-admin.html";
+      const tableNames = [
+        "institutions",
+        "students",
+        "exams",
+        "grades",
+        "results",
+        "subjects"
+      ];
 
-    return;
-  }
-}
-
-
-// ===============================
-// EVENTS
-// ===============================
-
-function setupEvents() {
-
-  document
-    .getElementById("institutionSelect")
-    .addEventListener("change", async function () {
-
-      const institutionId = this.value;
-
-      resetDependentFields();
-
-      if (!institutionId) {
-        return;
+      for (let i = 0; i < requests.length; i++) {
+        if (requests[i].error) {
+          throw new Error(
+            `${tableNames[i]}: ${requests[i].error.message}`
+          );
+        }
       }
 
-      await loadExams(institutionId);
+      state.institutions = requests[0].data || [];
+      state.students = requests[1].data || [];
+      state.exams = requests[2].data || [];
+      state.grades = requests[3].data || [];
+      state.results = requests[4].data || [];
+      state.subjects = requests[5].data || [];
 
-      await loadStudents(institutionId);
+      populateSelects();
+      renderStats();
+      renderGradeTable();
 
-      await loadGrades();
+      if (state.reportStudentId) {
+        renderStudentReport(state.reportStudentId);
+      }
+    } catch (error) {
+      console.error("Grade Management loading error:", error);
 
+      showNotice(
+        "Could not load data: " +
+        error.message +
+        ". Check Supabase table access and RLS policies.",
+        "error"
+      );
+    }
+  }
+
+  function fillSelect(select, rows, valueFn, labelFn, placeholder) {
+    const previous = select.value;
+
+    select.innerHTML =
+      `<option value="">${escapeHTML(placeholder)}</option>` +
+      rows.map(row => `
+        <option value="${escapeHTML(valueFn(row))}">
+          ${escapeHTML(labelFn(row))}
+        </option>
+      `).join("");
+
+    if (rows.some(row => String(valueFn(row)) === previous)) {
+      select.value = previous;
+    }
+  }
+
+  function populateSelects() {
+    const institutions = state.institutions;
+
+    fillSelect(
+      $("institutionSelect"),
+      institutions,
+      x => x.id,
+      x => x.name || x.institution_name || x.code || x.id,
+      "Select institution"
+    );
+
+    fillSelect(
+      $("institutionFilter"),
+      institutions,
+      x => x.id,
+      x => x.name || x.institution_name || x.code || x.id,
+      "All institutions"
+    );
+
+    fillSelect(
+      $("reportInstitutionSelect"),
+      institutions,
+      x => x.id,
+      x => x.name || x.institution_name || x.code || x.id,
+      "All institutions"
+    );
+
+    fillSelect(
+      $("studentSelect"),
+      state.students,
+      x => x.id,
+      x => `${x.full_name || "Unnamed"}${x.student_id ? " • " + x.student_id : ""}`,
+      "Select student"
+    );
+
+    fillSelect(
+      $("reportStudentSelect"),
+      state.students,
+      x => x.id,
+      x => `${x.full_name || "Unnamed"}${x.student_id ? " • " + x.student_id : ""}`,
+      "Select student"
+    );
+
+    updateExamOptions();
+  }
+
+  function updateExamOptions() {
+    const institutionId = $("institutionSelect").value;
+
+    const exams = state.exams.filter(exam =>
+      !institutionId || exam.institution_id === institutionId
+    );
+
+    fillSelect(
+      $("examSelect"),
+      exams,
+      x => x.id,
+      x => `${x.title || "Untitled exam"} (${number(x.max_score, 100)} marks)`,
+      "Select exam / subject"
+    );
+
+    updateMaximum();
+  }
+
+  function updateMaximum() {
+    const exam = findExam($("examSelect").value);
+    const maximum = number(exam?.max_score, 100) || 100;
+
+    $("maxScoreInput").value = maximum;
+
+    updateScorePreview();
+  }
+
+  function updateScorePreview() {
+    const score = number($("scoreInput").value);
+    const maximum = number($("maxScoreInput").value, 100) || 100;
+    const value = percent(score, maximum);
+
+    $("percentInput").value = value.toFixed(2) + "%";
+    $("gradeInput").value = calculateGrade(value);
+  }
+
+  /*
+   * Exclude aggregate records where the recorded score exceeds
+   * the maximum score of the linked exam. Example: score 654
+   * against max_score 100 is an aggregate, not one subject score.
+   */
+  function getSubjectGradeRows() {
+    return state.grades.filter(row => {
+      const maximum = examMaximum(row.exam_id);
+      const score = number(row.score);
+
+      return score >= 0 && score <= maximum;
+    });
+  }
+
+  function renderStats() {
+    const published = state.results.filter(row =>
+      row.is_published === true
+    );
+
+    const studentIds = new Set(
+      published.map(row => row.student_id)
+    );
+
+    const percentages = published
+      .filter(row => number(row.max_score) > 0)
+      .map(row => percent(row.score, row.max_score));
+
+    const average = percentages.length
+      ? percentages.reduce((a, b) => a + b, 0) / percentages.length
+      : 0;
+
+    $("statRecords").textContent = state.grades.length;
+    $("statStudents").textContent = studentIds.size;
+    $("statPublished").textContent = published.length;
+    $("statAverage").textContent = average.toFixed(1) + "%";
+  }
+
+  function renderGradeTable() {
+    const query = normalise($("gradeSearch").value);
+    const institutionId = $("institutionFilter").value;
+
+    const rows = getSubjectGradeRows().filter(row => {
+      const student = findStudent(row.student_id);
+      const exam = findExam(row.exam_id);
+
+      const text = normalise(
+        `${student?.full_name || ""} ${student?.student_id || ""} ${exam?.title || ""}`
+      );
+
+      return (!institutionId || row.institution_id === institutionId) &&
+        (!query || text.includes(query));
     });
 
-
-  document
-    .getElementById("examSelect")
-    .addEventListener("change", function () {
-
-      const examId = this.value;
-
-      if (!examId) {
-        return;
-      }
-
-      const exam =
-        exams.find(e => e.id === examId);
-
-      if (exam) {
-
-        document.getElementById("maxScoreInput").value =
-          exam.max_score ?? "";
-
-        calculateResult();
-      }
-    });
-
-
-  document
-    .getElementById("scoreInput")
-    .addEventListener("input", calculateResult);
-
-
-  document
-    .getElementById("maxScoreInput")
-    .addEventListener("input", calculateResult);
-
-
-  document
-    .getElementById("saveBtn")
-    .addEventListener("click", saveGrade);
-
-
-  document
-    .getElementById("resetBtn")
-    .addEventListener("click", resetForm);
-
-
-  document
-    .getElementById("searchInput")
-    .addEventListener("input", renderGrades);
-
-
-  document
-    .getElementById("gradeFilter")
-    .addEventListener("change", renderGrades);
-
-
-  document
-    .getElementById("publishFilter")
-    .addEventListener("change", renderGrades);
-}
-
-
-// ===============================
-// LOAD INSTITUTIONS
-// ===============================
-
-async function loadInstitutions() {
-
-  const { data, error } =
-    await supabaseClient
-      .from("institutions")
-      .select("id, name")
-      .order("name");
-
-  if (error) {
-    throw error;
-  }
-
-  institutions = data || [];
-
-  const select =
-    document.getElementById("institutionSelect");
-
-  select.innerHTML =
-    `<option value="">Select institution</option>`;
-
-  institutions.forEach(inst => {
-
-    const option =
-      document.createElement("option");
-
-    option.value = inst.id;
-    option.textContent = inst.name;
-
-    select.appendChild(option);
-  });
-}
-
-
-// ===============================
-// LOAD EXAMS
-// ===============================
-
-async function loadExams(institutionId) {
-
-  const { data, error } =
-    await supabaseClient
-      .from("exams")
-      .select(`
-        id,
-        institution_id,
-        course_id,
-        class_id,
-        title,
-        exam_type,
-        exam_date,
-        max_score,
-        duration_minutes
-      `)
-      .eq("institution_id", institutionId)
-      .order("exam_date", { ascending: false });
-
-  if (error) {
-    throw error;
-  }
-
-  exams = data || [];
-
-  const select =
-    document.getElementById("examSelect");
-
-  select.innerHTML =
-    `<option value="">Select exam</option>`;
-
-  exams.forEach(exam => {
-
-    const option =
-      document.createElement("option");
-
-    option.value = exam.id;
-
-    const date =
-      exam.exam_date
-        ? ` — ${exam.exam_date}`
-        : "";
-
-    option.textContent =
-      `${exam.title} (${exam.exam_type})${date}`;
-
-    select.appendChild(option);
-  });
-}
-
-
-// ===============================
-// LOAD STUDENTS
-// ===============================
-
-async function loadStudents(institutionId) {
-
-  const { data, error } =
-    await supabaseClient
-      .from("students")
-      .select(`
-        id,
-        institution_id,
-        student_id,
-        full_name,
-        status
-      `)
-      .eq("institution_id", institutionId)
-      .eq("status", "active")
-      .order("full_name");
-
-  if (error) {
-    throw error;
-  }
-
-  students = data || [];
-
-  const select =
-    document.getElementById("studentSelect");
-
-  select.innerHTML =
-    `<option value="">Select student</option>`;
-
-  students.forEach(student => {
-
-    const option =
-      document.createElement("option");
-
-    option.value = student.id;
-
-    option.textContent =
-      `${student.full_name} — ${student.student_id}`;
-
-    select.appendChild(option);
-  });
-}
-
-
-// ===============================
-// CALCULATE RESULT
-// ===============================
-
-function calculateResult() {
-
-  const score =
-    Number(
-      document.getElementById("scoreInput").value
-    );
-
-  const maxScore =
-    Number(
-      document.getElementById("maxScoreInput").value
-    );
-
-  const percentageInput =
-    document.getElementById("percentageInput");
-
-  const gradeInput =
-    document.getElementById("gradeInput");
-
-
-  if (
-    !Number.isFinite(score) ||
-    !Number.isFinite(maxScore) ||
-    maxScore <= 0
-  ) {
-
-    percentageInput.value = "";
-    gradeInput.value = "";
-
-    return;
-  }
-
-
-  if (score < 0) {
-
-    percentageInput.value = "";
-    gradeInput.value = "";
-
-    return;
-  }
-
-
-  if (score > maxScore) {
-
-    percentageInput.value = "";
-    gradeInput.value = "";
-
-    showMessage(
-      "Score cannot be greater than Max Score.",
-      "error"
-    );
-
-    return;
-  }
-
-
-  const percentage =
-    (score / maxScore) * 100;
-
-
-  percentageInput.value =
-    percentage.toFixed(2);
-
-
-  gradeInput.value =
-    calculateGrade(percentage);
-}
-
-
-// ===============================
-// GRADING SYSTEM
-// ===============================
-
-function calculateGrade(percentage) {
-
-  const p = Number(percentage);
-
-  if (isNaN(p)) {
-    return "";
-  }
-
-  if (p >= 90) return "A+";
-  if (p >= 80) return "A";
-  if (p >= 70) return "B";
-  if (p >= 60) return "C";
-  if (p >= 50) return "D";
-
-  return "F";
-}
-
-
-// ===============================
-// SAVE GRADE
-// ===============================
-
-async function saveGrade() {
-
-  try {
-
-    const institutionId =
-      document.getElementById("institutionSelect").value;
-
-    const examId =
-      document.getElementById("examSelect").value;
-
-    const studentId =
-      document.getElementById("studentSelect").value;
-
-    const score =
-      Number(
-        document.getElementById("scoreInput").value
-      );
-
-    const maxScore =
-      Number(
-        document.getElementById("maxScoreInput").value
-      );
-
-    const percentage =
-      Number(
-        document.getElementById("percentageInput").value
-      );
-
-    const grade =
-      document.getElementById("gradeInput").value;
-
-    const remarks =
-      document.getElementById("remarksInput").value.trim();
-
-
-    if (!institutionId) {
-      showMessage("Please select an institution.", "error");
+    $("gradeCountLabel").textContent =
+      `${rows.length} subject records`;
+
+    const body = $("gradesTableBody");
+
+    if (!rows.length) {
+      body.innerHTML = `
+        <tr>
+          <td colspan="6" class="empty">No grade records found.</td>
+        </tr>
+      `;
       return;
     }
 
-    if (!examId) {
-      showMessage("Please select an exam.", "error");
-      return;
-    }
+    body.innerHTML = rows.map(row => {
+      const maximum = examMaximum(row.exam_id);
+      const p = percent(row.score, maximum);
+      const grade = row.grade || calculateGrade(p);
+      const student = findStudent(row.student_id);
 
-    if (!studentId) {
-      showMessage("Please select a student.", "error");
-      return;
-    }
+      return `
+        <tr>
+          <td>
+            <strong>${escapeHTML(student?.full_name || "Unknown")}</strong><br>
+            <small>${escapeHTML(student?.student_id || "")}</small>
+          </td>
 
-    if (!Number.isFinite(score)) {
-      showMessage("Please enter a valid score.", "error");
-      return;
-    }
+          <td>${escapeHTML(examTitle(row.exam_id))}</td>
 
-    if (!Number.isFinite(maxScore) || maxScore <= 0) {
-      showMessage("Please enter a valid Max Score.", "error");
-      return;
-    }
+          <td>${number(row.score).toFixed(2)} / ${maximum}</td>
 
-    if (score > maxScore) {
-      showMessage(
-        "Score cannot be greater than Max Score.",
+          <td>${p.toFixed(1)}%</td>
+
+          <td>
+            <span class="pill ${gradeStyle(grade)}">
+              ${escapeHTML(grade)}
+            </span>
+          </td>
+
+          <td>
+            <button class="btn btn-light btn-small"
+                    data-edit="${escapeHTML(row.id)}"
+                    title="Edit grade">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+
+            <button class="btn btn-danger btn-small"
+                    data-delete="${escapeHTML(row.id)}"
+                    title="Delete grade">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  async function saveGrade(event) {
+    event.preventDefault();
+
+    const id = $("gradeId").value;
+    const institutionId = $("institutionSelect").value;
+    const examId = $("examSelect").value;
+    const studentId = $("studentSelect").value;
+    const score = Number($("scoreInput").value);
+    const maximum = examMaximum(examId);
+
+    if (
+      !institutionId ||
+      !examId ||
+      !studentId ||
+      !Number.isFinite(score) ||
+      score < 0 ||
+      score > maximum
+    ) {
+      showNotice(
+        `Choose institution, exam and student. Score must be between 0 and ${maximum}.`,
         "error"
       );
       return;
     }
 
-
-    const calculatedPercentage =
-      Number(((score / maxScore) * 100).toFixed(2));
-
-    const calculatedGrade =
-      calculateGrade(calculatedPercentage);
-
-
     const payload = {
-
       institution_id: institutionId,
-
       exam_id: examId,
-
       student_id: studentId,
-
       score: score,
-
-      grade: calculatedGrade,
-
-      remarks: remarks || null,
-
-      entered_by: currentUser.id
+      grade: calculateGrade(percent(score, maximum)),
+      remarks: $("remarksInput").value.trim() || null,
+      entered_by: state.user.id
     };
 
+    $("saveGradeBtn").disabled = true;
 
-    let result;
+    try {
+      let response;
 
-
-    if (editingId) {
-
-      result =
-        await supabaseClient
+      if (id) {
+        response = await db
           .from("grades")
           .update(payload)
-          .eq("id", editingId)
-          .select()
-          .single();
-
-    } else {
-
-      result =
-        await supabaseClient
+          .eq("id", id);
+      } else {
+        response = await db
           .from("grades")
-          .insert(payload)
-          .select()
-          .single();
-    }
-
-
-    if (result.error) {
-
-      if (
-        result.error.code === "23505"
-      ) {
-
-        showMessage(
-          "A grade already exists for this student and exam.",
-          "error"
-        );
-
-        return;
+          .insert(payload);
       }
 
-      throw result.error;
-    }
+      if (response.error) throw response.error;
 
+      showNotice(
+        id ? "Grade updated successfully." : "Grade saved successfully.",
+        "success"
+      );
 
-    showMessage(
-      editingId
-        ? "Grade updated successfully."
-        : "Grade saved successfully.",
-      "success"
-    );
+      resetForm();
+      await loadAll();
+    } catch (error) {
+      console.error(error);
 
-
-    resetForm();
-
-    await loadGrades();
-
-  } catch (error) {
-
-    console.error(error);
-
-    showMessage(
-      error.message || "Failed to save grade.",
-      "error"
-    );
-  }
-}
-
-
-// ===============================
-// LOAD GRADES
-// ===============================
-
-async function loadGrades() {
-
-  const loading =
-    document.getElementById("tableLoading");
-
-  const table =
-    document.getElementById("gradesTable");
-
-  loading.style.display = "block";
-
-  table.classList.add("hidden");
-
-
-  try {
-
-    const institutionId =
-      document.getElementById("institutionSelect").value;
-
-
-    let query =
-      supabaseClient
-        .from("grades")
-        .select(`
-          id,
-          institution_id,
-          exam_id,
-          student_id,
-          score,
-          grade,
-          remarks,
-          entered_by,
-          created_at
-        `)
-        .order("created_at", {
-          ascending: false
-        });
-
-
-    if (institutionId) {
-
-      query =
-        query.eq(
-          "institution_id",
-          institutionId
-        );
-    }
-
-
-    const { data, error } =
-      await query;
-
-
-    if (error) {
-      throw error;
-    }
-
-
-    grades = data || [];
-
-
-    await enrichGrades();
-
-
-    renderGrades();
-
-    updateStats();
-
-  } catch (error) {
-
-    console.error(error);
-
-    loading.textContent =
-      error.message || "Failed to load grades.";
-
-  } finally {
-
-    loading.style.display = "none";
-
-    table.classList.remove("hidden");
-  }
-}
-
-
-// ===============================
-// ENRICH GRADES
-// ===============================
-
-async function enrichGrades() {
-
-  if (!grades.length) {
-    return;
-  }
-
-
-  const studentIds =
-    [...new Set(
-      grades.map(g => g.student_id)
-    )];
-
-
-  const examIds =
-    [...new Set(
-      grades.map(g => g.exam_id)
-    )];
-
-
-  let studentMap = {};
-  let examMap = {};
-
-
-  if (studentIds.length) {
-
-    const { data, error } =
-      await supabaseClient
-        .from("students")
-        .select("id, full_name, student_id")
-        .in("id", studentIds);
-
-    if (!error) {
-
-      (data || []).forEach(student => {
-
-        studentMap[student.id] =
-          student;
-      });
+      showNotice(
+        "Could not save grade: " + error.message,
+        "error"
+      );
+    } finally {
+      $("saveGradeBtn").disabled = false;
     }
   }
 
+  function editGrade(id) {
+    const row = state.grades.find(item => item.id === id);
 
-  if (examIds.length) {
+    if (!row) return;
 
-    const { data, error } =
-      await supabaseClient
-        .from("exams")
-        .select(`
-          id,
-          title,
-          exam_type,
-          max_score,
-          exam_date
-        `)
-        .in("id", examIds);
+    $("gradeId").value = row.id;
+    $("institutionSelect").value = row.institution_id || "";
 
-    if (!error) {
+    updateExamOptions();
 
-      (data || []).forEach(exam => {
+    $("examSelect").value = row.exam_id || "";
+    $("studentSelect").value = row.student_id || "";
+    $("scoreInput").value = row.score;
+    $("remarksInput").value = row.remarks || "";
 
-        examMap[exam.id] =
-          exam;
-      });
-    }
-  }
+    updateMaximum();
 
+    $("saveGradeBtn").innerHTML =
+      '<i class="fa-solid fa-floppy-disk"></i> Update Grade';
 
-  grades =
-    grades.map(row => {
-
-      const student =
-        studentMap[row.student_id];
-
-      const exam =
-        examMap[row.exam_id];
-
-
-      const examMax =
-        exam?.max_score
-          ? Number(exam.max_score)
-          : 100;
-
-
-      const percentage =
-        examMax > 0
-          ? (Number(row.score) / examMax) * 100
-          : 0;
-
-
-      return {
-
-        ...row,
-
-        studentName:
-          student?.full_name ||
-          "Unknown Student",
-
-        studentCode:
-          student?.student_id ||
-          "",
-
-        examTitle:
-          exam?.title ||
-          "Unknown Exam",
-
-        examType:
-          exam?.exam_type ||
-          "",
-
-        maxScore:
-          examMax,
-
-        percentage:
-          Number(percentage.toFixed(2))
-      };
+    $("entryCard").scrollIntoView({
+      behavior: "smooth",
+      block: "start"
     });
-}
-
-
-// ===============================
-// RENDER
-// ===============================
-
-function renderGrades() {
-
-  const body =
-    document.getElementById("gradesBody");
-
-
-  const search =
-    document
-      .getElementById("searchInput")
-      .value
-      .trim()
-      .toLowerCase();
-
-
-  const gradeFilter =
-    document
-      .getElementById("gradeFilter")
-      .value;
-
-
-  let filtered =
-    grades.filter(row => {
-
-      const searchable =
-        `${row.studentName}
-         ${row.studentCode}
-         ${row.examTitle}
-         ${row.examType}
-         ${row.grade || ""}
-         ${row.remarks || ""}`
-          .toLowerCase();
-
-
-      const matchesSearch =
-        !search ||
-        searchable.includes(search);
-
-
-      const matchesGrade =
-        !gradeFilter ||
-        row.grade === gradeFilter;
-
-
-      return matchesSearch && matchesGrade;
-    });
-
-
-  body.innerHTML = "";
-
-
-  if (!filtered.length) {
-
-    body.innerHTML = `
-      <tr>
-        <td colspan="9" style="text-align:center;padding:25px;">
-          No grades found.
-        </td>
-      </tr>
-    `;
-
-    return;
   }
 
+  async function deleteGrade(id) {
+    const row = state.grades.find(item => item.id === id);
 
-  filtered.forEach((row, index) => {
+    if (!row) return;
 
-    const tr =
-      document.createElement("tr");
-
-
-    const gradeClass =
-      getGradeClass(row.grade);
-
-
-    tr.innerHTML = `
-
-      <td>${index + 1}</td>
-
-      <td>
-        <strong>${escapeHtml(row.studentName)}</strong>
-        <br>
-        <small>${escapeHtml(row.studentCode)}</small>
-      </td>
-
-      <td>
-        ${escapeHtml(row.examTitle)}
-        <br>
-        <small>${escapeHtml(row.examType)}</small>
-      </td>
-
-      <td>${formatNumber(row.score)}</td>
-
-      <td>${formatNumber(row.maxScore)}</td>
-
-      <td>
-        <strong>${formatNumber(row.percentage)}%</strong>
-      </td>
-
-      <td>
-        <span class="grade ${gradeClass}">
-          ${escapeHtml(row.grade || "-")}
-        </span>
-      </td>
-
-      <td>
-        ${escapeHtml(row.remarks || "-")}
-      </td>
-
-      <td>
-        <div class="actions">
-
-          <button
-            class="gold"
-            onclick="editGrade('${row.id}')">
-            Edit
-          </button>
-
-          <button
-            class="danger"
-            onclick="deleteGrade('${row.id}')">
-            Delete
-          </button>
-
-        </div>
-      </td>
-
-    `;
-
-
-    body.appendChild(tr);
-  });
-}
-
-
-// ===============================
-// EDIT
-// ===============================
-
-async function editGrade(id) {
-
-  const row =
-    grades.find(g => g.id === id);
-
-
-  if (!row) {
-    return;
-  }
-
-
-  const institutionSelect =
-    document.getElementById("institutionSelect");
-
-
-  institutionSelect.value =
-    row.institution_id;
-
-
-  await loadExams(row.institution_id);
-
-  await loadStudents(row.institution_id);
-
-
-  document.getElementById("examSelect").value =
-    row.exam_id;
-
-
-  document.getElementById("studentSelect").value =
-    row.student_id;
-
-
-  document.getElementById("scoreInput").value =
-    row.score;
-
-
-  document.getElementById("maxScoreInput").value =
-    row.maxScore;
-
-
-  document.getElementById("remarksInput").value =
-    row.remarks || "";
-
-
-  editingId = id;
-
-
-  calculateResult();
-
-
-  document.getElementById("saveBtn").textContent =
-    "Update Grade";
-
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-}
-
-
-// ===============================
-// DELETE
-// ===============================
-
-async function deleteGrade(id) {
-
-  const row =
-    grades.find(g => g.id === id);
-
-
-  if (!row) {
-    return;
-  }
-
-
-  const confirmed =
-    confirm(
-      `Delete grade for ${row.studentName}?\n\n` +
-      `${row.examTitle} — ${row.grade}`
+    const confirmed = confirm(
+      `Delete the grade record for ${studentName(row.student_id)} / ${examTitle(row.exam_id)}?\n\nThis cannot be undone.`
     );
 
+    if (!confirmed) return;
 
-  if (!confirmed) {
-    return;
-  }
-
-
-  try {
-
-    const { error } =
-      await supabaseClient
+    try {
+      const { error } = await db
         .from("grades")
         .delete()
         .eq("id", id);
 
+      if (error) throw error;
 
-    if (error) {
-      throw error;
+      showNotice("Grade record deleted.", "success");
+
+      await loadAll();
+    } catch (error) {
+      showNotice(
+        "Could not delete grade: " + error.message,
+        "error"
+      );
     }
-
-
-    showMessage(
-      "Grade deleted successfully.",
-      "success"
-    );
-
-
-    await loadGrades();
-
-  } catch (error) {
-
-    console.error(error);
-
-    showMessage(
-      error.message || "Failed to delete grade.",
-      "error"
-    );
   }
-}
 
+  function resetForm() {
+    $("gradeForm").reset();
 
-// ===============================
-// RESET
-// ===============================
+    $("gradeId").value = "";
+    $("maxScoreInput").value = "100";
+    $("percentInput").value = "0%";
+    $("gradeInput").value = "F";
 
-function resetForm() {
+    $("saveGradeBtn").innerHTML =
+      '<i class="fa-solid fa-floppy-disk"></i> Save Grade';
 
-  editingId = null;
+    updateExamOptions();
+  }
 
+  /*
+   * Build report:
+   * - Published results are preferred.
+   * - Duplicate published results for the same subject are
+   *   handled as one subject, choosing the newest updated row.
+   * - grades are used only for subjects missing in results.
+   * - aggregate totals above the exam maximum are ignored.
+   */
+  function buildReport(studentId) {
+    const student = findStudent(studentId);
 
-  document.getElementById("examSelect").value =
-    "";
+    if (!student) return null;
 
-  document.getElementById("studentSelect").value =
-    "";
+    const subjectMap = new Map();
 
-  document.getElementById("scoreInput").value =
-    "";
+    const published = state.results.filter(row =>
+      row.student_id === studentId &&
+      row.is_published === true
+    );
 
-  document.getElementById("maxScoreInput").value =
-    "";
+    published.forEach(row => {
+      const name = subjectNameFromResult(row);
+      const key = normalise(name);
 
-  document.getElementById("percentageInput").value =
-    "";
+      if (!key) return;
 
-  document.getElementById("gradeInput").value =
-    "";
+      const candidate = {
+        key,
+        name,
+        score: number(row.score),
+        maximum: number(row.max_score, 100) || 100,
+        grade: row.grade || null,
+        source: "results",
+        published: true,
+        updated: String(row.updated_at || row.created_at || "")
+      };
 
-  document.getElementById("remarksInput").value =
-    "";
+      const previous = subjectMap.get(key);
 
+      if (
+        !previous ||
+        candidate.updated > previous.updated
+      ) {
+        subjectMap.set(key, candidate);
+      }
+    });
 
-  document.getElementById("saveBtn").textContent =
-    "Save Grade";
-}
+    getSubjectGradeRows()
+      .filter(row => row.student_id === studentId)
+      .forEach(row => {
+        const name = examTitle(row.exam_id);
+        const key = normalise(name);
 
+        if (!key || subjectMap.has(key)) return;
 
-// ===============================
-// RESET DEPENDENT FIELDS
-// ===============================
+        const maximum = examMaximum(row.exam_id);
 
-function resetDependentFields() {
+        subjectMap.set(key, {
+          key,
+          name,
+          score: number(row.score),
+          maximum,
+          grade: row.grade || null,
+          source: "grades",
+          published: false,
+          updated: String(row.updated_at || row.created_at || "")
+        });
+      });
 
-  exams = [];
-  students = [];
+    const subjects = [...subjectMap.values()]
+      .sort((a, b) => a.name.localeCompare(b.name));
 
-  document.getElementById("examSelect").innerHTML =
-    `<option value="">Select exam</option>`;
+    const totalScore = subjects.reduce(
+      (sum, row) => sum + row.score,
+      0
+    );
 
-  document.getElementById("studentSelect").innerHTML =
-    `<option value="">Select student</option>`;
+    const totalMaximum = subjects.reduce(
+      (sum, row) => sum + row.maximum,
+      0
+    );
 
-  document.getElementById("scoreInput").value = "";
-  document.getElementById("maxScoreInput").value = "";
-  document.getElementById("percentageInput").value = "";
-  document.getElementById("gradeInput").value = "";
-  document.getElementById("remarksInput").value = "";
-}
-
-
-// ===============================
-// STATS
-// ===============================
-
-function updateStats() {
-
-  const total =
-    grades.length;
-
-
-  let top =
-    0;
-
-  let passed =
-    0;
-
-  let failed =
-    0;
-
-  let totalPercentage =
-    0;
-
-
-  grades.forEach(row => {
-
-    const percentage =
-      Number(row.percentage) || 0;
-
-
-    totalPercentage +=
-      percentage;
-
-
-    if (
-      row.grade === "A+" ||
-      row.grade === "A"
-    ) {
-      top++;
-    }
-
-
-    if (percentage >= 50) {
-      passed++;
-    } else {
-      failed++;
-    }
-  });
-
-
-  const average =
-    total > 0
-      ? totalPercentage / total
+    const overallPercentage = totalMaximum > 0
+      ? totalScore / totalMaximum * 100
       : 0;
 
+    const passed = subjects.filter(
+      row => percent(row.score, row.maximum) >= 50
+    ).length;
 
-  document.getElementById("totalGrades").textContent =
-    total;
+    const failed = subjects.length - passed;
 
-
-  document.getElementById("topGrades").textContent =
-    top;
-
-
-  document.getElementById("passedGrades").textContent =
-    passed;
-
-
-  document.getElementById("failedGrades").textContent =
-    failed;
-
-
-  document.getElementById("averageScore").textContent =
-    `${average.toFixed(2)}%`;
-}
-
-
-// ===============================
-// GRADE CLASS
-// ===============================
-
-function getGradeClass(grade) {
-
-  switch (grade) {
-
-    case "A+":
-      return "grade-a-plus";
-
-    case "A":
-      return "grade-a";
-
-    case "B":
-      return "grade-b";
-
-    case "C":
-      return "grade-c";
-
-    case "D":
-      return "grade-d";
-
-    case "F":
-      return "grade-f";
-
-    default:
-      return "";
-  }
-}
-
-
-// ===============================
-// HELPERS
-// ===============================
-
-function formatNumber(value) {
-
-  const number =
-    Number(value);
-
-  if (!Number.isFinite(number)) {
-    return "0";
+    return {
+      student,
+      subjects,
+      totalScore,
+      totalMaximum,
+      overallPercentage,
+      overallGrade: calculateGrade(overallPercentage),
+      passed,
+      failed,
+      publishedCount: subjects.filter(row => row.published).length
+    };
   }
 
-  return number % 1 === 0
-    ? number.toString()
-    : number.toFixed(2);
-}
+  function renderStudentReport(studentId) {
+    const report = buildReport(studentId);
+    const container = $("reportContainer");
 
+    if (!report || !report.subjects.length) {
+      container.innerHTML = `
+        <div class="empty">
+          No subject results found for this student.
+        </div>
+      `;
+      return;
+    }
 
-function escapeHtml(value) {
+    state.reportStudentId = studentId;
 
-  if (value === null || value === undefined) {
-    return "";
+    const student = report.student;
+
+    const rows = report.subjects.map((subject, index) => {
+      const p = percent(subject.score, subject.maximum);
+      const grade = subject.grade || calculateGrade(p);
+      const status = p >= 50 ? "PASS" : "FAIL";
+
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHTML(subject.name)}</td>
+          <td>${subject.score.toFixed(2)}</td>
+          <td>${subject.maximum.toFixed(2)}</td>
+          <td>${p.toFixed(2)}%</td>
+          <td>${escapeHTML(grade)}</td>
+          <td>
+            <span class="pill ${gradeStyle(grade)}">${status}</span>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    container.innerHTML = `
+      <div class="report-brand">
+        <img
+          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+          alt="GAAWOW Academy Logo">
+
+        <div>
+          <h2>GAAWOW ACADEMY</h2>
+          <p>ILAYSKA AQOONTA IYO XIRFADDA</p>
+          <p>BURHAKABA, BAY, SOMALIA</p>
+          <p><strong>STUDENT ACADEMIC RESULT REPORT</strong></p>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px">
+        <div>
+          <strong>Student Name:</strong>
+          ${escapeHTML(student.full_name || "Unknown")}
+          <br>
+
+          <strong>Student ID:</strong>
+          ${escapeHTML(student.student_id || "N/A")}
+        </div>
+
+        <div>
+          <strong>Report Date:</strong>
+          ${new Date().toLocaleDateString()}
+          <br>
+
+          <strong>Results:</strong>
+          ${report.publishedCount} published subject(s)
+        </div>
+      </div>
+
+      <div class="summary">
+        <div class="summary-box">
+          <span>TOTAL SCORE</span>
+          <strong>${report.totalScore.toFixed(2)}</strong>
+        </div>
+
+        <div class="summary-box">
+          <span>MAXIMUM SCORE</span>
+          <strong>${report.totalMaximum.toFixed(2)}</strong>
+        </div>
+
+        <div class="summary-box">
+          <span>OVERALL PERCENTAGE</span>
+          <strong>${report.overallPercentage.toFixed(2)}%</strong>
+        </div>
+
+        <div class="summary-box">
+          <span>OVERALL GRADE</span>
+          <strong>${report.overallGrade}</strong>
+        </div>
+      </div>
+
+      <h3>Subject Results</h3>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Subject</th>
+              <th>Score</th>
+              <th>Maximum</th>
+              <th>Percentage</th>
+              <th>Grade</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>${rows}</tbody>
+
+          <tfoot>
+            <tr>
+              <th colspan="2">TOTAL (${report.subjects.length} subjects)</th>
+              <th>${report.totalScore.toFixed(2)}</th>
+              <th>${report.totalMaximum.toFixed(2)}</th>
+              <th>${report.overallPercentage.toFixed(2)}%</th>
+              <th>${report.overallGrade}</th>
+              <th>${report.failed ? report.failed + " failed" : "All passed"}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        <span class="pill pass">Passed: ${report.passed}</span>
+        <span class="pill fail">Failed: ${report.failed}</span>
+        <span class="pill">Subjects: ${report.subjects.length}</span>
+      </div>
+
+      <div class="report-footer">
+        <div class="signature">Registrar / Academic Office</div>
+        <div class="signature">Director, GAAWOW Academy</div>
+      </div>
+
+      <p style="font-size:10px;color:#64748B;margin-top:22px;line-height:1.6">
+        Report policy: published subject results are preferred.
+        Grade records are used only when no published result exists
+        for the same subject. Aggregate records are excluded from
+        subject totals. Verify conflicting source scores before
+        issuing an official transcript.
+      </p>
+    `;
   }
 
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+  function viewReport() {
+    const studentId = $("reportStudentSelect").value;
+    const institutionId = $("reportInstitutionSelect").value;
 
+    if (!studentId) {
+      showNotice("Please select a student first.", "error");
+      return;
+    }
 
-function showMessage(text, type) {
+    const student = findStudent(studentId);
 
-  const box =
-    document.getElementById("message");
+    if (
+      institutionId &&
+      student?.institution_id !== institutionId
+    ) {
+      showNotice(
+        "The selected student does not belong to this institution.",
+        "error"
+      );
+      return;
+    }
 
-  box.textContent =
-    text;
+    clearNotice();
+    renderStudentReport(studentId);
+  }
 
-  box.className =
-    `message ${type}`;
+  function bindEvents() {
+    $("gradeForm").addEventListener("submit", saveGrade);
 
-
-  setTimeout(() => {
-
-    box.className =
-      "message";
-
-  }, 4000);
-}
-
-
-// ===============================
-// DASHBOARD
-// ===============================
-
-function goDashboard() {
-
-  window.location.href =
-    "super-admin.html";
-}
-
-
-// ===============================
-// LOGOUT SAFETY
-// ===============================
-
-window.addEventListener(
-  "error",
-  event => {
-
-    console.error(
-      "Grades page error:",
-      event.error
+    $("institutionSelect").addEventListener(
+      "change",
+      updateExamOptions
     );
+
+    $("examSelect").addEventListener(
+      "change",
+      updateMaximum
+    );
+
+    $("scoreInput").addEventListener(
+      "input",
+      updateScorePreview
+    );
+
+    $("gradeSearch").addEventListener(
+      "input",
+      renderGradeTable
+    );
+
+    $("institutionFilter").addEventListener(
+      "change",
+      renderGradeTable
+    );
+
+    $("gradesTableBody").addEventListener("click", event => {
+      const editButton = event.target.closest("[data-edit]");
+      const deleteButton = event.target.closest("[data-delete]");
+
+      if (editButton) {
+        editGrade(editButton.dataset.edit);
+      }
+
+      if (deleteButton) {
+        deleteGrade(deleteButton.dataset.delete);
+      }
+    });
+
+    $("resetFormBtn").addEventListener("click", resetForm);
+
+    $("newGradeBtn").addEventListener("click", () => {
+      resetForm();
+
+      $("entryCard").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    });
+
+    $("viewReportBtn").addEventListener(
+      "click",
+      viewReport
+    );
+
+    $("reportStudentSelect").addEventListener("change", () => {
+      const id = $("reportStudentSelect").value;
+
+      if (id) {
+        renderStudentReport(id);
+      }
+    });
+
+    $("printReportBtn").addEventListener("click", () => {
+      if (!$("reportContainer").querySelector("table")) {
+        viewReport();
+      }
+
+      if ($("reportContainer").querySelector("table")) {
+        window.print();
+      }
+    });
+
+    $("refreshBtn").addEventListener("click", loadAll);
+
+    $("signOutBtn").addEventListener("click", async () => {
+      const { error } = await db.auth.signOut();
+
+      if (error) {
+        showNotice(error.message, "error");
+      } else {
+        window.location.href = "index.html";
+      }
+    });
   }
-);
+
+  async function init() {
+    bindEvents();
+
+    try {
+      const allowed = await checkAccess();
+
+      if (allowed) {
+        await loadAll();
+      }
+    } catch (error) {
+      console.error(error);
+
+      showNotice(
+        "Access or loading error: " + error.message,
+        "error"
+      );
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
