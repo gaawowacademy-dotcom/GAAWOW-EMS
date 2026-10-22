@@ -28,7 +28,7 @@
   };
   const parseType = type => norm(type).replace(/_/g,' ');
   const gradeFor = percentage => percentage>=90?'A+':percentage>=80?'A':percentage>=70?'B':percentage>=60?'C':percentage>=50?'D':'F';
-  const activeStatus = status => !['withdrawn','cancelled','inactive','suspended','dropped'].includes(norm(status));
+  const activeStatus = status => !['withdrawn','cancelled','inactive','completed','suspended'].includes(norm(status));
 
   async function checkSession(){
     const {data:{session},error}=await db.auth.getSession();
@@ -205,9 +205,9 @@
     state.selectedExam=exam;state.students=[];$('marksExamLabel').textContent=`${exam.title} · ${exam.subject_name}`;
     $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading enrolled students…</td></tr>';$('saveMarksBtn').disabled=true;
     try{
-      const {data:enrollments,error:eError}=await db.from('enrollments').select('student_id,status,course_id,class_id,institution_id').eq('institution_id',exam.institution_id).eq('class_id',exam.class_id);
+      const {data:enrollments,error:eError}=await db.from('enrollments').select('student_id,status,course_id,class_id,institution_id').eq('institution_id',exam.institution_id).eq('course_id',exam.course_id).eq('class_id',exam.class_id);
       if(eError)throw eError;
-      const enrollmentRows=(enrollments||[]).filter(e=>activeStatus(e.status)&&(!e.course_id||e.course_id===exam.course_id));
+      const enrollmentRows=(enrollments||[]).filter(e=>activeStatus(e.status));
       const ids=[...new Set(enrollmentRows.map(e=>e.student_id).filter(Boolean))];
       if(!ids.length){renderStudents();toast('Fasalkan enrollment arday oo firfircoon lagama helin.','error');return;}
       const {data:studentData,error:sError}=await db.from('students').select('id,student_id,full_name,institution_id,status,photo_url').eq('institution_id',exam.institution_id).in('id',ids).order('full_name');
@@ -263,7 +263,7 @@
     const payload={institution_id:exam.institution_id,student_id:student.id,exam_id:exam.id,subject_id:exam.subject_id,score:row.score,max_score:Number(exam.max_score),percentage,grade:gradeFor(percentage),remarks:row.remarks,created_by:state.user.id};
     let result=student.result;
     if(result?.id){
-      const response=await db.from('results').update({score:payload.score,max_score:payload.max_score,percentage:payload.percentage,grade:payload.grade,remarks:payload.remarks,is_published:false}).eq('id',result.id).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
+      const response=await db.from('results').update({score:payload.score,max_score:payload.max_score,percentage:payload.percentage,grade:payload.grade,remarks:payload.remarks}).eq('id',result.id).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
       if(response.error)throw response.error;result=response.data;
     }else{
       // Keep a new result unpublished. The official publish workflow remains in charge of publication.
@@ -308,15 +308,18 @@
     if(level==='institution'){
       $('studentCourseSelect').innerHTML='<option value="">Select institution first</option>';$('studentCourseSelect').disabled=true;
       $('studentClassSelect').innerHTML='<option value="">Select course first</option>';$('studentClassSelect').disabled=true;
+      $('studentSubjectFilter').innerHTML='<option value="">All subjects</option>';$('studentSubjectFilter').disabled=true;
       $('studentSelect').innerHTML='<option value="">Select class first</option>';$('studentSelect').disabled=true;
     } else if(level==='course'){
       $('studentClassSelect').innerHTML='<option value="">Select course first</option>';$('studentClassSelect').disabled=true;
+      $('studentSubjectFilter').innerHTML='<option value="">All subjects</option>';$('studentSubjectFilter').disabled=true;
       $('studentSelect').innerHTML='<option value="">Select class first</option>';$('studentSelect').disabled=true;
     } else if(level==='class'){
+      $('studentSubjectFilter').innerHTML='<option value="">All subjects</option>';$('studentSubjectFilter').disabled=true;
       $('studentSelect').innerHTML='<option value="">Select class first</option>';$('studentSelect').disabled=true;
     }
     state.studentGrade={student:null,rows:[]};$('saveStudentSubjectsBtn').disabled=true;$('publishClassResultsBtn').disabled=true;
-    $('studentSubjectsBody').innerHTML='<tr><td colspan="10" class="empty">Dooro Institution, Course, Class iyo Student.</td></tr>';
+    $('studentSubjectsBody').innerHTML='<tr><td colspan="9" class="empty">Dooro Institution, Course, Class iyo Student.</td></tr>';
   }
 
   async function loadStudentGradeCourses(){
@@ -341,29 +344,33 @@
     resetStudentGradingSelectors('class');
     const institutionId=$('studentInstitutionSelect').value,courseId=$('studentCourseSelect').value,classId=$('studentClassSelect').value;
     if(!institutionId||!courseId||!classId)return;
-    const {data:enrollments,error:eError}=await db.from('enrollments').select('student_id,status,course_id,class_id,institution_id').eq('institution_id',institutionId).eq('class_id',classId);
+    const subjectFilter=$('studentSubjectFilter');
+    const classExams=state.exams.filter(e=>e.institution_id===institutionId&&e.course_id===courseId&&e.class_id===classId&&e.subject_id);
+    const subjectMap=new Map(classExams.map(e=>[e.subject_id,e.subject_name||'Subject']));
+    subjectFilter.innerHTML='<option value="">All subjects</option>'+[...subjectMap.entries()].sort((a,b)=>a[1].localeCompare(b[1])).map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join('');
+    subjectFilter.disabled=subjectMap.size===0;
+    const {data:enrollments,error:eError}=await db.from('enrollments').select('student_id,status').eq('institution_id',institutionId).eq('course_id',courseId).eq('class_id',classId);
     if(eError)throw eError;
-    const eligible=(enrollments||[]).filter(e=>activeStatus(e.status)&&(!e.course_id||e.course_id===courseId));
-    const ids=[...new Set(eligible.map(e=>e.student_id).filter(Boolean))];
-    if(!ids.length){selectOptions($('studentSelect'),[],x=>x.full_name,'No enrolled students in this class');$('studentSelect').disabled=true;toast('Arday lama helin fasalkan. Hubi in ardaydu ku jiraan Enrollments oo class_id sax yahay.','error');return;}
+    const ids=[...new Set((enrollments||[]).filter(e=>activeStatus(e.status)).map(e=>e.student_id).filter(Boolean))];
+    if(!ids.length){selectOptions($('studentSelect'),[],x=>x.full_name,'No enrolled students');$('studentSelect').disabled=true;toast('Fasalkan arday active ah lagama helin enrollments.','error');return;}
     const {data,error}=await db.from('students').select('id,student_id,full_name,institution_id,status,photo_url').eq('institution_id',institutionId).in('id',ids).order('full_name');
     if(error)throw error;
     const students=(data||[]).filter(s=>activeStatus(s.status));
-    selectOptions($('studentSelect'),students,x=>`${x.full_name} (${x.student_id||'No ID'})`,'Select student');$('studentSelect').disabled=students.length===0;
-    if(!students.length)toast('Enrollments waa jiraa laakiin ardayda lama helin. Hubi students.id iyo enrollments.student_id inay is waafaqaan.','error');
+    selectOptions($('studentSelect'),students,x=>`${x.full_name} (${x.student_id||'No ID'})`,'Select student');$('studentSelect').disabled=false;
   }
 
   async function loadStudentSubjects(){
     const institutionId=$('studentInstitutionSelect').value,courseId=$('studentCourseSelect').value,classId=$('studentClassSelect').value,studentId=$('studentSelect').value;
     if(!institutionId||!courseId||!classId||!studentId){toast('Dooro Institution, Course, Class iyo Student.','error');return;}
     const studentLabel=$('studentSelect').selectedOptions[0]?.text||'Selected student';
-    $('studentSubjectsBody').innerHTML='<tr><td colspan="10" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading subjects and exams…</td></tr>';
+    $('studentSubjectsBody').innerHTML='<tr><td colspan="9" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading subjects and exams…</td></tr>';
     $('saveStudentSubjectsBtn').disabled=true;
     try{
       const studentResponse=await db.from('students').select('id,student_id,full_name,institution_id,status').eq('id',studentId).eq('institution_id',institutionId).single();
       if(studentResponse.error)throw studentResponse.error;
       const student=studentResponse.data;
-      const exams=state.exams.filter(e=>e.institution_id===institutionId&&e.course_id===courseId&&e.class_id===classId&&e.subject_id);
+      const selectedSubjectId=$('studentSubjectFilter').value;
+      const exams=state.exams.filter(e=>e.institution_id===institutionId&&e.course_id===courseId&&e.class_id===classId&&e.subject_id&&(!selectedSubjectId||e.subject_id===selectedSubjectId));
       if(!exams.length){state.studentGrade={student,rows:[]};renderStudentSubjects();toast(`${studentLabel}: imtixaan/maado loo sameeyey fasalkan lama helin.`,'info');return;}
       const examIds=exams.map(e=>e.id);
       const [rr,gr]=await Promise.all([
@@ -375,16 +382,16 @@
       const resultMap=latest(rr.data),gradeMap=latest(gr.data);
       state.studentGrade={student,rows:exams.map(exam=>{const result=resultMap.get(exam.id)||null,gradeRow=gradeMap.get(exam.id)||null;return {exam,result,gradeRow,score:result?.score??gradeRow?.score??'',remarks:result?.remarks??gradeRow?.remarks??''};})};
       renderStudentSubjects();$('saveStudentSubjectsBtn').disabled=false;$('publishClassResultsBtn').disabled=false;
-    }catch(e){$('studentSubjectsBody').innerHTML=`<tr><td colspan="10" class="empty">Unable to load student subjects: ${esc(errText(e))}</td></tr>`;toast(`Student subjects could not be loaded: ${errText(e)}`,'error');}
+    }catch(e){$('studentSubjectsBody').innerHTML=`<tr><td colspan="9" class="empty">Unable to load student subjects: ${esc(errText(e))}</td></tr>`;toast(`Student subjects could not be loaded: ${errText(e)}`,'error');}
   }
 
   function renderStudentSubjects(){
     const {student,rows}=state.studentGrade;
-    if(!student||!rows.length){$('studentSubjectsBody').innerHTML='<tr><td colspan="10" class="empty">Ardaygan imtixaan maado ku xiran lagama helin fasalkan.</td></tr>';return;}
+    if(!student||!rows.length){$('studentSubjectsBody').innerHTML='<tr><td colspan="9" class="empty">Ardaygan imtixaan maado ku xiran lagama helin fasalkan.</td></tr>';return;}
     $('studentSubjectsBody').innerHTML=rows.map((row,i)=>{
       const exam=row.exam,max=Number(exam.max_score||100),score=row.score==null?'':row.score,pct=score===''?'':Math.round(Number(score)/max*10000)/100,grade=pct===''?'':gradeFor(pct);
       const status=row.result?.is_published?'<span class="tag" style="background:#eaf8f0;color:#17633e">Published</span>':'<span class="tag">Private / Draft</span>';
-      return `<tr data-subject-row="${esc(exam.id)}"><td>${i+1}</td><td><strong>${esc(exam.subject_name||'Subject')}</strong><div style="color:#7b8495;margin-top:4px">${esc(exam.title)}</div></td><td><span class="tag">${esc(parseType(exam.exam_type))}</span></td><td>${esc(max)}</td><td><input class="score-input" type="number" min="0" max="${esc(max)}" step="0.01" inputmode="decimal" data-student-exam-score="${esc(exam.id)}" value="${esc(score)}" placeholder="0-${esc(max)}" aria-label="Score for ${esc(exam.title)}"></td><td data-student-exam-pct="${esc(exam.id)}">${pct===''?'—':pct+'%'}</td><td data-student-exam-grade="${esc(exam.id)}">${grade||'—'}</td><td><input class="score-input" style="width:160px;max-width:100%" data-student-exam-remarks="${esc(exam.id)}" value="${esc(row.remarks||'')}" placeholder="Optional remarks"></td><td>${status}</td><td><div class="row-actions"><button class="icon-btn" type="button" title="Review result" data-subject-action="review" data-id="${esc(exam.id)}"><i class="fa-solid fa-eye"></i></button><button class="icon-btn" type="button" title="Edit score" data-subject-action="edit" data-id="${esc(exam.id)}"><i class="fa-solid fa-pen"></i></button><button class="icon-btn" type="button" title="Publish result" data-subject-action="publish" data-id="${esc(exam.id)}" ${row.result?.is_published?'disabled':''}><i class="fa-solid fa-bullhorn"></i></button><button class="icon-btn delete" type="button" title="Delete result" data-subject-action="delete" data-id="${esc(exam.id)}" ${row.result?.id?'':'disabled'}><i class="fa-solid fa-trash"></i></button></div></td></tr>`;
+      return `<tr><td>${i+1}</td><td><strong>${esc(exam.subject_name||'Subject')}</strong><div style="color:#7b8495;margin-top:4px">${esc(exam.title)}</div></td><td>${esc(parseType(exam.exam_type))}</td><td>${esc(max)}</td><td><input class="score-input" type="number" min="0" max="${esc(max)}" step="0.01" inputmode="decimal" data-student-exam-score="${esc(exam.id)}" value="${esc(score)}" placeholder="0-${esc(max)}" aria-label="Score for ${esc(exam.title)}"></td><td data-student-exam-pct="${esc(exam.id)}">${pct===''?'—':pct+'%'}</td><td data-student-exam-grade="${esc(exam.id)}">${grade||'—'}</td><td><input class="score-input" style="width:160px;max-width:100%" data-student-exam-remarks="${esc(exam.id)}" value="${esc(row.remarks||'')}" placeholder="Optional remarks"></td><td>${status}</td></tr>`;
     }).join('');
   }
 
@@ -426,9 +433,9 @@
     if(!confirm('Ma daabacaysaa dhammaan natiijooyinka la kaydiyey ee fasalkan? Kaliya natiijooyinka hore loo kaydiyey ayaa la daabacayaa.'))return;
     setBusy($('publishClassResultsBtn'),true,'<i class="fa-solid fa-spinner fa-spin"></i> Publishing all…');
     try{
-      const {data:enrollments,error:eError}=await db.from('enrollments').select('student_id,status,course_id,class_id,institution_id').eq('institution_id',institutionId).eq('class_id',classId);
+      const {data:enrollments,error:eError}=await db.from('enrollments').select('student_id,status').eq('institution_id',institutionId).eq('course_id',courseId).eq('class_id',classId);
       if(eError)throw eError;
-      const studentIds=[...new Set((enrollments||[]).filter(e=>activeStatus(e.status)&&(!e.course_id||e.course_id===courseId)).map(e=>e.student_id).filter(Boolean))];
+      const studentIds=[...new Set((enrollments||[]).filter(e=>activeStatus(e.status)).map(e=>e.student_id).filter(Boolean))];
       if(!studentIds.length){toast('Fasalkan arday active ah lagama helin.','error');return;}
       const examIds=exams.map(e=>e.id);
       const {data,error}=await db.from('results').update({is_published:true}).eq('institution_id',institutionId).in('exam_id',examIds).in('student_id',studentIds).select('id');
@@ -464,38 +471,6 @@
     if(action==='delete')await deleteExam(id);
   }
 
-  async function handleStudentSubjectAction(event){
-    const button=event.target.closest('button[data-subject-action]');if(!button)return;
-    const examId=button.dataset.id,action=button.dataset.subjectAction;
-    const row=state.studentGrade.rows.find(x=>x.exam.id===examId),student=state.studentGrade.student;
-    if(!row||!student)return;
-    if(action==='review'){
-      const score=document.querySelector(`[data-student-exam-score="${CSS.escape(examId)}"]`)?.value??row.score;
-      const max=Number(row.exam.max_score||100),pct=score===''||score==null?'Not entered':`${Math.round(Number(score)/max*10000)/100}%`;
-      alert(`GAAWOW ACADEMY · RESULT REVIEW\nStudent: ${student.full_name}\nStudent ID: ${student.student_id||'N/A'}\nSubject: ${row.exam.subject_name||'Subject'}\nExam: ${row.exam.title}\nScore: ${score===''||score==null?'Not entered':`${score} / ${max}`}\nPercentage: ${pct}\nGrade: ${score===''||score==null?'—':gradeFor(Number(score)/max*100)}\nStatus: ${row.result?.is_published?'Published':'Draft / Private'}`);
-    }else if(action==='edit'){
-      const input=document.querySelector(`[data-student-exam-score="${CSS.escape(examId)}"]`);input?.focus();input?.scrollIntoView({behavior:'smooth',block:'center'});toast('Wax ka beddel Score/Remarks kadib riix Save Student Marks.','info');
-    }else if(action==='publish'){
-      if(!row.result?.id){toast('Marka hore geli dhibcaha oo Save Student Marks samee.','info');return;}
-      if(!confirm(`Ma daabacaysaa natiijada ${row.exam.subject_name} ee ${student.full_name}?`))return;
-      setBusy(button,true,'<i class="fa-solid fa-spinner fa-spin"></i>');
-      try{
-        const {data,error}=await db.from('results').update({is_published:true}).eq('id',row.result.id).eq('student_id',student.id).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
-        if(error)throw error;row.result=data;renderStudentSubjects();toast('Natiijada maadadan waa la publish-gareeyey.');
-      }catch(e){toast(`Publish failed: ${errText(e)}`,'error');}
-      finally{setBusy(button,false);}
-    }else if(action==='delete'){
-      if(!row.result?.id){toast('Natiijo la kaydiyey ma jirto oo la tirtiri karo.','info');return;}
-      if(!confirm(`Ma tirtiraysaa natiijada ${row.exam.subject_name} ee ${student.full_name}? Tallaabadan lama soo celin karo.`))return;
-      try{
-        const {error:resultError}=await db.from('results').delete().eq('id',row.result.id).eq('student_id',student.id);
-        if(resultError)throw resultError;
-        if(row.gradeRow?.id){const {error:gradeError}=await db.from('grades').delete().eq('id',row.gradeRow.id).eq('student_id',student.id);if(gradeError)throw new Error(`Result waa la tirtiray laakiin Grades delete waa fashilmay: ${errText(gradeError)}`);}
-        row.result=null;row.gradeRow=null;row.score='';row.remarks='';renderStudentSubjects();toast('Natiijada waa la tirtiray, Grades-na waa lala waafajiyey.');
-      }catch(e){toast(`Delete failed: ${errText(e)}`,'error');}
-    }
-  }
-
   function bindEvents(){
     $('institutionSelect').addEventListener('change',async()=>{try{resetFormIfNeeded();await loadCourses($('institutionSelect').value);}catch(e){toast(errText(e),'error');}});
     $('courseSelect').addEventListener('change',async()=>{try{await onCourseChange();}catch(e){toast(errText(e),'error');}});
@@ -513,10 +488,10 @@
     $('studentInstitutionSelect').addEventListener('change',async()=>{try{await loadStudentGradeCourses();}catch(e){toast(errText(e),'error');}});
     $('studentCourseSelect').addEventListener('change',async()=>{try{await loadStudentGradeClasses();}catch(e){toast(errText(e),'error');}});
     $('studentClassSelect').addEventListener('change',async()=>{try{await loadStudentGradeStudents();}catch(e){toast(errText(e),'error');}});
-    $('studentSelect').addEventListener('change',()=>{if($('studentSelect').value)loadStudentSubjects();else resetStudentGradingSelectors('class');});
+    $('studentSubjectFilter').addEventListener('change',async()=>{if($('studentSelect').value){try{await loadStudentSubjects();}catch(e){toast(errText(e),'error');}}});
+    $('studentSelect').addEventListener('change',async()=>{if($('studentSelect').value){await loadStudentSubjects();}else{state.studentGrade={student:null,rows:[]};$('studentSubjectsBody').innerHTML='<tr><td colspan="9" class="empty">Dooro arday si maaddooyinkiisa loo soo bandhigo.</td></tr>';$('saveStudentSubjectsBtn').disabled=true;$('publishClassResultsBtn').disabled=true;}});
     $('loadStudentSubjectsBtn').addEventListener('click',loadStudentSubjects);$('saveStudentSubjectsBtn').addEventListener('click',saveStudentSubjectMarks);$('publishClassResultsBtn').addEventListener('click',publishAllClassResults);
     $('studentSubjectsBody').addEventListener('input',event=>{if(event.target.matches('[data-student-exam-score]'))updateStudentSubjectPreview(event.target);});
-    $('studentSubjectsBody').addEventListener('click',handleStudentSubjectAction);
     $('logoutBtn').addEventListener('click',async()=>{try{await db.auth.signOut();}finally{location.href='index.html';}});
   }
   function resetFormIfNeeded(){
