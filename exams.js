@@ -10,7 +10,7 @@
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
   const $ = id => document.getElementById(id);
-  const state = { user:null, profile:null, institutions:[], courses:[], classes:[], subjects:[], exams:[], students:[], selectedExam:null, studentGrade:{student:null,rows:[]}, schemaReady:true, initialized:false };
+  const state = { user:null, profile:null, institutions:[], courses:[], classes:[], subjects:[], exams:[], students:[], selectedExam:null, studentGrade:{student:null,rows:[]}, lessons:[], schemaReady:true, initialized:false };
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const norm = value => String(value ?? '').toLowerCase().trim();
   const errText = error => error?.message || error?.details || error?.hint || String(error || 'Unknown error');
@@ -263,7 +263,7 @@
     const payload={institution_id:exam.institution_id,student_id:student.id,exam_id:exam.id,subject_id:exam.subject_id,score:row.score,max_score:Number(exam.max_score),percentage,grade:gradeFor(percentage),remarks:row.remarks,created_by:state.user.id};
     let result=student.result;
     if(result?.id){
-      const response=await db.from('results').update({score:payload.score,max_score:payload.max_score,percentage:payload.percentage,grade:payload.grade,remarks:payload.remarks}).eq('id',result.id).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
+      const response=await db.from('results').update({score:payload.score,max_score:payload.max_score,percentage:payload.percentage,grade:payload.grade,remarks:payload.remarks,is_published:false}).eq('id',result.id).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
       if(response.error)throw response.error;result=response.data;
     }else{
       // Keep a new result unpublished. The official publish workflow remains in charge of publication.
@@ -308,15 +308,17 @@
     if(level==='institution'){
       $('studentCourseSelect').innerHTML='<option value="">Select institution first</option>';$('studentCourseSelect').disabled=true;
       $('studentClassSelect').innerHTML='<option value="">Select course first</option>';$('studentClassSelect').disabled=true;
-      $('studentSelect').innerHTML='<option value="">Select class first</option>';$('studentSelect').disabled=true;
+      $('studentLessonSelect').innerHTML='<option value="">Select class first</option>';$('studentLessonSelect').disabled=true;
+      $('studentSelect').innerHTML='<option value="">Select lesson first</option>';$('studentSelect').disabled=true;
     } else if(level==='course'){
       $('studentClassSelect').innerHTML='<option value="">Select course first</option>';$('studentClassSelect').disabled=true;
-      $('studentSelect').innerHTML='<option value="">Select class first</option>';$('studentSelect').disabled=true;
+      $('studentLessonSelect').innerHTML='<option value="">Select class first</option>';$('studentLessonSelect').disabled=true;
+      $('studentSelect').innerHTML='<option value="">Select lesson first</option>';$('studentSelect').disabled=true;
     } else if(level==='class'){
       $('studentSelect').innerHTML='<option value="">Select class first</option>';$('studentSelect').disabled=true;
     }
     state.studentGrade={student:null,rows:[]};$('saveStudentSubjectsBtn').disabled=true;$('publishClassResultsBtn').disabled=true;
-    $('studentSubjectsBody').innerHTML='<tr><td colspan="9" class="empty">Dooro Institution, Course, Class iyo Student.</td></tr>';
+    $('studentSubjectsBody').innerHTML='<tr><td colspan="10" class="empty">Dooro Institution, Course, Class, Lesson iyo Student.</td></tr>';
   }
 
   async function loadStudentGradeCourses(){
@@ -337,10 +339,23 @@
     selectOptions($('studentClassSelect'),rows,x=>x.code?`${x.name} (${x.code})`:x.name,'Select class');$('studentClassSelect').disabled=false;
   }
 
-  async function loadStudentGradeStudents(){
+  async function loadStudentGradeLessons(){
     resetStudentGradingSelectors('class');
-    const institutionId=$('studentInstitutionSelect').value,courseId=$('studentCourseSelect').value,classId=$('studentClassSelect').value;
-    if(!institutionId||!courseId||!classId)return;
+    const institutionId=$('studentInstitutionSelect').value,classId=$('studentClassSelect').value;
+    if(!institutionId||!classId)return;
+    const {data,error}=await db.from('lessons').select('id,institution_id,class_id,teacher_id,title,description,lesson_date,start_time,end_time,room').eq('institution_id',institutionId).eq('class_id',classId).order('lesson_date',{ascending:false});
+    if(error)throw error;
+    state.lessons=data||[];
+    selectOptions($('studentLessonSelect'),state.lessons,x=>`${x.title||'Lesson'}${x.lesson_date?` · ${x.lesson_date}`:''}${x.start_time?` · ${String(x.start_time).slice(0,5)}`:''}`,'Select lesson');
+    $('studentLessonSelect').disabled=false;
+    if(!state.lessons.length)toast('Fasalkan lesson lama helin. Ardayda waxaa la soo bandhigi doonaa marka lesson la doorto.','info');
+  }
+
+  async function loadStudentGradeStudents(){
+    resetStudentGradingSelectors('lesson');
+    const institutionId=$('studentInstitutionSelect').value,courseId=$('studentCourseSelect').value,classId=$('studentClassSelect').value,lessonId=$('studentLessonSelect').value;
+    if(!institutionId||!courseId||!classId||!lessonId)return;
+    const lesson=state.lessons.find(x=>x.id===lessonId);if(!lesson||lesson.class_id!==classId){toast('Lesson-ka la doortay kuma xirna fasalkan.','error');return;}
     const {data:enrollments,error:eError}=await db.from('enrollments').select('student_id,status').eq('institution_id',institutionId).eq('course_id',courseId).eq('class_id',classId);
     if(eError)throw eError;
     const ids=[...new Set((enrollments||[]).filter(e=>activeStatus(e.status)).map(e=>e.student_id).filter(Boolean))];
@@ -353,9 +368,9 @@
 
   async function loadStudentSubjects(){
     const institutionId=$('studentInstitutionSelect').value,courseId=$('studentCourseSelect').value,classId=$('studentClassSelect').value,studentId=$('studentSelect').value;
-    if(!institutionId||!courseId||!classId||!studentId){toast('Dooro Institution, Course, Class iyo Student.','error');return;}
+    if(!institutionId||!courseId||!classId||!$('studentLessonSelect').value||!studentId){toast('Dooro Institution, Course, Class, Lesson iyo Student.','error');return;}
     const studentLabel=$('studentSelect').selectedOptions[0]?.text||'Selected student';
-    $('studentSubjectsBody').innerHTML='<tr><td colspan="9" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading subjects and exams…</td></tr>';
+    $('studentSubjectsBody').innerHTML='<tr><td colspan="10" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading subjects and exams…</td></tr>';
     $('saveStudentSubjectsBtn').disabled=true;
     try{
       const studentResponse=await db.from('students').select('id,student_id,full_name,institution_id,status').eq('id',studentId).eq('institution_id',institutionId).single();
@@ -373,16 +388,17 @@
       const resultMap=latest(rr.data),gradeMap=latest(gr.data);
       state.studentGrade={student,rows:exams.map(exam=>{const result=resultMap.get(exam.id)||null,gradeRow=gradeMap.get(exam.id)||null;return {exam,result,gradeRow,score:result?.score??gradeRow?.score??'',remarks:result?.remarks??gradeRow?.remarks??''};})};
       renderStudentSubjects();$('saveStudentSubjectsBtn').disabled=false;$('publishClassResultsBtn').disabled=false;
-    }catch(e){$('studentSubjectsBody').innerHTML=`<tr><td colspan="9" class="empty">Unable to load student subjects: ${esc(errText(e))}</td></tr>`;toast(`Student subjects could not be loaded: ${errText(e)}`,'error');}
+    }catch(e){$('studentSubjectsBody').innerHTML=`<tr><td colspan="10" class="empty">Unable to load student subjects: ${esc(errText(e))}</td></tr>`;toast(`Student subjects could not be loaded: ${errText(e)}`,'error');}
   }
 
   function renderStudentSubjects(){
     const {student,rows}=state.studentGrade;
-    if(!student||!rows.length){$('studentSubjectsBody').innerHTML='<tr><td colspan="9" class="empty">Ardaygan imtixaan maado ku xiran lagama helin fasalkan.</td></tr>';return;}
+    if(!student||!rows.length){$('studentSubjectsBody').innerHTML='<tr><td colspan="10" class="empty">Ardaygan imtixaan maado ku xiran lagama helin fasalkan.</td></tr>';return;}
     $('studentSubjectsBody').innerHTML=rows.map((row,i)=>{
       const exam=row.exam,max=Number(exam.max_score||100),score=row.score==null?'':row.score,pct=score===''?'':Math.round(Number(score)/max*10000)/100,grade=pct===''?'':gradeFor(pct);
       const status=row.result?.is_published?'<span class="tag" style="background:#eaf8f0;color:#17633e">Published</span>':'<span class="tag">Private / Draft</span>';
-      return `<tr><td>${i+1}</td><td><strong>${esc(exam.subject_name||'Subject')}</strong><div style="color:#7b8495;margin-top:4px">${esc(exam.title)}</div></td><td>${esc(parseType(exam.exam_type))}</td><td>${esc(max)}</td><td><input class="score-input" type="number" min="0" max="${esc(max)}" step="0.01" inputmode="decimal" data-student-exam-score="${esc(exam.id)}" value="${esc(score)}" placeholder="0-${esc(max)}" aria-label="Score for ${esc(exam.title)}"></td><td data-student-exam-pct="${esc(exam.id)}">${pct===''?'—':pct+'%'}</td><td data-student-exam-grade="${esc(exam.id)}">${grade||'—'}</td><td><input class="score-input" style="width:160px;max-width:100%" data-student-exam-remarks="${esc(exam.id)}" value="${esc(row.remarks||'')}" placeholder="Optional remarks"></td><td>${status}</td></tr>`;
+      const resultId=row.result?.id||'';
+      return `<tr><td>${i+1}</td><td><strong>${esc(exam.subject_name||'Subject')}</strong><div style="color:#7b8495;margin-top:4px">${esc(exam.title)}</div></td><td>${esc(parseType(exam.exam_type))}</td><td>${esc(max)}</td><td><input class="score-input" type="number" min="0" max="${esc(max)}" step="0.01" inputmode="decimal" data-student-exam-score="${esc(exam.id)}" value="${esc(score)}" placeholder="0-${esc(max)}" aria-label="Score for ${esc(exam.title)}"></td><td data-student-exam-pct="${esc(exam.id)}">${pct===''?'—':pct+'%'}</td><td data-student-exam-grade="${esc(exam.id)}">${grade||'—'}</td><td><input class="score-input" style="width:160px;max-width:100%" data-student-exam-remarks="${esc(exam.id)}" value="${esc(row.remarks||'')}" placeholder="Optional remarks"></td><td>${status}</td><td><div class="row-actions"><button class="icon-btn result-action-btn" type="button" title="Review result" data-result-action="review" data-exam-id="${esc(exam.id)}"><i class="fa-solid fa-eye"></i> Review</button><button class="icon-btn result-action-btn" type="button" title="Edit score" data-result-action="edit" data-exam-id="${esc(exam.id)}"><i class="fa-solid fa-pen"></i> Edit</button><button class="icon-btn result-action-btn" type="button" title="Publish result" data-result-action="publish" data-exam-id="${esc(exam.id)}" ${resultId?'':'disabled'}><i class="fa-solid fa-bullhorn"></i> Publish</button><button class="icon-btn delete result-action-btn" type="button" title="Delete result" data-result-action="delete" data-exam-id="${esc(exam.id)}" ${resultId?'':'disabled'}><i class="fa-solid fa-trash"></i> Delete</button></div></td></tr>`;
     }).join('');
   }
 
@@ -409,6 +425,37 @@
       toast(`Waxaa la kaydiyey ${saved} natiijo oo loogu talagalay ${student.full_name}. Natiijooyinka cusub weli waa private.`);renderStudentSubjects();
     }catch(e){toast(`Kaydintu waxay gaartay ${saved}/${entered.length}. ${errText(e)}`,'error');renderStudentSubjects();}
     finally{setBusy($('saveStudentSubjectsBtn'),false);}
+  }
+
+  async function handleStudentResultAction(event){
+    const button=event.target.closest('button[data-result-action]');if(!button)return;
+    const action=button.dataset.resultAction,examId=button.dataset.examId,row=state.studentGrade.rows.find(x=>x.exam.id===examId);
+    if(!row||!state.studentGrade.student)return;
+    if(action==='edit'){
+      const input=document.querySelector(`[data-student-exam-score="${CSS.escape(examId)}"]`);input?.focus();input?.scrollIntoView({behavior:'smooth',block:'center'});return;
+    }
+    if(action==='review'){
+      const score=row.result?.score??row.gradeRow?.score??row.score;
+      const pct=score===''||score==null?'Not entered':`${Math.round(Number(score)/Number(row.exam.max_score||100)*10000)/100}%`;
+      alert(`RESULT REVIEW\nStudent: ${state.studentGrade.student.full_name}\nSubject: ${row.exam.subject_name||'Subject'}\nExam: ${row.exam.title}\nScore: ${score==null||score===''?'Not entered':score+' / '+row.exam.max_score}\nPercentage: ${pct}\nGrade: ${row.result?.grade||row.gradeRow?.grade||'Not calculated'}\nStatus: ${row.result?.is_published?'Published':'Draft / Private'}\nRemarks: ${row.result?.remarks||row.gradeRow?.remarks||row.remarks||'None'}`);return;
+    }
+    if(action==='publish'){
+      if(!row.result?.id){toast('Marka hore Save / Update Marks samee.','info');return;}
+      if(row.result.is_published){toast('Natiijadan hore ayaa loo publish gareeyey.','info');return;}
+      if(!confirm(`Ma publish gareynaysaa natiijada ${state.studentGrade.student.full_name} ee ${row.exam.subject_name}?`))return;
+      const {data,error}=await db.from('results').update({is_published:true}).eq('id',row.result.id).select('id,is_published,score,max_score,percentage,grade,remarks,student_id,exam_id,subject_id,created_at,updated_at').single();
+      if(error){toast(`Publish failed: ${errText(error)}`,'error');return;}
+      row.result=data;renderStudentSubjects();toast('Natiijada waa la publish gareeyey.');return;
+    }
+    if(action==='delete'){
+      if(!row.result?.id){toast('Natiijo kaydsan ma jirto oo la tirtiri karo.','info');return;}
+      if(!confirm(`Ma tirtiraysaa natiijada ${state.studentGrade.student.full_name} ee ${row.exam.subject_name}? Tallaabadan lama celin karo.`))return;
+      try{
+        const {error}=await db.from('results').delete().eq('id',row.result.id);if(error)throw error;
+        if(row.gradeRow?.id){const gr=await db.from('grades').delete().eq('id',row.gradeRow.id);if(gr.error)throw new Error(`Result waa la tirtiray, laakiin Grades record-ka lama tirtirin: ${errText(gr.error)}`);}
+        row.result=null;row.gradeRow=null;row.score='';row.remarks='';renderStudentSubjects();toast('Natiijada waa la tirtiray.');
+      }catch(e){toast(`Delete failed: ${errText(e)}`,'error');}
+    }
   }
 
   function clearStudents(){
@@ -478,9 +525,12 @@
     $('saveMarksBtn').addEventListener('click',saveMarks);$('publishExamResultsBtn').addEventListener('click',publishSelectedExamResults);
     $('studentInstitutionSelect').addEventListener('change',async()=>{try{await loadStudentGradeCourses();}catch(e){toast(errText(e),'error');}});
     $('studentCourseSelect').addEventListener('change',async()=>{try{await loadStudentGradeClasses();}catch(e){toast(errText(e),'error');}});
-    $('studentClassSelect').addEventListener('change',async()=>{try{await loadStudentGradeStudents();}catch(e){toast(errText(e),'error');}});
+    $('studentClassSelect').addEventListener('change',async()=>{try{await loadStudentGradeLessons();}catch(e){toast(errText(e),'error');}});
+    $('studentLessonSelect').addEventListener('change',async()=>{try{await loadStudentGradeStudents();}catch(e){toast(errText(e),'error');}});
+    $('studentSelect').addEventListener('change',async()=>{if($('studentSelect').value){try{await loadStudentSubjects();}catch(e){toast(errText(e),'error');}}else{state.studentGrade={student:null,rows:[]};renderStudentSubjects();}});
     $('loadStudentSubjectsBtn').addEventListener('click',loadStudentSubjects);$('saveStudentSubjectsBtn').addEventListener('click',saveStudentSubjectMarks);$('publishClassResultsBtn').addEventListener('click',publishAllClassResults);
     $('studentSubjectsBody').addEventListener('input',event=>{if(event.target.matches('[data-student-exam-score]'))updateStudentSubjectPreview(event.target);});
+    $('studentSubjectsBody').addEventListener('click',handleStudentResultAction);
     $('logoutBtn').addEventListener('click',async()=>{try{await db.auth.signOut();}finally{location.href='index.html';}});
   }
   function resetFormIfNeeded(){
