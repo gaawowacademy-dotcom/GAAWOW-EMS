@@ -35,7 +35,7 @@
     </section>
     <section class="panel" id="examFormPanel">
       <div class="panel-title"><h3 id="formTitle"><i class="fa-solid fa-square-plus"></i> Create Exam</h3><span class="subject-badge"><i class="fa-solid fa-book"></i> One exam · One subject</span></div>
-      <div class="notice notice-info"><strong>Auto-selection:</strong> Marka institution, course iyo class la doorto, maadooyinka koorsadaas ayaa la soo bandhigayaa. Imtixaan kasta hal maado ayuu yeelanayaa.</div>
+      <div class="notice notice-info"><strong>Habka dhibcaha:</strong> Dooro Institution → Course → Class → hal Subject. Haddii imtixaanka maadadaas hore u jiro, ardaydu si toos ah ayay u soo baxayaan. Haddii uusan jirin, riix Save Exam; marka la kaydiyo, dhammaan ardayda fasalkaas ayaa si toos ah u soo baxaya. Sanduuqa arday kasta geli dhibcihiisa, kadib riix Save Marks.</div>
       <div class="notice notice-warn hidden" id="schemaWarning">Database-ka ma aqoonsanayo <code>exams.subject_id</code>. Faylku ma abuuri karo imtixaan maado ku xiran ilaa schema-ga la saxayo.</div>
       <form id="examForm">
         <input type="hidden" id="examId">
@@ -51,7 +51,7 @@
           <div class="field"><label for="duration">Duration (minutes)</label><input id="duration" type="number" min="1" max="1000" step="1" placeholder="e.g. 90"></div>
           <div class="field span-2"><label for="description">Description</label><textarea id="description" maxlength="2000" placeholder="Optional exam instructions"></textarea></div>
         </div>
-        <div class="form-actions"><button class="btn btn-light" type="button" id="resetFormBtn">Clear</button><button class="btn btn-blue" type="submit" id="saveExamBtn"><i class="fa-solid fa-floppy-disk"></i> Save Exam</button></div>
+        <div class="form-actions"><button class="btn btn-light" type="button" id="resetFormBtn">Clear</button><button class="btn btn-blue" type="button" id="loadSelectedSubjectBtn"><i class="fa-solid fa-users"></i> Load Students for Subject</button><button class="btn btn-blue" type="submit" id="saveExamBtn"><i class="fa-solid fa-floppy-disk"></i> Save Exam</button></div>
       </form>
     </section>
     <section class="panel" id="studentGradingPanel">
