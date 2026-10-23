@@ -205,8 +205,9 @@
 
     state.selectedExam=exam;
     state.students=[];
+    $('studentSearch').value='';
     $('marksExamLabel').textContent=`${exam.title}${exam.subject_name?` · ${exam.subject_name}`:''}`;
-    $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading enrolled students…</td></tr>';
+    $('studentsTableBody').innerHTML='<tr><td colspan="8" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading enrolled students…</td></tr>';
     $('studentCount').textContent='Loading…';
     $('saveMarksBtn').disabled=true;
     $('publishExamResultsBtn').disabled=true;
@@ -233,7 +234,7 @@
       }
       const enrollmentIds=[...new Set(enrollmentRows.map(e=>String(e.student_id||'').trim()).filter(Boolean))];
       if(!enrollmentIds.length){
-        $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty">Enrollment arday oo active ah lagama helin fasalkan.</td></tr>';
+        $('studentsTableBody').innerHTML='<tr><td colspan="8" class="empty">Enrollment arday oo active ah lagama helin fasalkan.</td></tr>';
         $('studentCount').textContent='0 students';
         toast('Arday lama helin. Hubi enrollments-ka fasalkan iyo status-kooda (active).','error');
         return;
@@ -245,8 +246,8 @@
       const uuidIds=enrollmentIds.filter(id=>uuidPattern.test(id));
       const publicIds=enrollmentIds.filter(id=>!uuidPattern.test(id));
       const studentQueries=[];
-      if(uuidIds.length)studentQueries.push(db.from('students').select('id,student_id,full_name,institution_id,status').in('id',uuidIds));
-      if(publicIds.length)studentQueries.push(db.from('students').select('id,student_id,full_name,institution_id,status').in('student_id',publicIds));
+      if(uuidIds.length)studentQueries.push(db.from('students').select('id,student_id,full_name,institution_id,status,photo_url,profile_id').in('id',uuidIds));
+      if(publicIds.length)studentQueries.push(db.from('students').select('id,student_id,full_name,institution_id,status,photo_url,profile_id').in('student_id',publicIds));
       const studentResponses=await Promise.all(studentQueries);
       const failedStudentQuery=studentResponses.find(r=>r.error);
       if(failedStudentQuery)throw new Error(`Students query failed: ${errText(failedStudentQuery.error)}`);
@@ -256,15 +257,15 @@
       // using both identifier columns without ever sending public IDs to the UUID column.
       if(!studentRows.length && uuidIds.length && publicIds.length){
         const [byId,byCode]=await Promise.all([
-          db.from('students').select('id,student_id,full_name,institution_id,status').in('id',uuidIds),
-          db.from('students').select('id,student_id,full_name,institution_id,status').in('student_id',publicIds)
+          db.from('students').select('id,student_id,full_name,institution_id,status,photo_url,profile_id').in('id',uuidIds),
+          db.from('students').select('id,student_id,full_name,institution_id,status,photo_url,profile_id').in('student_id',publicIds)
         ]);
         if(byId.error)throw byId.error;if(byCode.error)throw byCode.error;
         studentRows=[...new Map([...(byId.data||[]),...(byCode.data||[])].map(s=>[s.id,s])).values()];
       }
       studentRows=studentRows.filter(s=>activeStatus(s.status));
       if(!studentRows.length){
-        $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty">Enrollment waa la helay, laakiin ardayda lagama waafajin students table.</td></tr>';
+        $('studentsTableBody').innerHTML='<tr><td colspan="8" class="empty">Enrollment waa la helay, laakiin ardayda lagama waafajin students table.</td></tr>';
         $('studentCount').textContent='0 students';
         toast('Enrollment waa jiraa, laakiin student_id lama waafajin students.id ama students.student_id. Hubi xiriirka labada table.','error');
         return;
@@ -272,6 +273,8 @@
 
       // Keep only students belonging to this institution where that field is populated.
       studentRows=studentRows.filter(s=>!s.institution_id||s.institution_id===exam.institution_id);
+      // Fetch profile.avatar_url only as a fallback; students.photo_url has priority.
+      studentRows=await loadStudentPhotos(studentRows);
       studentRows.sort((a,b)=>String(a.full_name||'').localeCompare(String(b.full_name||'')));
       const studentIds=studentRows.map(s=>s.id);
       const [resultsResponse,gradesResponse]=await Promise.all([
@@ -300,7 +303,7 @@
       toast(`${state.students.length} arday ayaa la soo raray. Geli dhibcaha kadib Save Marks.`,'success');
     }catch(e){
       console.error('[GAAWOW Exams] loadStudentsForExam failed',e);
-      $('studentsTableBody').innerHTML=`<tr><td colspan="7" class="empty">Ardayda lama soo rari karin: ${esc(errText(e))}</td></tr>`;
+      $('studentsTableBody').innerHTML=`<tr><td colspan="8" class="empty">Ardayda lama soo rari karin: ${esc(errText(e))}</td></tr>`;
       $('studentCount').textContent='Load failed';
       $('saveMarksBtn').disabled=true;
       $('publishExamResultsBtn').disabled=true;
@@ -308,15 +311,58 @@
     }
   }
 
+  // Load photos from students.photo_url first, then profiles.avatar_url as fallback.
+  async function loadStudentPhotos(studentRows){
+    const profileIds=[...new Set(studentRows.map(s=>s.profile_id).filter(Boolean))];
+    const profilesById=new Map();
+    if(profileIds.length){
+      const {data,error}=await db.from('profiles').select('id,avatar_url').in('id',profileIds);
+      if(error){
+        // Profile photos are optional. Do not block the exam roster if RLS denies this lookup.
+        console.warn('[GAAWOW Exams] Could not load profile photos:',errText(error));
+      }else{
+        for(const profile of (data||[])){
+          if(profile.avatar_url)profilesById.set(profile.id,String(profile.avatar_url).trim());
+        }
+      }
+    }
+    return studentRows.map(student=>{
+      const ownPhoto=typeof student.photo_url==='string'?student.photo_url.trim():'';
+      const profilePhoto=profilesById.get(student.profile_id)||'';
+      return {...student,photo_url:ownPhoto||profilePhoto};
+    });
+  }
+
   function renderStudents(){
-    const q=norm($('studentSearch').value),rows=state.students.filter(s=>!q||norm(s.full_name).includes(q)||norm(s.student_id).includes(q));
+    const q=norm($('studentSearch').value);
+    const rows=state.students.filter(s=>!q||norm(s.full_name).includes(q)||norm(s.student_id).includes(q));
     $('studentCount').textContent=`${rows.length} student${rows.length===1?'':'s'}`;
-    if(!rows.length){$('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty">No students match this search.</td></tr>';return;}
+    if(!rows.length){
+      const message=state.students.length?'No students match this search.':'Select an exam to load enrolled students.';
+      $('studentsTableBody').innerHTML=`<tr><td colspan="8" class="empty">${message}</td></tr>`;
+      return;
+    }
     const max=Number(state.selectedExam?.max_score||100);
     $('studentsTableBody').innerHTML=rows.map((s,i)=>{
-      const score=s.score===''?'':Number(s.score),pct=score===''?'':Math.round(score/max*10000)/100,grade=pct===''?'':gradeFor(pct);
+      const score=s.score===''?'':Number(s.score);
+      const pct=score===''?'':Math.round(score/max*10000)/100;
+      const grade=pct===''?'':gradeFor(pct);
       const published=s.result?.is_published?'<div style="color:#18794e;font-size:10px;margin-top:4px">Published result</div>':'';
-      return `<tr data-student-row="${esc(s.id)}"><td>${i+1}</td><td>${esc(s.student_id||'N/A')}</td><td><strong>${esc(s.full_name)}</strong>${published}</td><td><input class="score-input" type="number" min="0" max="${esc(max)}" step="0.01" inputmode="decimal" aria-label="Score for ${esc(s.full_name)}" data-score-id="${esc(s.id)}" value="${esc(s.score)}" placeholder="0-${esc(max)}"></td><td data-pct-id="${esc(s.id)}">${pct===''?'—':`${pct}%`}</td><td data-grade-id="${esc(s.id)}">${grade===''?'—':`<span class="grade-summary">${grade}</span>`}</td><td><input class="score-input" style="width:160px;max-width:100%" data-remarks-id="${esc(s.id)}" aria-label="Remarks for ${esc(s.full_name)}" value="${esc(s.remarks)}" placeholder="Optional"></td></tr>`;
+      const photoUrl=typeof s.photo_url==='string'?s.photo_url.trim():'';
+      const photo=photoUrl
+        ? `<img src="${esc(photoUrl)}" alt="${esc(s.full_name||'Student')} photo" loading="lazy" referrerpolicy="no-referrer" style="width:42px;height:42px;object-fit:cover;border-radius:50%;border:2px solid #e2e8f0;display:block" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+          + `<span aria-label="No photo" title="No photo available" style="display:none;width:42px;height:42px;border-radius:50%;background:#eef2ff;color:#334155;align-items:center;justify-content:center;font-weight:700;font-size:12px">${esc(String(s.full_name||'S').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'S')}</span>`
+        : `<span aria-label="No photo" title="No photo available" style="display:flex;width:42px;height:42px;border-radius:50%;background:#eef2ff;color:#334155;align-items:center;justify-content:center;font-weight:700;font-size:12px">${esc(String(s.full_name||'S').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'S')}</span>`;
+      return `<tr data-student-row="${esc(s.id)}">
+        <td>${i+1}</td>
+        <td>${photo}</td>
+        <td>${esc(s.student_id||'N/A')}</td>
+        <td><strong>${esc(s.full_name)}</strong>${published}</td>
+        <td><input class="score-input" type="number" min="0" max="${esc(max)}" step="0.01" inputmode="decimal" aria-label="Score for ${esc(s.full_name)}" data-score-id="${esc(s.id)}" value="${esc(s.score)}" placeholder="0-${esc(max)}"></td>
+        <td data-pct-id="${esc(s.id)}">${pct===''?'—':`${pct}%`}</td>
+        <td data-grade-id="${esc(s.id)}">${grade===''?'—':`<span class="grade-summary">${grade}</span>`}</td>
+        <td><input class="score-input" style="width:160px;max-width:100%" data-remarks-id="${esc(s.id)}" aria-label="Remarks for ${esc(s.full_name)}" value="${esc(s.remarks)}" placeholder="Optional"></td>
+      </tr>`;
     }).join('');
   }
 
@@ -540,7 +586,7 @@
 
   function clearStudents(){
     state.selectedExam=null;state.students=[];$('marksExamLabel').textContent='Select an exam below';$('studentCount').textContent='0 students';
-    $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty">Select the students button on an exam record to load enrolled students.</td></tr>';$('saveMarksBtn').disabled=true;$('publishExamResultsBtn').disabled=true;
+    $('studentsTableBody').innerHTML='<tr><td colspan="8" class="empty">Select the students button on an exam record to load enrolled students.</td></tr>';$('saveMarksBtn').disabled=true;$('publishExamResultsBtn').disabled=true;
   }
 
   async function publishAllClassResults(){
