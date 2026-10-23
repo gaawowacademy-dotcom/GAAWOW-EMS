@@ -199,45 +199,112 @@
   }
 
   async function loadStudentsForExam(examId){
-    const exam=state.exams.find(x=>x.id===examId);if(!exam)return;
+    const exam=state.exams.find(x=>String(x.id)===String(examId));
+    if(!exam){toast('Imtixaanka la doortay lagama helin liiska. Dib u cusboonaysii bogga.','error');return;}
     if(!exam.class_id||!exam.course_id){toast('Imtixaankan class/course kuma xirna. Edit garee oo ku xiro fasal sax ah.','error');return;}
-    if(!exam.subject_id){toast('Imtixaankan ma laha subject_id. Edit garee oo dooro hal maado.','error');return;}
-    state.selectedExam=exam;state.students=[];$('marksExamLabel').textContent=`${exam.title} · ${exam.subject_name}`;
-    $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading enrolled students…</td></tr>';$('saveMarksBtn').disabled=true;$('publishExamResultsBtn').disabled=true;
+
+    state.selectedExam=exam;
+    state.students=[];
+    $('marksExamLabel').textContent=`${exam.title}${exam.subject_name?` · ${exam.subject_name}`:''}`;
+    $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading enrolled students…</td></tr>';
+    $('studentCount').textContent='Loading…';
+    $('saveMarksBtn').disabled=true;
+    $('publishExamResultsBtn').disabled=true;
+
     try{
-      const {data:enrollments,error:eError}=await db.from('enrollments').select('student_id,status,course_id,class_id,institution_id').eq('institution_id',exam.institution_id).eq('course_id',exam.course_id).eq('class_id',exam.class_id);
-      if(eError)throw eError;
-      const enrollmentRows=(enrollments||[]).filter(e=>activeStatus(e.status));
-      const ids=[...new Set(enrollmentRows.map(e=>e.student_id).filter(Boolean))];
-      if(!ids.length){renderStudents();toast('Fasalkan enrollment arday oo firfircoon lagama helin.','error');return;}
-      const {data:studentData,error:sError}=await db.from('students').select('id,student_id,full_name,institution_id,status,photo_url').eq('institution_id',exam.institution_id).in('id',ids).order('full_name');
-      if(sError)throw sError;
-      const studentRows=(studentData||[]).filter(s=>activeStatus(s.status));
-      if(!studentRows.length){renderStudents();toast('Enrollment-ka waa jiraa, laakiin arday active ah lama helin.','error');return;}
+      // First look for enrollments matching institution + course + class.
+      const exact=await db.from('enrollments')
+        .select('student_id,status,course_id,class_id,institution_id')
+        .eq('institution_id',exam.institution_id)
+        .eq('course_id',exam.course_id)
+        .eq('class_id',exam.class_id);
+      if(exact.error)throw new Error(`Enrollments query failed: ${errText(exact.error)}`);
+      let enrollmentRows=(exact.data||[]).filter(e=>activeStatus(e.status));
+
+      // Some legacy enrollments have a stale/missing course_id. If there are no active
+      // exact matches, retry using institution + class and then filter active enrollments.
+      if(!enrollmentRows.length){
+        const fallback=await db.from('enrollments')
+          .select('student_id,status,course_id,class_id,institution_id')
+          .eq('institution_id',exam.institution_id)
+          .eq('class_id',exam.class_id);
+        if(fallback.error)throw new Error(`Class enrollments query failed: ${errText(fallback.error)}`);
+        enrollmentRows=(fallback.data||[]).filter(e=>activeStatus(e.status));
+      }
+      const enrollmentIds=[...new Set(enrollmentRows.map(e=>String(e.student_id||'').trim()).filter(Boolean))];
+      if(!enrollmentIds.length){
+        $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty">Enrollment arday oo active ah lagama helin fasalkan.</td></tr>';
+        $('studentCount').textContent='0 students';
+        toast('Arday lama helin. Hubi enrollments-ka fasalkan iyo status-kooda (active).','error');
+        return;
+      }
+
+      // Support both common schemas: enrollments.student_id -> students.id (UUID),
+      // or older records that store students.student_id (e.g. GA-2026-000123).
+      const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const uuidIds=enrollmentIds.filter(id=>uuidPattern.test(id));
+      const publicIds=enrollmentIds.filter(id=>!uuidPattern.test(id));
+      const studentQueries=[];
+      if(uuidIds.length)studentQueries.push(db.from('students').select('id,student_id,full_name,institution_id,status').in('id',uuidIds));
+      if(publicIds.length)studentQueries.push(db.from('students').select('id,student_id,full_name,institution_id,status').in('student_id',publicIds));
+      const studentResponses=await Promise.all(studentQueries);
+      const failedStudentQuery=studentResponses.find(r=>r.error);
+      if(failedStudentQuery)throw new Error(`Students query failed: ${errText(failedStudentQuery.error)}`);
+      let studentRows=[...new Map(studentResponses.flatMap(r=>r.data||[]).map(s=>[s.id,s])).values()];
+
+      // If a deployment has mixed identifier formats, make one safe fallback lookup
+      // using both identifier columns without ever sending public IDs to the UUID column.
+      if(!studentRows.length && uuidIds.length && publicIds.length){
+        const [byId,byCode]=await Promise.all([
+          db.from('students').select('id,student_id,full_name,institution_id,status').in('id',uuidIds),
+          db.from('students').select('id,student_id,full_name,institution_id,status').in('student_id',publicIds)
+        ]);
+        if(byId.error)throw byId.error;if(byCode.error)throw byCode.error;
+        studentRows=[...new Map([...(byId.data||[]),...(byCode.data||[])].map(s=>[s.id,s])).values()];
+      }
+      studentRows=studentRows.filter(s=>activeStatus(s.status));
+      if(!studentRows.length){
+        $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty">Enrollment waa la helay, laakiin ardayda lagama waafajin students table.</td></tr>';
+        $('studentCount').textContent='0 students';
+        toast('Enrollment waa jiraa, laakiin student_id lama waafajin students.id ama students.student_id. Hubi xiriirka labada table.','error');
+        return;
+      }
+
+      // Keep only students belonging to this institution where that field is populated.
+      studentRows=studentRows.filter(s=>!s.institution_id||s.institution_id===exam.institution_id);
+      studentRows.sort((a,b)=>String(a.full_name||'').localeCompare(String(b.full_name||'')));
       const studentIds=studentRows.map(s=>s.id);
       const [resultsResponse,gradesResponse]=await Promise.all([
         db.from('results').select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').eq('exam_id',exam.id).in('student_id',studentIds),
         db.from('grades').select('id,student_id,exam_id,score,grade,remarks,created_at,updated_at').eq('exam_id',exam.id).in('student_id',studentIds)
       ]);
-      if(resultsResponse.error)throw resultsResponse.error;
-      if(gradesResponse.error)throw gradesResponse.error;
+      if(resultsResponse.error)throw new Error(`Results lookup failed: ${errText(resultsResponse.error)}`);
+      if(gradesResponse.error)throw new Error(`Grades lookup failed: ${errText(gradesResponse.error)}`);
       const latestByStudent=rows=>{
         const map=new Map();
         for(const row of (rows||[]).sort((a,b)=>new Date(a.updated_at||a.created_at||0)-new Date(b.updated_at||b.created_at||0)))map.set(row.student_id,row);
         return map;
       };
-      // Match legacy results by exam + student even when an older row has a missing/mismatched subject_id.
-      // If duplicate legacy rows exist, use the newest row; this code never deletes historical rows.
+      // Match old results by exam + student, even if subject_id is blank/mismatched.
+      // Existing duplicate historical rows are not deleted automatically.
       const resultMap=latestByStudent(resultsResponse.data),gradeMap=latestByStudent(gradesResponse.data);
-      state.students=studentRows.map(s=>{
-        const result=resultMap.get(s.id)||null,gradeRow=gradeMap.get(s.id)||null;
-        const score=result?.score??gradeRow?.score??'';
-        return {...s,result,gradeRow,score,remarks:result?.remarks??gradeRow?.remarks??''};
+      state.students=studentRows.map(student=>{
+        const result=resultMap.get(student.id)||null;
+        const gradeRow=gradeMap.get(student.id)||null;
+        return {...student,result,gradeRow,score:result?.score??gradeRow?.score??'',remarks:result?.remarks??gradeRow?.remarks??''};
       });
-      renderStudents();$('saveMarksBtn').disabled=false;$('publishExamResultsBtn').disabled=false;$('marksPanel').scrollIntoView({behavior:'smooth',block:'start'});
+      renderStudents();
+      $('saveMarksBtn').disabled=false;
+      $('publishExamResultsBtn').disabled=false;
+      $('marksPanel').scrollIntoView({behavior:'smooth',block:'start'});
+      toast(`${state.students.length} arday ayaa la soo raray. Geli dhibcaha kadib Save Marks.`,'success');
     }catch(e){
-      $('studentsTableBody').innerHTML=`<tr><td colspan="7" class="empty">Unable to load students: ${esc(errText(e))}</td></tr>`;$('saveMarksBtn').disabled=true;$('publishExamResultsBtn').disabled=true;
-      toast(`Students could not be loaded: ${errText(e)}`,'error');
+      console.error('[GAAWOW Exams] loadStudentsForExam failed',e);
+      $('studentsTableBody').innerHTML=`<tr><td colspan="7" class="empty">Ardayda lama soo rari karin: ${esc(errText(e))}</td></tr>`;
+      $('studentCount').textContent='Load failed';
+      $('saveMarksBtn').disabled=true;
+      $('publishExamResultsBtn').disabled=true;
+      toast(`Ardayda lama soo rari karin: ${errText(e)}`,'error');
     }
   }
 
@@ -261,28 +328,74 @@
   }
 
   async function saveResultRow(exam,student,row){
-    const percentage=Math.round((row.score/Number(exam.max_score))*10000)/100;
-    const payload={institution_id:exam.institution_id,student_id:student.id,exam_id:exam.id,subject_id:exam.subject_id,score:row.score,max_score:Number(exam.max_score),percentage,grade:gradeFor(percentage),remarks:row.remarks,created_by:state.user.id};
-    let result=student.result;
+    const maxScore=Number(exam.max_score);
+    if(!Number.isFinite(maxScore)||maxScore<=0)throw new Error('Maximum Score waa inuu ka weyn yahay 0.');
+    const percentage=Math.round((Number(row.score)/maxScore)*10000)/100;
+    const finalGrade=gradeFor(percentage);
+    const resultPayload={
+      institution_id:exam.institution_id,
+      student_id:student.id,
+      exam_id:exam.id,
+      subject_id:exam.subject_id||null,
+      score:Number(row.score),
+      max_score:maxScore,
+      percentage,
+      grade:finalGrade,
+      remarks:row.remarks||null
+    };
+
+    // If a result was loaded, update that exact row. Otherwise re-check the database
+    // before inserting, which avoids adding a duplicate when the page state is stale.
+    let result=student.result||null;
+    if(!result?.id){
+      const existing=await db.from('results')
+        .select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at')
+        .eq('exam_id',exam.id).eq('student_id',student.id)
+        .order('created_at',{ascending:false}).limit(1);
+      if(existing.error)throw new Error(`Could not check existing result: ${errText(existing.error)}`);
+      result=(existing.data||[])[0]||null;
+    }
     if(result?.id){
-      const response=await db.from('results').update({subject_id:payload.subject_id,score:payload.score,max_score:payload.max_score,percentage:payload.percentage,grade:payload.grade,remarks:payload.remarks}).eq('id',result.id).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
-      if(response.error)throw response.error;result=response.data;
+      const response=await db.from('results').update({
+        subject_id:resultPayload.subject_id,
+        score:resultPayload.score,
+        max_score:resultPayload.max_score,
+        percentage:resultPayload.percentage,
+        grade:resultPayload.grade,
+        remarks:resultPayload.remarks
+      }).eq('id',result.id).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
+      if(response.error)throw new Error(`Results save failed: ${errText(response.error)}`);
+      result=response.data;
     }else{
-      // Keep a new result unpublished. The official publish workflow remains in charge of publication.
-      payload.is_published=false;
-      const response=await db.from('results').insert(payload).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
-      if(response.error)throw response.error;result=response.data;
+      const insertPayload={...resultPayload,is_published:false,created_by:state.user.id};
+      const response=await db.from('results').insert(insertPayload).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
+      if(response.error)throw new Error(`Results insert failed: ${errText(response.error)}`);
+      result=response.data;
     }
-    // Synchronize the same mark into grades so the existing Grades module sees the result.
-    const gradePayload={institution_id:exam.institution_id,exam_id:exam.id,student_id:student.id,score:row.score,grade:gradeFor(percentage),remarks:row.remarks,entered_by:state.user.id};
-    if(student.gradeRow?.id){
-      const g=await db.from('grades').update({score:gradePayload.score,grade:gradePayload.grade,remarks:gradePayload.remarks,entered_by:gradePayload.entered_by}).eq('id',student.gradeRow.id).select('id,student_id,exam_id,score,grade,remarks,created_at,updated_at').single();
-      if(g.error)throw new Error(`Result saved, but Grades sync failed: ${errText(g.error)}`);student.gradeRow=g.data;
-    }else{
-      const g=await db.from('grades').insert(gradePayload).select('id,student_id,exam_id,score,grade,remarks,created_at,updated_at').single();
-      if(g.error)throw new Error(`Result saved, but Grades sync failed: ${errText(g.error)}`);student.gradeRow=g.data;
+
+    // grades has a unique key on (exam_id, student_id), so upsert keeps the Grades
+    // page in sync without creating a second grade row for the same exam/student.
+    const gradePayload={
+      institution_id:exam.institution_id,
+      exam_id:exam.id,
+      student_id:student.id,
+      score:Number(row.score),
+      grade:finalGrade,
+      remarks:row.remarks||null,
+      entered_by:state.user.id
+    };
+    const gradeResponse=await db.from('grades')
+      .upsert(gradePayload,{onConflict:'exam_id,student_id'})
+      .select('id,student_id,exam_id,score,grade,remarks,created_at,updated_at').single();
+    if(gradeResponse.error){
+      // Be explicit that Results succeeded but the Grades mirror failed.
+      student.result=result;
+      throw new Error(`Natiijada Results waa la kaydiyey, laakiin Grades lama waafajin: ${errText(gradeResponse.error)}`);
     }
-    student.result=result;student.score=result.score;student.remarks=result.remarks||'';
+    student.result=result;
+    student.gradeRow=gradeResponse.data;
+    student.score=result.score;
+    student.remarks=result.remarks||'';
   }
 
   async function saveMarks(){
@@ -355,7 +468,7 @@
     if(eError)throw eError;
     const ids=[...new Set((enrollments||[]).filter(e=>activeStatus(e.status)).map(e=>e.student_id).filter(Boolean))];
     if(!ids.length){selectOptions($('studentSelect'),[],x=>x.full_name,'No enrolled students');$('studentSelect').disabled=true;toast('Fasalkan arday active ah lagama helin enrollments.','error');return;}
-    const {data,error}=await db.from('students').select('id,student_id,full_name,institution_id,status,photo_url').eq('institution_id',institutionId).in('id',ids).order('full_name');
+    const {data,error}=await db.from('students').select('id,student_id,full_name,institution_id,status').eq('institution_id',institutionId).in('id',ids).order('full_name');
     if(error)throw error;
     const students=(data||[]).filter(s=>activeStatus(s.status));
     selectOptions($('studentSelect'),students,x=>`${x.full_name} (${x.student_id||'No ID'})`,'Select student');$('studentSelect').disabled=false;
@@ -468,9 +581,14 @@
   async function handleTableClick(event){
     const button=event.target.closest('button[data-action]');if(!button)return;
     const id=button.dataset.id,action=button.dataset.action;
-    if(action==='students')await loadStudentsForExam(id);
-    if(action==='edit'){try{await editExam(id);}catch(e){toast(errText(e),'error');}}
-    if(action==='delete')await deleteExam(id);
+    try{
+      if(action==='students')await loadStudentsForExam(id);
+      if(action==='edit')await editExam(id);
+      if(action==='delete')await deleteExam(id);
+    }catch(e){
+      console.error('[GAAWOW Exams action]',action,e);
+      toast(`${action==='students'?'Ardayda lama soo rari karin':action==='edit'?'Imtixaanka lama furi karin':'Tallaabadu way fashilantay'}: ${errText(e)}`,'error');
+    }
   }
 
   function bindEvents(){
