@@ -147,6 +147,26 @@
     resetDependentSelectors();
   }
 
+  // Find the one-subject exam selected in the form and load its full enrolled class roster.
+  async function loadSelectedSubjectRoster(){
+    const institutionId=$('institutionSelect').value;
+    const courseId=$('courseSelect').value;
+    const classId=$('classSelect').value;
+    const subjectId=$('subjectSelect').value;
+    if(!institutionId||!courseId||!classId||!subjectId){
+      toast('Dooro Institution, Course, Class iyo hal Subject marka hore.','error');
+      return;
+    }
+    const matches=state.exams
+      .filter(e=>e.institution_id===institutionId&&e.course_id===courseId&&e.class_id===classId&&e.subject_id===subjectId)
+      .sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+    if(!matches.length){
+      toast('Imtixaan maadadan u gaar ah weli ma jiro. Riix Save Exam marka hore; kadib ardayda si toos ah ayaa loo soo rari doonaa.','info');
+      return;
+    }
+    await loadStudentsForExam(matches[0].id);
+  }
+
   async function saveExam(event){
     event.preventDefault();
     if(!state.schemaReady){toast('Database-ka exams.subject_id lama heli karo.','error');return;}
@@ -166,7 +186,11 @@
     try{
       const response=id?await db.from('exams').update(payload).eq('id',id).select('id').single():await db.from('exams').insert(payload).select('id').single();
       if(response.error)throw response.error;
-      toast(id?'Imtixaanka waa la cusboonaysiiyey.':'Imtixaanka waa la sameeyey. Hal maado ayaa ku xiran.');resetForm();await loadExams();
+      const savedExamId=response.data?.id||id;
+      toast(id?'Imtixaanka waa la cusboonaysiiyey.':'Imtixaanka waa la sameeyey. Hal maado ayaa ku xiran.');
+      resetForm();
+      await loadExams();
+      if(savedExamId)await loadStudentsForExam(savedExamId);
     }catch(e){toast(`Could not save exam: ${errText(e)}`,'error');}
     finally{setBusy($('saveExamBtn'),false);}
   }
@@ -643,9 +667,17 @@
   function bindEvents(){
     $('institutionSelect').addEventListener('change',async()=>{try{resetFormIfNeeded();await loadCourses($('institutionSelect').value);}catch(e){toast(errText(e),'error');}});
     $('courseSelect').addEventListener('change',async()=>{try{await onCourseChange();}catch(e){toast(errText(e),'error');}});
-    $('subjectSelect').addEventListener('change',()=>{
+    $('subjectSelect').addEventListener('change',async()=>{
       const subject=state.subjects.find(x=>x.id===$('subjectSelect').value);
       if(subject&&!$('examId').value){$('examTitle').value=`${subject.name} - ${$('examType').selectedOptions[0]?.text||'Exam'}`;if(subject.max_score)$('maxScore').value=subject.max_score;}
+      // If this subject already has an exam for the selected class, show its students immediately.
+      if(subject&&$('institutionSelect').value&&$('courseSelect').value&&$('classSelect').value){
+        const existing=state.exams.find(e=>e.institution_id===$('institutionSelect').value&&e.course_id===$('courseSelect').value&&e.class_id===$('classSelect').value&&e.subject_id===subject.id);
+        if(existing){try{await loadStudentsForExam(existing.id);}catch(e){toast(`Ardayda lama soo rari karin: ${errText(e)}`,'error');}}
+      }
+    });
+    $('loadSelectedSubjectBtn').addEventListener('click',async()=>{
+      try{await loadSelectedSubjectRoster();}catch(e){toast(`Ardayda lama soo rari karin: ${errText(e)}`,'error');}
     });
     $('examType').addEventListener('change',()=>{const subject=state.subjects.find(x=>x.id===$('subjectSelect').value);if(subject&&!$('examId').value)$('examTitle').value=`${subject.name} - ${$('examType').selectedOptions[0]?.text||'Exam'}`;});
     $('examForm').addEventListener('submit',saveExam);$('resetFormBtn').addEventListener('click',resetForm);
