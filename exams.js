@@ -329,69 +329,72 @@
 
   async function saveResultRow(exam,student,row){
     const maxScore=Number(exam.max_score);
+    const score=Number(row.score);
     if(!Number.isFinite(maxScore)||maxScore<=0)throw new Error('Maximum Score waa inuu ka weyn yahay 0.');
-    const percentage=Math.round((Number(row.score)/maxScore)*10000)/100;
+    if(!Number.isFinite(score)||score<0||score>maxScore)throw new Error(`Dhibcuhu waa inay u dhexeeyaan 0 iyo ${maxScore}.`);
+    if(!exam.institution_id||!exam.id||!student?.id)throw new Error('Xogta institution, exam ama student ayaa maqan.');
+    if(!exam.subject_id)throw new Error('Imtixaankan subject_id kuma xirna. Ku xiro maado ka hor intaadan kaydin Results.');
+
+    const percentage=Math.round((score/maxScore)*10000)/100;
     const finalGrade=gradeFor(percentage);
+    let existingResult=student.result||null;
+    if(!existingResult?.id){
+      const existingResponse=await db.from('results')
+        .select('id,is_published,created_by')
+        .eq('exam_id',exam.id).eq('student_id',student.id)
+        .limit(1).maybeSingle();
+      if(existingResponse.error)throw new Error(`Could not check existing result: ${errText(existingResponse.error)}`);
+      existingResult=existingResponse.data||null;
+    }
+
+    /*
+      The database has UNIQUE (exam_id, student_id) on results.
+      Upsert is safer than SELECT-then-INSERT and also repairs stale institution_id
+      values on existing result rows. Keep published results published when updating.
+    */
     const resultPayload={
       institution_id:exam.institution_id,
       student_id:student.id,
       exam_id:exam.id,
-      subject_id:exam.subject_id||null,
-      score:Number(row.score),
+      subject_id:exam.subject_id,
+      score,
       max_score:maxScore,
       percentage,
       grade:finalGrade,
-      remarks:row.remarks||null
+      remarks:row.remarks||null,
+      is_published:existingResult?.is_published===true,
+      updated_at:new Date().toISOString()
     };
+    if(!existingResult?.id)resultPayload.created_by=state.user.id;
 
-    // If a result was loaded, update that exact row. Otherwise re-check the database
-    // before inserting, which avoids adding a duplicate when the page state is stale.
-    let result=student.result||null;
-    if(!result?.id){
-      const existing=await db.from('results')
-        .select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at')
-        .eq('exam_id',exam.id).eq('student_id',student.id)
-        .order('created_at',{ascending:false}).limit(1);
-      if(existing.error)throw new Error(`Could not check existing result: ${errText(existing.error)}`);
-      result=(existing.data||[])[0]||null;
-    }
-    if(result?.id){
-      const response=await db.from('results').update({
-        subject_id:resultPayload.subject_id,
-        score:resultPayload.score,
-        max_score:resultPayload.max_score,
-        percentage:resultPayload.percentage,
-        grade:resultPayload.grade,
-        remarks:resultPayload.remarks
-      }).eq('id',result.id).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
-      if(response.error)throw new Error(`Results save failed: ${errText(response.error)}`);
-      result=response.data;
-    }else{
-      const insertPayload={...resultPayload,is_published:false,created_by:state.user.id};
-      const response=await db.from('results').insert(insertPayload).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
-      if(response.error)throw new Error(`Results insert failed: ${errText(response.error)}`);
-      result=response.data;
-    }
+    const resultResponse=await db.from('results')
+      .upsert(resultPayload,{onConflict:'exam_id,student_id'})
+      .select('id,institution_id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_by,created_at,updated_at')
+      .single();
+    if(resultResponse.error)throw new Error(`Results save failed: ${errText(resultResponse.error)}`);
+    const result=resultResponse.data;
 
-    // grades has a unique key on (exam_id, student_id), so upsert keeps the Grades
-    // page in sync without creating a second grade row for the same exam/student.
+    // grades has UNIQUE (exam_id, student_id). Use the exam's real institution_id,
+    // not the possibly stale institution_id from an older results record.
     const gradePayload={
       institution_id:exam.institution_id,
       exam_id:exam.id,
       student_id:student.id,
-      score:Number(row.score),
+      score,
       grade:finalGrade,
       remarks:row.remarks||null,
-      entered_by:state.user.id
+      entered_by:state.profile?.id||state.user.id,
+      updated_at:new Date().toISOString()
     };
     const gradeResponse=await db.from('grades')
       .upsert(gradePayload,{onConflict:'exam_id,student_id'})
-      .select('id,student_id,exam_id,score,grade,remarks,created_at,updated_at').single();
+      .select('id,institution_id,student_id,exam_id,score,grade,remarks,entered_by,created_at,updated_at')
+      .single();
     if(gradeResponse.error){
-      // Be explicit that Results succeeded but the Grades mirror failed.
       student.result=result;
-      throw new Error(`Natiijada Results waa la kaydiyey, laakiin Grades lama waafajin: ${errText(gradeResponse.error)}`);
+      throw new Error(`Results waa la kaydiyey, laakiin Grades lama waafajin: ${errText(gradeResponse.error)}`);
     }
+
     student.result=result;
     student.gradeRow=gradeResponse.data;
     student.score=result.score;
