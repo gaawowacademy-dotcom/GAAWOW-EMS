@@ -203,7 +203,7 @@
     if(!exam.class_id||!exam.course_id){toast('Imtixaankan class/course kuma xirna. Edit garee oo ku xiro fasal sax ah.','error');return;}
     if(!exam.subject_id){toast('Imtixaankan ma laha subject_id. Edit garee oo dooro hal maado.','error');return;}
     state.selectedExam=exam;state.students=[];$('marksExamLabel').textContent=`${exam.title} · ${exam.subject_name}`;
-    $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading enrolled students…</td></tr>';$('saveMarksBtn').disabled=true;
+    $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading enrolled students…</td></tr>';$('saveMarksBtn').disabled=true;$('publishExamResultsBtn').disabled=true;
     try{
       const {data:enrollments,error:eError}=await db.from('enrollments').select('student_id,status,course_id,class_id,institution_id').eq('institution_id',exam.institution_id).eq('course_id',exam.course_id).eq('class_id',exam.class_id);
       if(eError)throw eError;
@@ -216,7 +216,7 @@
       if(!studentRows.length){renderStudents();toast('Enrollment-ka waa jiraa, laakiin arday active ah lama helin.','error');return;}
       const studentIds=studentRows.map(s=>s.id);
       const [resultsResponse,gradesResponse]=await Promise.all([
-        db.from('results').select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').eq('exam_id',exam.id).eq('subject_id',exam.subject_id).in('student_id',studentIds),
+        db.from('results').select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').eq('exam_id',exam.id).in('student_id',studentIds),
         db.from('grades').select('id,student_id,exam_id,score,grade,remarks,created_at,updated_at').eq('exam_id',exam.id).in('student_id',studentIds)
       ]);
       if(resultsResponse.error)throw resultsResponse.error;
@@ -226,6 +226,8 @@
         for(const row of (rows||[]).sort((a,b)=>new Date(a.updated_at||a.created_at||0)-new Date(b.updated_at||b.created_at||0)))map.set(row.student_id,row);
         return map;
       };
+      // Match legacy results by exam + student even when an older row has a missing/mismatched subject_id.
+      // If duplicate legacy rows exist, use the newest row; this code never deletes historical rows.
       const resultMap=latestByStudent(resultsResponse.data),gradeMap=latestByStudent(gradesResponse.data);
       state.students=studentRows.map(s=>{
         const result=resultMap.get(s.id)||null,gradeRow=gradeMap.get(s.id)||null;
@@ -234,7 +236,7 @@
       });
       renderStudents();$('saveMarksBtn').disabled=false;$('publishExamResultsBtn').disabled=false;$('marksPanel').scrollIntoView({behavior:'smooth',block:'start'});
     }catch(e){
-      $('studentsTableBody').innerHTML=`<tr><td colspan="7" class="empty">Unable to load students: ${esc(errText(e))}</td></tr>`;
+      $('studentsTableBody').innerHTML=`<tr><td colspan="7" class="empty">Unable to load students: ${esc(errText(e))}</td></tr>`;$('saveMarksBtn').disabled=true;$('publishExamResultsBtn').disabled=true;
       toast(`Students could not be loaded: ${errText(e)}`,'error');
     }
   }
@@ -263,7 +265,7 @@
     const payload={institution_id:exam.institution_id,student_id:student.id,exam_id:exam.id,subject_id:exam.subject_id,score:row.score,max_score:Number(exam.max_score),percentage,grade:gradeFor(percentage),remarks:row.remarks,created_by:state.user.id};
     let result=student.result;
     if(result?.id){
-      const response=await db.from('results').update({score:payload.score,max_score:payload.max_score,percentage:payload.percentage,grade:payload.grade,remarks:payload.remarks}).eq('id',result.id).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
+      const response=await db.from('results').update({subject_id:payload.subject_id,score:payload.score,max_score:payload.max_score,percentage:payload.percentage,grade:payload.grade,remarks:payload.remarks}).eq('id',result.id).select('id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at').single();
       if(response.error)throw response.error;result=response.data;
     }else{
       // Keep a new result unpublished. The official publish workflow remains in charge of publication.
@@ -422,7 +424,7 @@
 
   function clearStudents(){
     state.selectedExam=null;state.students=[];$('marksExamLabel').textContent='Select an exam below';$('studentCount').textContent='0 students';
-    $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty">Select the students button on an exam record to load enrolled students.</td></tr>';$('saveMarksBtn').disabled=true;
+    $('studentsTableBody').innerHTML='<tr><td colspan="7" class="empty">Select the students button on an exam record to load enrolled students.</td></tr>';$('saveMarksBtn').disabled=true;$('publishExamResultsBtn').disabled=true;
   }
 
   async function publishAllClassResults(){
@@ -455,7 +457,7 @@
     if(!confirm(`Ma daabacaysaa natiijooyinka la kaydiyey ee “${exam.title}”? Ardaydu waxay arki doonaan natiijooyinkan Student Portal-kooda.`))return;
     setBusy($('publishExamResultsBtn'),true,'<i class="fa-solid fa-spinner fa-spin"></i> Publishing…');
     try{
-      const {data,error}=await db.from('results').update({is_published:true}).eq('exam_id',exam.id).eq('subject_id',exam.subject_id).eq('institution_id',exam.institution_id).in('student_id',ids).select('id');
+      const {data,error}=await db.from('results').update({is_published:true}).eq('exam_id',exam.id).eq('institution_id',exam.institution_id).in('student_id',ids).select('id');
       if(error)throw error;
       const count=(data||[]).length;if(!count){toast('Natiijooyin kaydsan oo la daabici karo lama helin. Marka hore Save Marks samee.','info');return;}
       toast(`Waxaa la daabacay ${count} natiijo. Ardaydu waxay ku arki karaan Student Portal.`);await loadStudentsForExam(exam.id);
