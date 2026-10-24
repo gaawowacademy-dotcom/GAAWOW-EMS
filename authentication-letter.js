@@ -2234,7 +2234,137 @@ if (
   );
 
 } else {
+/* =========================================================
+   OFFICIAL LOGO STAMP AND DOCUMENT WATERMARK
+   GAAWOW ACADEMY EMS
+   ========================================================= */
 
+function setupOfficialBranding() {
+  const LOGO_PATH = "logo.png";
+
+  /*
+   * 1. OFFICIAL DOCUMENT WATERMARK
+   * Uses the original academy logo without redesigning it.
+   */
+
+  const watermark = document.querySelector(
+    ".document-watermark"
+  );
+
+  if (watermark) {
+    let watermarkLogo = watermark.querySelector("img");
+
+    if (!watermarkLogo) {
+      watermarkLogo = document.createElement("img");
+      watermark.appendChild(watermarkLogo);
+    }
+
+    watermarkLogo.src = LOGO_PATH;
+    watermarkLogo.alt = "";
+
+    watermark.setAttribute("aria-hidden", "true");
+
+    Object.assign(watermark.style, {
+      position: "absolute",
+      inset: "0",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      pointerEvents: "none",
+      overflow: "hidden",
+      zIndex: "0"
+    });
+
+    Object.assign(watermarkLogo.style, {
+      width: "320px",
+      height: "320px",
+      maxWidth: "55%",
+      objectFit: "contain",
+      opacity: "0.055",
+      filter: "none"
+    });
+  }
+
+  /*
+   * 2. OFFICIAL HEADER SEAL
+   * Replaces the invented GA text with the actual logo.
+   */
+
+  const headerSeal = document.querySelector(".header-seal");
+
+  if (headerSeal) {
+    headerSeal.replaceChildren();
+
+    const logo = document.createElement("img");
+
+    logo.src = LOGO_PATH;
+    logo.alt = "Official GAAWOW Academy logo";
+
+    logo.className = "official-seal-logo";
+
+    headerSeal.appendChild(logo);
+
+    headerSeal.setAttribute(
+      "aria-label",
+      "Official GAAWOW Academy logo"
+    );
+
+    headerSeal.classList.add(
+      "gaawow-official-logo-seal"
+    );
+  }
+
+  /*
+   * 3. OFFICIAL STAMP
+   * The real logo is the centrepiece.
+   * Gold rings provide the official stamp appearance.
+   */
+
+  const stamp = document.querySelector(".stamp-circle");
+
+  if (stamp) {
+    stamp.replaceChildren();
+
+    stamp.classList.add(
+      "gaawow-official-stamp"
+    );
+
+    const logo = document.createElement("img");
+
+    logo.src = LOGO_PATH;
+    logo.alt = "GAAWOW Academy official logo";
+
+    logo.className = "official-stamp-logo";
+
+    const label = document.createElement("span");
+
+    label.className = "official-stamp-label";
+    label.textContent = "OFFICIAL";
+
+    stamp.append(logo, label);
+  }
+
+  /*
+   * 4. STUDENT PHOTO FALLBACK
+   * Hide the placeholder when a real photo loads.
+   */
+
+  const studentPhoto = document.getElementById("studentPhoto");
+  const photoPlaceholder = document.getElementById(
+    "photoPlaceholder"
+  );
+
+  if (studentPhoto && photoPlaceholder) {
+    studentPhoto.addEventListener("load", () => {
+      photoPlaceholder.style.display = "none";
+    });
+
+    studentPhoto.addEventListener("error", () => {
+      studentPhoto.style.display = "none";
+      photoPlaceholder.style.display = "flex";
+    });
+  }
+}
   start();
 
 }
