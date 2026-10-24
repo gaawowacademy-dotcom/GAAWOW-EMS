@@ -3,8 +3,8 @@
 /* =========================================================
    GAAWOW ACADEMY EMS
    AUTHENTICATION LETTER
-   FIXED FRONTEND VERSION
-   20261024-3
+   COMPLETE FRONTEND VERSION
+   VERSION: 20261024-4
    ========================================================= */
 
 /* ================= SUPABASE CONFIG ================= */
@@ -65,7 +65,24 @@ function escapeHTML(value) {
 function formatDate(value) {
   if (!value) return "N/A";
 
-  const date = new Date(value);
+  /*
+   * Parse YYYY-MM-DD as a local calendar date.
+   * This avoids displaying the previous day in
+   * some time zones.
+   */
+  const dateString = String(value).trim();
+
+  let date;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    const [year, month, day] = dateString
+      .split("-")
+      .map(Number);
+
+    date = new Date(year, month - 1, day);
+  } else {
+    date = new Date(dateString);
+  }
 
   if (Number.isNaN(date.getTime())) {
     return safeText(value);
@@ -98,13 +115,12 @@ function calculateGrade(score) {
   if (score >= 70) return "B";
   if (score >= 60) return "C";
   if (score >= 50) return "D";
+
   return "F";
 }
 
 /* =========================================================
    OFFICIAL BRANDING
-   IMPORTANT: This function must remain at top level.
-   Do not move it inside start() or the boot ELSE block.
    ========================================================= */
 
 function setupOfficialBranding() {
@@ -255,7 +271,10 @@ function setupOfficialBranding() {
       }
     });
 
-    if (studentPhoto.complete && studentPhoto.naturalWidth > 0) {
+    if (
+      studentPhoto.complete &&
+      studentPhoto.naturalWidth > 0
+    ) {
       studentPhoto.style.display = "block";
 
       if (photoPlaceholder) {
@@ -264,7 +283,9 @@ function setupOfficialBranding() {
     }
   }
 
-  console.log("[AUTH LETTER] Official branding initialized.");
+  console.log(
+    "[AUTH LETTER] Official branding initialized."
+  );
 }
 
 /* ================= PAGE STATE ================= */
@@ -294,7 +315,11 @@ function showDocument() {
 }
 
 function showError(title, details = "") {
-  console.error("[GAAWOW AUTH LETTER]", title, details);
+  console.error(
+    "[GAAWOW AUTH LETTER]",
+    title,
+    details
+  );
 
   const loading = $("loading");
   const page = $("authenticationLetter");
@@ -312,8 +337,13 @@ function showError(title, details = "") {
     page.style.display = "none";
   }
 
-  if (message) message.textContent = title;
-  if (detail) detail.textContent = details;
+  if (message) {
+    message.textContent = title;
+  }
+
+  if (detail) {
+    detail.textContent = details;
+  }
 
   if (error) {
     error.hidden = false;
@@ -325,7 +355,9 @@ function showError(title, details = "") {
 /* ================= URL PARAMETERS ================= */
 
 function getParams() {
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(
+    window.location.search
+  );
 
   return {
     regen: params.get("regen"),
@@ -372,7 +404,10 @@ async function loadCertificate(supabase, params) {
       .maybeSingle();
 
     if (result.error) throw result.error;
-    if (result.data) return result.data;
+
+    if (result.data) {
+      return result.data;
+    }
   }
 
   /* 2. CERTIFICATE ID */
@@ -386,7 +421,10 @@ async function loadCertificate(supabase, params) {
       .maybeSingle();
 
     if (result.error) throw result.error;
-    if (result.data) return result.data;
+
+    if (result.data) {
+      return result.data;
+    }
   }
 
   /* 3. VERIFICATION CODE */
@@ -400,7 +438,10 @@ async function loadCertificate(supabase, params) {
       .maybeSingle();
 
     if (result.error) throw result.error;
-    if (result.data) return result.data;
+
+    if (result.data) {
+      return result.data;
+    }
   }
 
   /* 4. DEFAULT RECORD */
@@ -426,15 +467,21 @@ async function loadCertificate(supabase, params) {
 /* ================= DOCUMENT TYPE ================= */
 
 function isAuthenticationLetter(record) {
-  const type = String(record?.certificate_type || "")
+  const type = String(
+    record?.certificate_type || ""
+  )
     .trim()
     .toLowerCase();
 
-  const id = String(record?.certificate_id || "")
+  const id = String(
+    record?.certificate_id || ""
+  )
     .trim()
     .toUpperCase();
 
-  const number = String(record?.certificate_no || "")
+  const number = String(
+    record?.certificate_no || ""
+  )
     .trim()
     .toUpperCase();
 
@@ -457,7 +504,9 @@ function buildVerificationURL(record) {
     record?.certificate_id || ""
   ).trim();
 
-  if (!verifyCode || !certificateId) return null;
+  if (!verifyCode || !certificateId) {
+    return null;
+  }
 
   return (
     VERIFICATION_PAGE +
@@ -498,7 +547,9 @@ function renderCertificate(record) {
 
   if ($("issueDate")) {
     $("issueDate").textContent =
-      formatDate(record.issue_date || record.created_at);
+      formatDate(
+        record.issue_date || record.created_at
+      );
   }
 
   if ($("expiryDate")) {
@@ -512,9 +563,9 @@ function renderCertificate(record) {
   }
 
   /*
-   * Date Completed remains N/A until the actual
-   * completion-date database column is confirmed.
-   * Do not invent a completion date.
+   * The real completion date is loaded from
+   * enrollments.end_date or classes.end_date.
+   * It is rendered after the student lookup.
    */
 
   if ($("dateCompleted")) {
@@ -531,7 +582,13 @@ function renderCertificate(record) {
 /* ================= LOAD STUDENT ================= */
 
 async function loadStudent(supabase, record) {
-  if (!record?.student_id) return null;
+  if (!record?.student_id) {
+    console.warn(
+      "[AUTH LETTER] Certificate has no student_id."
+    );
+
+    return null;
+  }
 
   const result = await supabase
     .from("students")
@@ -543,22 +600,191 @@ async function loadStudent(supabase, record) {
     .maybeSingle();
 
   if (result.error) {
-    console.warn("[AUTH LETTER] Student query:", result.error);
+    console.warn(
+      "[AUTH LETTER] Student query:",
+      result.error.message
+    );
+
     return null;
   }
 
   return result.data || null;
 }
 
+/* ================= LOAD COURSE COMPLETION DATE ================= */
+
+/*
+ * Priority:
+ * 1. enrollments.end_date
+ * 2. classes.end_date
+ *
+ * The function does not invent a date.
+ */
+
+async function loadCompletionDate(
+  supabase,
+  record,
+  student
+) {
+  const studentId =
+    record?.student_id || student?.id;
+
+  if (!studentId) {
+    console.warn(
+      "[AUTH LETTER] Student ID missing; cannot load completion date."
+    );
+
+    return null;
+  }
+
+  try {
+    /* 1. LOAD ENROLLMENTS */
+
+    const enrollmentResult = await supabase
+      .from("enrollments")
+      .select("id,student_id,class_id,end_date")
+      .eq("student_id", studentId);
+
+    if (enrollmentResult.error) {
+      console.warn(
+        "[AUTH LETTER] Enrollment query failed:",
+        enrollmentResult.error.message
+      );
+    }
+
+    const enrollments = enrollmentResult.data || [];
+
+    /*
+     * Prefer an enrollment that has an end date.
+     * If there are multiple dated enrollments, this
+     * uses the latest end date.
+     */
+
+    const datedEnrollments = enrollments
+      .filter(enrollment => enrollment.end_date)
+      .sort((a, b) => {
+        return String(b.end_date).localeCompare(
+          String(a.end_date)
+        );
+      });
+
+    if (datedEnrollments.length > 0) {
+      const completionDate =
+        datedEnrollments[0].end_date;
+
+      console.log(
+        "[AUTH LETTER] Completion date source: enrollments.end_date",
+        completionDate
+      );
+
+      return completionDate;
+    }
+
+    /* 2. CHECK THE ENROLLED CLASSES */
+
+    const classIds = [
+      ...new Set(
+        enrollments
+          .map(enrollment => enrollment.class_id)
+          .filter(Boolean)
+      )
+    ];
+
+    /*
+     * If the certificate has a class_id, include it
+     * as a possible class reference.
+     */
+
+    if (record?.class_id) {
+      classIds.push(record.class_id);
+    }
+
+    const uniqueClassIds = [...new Set(classIds)];
+
+    const classEndDates = [];
+
+    for (const classId of uniqueClassIds) {
+      const classResult = await supabase
+        .from("classes")
+        .select("id,end_date")
+        .eq("id", classId)
+        .maybeSingle();
+
+      if (classResult.error) {
+        console.warn(
+          "[AUTH LETTER] Class query failed:",
+          classResult.error.message
+        );
+
+        continue;
+      }
+
+      if (classResult.data?.end_date) {
+        classEndDates.push(
+          classResult.data.end_date
+        );
+      }
+    }
+
+    if (classEndDates.length > 0) {
+      classEndDates.sort((a, b) => {
+        return String(b).localeCompare(String(a));
+      });
+
+      const completionDate = classEndDates[0];
+
+      console.log(
+        "[AUTH LETTER] Completion date source: classes.end_date",
+        completionDate
+      );
+
+      return completionDate;
+    }
+
+    console.warn(
+      "[AUTH LETTER] No end_date found for this student's enrollment or class."
+    );
+
+    return null;
+  } catch (error) {
+    console.error(
+      "[AUTH LETTER] Completion date lookup failed:",
+      error
+    );
+
+    return null;
+  }
+}
+
 /* ================= RENDER STUDENT ================= */
 
-function renderStudent(student) {
-  if (!student) return;
+function renderStudent(
+  student,
+  completionDate = null
+) {
+  if (!student) {
+    console.warn(
+      "[AUTH LETTER] Student record unavailable."
+    );
+
+    return;
+  }
+
+  /* STUDENT NAME */
 
   if ($("studentName")) {
     $("studentName").textContent =
       safeText(student.full_name);
   }
+
+  /* STUDENT ID */
+
+  if ($("studentId")) {
+    $("studentId").textContent =
+      safeText(student.student_id);
+  }
+
+  /* ADMISSION / START DATE */
 
   if ($("dateStarted")) {
     $("dateStarted").textContent =
@@ -570,10 +796,43 @@ function renderStudent(student) {
       formatDate(student.admission_date);
   }
 
-  if ($("studentPhoto") && student.photo_url) {
-    $("studentPhoto").src = student.photo_url;
-    $("studentPhoto").style.display = "block";
+  /* COURSE COMPLETION DATE */
+
+  if ($("dateCompleted")) {
+    $("dateCompleted").textContent =
+      formatDate(completionDate);
   }
+
+  if ($("completionDate")) {
+    $("completionDate").textContent =
+      formatDate(completionDate);
+  }
+
+  /* STUDENT PHOTO */
+
+  if ($("studentPhoto")) {
+    if (student.photo_url) {
+      $("studentPhoto").src = student.photo_url;
+      $("studentPhoto").style.display = "block";
+    } else {
+      $("studentPhoto").removeAttribute("src");
+      $("studentPhoto").style.display = "none";
+
+      if ($("photoPlaceholder")) {
+        $("photoPlaceholder").style.display = "flex";
+      }
+    }
+  }
+
+  console.log(
+    "[AUTH LETTER] STUDENT DATE CHECK:",
+    {
+      student_id: student.student_id || null,
+      admission_date:
+        student.admission_date || null,
+      completion_date: completionDate || null
+    }
+  );
 }
 
 /* ================= RPC VERIFICATION ================= */
@@ -589,7 +848,11 @@ async function verifyRPC(supabase, record) {
     );
 
     if (result.error) {
-      console.warn("[AUTH LETTER] RPC:", result.error);
+      console.warn(
+        "[AUTH LETTER] RPC:",
+        result.error.message
+      );
+
       return null;
     }
 
@@ -599,7 +862,11 @@ async function verifyRPC(supabase, record) {
 
     return result.data || null;
   } catch (error) {
-    console.warn("[AUTH LETTER] RPC exception:", error);
+    console.warn(
+      "[AUTH LETTER] RPC exception:",
+      error
+    );
+
     return null;
   }
 }
@@ -630,7 +897,10 @@ function renderRPC(data, record) {
     recordCode &&
     rpcCode !== recordCode
   ) {
-    console.warn("[AUTH LETTER] RPC code mismatch.");
+    console.warn(
+      "[AUTH LETTER] RPC code mismatch."
+    );
+
     return;
   }
 
@@ -639,7 +909,10 @@ function renderRPC(data, record) {
     recordId &&
     rpcId !== recordId
   ) {
-    console.warn("[AUTH LETTER] RPC authentication ID mismatch.");
+    console.warn(
+      "[AUTH LETTER] RPC authentication ID mismatch."
+    );
+
     return;
   }
 
@@ -657,20 +930,30 @@ function renderRPC(data, record) {
   for (const [elementId, field] of fields) {
     const element = $(elementId);
 
-    if (element && data[field]) {
+    if (
+      element &&
+      data[field] !== null &&
+      data[field] !== undefined &&
+      data[field] !== ""
+    ) {
       element.textContent =
         ["issueDate", "expiryDate"].includes(elementId)
           ? formatDate(data[field])
           : (
               elementId === "status"
                 ? String(data[field]).toUpperCase()
-                : data[field]
+                : String(data[field])
             );
     }
   }
 
-  if ($("studentPhoto") && data.student_photo_url) {
-    $("studentPhoto").src = data.student_photo_url;
+  if (
+    $("studentPhoto") &&
+    data.student_photo_url
+  ) {
+    $("studentPhoto").src =
+      data.student_photo_url;
+
     $("studentPhoto").style.display = "block";
   }
 
@@ -683,7 +966,10 @@ function renderQR(record) {
   const container = $("qrcode");
 
   if (!container) {
-    console.warn("[AUTH LETTER] QR container #qrcode lama helin.");
+    console.warn(
+      "[AUTH LETTER] QR container #qrcode lama helin."
+    );
+
     return;
   }
 
@@ -698,14 +984,19 @@ function renderQR(record) {
   ).trim();
 
   if (!verifyCode || !certificateId) {
-    container.textContent = "QR verification unavailable";
+    container.textContent =
+      "QR verification unavailable";
+
     return;
   }
 
-  const verificationURL = buildVerificationURL(record);
+  const verificationURL =
+    buildVerificationURL(record);
 
   if (!verificationURL) {
-    container.textContent = "Verification URL unavailable";
+    container.textContent =
+      "Verification URL unavailable";
+
     return;
   }
 
@@ -729,9 +1020,17 @@ function renderQR(record) {
 
       return;
     } catch (error) {
-      console.warn("[AUTH LETTER] QR library failed:", error);
+      console.warn(
+        "[AUTH LETTER] QR library failed:",
+        error
+      );
     }
   }
+
+  /*
+   * Fallback QR image service.
+   * This requires an internet connection.
+   */
 
   const image = document.createElement("img");
 
@@ -740,7 +1039,9 @@ function renderQR(record) {
     "?size=180x180&data=" +
     encodeURIComponent(verificationURL);
 
-  image.alt = "GAAWOW Academy Authentication Verification QR";
+  image.alt =
+    "GAAWOW Academy Authentication Verification QR";
+
   image.width = 145;
   image.height = 145;
 
@@ -769,7 +1070,9 @@ async function loadSubjectNames(supabase, rows) {
     )
   ];
 
-  if (!subjectIds.length) return {};
+  if (!subjectIds.length) {
+    return {};
+  }
 
   try {
     const result = await supabase
@@ -778,7 +1081,11 @@ async function loadSubjectNames(supabase, rows) {
       .in("id", subjectIds);
 
     if (result.error) {
-      console.warn("[AUTH LETTER] Subjects query:", result.error);
+      console.warn(
+        "[AUTH LETTER] Subjects query:",
+        result.error.message
+      );
+
       return {};
     }
 
@@ -800,7 +1107,11 @@ async function loadSubjectNames(supabase, rows) {
 
     return map;
   } catch (error) {
-    console.warn("[AUTH LETTER] Subject names exception:", error);
+    console.warn(
+      "[AUTH LETTER] Subject names exception:",
+      error
+    );
+
     return {};
   }
 }
@@ -810,7 +1121,9 @@ async function loadSubjectNames(supabase, rows) {
 async function loadResults(supabase, record) {
   const container = $("academicResults");
 
-  if (!container || !record?.student_id) return;
+  if (!container || !record?.student_id) {
+    return;
+  }
 
   try {
     const result = await supabase
@@ -820,7 +1133,11 @@ async function loadResults(supabase, record) {
       .eq("is_published", true);
 
     if (result.error) {
-      console.warn("[AUTH LETTER] Results:", result.error);
+      console.warn(
+        "[AUTH LETTER] Results:",
+        result.error.message
+      );
+
       return;
     }
 
@@ -829,10 +1146,14 @@ async function loadResults(supabase, record) {
     if (!rows.length) {
       container.innerHTML =
         '<div class="no-results">No published academic results available.</div>';
+
       return;
     }
 
-    const subjectMap = await loadSubjectNames(supabase, rows);
+    const subjectMap = await loadSubjectNames(
+      supabase,
+      rows
+    );
 
     const normalizedRows = rows.map(row => {
       const score = numericScore(
@@ -851,13 +1172,19 @@ async function loadResults(supabase, record) {
         row.name
       );
 
-      if (!subjectName && row.subject_id) {
-        subjectName = subjectMap[String(row.subject_id)];
+      if (
+        !subjectName &&
+        row.subject_id
+      ) {
+        subjectName =
+          subjectMap[String(row.subject_id)];
       }
 
       const grade =
-        firstAvailable(row.grade, row.grade_name) ||
-        calculateGrade(score);
+        firstAvailable(
+          row.grade,
+          row.grade_name
+        ) || calculateGrade(score);
 
       return {
         subject: subjectName || "Subject",
@@ -894,15 +1221,17 @@ async function loadResults(supabase, record) {
       0
     );
 
-    const maxTotal = scoredRows.length * 100;
+    const maxTotal =
+      scoredRows.length * 100;
 
     const percentage = maxTotal > 0
       ? (total / maxTotal) * 100
       : null;
 
-    const overallGrade = percentage !== null
-      ? calculateGrade(percentage)
-      : "N/A";
+    const overallGrade =
+      percentage !== null
+        ? calculateGrade(percentage)
+        : "N/A";
 
     let html = `
       <div class="results-table-wrapper">
@@ -944,8 +1273,12 @@ async function loadResults(supabase, record) {
     if (percentage !== null) {
       html += `
         <tr class="results-percentage-row">
-          <td colspan="2"><strong>OVERALL PERCENTAGE</strong></td>
-          <td><strong>${percentage.toFixed(1)}%</strong></td>
+          <td colspan="2">
+            <strong>OVERALL PERCENTAGE</strong>
+          </td>
+          <td>
+            <strong>${percentage.toFixed(1)}%</strong>
+          </td>
         </tr>
       `;
     }
@@ -958,15 +1291,21 @@ async function loadResults(supabase, record) {
 
     container.innerHTML = html;
 
-    console.log("[AUTH LETTER] Academic Results:", {
-      subjects: normalizedRows.length,
-      total,
-      maxTotal,
-      percentage,
-      grade: overallGrade
-    });
+    console.log(
+      "[AUTH LETTER] Academic Results:",
+      {
+        subjects: normalizedRows.length,
+        total,
+        maxTotal,
+        percentage,
+        grade: overallGrade
+      }
+    );
   } catch (error) {
-    console.warn("[AUTH LETTER] Academic results exception:", error);
+    console.warn(
+      "[AUTH LETTER] Academic results exception:",
+      error
+    );
   }
 }
 
@@ -988,9 +1327,11 @@ function removeFounderLocation() {
   ];
 
   selectors.forEach(selector => {
-    document.querySelectorAll(selector).forEach(element => {
-      element.remove();
-    });
+    document
+      .querySelectorAll(selector)
+      .forEach(element => {
+        element.remove();
+      });
   });
 }
 
@@ -999,7 +1340,10 @@ function removeFounderLocation() {
 function setupPrint() {
   const button = $("printButton");
 
-  if (!button || button.dataset.printReady === "true") {
+  if (
+    !button ||
+    button.dataset.printReady === "true"
+  ) {
     return;
   }
 
@@ -1015,7 +1359,10 @@ function setupPrint() {
 function setupRetry() {
   const button = $("retryButton");
 
-  if (!button || button.dataset.retryReady === "true") {
+  if (
+    !button ||
+    button.dataset.retryReady === "true"
+  ) {
     return;
   }
 
@@ -1029,14 +1376,11 @@ function setupRetry() {
 /* ================= START ================= */
 
 async function start() {
-  console.log("GAAWOW AUTHENTICATION LETTER 20261024-3");
+  console.log(
+    "GAAWOW AUTHENTICATION LETTER 20261024-4"
+  );
 
   try {
-    /*
-     * All three functions are declared at top level.
-     * They can now be called safely from start().
-     */
-
     setupPrint();
     setupRetry();
     setupOfficialBranding();
@@ -1044,26 +1388,38 @@ async function start() {
     const supabase = getSupabase();
     const params = getParams();
 
-    console.log("[AUTH LETTER] URL PARAMETERS:", params);
+    console.log(
+      "[AUTH LETTER] URL PARAMETERS:",
+      params
+    );
+
+    /* 1. LOAD CERTIFICATE */
 
     const record = await loadCertificate(
       supabase,
       params
     );
 
-    console.log("[AUTH LETTER] SELECTED RECORD:", {
-      id: record.id,
-      certificate_no: record.certificate_no,
-      certificate_id: record.certificate_id,
-      verify_code: record.verify_code,
-      certificate_type: record.certificate_type
-    });
+    console.log(
+      "[AUTH LETTER] SELECTED RECORD:",
+      {
+        id: record.id,
+        certificate_no: record.certificate_no,
+        certificate_id: record.certificate_id,
+        verify_code: record.verify_code,
+        certificate_type: record.certificate_type
+      }
+    );
+
+    /* 2. VALIDATE DOCUMENT TYPE */
 
     if (!isAuthenticationLetter(record)) {
       throw new Error(
         "Record-kan ma aha Authentication Letter."
       );
     }
+
+    /* 3. CHECK STATUS */
 
     if (
       record.status &&
@@ -1075,41 +1431,100 @@ async function start() {
       );
     }
 
+    /* 4. RENDER CERTIFICATE */
+
     renderCertificate(record);
 
     removeFounderLocation();
+
     showDocument();
+
+    /* 5. LOAD STUDENT */
 
     const student = await loadStudent(
       supabase,
       record
     );
 
-    renderStudent(student);
+    /* 6. LOAD REAL COMPLETION DATE */
+
+    const completionDate = await loadCompletionDate(
+      supabase,
+      record,
+      student
+    );
+
+    /* 7. RENDER STUDENT AND DATES */
+
+    renderStudent(
+      student,
+      completionDate
+    );
+
+    console.log(
+      "[AUTH LETTER] DATE CHECK:",
+      {
+        admission_date:
+          student?.admission_date || null,
+        completion_date:
+          completionDate || null
+      }
+    );
+
+    /* 8. VERIFY AUTHENTICATION LETTER */
 
     const verified = await verifyRPC(
       supabase,
       record
     );
 
-    renderRPC(verified, record);
+    renderRPC(
+      verified,
+      record
+    );
+
+    /*
+     * Render the completion date again after RPC.
+     * This ensures that the RPC rendering does not
+     * accidentally replace the course completion date.
+     */
+
+    if ($("dateCompleted")) {
+      $("dateCompleted").textContent =
+        formatDate(completionDate);
+    }
+
+    if ($("completionDate")) {
+      $("completionDate").textContent =
+        formatDate(completionDate);
+    }
+
+    /* 9. LOAD ACADEMIC RESULTS */
 
     await loadResults(
       supabase,
       record
     );
 
+    /* 10. FINALIZE DOCUMENT */
+
     renderQR(record);
+
     removeFounderLocation();
 
-    console.log("[AUTH LETTER] READY");
+    console.log(
+      "[AUTH LETTER] READY"
+    );
 
     console.log(
       "[AUTH LETTER] FINAL VERIFICATION:",
       buildVerificationURL(record)
     );
   } catch (error) {
-    console.error("[AUTH LETTER] FATAL ERROR:", error);
+    console.error(
+      "[AUTH LETTER] FATAL ERROR:",
+      error
+    );
 
     showError(
       "Authentication Letter lama soo bandhigi karin.",
@@ -1120,18 +1535,6 @@ async function start() {
 
 /* ================= BOOT ================= */
 
-/*
- * FIX:
- * setupOfficialBranding is defined before this boot section.
- * Both loading states can therefore call start() safely.
- */
-
 if (document.readyState === "loading") {
   document.addEventListener(
-    "DOMContentLoaded",
-    start,
-    { once: true }
-  );
-} else {
-  start();
-}
+    "DOMContent
