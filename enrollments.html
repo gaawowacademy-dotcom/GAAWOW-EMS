@@ -2,243 +2,315 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B1E63">
+  <meta name="description" content="GAAWOW EMS Enrollment Management">
+  <title>GAAWOW EMS | Enrollment Management</title>
 
-  <title>GAAWOW EMS — Enrollments</title>
-
-  <link rel="icon" type="image/png"
-        href="https://i.ibb.co/4ZCRpm30/gaawow-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <style>
-    * {
-      box-sizing: border-box;
+    :root {
+      --navy: #0B1E63;
+      --blue: #0B4DA2;
+      --gold: #D4AF37;
+      --bg: #F5F7FA;
+      --white: #FFFFFF;
+      --text: #17233C;
+      --muted: #6B7280;
+      --border: #E3E8F0;
+      --green: #16803C;
+      --red: #C62828;
+      --shadow: 0 8px 28px rgba(11, 30, 99, .07);
     }
+
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f5f7fa;
-      color: #1f2937;
+      font-family: Inter, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
     }
 
-    header {
-      background: linear-gradient(135deg, #0b1e63, #0b4da2);
-      color: white;
-      padding: 22px 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,.12);
-    }
-
-    .header-inner {
-      max-width: 1250px;
-      margin: auto;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-
-    .logo {
-      width: 58px;
-      height: 58px;
-      object-fit: contain;
-      background: white;
-      border-radius: 12px;
-      padding: 5px;
-    }
-
-    .brand h1 {
-      margin: 0;
-      font-size: 23px;
-    }
-
-    .brand p {
-      margin: 4px 0 0;
-      color: #f0d98a;
-      font-size: 13px;
-    }
-
-    main {
-      max-width: 1250px;
-      margin: 25px auto;
-      padding: 0 15px 40px;
-    }
+    button, input, select { font: inherit; }
 
     .topbar {
+      background: linear-gradient(120deg, var(--navy), var(--blue));
+      color: white;
+      padding: 20px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 15px;
-      margin-bottom: 20px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo {
+      width: 54px;
+      height: 54px;
+      object-fit: contain;
+      background: white;
+      border-radius: 12px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      margin: 0 0 5px;
+    }
+
+    .brand p {
+      font-size: 12px;
+      margin: 0;
+      opacity: .85;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 9px;
       flex-wrap: wrap;
     }
 
-    .topbar h2 {
+    .page {
+      width: min(1400px, 100%);
+      margin: auto;
+      padding: 24px;
+    }
+
+    .page-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .page-heading h2 {
+      margin: 0 0 6px;
+      color: var(--navy);
+      font-size: 25px;
+    }
+
+    .page-heading p {
+      color: var(--muted);
       margin: 0;
-      color: #0b1e63;
-    }
-
-    button {
-      border: 0;
-      border-radius: 9px;
-      padding: 11px 17px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .btn-primary {
-      background: #0b4da2;
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #083b7d;
-    }
-
-    .btn-gold {
-      background: #d4af37;
-      color: #111827;
-    }
-
-    .btn-danger {
-      background: #dc2626;
-      color: white;
-    }
-
-    .btn-secondary {
-      background: #e5e7eb;
-      color: #1f2937;
+      font-size: 13px;
     }
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 15px;
-      margin-bottom: 20px;
+      margin-bottom: 22px;
     }
 
     .stat {
       background: white;
-      border-radius: 14px;
+      border: 1px solid var(--border);
+      border-radius: 15px;
       padding: 20px;
-      box-shadow: 0 3px 12px rgba(0,0,0,.07);
-      border-left: 5px solid #0b4da2;
+      box-shadow: var(--shadow);
     }
 
-    .stat.gold {
-      border-left-color: #d4af37;
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
     }
 
-    .stat.green {
-      border-left-color: #16a34a;
-    }
-
-    .stat.red {
-      border-left-color: #dc2626;
-    }
-
-    .stat small {
-      color: #6b7280;
-    }
-
-    .stat strong {
-      display: block;
-      margin-top: 7px;
+    .stat-value {
       font-size: 27px;
-      color: #0b1e63;
+      font-weight: 800;
+      color: var(--navy);
+    }
+
+    .stat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: #EDF2FF;
+      color: var(--blue);
+      margin-bottom: 12px;
     }
 
     .panel {
       background: white;
-      border-radius: 15px;
-      padding: 20px;
-      box-shadow: 0 3px 14px rgba(0,0,0,.07);
-      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+      overflow: hidden;
     }
+
+    .panel-head {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .panel-head h3 {
+      margin: 0;
+      color: var(--navy);
+      font-size: 16px;
+    }
+
+    .panel-body { padding: 20px; }
 
     .filters {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: 2fr 1fr 1fr 1fr;
       gap: 12px;
     }
 
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+
     label {
-      font-weight: bold;
-      font-size: 13px;
-      margin-bottom: 6px;
-      display: block;
-      color: #374151;
+      font-size: 12px;
+      font-weight: 700;
+      color: #34415B;
     }
 
-    input,
-    select {
+    input, select {
       width: 100%;
-      padding: 11px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      background: white;
-      font-size: 14px;
+      min-width: 0;
+      padding: 11px 12px;
+      border: 1px solid #D6DDE8;
+      border-radius: 9px;
       outline: none;
+      background: white;
+      color: var(--text);
     }
 
-    input:focus,
-    select:focus {
-      border-color: #0b4da2;
-      box-shadow: 0 0 0 2px rgba(11,77,162,.1);
+    input:focus, select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(11, 77, 162, .10);
+    }
+
+    .btn {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--navy);
+      color: white;
+    }
+
+    .btn-gold {
+      background: var(--gold);
+      color: #17233C;
+    }
+
+    .btn-light {
+      background: #EEF2F8;
+      color: var(--navy);
+    }
+
+    .btn-danger {
+      background: #FDECEC;
+      color: var(--red);
+    }
+
+    .btn:disabled {
+      opacity: .55;
+      cursor: not-allowed;
     }
 
     .table-wrap {
+      width: 100%;
       overflow-x: auto;
     }
 
     table {
       width: 100%;
+      min-width: 850px;
       border-collapse: collapse;
-      min-width: 950px;
+    }
+
+    th, td {
+      padding: 13px 15px;
+      border-bottom: 1px solid #EDF0F5;
+      text-align: left;
+      font-size: 12px;
+      white-space: nowrap;
     }
 
     th {
-      background: #0b1e63;
-      color: white;
-      padding: 13px;
-      text-align: left;
-      font-size: 13px;
+      background: #F7F9FC;
+      color: #59657B;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .3px;
     }
 
-    td {
-      padding: 12px;
-      border-bottom: 1px solid #e5e7eb;
-      font-size: 13px;
-    }
-
-    tr:hover td {
-      background: #f8fafc;
-    }
+    tbody tr:hover { background: #FAFBFE; }
 
     .badge {
       display: inline-block;
       padding: 5px 9px;
       border-radius: 20px;
-      font-size: 11px;
-      font-weight: bold;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: capitalize;
     }
 
-    .active {
-      background: #dcfce7;
-      color: #166534;
+    .badge-active {
+      background: #E3F7EA;
+      color: #176A35;
     }
 
-    .completed {
-      background: #dbeafe;
-      color: #1e40af;
+    .badge-completed {
+      background: #E5EEFF;
+      color: #174B9A;
     }
 
-    .dropped {
-      background: #fee2e2;
-      color: #991b1b;
+    .badge-suspended {
+      background: #FFF1D8;
+      color: #865900;
     }
 
-    .suspended {
-      background: #fef3c7;
-      color: #92400e;
+    .badge-dropped {
+      background: #FDE8E8;
+      color: #A21E1E;
     }
 
     .actions {
@@ -246,370 +318,306 @@
       gap: 6px;
     }
 
-    .actions button {
-      padding: 7px 10px;
-      font-size: 11px;
+    .message {
+      display: none;
+      padding: 12px 14px;
+      border-radius: 9px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      line-height: 1.5;
     }
+
+    .message.show { display: block; }
+    .message.error { background: #FDECEC; color: #A21E1E; }
+    .message.success { background: #E3F7EA; color: #176A35; }
+    .message.info { background: #E8F1FF; color: #174B9A; }
 
     .empty {
       text-align: center;
-      padding: 35px;
-      color: #6b7280;
+      color: var(--muted);
+      padding: 30px;
     }
 
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.55);
-      z-index: 999;
-      padding: 20px;
-      overflow-y: auto;
-    }
-
-    .modal-box {
-      max-width: 650px;
-      margin: 30px auto;
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-    }
-
-    .modal-header {
+    .form-actions {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .modal-header h3 {
-      margin: 0;
-      color: #0b1e63;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 13px;
-    }
-
-    .full {
-      grid-column: 1 / -1;
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
       gap: 10px;
-      margin-top: 20px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      margin-top: 18px;
     }
 
-    .message {
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      display: none;
-      font-size: 13px;
+    .small-note {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+      margin-top: 8px;
     }
 
-    .success-message {
-      background: #dcfce7;
-      color: #166534;
-    }
+    .required { color: var(--red); }
 
-    .error-message {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .loading {
+    footer {
+      padding: 18px;
       text-align: center;
-      padding: 25px;
-      color: #6b7280;
+      color: var(--muted);
+      font-size: 11px;
     }
 
     @media (max-width: 900px) {
-      .stats {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .filters {
-        grid-template-columns: repeat(2, 1fr);
-      }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
-    @media (max-width: 600px) {
-      .stats,
-      .filters,
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 560px) {
+      .page { padding: 14px; }
+      .topbar { padding: 16px; }
+      .brand h1 { font-size: 16px; }
+      .brand p { font-size: 10px; }
+      .logo { width: 45px; height: 45px; }
+      .stats { gap: 9px; }
+      .stat { padding: 13px; }
+      .stat-value { font-size: 23px; }
+      .filters, .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .panel-body { padding: 14px; }
+      .page-heading h2 { font-size: 21px; }
+    }
 
-      .full {
-        grid-column: auto;
-      }
-
-      .header-inner {
-        align-items: flex-start;
-      }
-
-      .brand h1 {
-        font-size: 19px;
-      }
+    @media print {
+      .topbar, .filters-panel, .form-panel, .top-actions,
+      .actions, .no-print, footer { display: none !important; }
+      body { background: white; }
+      .page { padding: 0; width: 100%; }
+      .panel, .stat { box-shadow: none; }
     }
   </style>
 </head>
 
 <body>
-
-<header>
-  <div class="header-inner">
-    <img
-      class="logo"
-      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-      alt="GAAWOW Academy Logo"
-    >
-
+  <header class="topbar">
     <div class="brand">
-      <h1>GAAWOW EMS</h1>
-      <p>Ilayska Aqoonta iyo Xirfadda</p>
-    </div>
-  </div>
-</header>
-
-<main>
-
-  <div class="topbar">
-    <div>
-      <h2>Student Enrollments</h2>
-      <p style="margin:5px 0;color:#6b7280;">
-        Manage students enrolled in courses and classes
-      </p>
-    </div>
-
-    <button class="btn-gold" onclick="openEnrollmentModal()">
-      + New Enrollment
-    </button>
-  </div>
-
-  <div id="message" class="message"></div>
-
-  <section class="stats">
-    <div class="stat">
-      <small>Total Enrollments</small>
-      <strong id="totalCount">0</strong>
-    </div>
-
-    <div class="stat green">
-      <small>Active</small>
-      <strong id="activeCount">0</strong>
-    </div>
-
-    <div class="stat gold">
-      <small>Completed</small>
-      <strong id="completedCount">0</strong>
-    </div>
-
-    <div class="stat red">
-      <small>Other Status</small>
-      <strong id="otherCount">0</strong>
-    </div>
-  </section>
-
-  <section class="panel">
-
-    <div class="filters">
-
-      <div>
-        <label>Institution</label>
-        <select id="institutionFilter">
-          <option value="">All Institutions</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Course</label>
-        <select id="courseFilter">
-          <option value="">All Courses</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Class</label>
-        <select id="classFilter">
-          <option value="">All Classes</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Status</label>
-        <select id="statusFilter">
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-          <option value="dropped">Dropped</option>
-          <option value="suspended">Suspended</option>
-        </select>
-      </div>
-
-      <div class="full">
-        <label>Search</label>
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="Search student name, student ID, enrollment number..."
-        >
-      </div>
-
-    </div>
-
-  </section>
-
-  <section class="panel">
-
-    <div class="table-wrap">
-
-      <table>
-
-        <thead>
-          <tr>
-            <th>Student</th>
-            <th>Student ID</th>
-            <th>Course</th>
-            <th>Class</th>
-            <th>Enrollment No.</th>
-            <th>Enrollment Date</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-
-        <tbody id="enrollmentTableBody">
-          <tr>
-            <td colspan="8" class="loading">
-              Loading enrollments...
-            </td>
-          </tr>
-        </tbody>
-
-      </table>
-
-    </div>
-
-  </section>
-
-</main>
-
-
-<!-- MODAL -->
-
-<div id="enrollmentModal" class="modal">
-
-  <div class="modal-box">
-
-    <div class="modal-header">
-
-      <h3 id="modalTitle">New Enrollment</h3>
-
-      <button
-        class="btn-secondary"
-        onclick="closeEnrollmentModal()"
+      <img
+        class="logo"
+        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+        alt="GAAWOW Academy Logo"
       >
-        ✕
-      </button>
-
+      <div>
+        <h1>GAAWOW EMS</h1>
+        <p>Education Management &amp; Verification System</p>
+      </div>
     </div>
 
-    <div class="form-grid">
+    <div class="top-actions">
+      <button class="btn btn-light" id="refreshBtn">
+        <i class="fa-solid fa-rotate"></i> Refresh
+      </button>
+      <button class="btn btn-gold" id="printBtn">
+        <i class="fa-solid fa-print"></i> Print
+      </button>
+      <a class="btn btn-light" href="dashboard.html">
+        <i class="fa-solid fa-arrow-left"></i> Dashboard
+      </a>
+    </div>
+  </header>
 
-      <div class="full">
-        <label>Institution *</label>
-        <select id="formInstitution">
-          <option value="">Select institution</option>
-        </select>
-      </div>
-
+  <main class="page">
+    <div class="page-heading">
       <div>
-        <label>Course *</label>
-        <select id="formCourse">
-          <option value="">Select course</option>
-        </select>
+        <h2>Enrollment Management</h2>
+        <p>Manage student registration, classes, courses and enrollment status.</p>
       </div>
 
-      <div>
-        <label>Class</label>
-        <select id="formClass">
-          <option value="">Select class</option>
-        </select>
-      </div>
-
-      <div class="full">
-        <label>Student *</label>
-        <select id="formStudent">
-          <option value="">Select student</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Enrollment Number</label>
-        <input
-          id="formEnrollmentNumber"
-          type="text"
-          placeholder="e.g. ENR-2026-001"
-        >
-      </div>
-
-      <div>
-        <label>Status *</label>
-        <select id="formStatus">
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-          <option value="dropped">Dropped</option>
-          <option value="suspended">Suspended</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Enrollment Date *</label>
-        <input id="formEnrollmentDate" type="date">
-      </div>
-
-      <div>
-        <label>Start Date</label>
-        <input id="formStartDate" type="date">
-      </div>
-
-      <div>
-        <label>End Date</label>
-        <input id="formEndDate" type="date">
-      </div>
-
+      <button class="btn btn-primary no-print" id="newEnrollmentBtn">
+        <i class="fa-solid fa-user-plus"></i> New Enrollment
+      </button>
     </div>
 
-    <div class="modal-actions">
+    <div id="pageMessage" class="message" role="status" aria-live="polite"></div>
 
-      <button
-        class="btn-secondary"
-        onclick="closeEnrollmentModal()"
-      >
-        Cancel
-      </button>
+    <section class="stats">
+      <div class="stat">
+        <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+        <div class="stat-label">Total Enrollments</div>
+        <div class="stat-value" id="totalCount">0</div>
+      </div>
 
-      <button
-        class="btn-primary"
-        onclick="saveEnrollment()"
-      >
-        Save Enrollment
-      </button>
+      <div class="stat">
+        <div class="stat-icon"><i class="fa-solid fa-user-check"></i></div>
+        <div class="stat-label">Active</div>
+        <div class="stat-value" id="activeCount">0</div>
+      </div>
 
-    </div>
+      <div class="stat">
+        <div class="stat-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+        <div class="stat-label">Completed</div>
+        <div class="stat-value" id="completedCount">0</div>
+      </div>
 
-  </div>
+      <div class="stat">
+        <div class="stat-icon"><i class="fa-solid fa-pause-circle"></i></div>
+        <div class="stat-label">Suspended / Dropped</div>
+        <div class="stat-value" id="otherCount">0</div>
+      </div>
+    </section>
 
-</div>
+    <section class="panel form-panel" id="formPanel" hidden>
+      <div class="panel-head">
+        <h3 id="formTitle"><i class="fa-solid fa-user-plus"></i> New Enrollment</h3>
+        <button class="btn btn-light" id="closeFormBtn" type="button">
+          <i class="fa-solid fa-xmark"></i> Close
+        </button>
+      </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="enrollments.js"></script>
+      <div class="panel-body">
+        <div id="formMessage" class="message" role="status" aria-live="polite"></div>
 
+        <form id="enrollmentForm">
+          <input type="hidden" id="enrollmentId">
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="institutionSelect">Institution <span class="required">*</span></label>
+              <select id="institutionSelect" required>
+                <option value="">Loading institutions...</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="studentSelect">Student <span class="required">*</span></label>
+              <select id="studentSelect" required>
+                <option value="">Select institution first</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="courseSelect">Course <span class="required">*</span></label>
+              <select id="courseSelect" required>
+                <option value="">Select institution first</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="classSelect">Class <span class="required">*</span></label>
+              <select id="classSelect" required>
+                <option value="">Select course first</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="enrollmentDate">Enrollment Date <span class="required">*</span></label>
+              <input id="enrollmentDate" type="date" required>
+            </div>
+
+            <div class="field">
+              <label for="startDate">Start Date</label>
+              <input id="startDate" type="date">
+            </div>
+
+            <div class="field">
+              <label for="endDate">End Date</label>
+              <input id="endDate" type="date">
+            </div>
+
+            <div class="field">
+              <label for="statusSelect">Enrollment Status <span class="required">*</span></label>
+              <select id="statusSelect" required>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="suspended">Suspended</option>
+                <option value="dropped">Dropped</option>
+              </select>
+            </div>
+          </div>
+
+          <p class="small-note">
+            Required fields are marked with *. Only enroll students in a class
+            and course that belong to the selected institution.
+          </p>
+
+          <div class="form-actions">
+            <button class="btn btn-light" type="button" id="cancelFormBtn">Cancel</button>
+            <button class="btn btn-primary" type="submit" id="saveBtn">
+              <i class="fa-solid fa-floppy-disk"></i> Save Enrollment
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel filters-panel">
+      <div class="panel-head">
+        <h3><i class="fa-solid fa-filter"></i> Search &amp; Filters</h3>
+      </div>
+
+      <div class="panel-body">
+        <div class="filters">
+          <div class="field">
+            <label for="searchInput">Search Student</label>
+            <input id="searchInput" type="search" placeholder="Name or Student ID">
+          </div>
+
+          <div class="field">
+            <label for="filterInstitution">Institution</label>
+            <select id="filterInstitution">
+              <option value="">All accessible institutions</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="filterCourse">Course</label>
+            <select id="filterCourse">
+              <option value="">All courses</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="filterStatus">Status</label>
+            <select id="filterStatus">
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="suspended">Suspended</option>
+              <option value="dropped">Dropped</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h3><i class="fa-solid fa-list-check"></i> Enrollment Records</h3>
+        <span id="resultLabel" style="font-size:12px;color:#6B7280">0 records</span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Student ID</th>
+              <th>Student Name</th>
+              <th>Course</th>
+              <th>Class</th>
+              <th>Enrollment Date</th>
+              <th>Status</th>
+              <th class="no-print">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="enrollmentTableBody">
+            <tr>
+              <td colspan="7" class="empty">Loading enrollment records...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    GAAWOW Academy | Ilayska Aqoonta iyo Xirfadda
+    <br>GAAWOW EMS Enrollment Management
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="enrollment.js?v=20261024-1"></script>
 </body>
 </html>
