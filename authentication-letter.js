@@ -1535,6 +1535,16 @@ async function start() {
 
 /* ================= BOOT ================= */
 
+function bootAuthenticationLetter() {
+  start();
+}
+
 if (document.readyState === "loading") {
   document.addEventListener(
-    "DOMContent
+    "DOMContentLoaded",
+    bootAuthenticationLetter,
+    { once: true }
+  );
+} else {
+  bootAuthenticationLetter();
+}
