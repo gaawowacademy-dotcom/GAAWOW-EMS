@@ -2010,7 +2010,9 @@ async function start() {
 
     setupPrint();
 
-    setupRetry();
+setupRetry();
+
+setupOfficialBranding();
 
 
     /* -----------------------------------------------------
