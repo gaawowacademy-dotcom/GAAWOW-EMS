@@ -1,1254 +1,794 @@
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+"use strict";
 
-const SUPABASE_KEY =
+/*
+ * GAAWOW EMS - Enrollment Management
+ *
+ * Required tables:
+ * institutions, students, courses, classes, enrollments, profiles
+ *
+ * Security:
+ * - Requires a signed-in Supabase user.
+ * - Relies on database RLS policies for authorization.
+ * - Never disables RLS.
+ * - Does not create Auth accounts.
+ */
+
+const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
+/*
+ * Use your project's publishable/anon key.
+ * Never put a service_role key in browser JavaScript.
+ */
+const SUPABASE_ANON_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-const supabaseClient =
-  window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
 
-let currentUser = null;
-let currentProfile = null;
+const $ = (id) => document.getElementById(id);
 
-let institutions = [];
-let courses = [];
-let classes = [];
-let students = [];
-let enrollments = [];
+const state = {
+  user: null,
+  profile: null,
+  institutions: [],
+  students: [],
+  courses: [],
+  classes: [],
+  enrollments: [],
+  editingId: null,
+  busy: false
+};
 
-let editingId = null;
+const STATUS_LABELS = {
+  active: "Active",
+  completed: "Completed",
+  suspended: "Suspended",
+  dropped: "Dropped"
+};
 
-
-// ===============================
-// INIT
-// ===============================
-
-document.addEventListener("DOMContentLoaded", async () => {
-
-  try {
-
-    const {
-      data: { user },
-      error
-    } = await supabaseClient.auth.getUser();
-
-    if (error || !user) {
-      window.location.href = "index.html";
-      return;
-    }
-
-    currentUser = user;
-
-    await loadProfile();
-
-    if (!currentProfile) {
-      showMessage(
-        "Profile not found.",
-        "error"
-      );
-      return;
-    }
-
-    if (currentProfile.role !== "super_admin") {
-
-      showMessage(
-        "Access denied. Super Admin only.",
-        "error"
-      );
-
-      return;
-    }
-
-    await loadInstitutions();
-    await loadCourses();
-    await loadClasses();
-    await loadStudents();
-    await loadEnrollments();
-
-    setupEvents();
-
-  } catch (error) {
-
-    console.error(error);
-
-    showMessage(
-      error.message || "Failed to load module.",
-      "error"
-    );
-
-  }
-
-});
-
-
-// ===============================
-// PROFILE
-// ===============================
-
-async function loadProfile() {
-
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", currentUser.id)
-    .single();
-
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  currentProfile = data;
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
 }
 
+function showMessage(message, type = "info", target = "pageMessage") {
+  const element = $(target);
+  if (!element) return;
 
-// ===============================
-// INSTITUTIONS
-// ===============================
+  element.textContent = message;
+  element.className = `message show ${type}`;
+}
+
+function clearMessage(target = "pageMessage") {
+  const element = $(target);
+  if (!element) return;
+
+  element.textContent = "";
+  element.className = "message";
+}
+
+function setBusy(busy) {
+  state.busy = busy;
+
+  const saveButton = $("saveBtn");
+  if (saveButton) {
+    saveButton.disabled = busy;
+    saveButton.innerHTML = busy
+      ? '<i class="fa-solid fa-spinner fa-spin"></i> Please wait...'
+      : '<i class="fa-solid fa-floppy-disk"></i> Save Enrollment';
+  }
+
+  const refreshButton = $("refreshBtn");
+  if (refreshButton) refreshButton.disabled = busy;
+}
+
+function setOptions(selectId, rows, valueField, labelFunction, placeholder) {
+  const select = $(selectId);
+  if (!select) return;
+
+  const oldValue = select.value;
+
+  select.innerHTML = "";
+
+  const first = document.createElement("option");
+  first.value = "";
+  first.textContent = placeholder;
+  select.appendChild(first);
+
+  for (const row of rows) {
+    const option = document.createElement("option");
+    option.value = row[valueField];
+    option.textContent = labelFunction(row);
+    select.appendChild(option);
+  }
+
+  if (rows.some((row) => String(row[valueField]) === oldValue)) {
+    select.value = oldValue;
+  }
+}
+
+function institutionName(row) {
+  return row.name || row.institution_name || row.id;
+}
+
+function studentLabel(row) {
+  const studentId = row.student_id || "";
+  const fullName = row.full_name || row.name || "Unnamed student";
+  return `${studentId} - ${fullName}`;
+}
+
+function courseLabel(row) {
+  return `${row.name || "Unnamed course"}${row.code ? ` (${row.code})` : ""}`;
+}
+
+function classLabel(row) {
+  return `${row.name || "Unnamed class"}${row.code ? ` (${row.code})` : ""}`;
+}
+
+function todayISO() {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  return date.toLocaleDateString();
+}
+
+function statusBadge(status) {
+  const safeStatus = STATUS_LABELS[status] ? status : "unknown";
+  const label = STATUS_LABELS[safeStatus] || safeStatus;
+
+  return `<span class="badge badge-${escapeHtml(safeStatus)}">${escapeHtml(label)}</span>`;
+}
+
+function isSuperAdmin() {
+  return state.profile?.role === "super_admin";
+}
+
+function getSelectedInstitutionId() {
+  return $("institutionSelect").value;
+}
+
+function getSelectedCourseId() {
+  return $("courseSelect").value;
+}
+
+function getSelectedClassId() {
+  return $("classSelect").value;
+}
+
+function selectedStudentId() {
+  return $("studentSelect").value;
+}
+
+function filteredStudents(institutionId) {
+  return state.students.filter((student) =>
+    student.institution_id === institutionId
+  );
+}
+
+function filteredCourses(institutionId) {
+  return state.courses.filter((course) =>
+    course.institution_id === institutionId &&
+    course.is_active !== false
+  );
+}
+
+function filteredClasses(institutionId, courseId) {
+  return state.classes.filter((classRow) =>
+    classRow.institution_id === institutionId &&
+    classRow.course_id === courseId &&
+    classRow.is_active !== false &&
+    classRow.status !== "inactive"
+  );
+}
+
+async function requireSignedInUser() {
+  const { data, error } = await db.auth.getSession();
+
+  if (error) throw error;
+
+  const user = data.session?.user;
+  if (!user) {
+    showMessage(
+      "Your session is missing. Please sign in through the official GAAWOW EMS login page.",
+      "error"
+    );
+    $("enrollmentForm").querySelectorAll("input, select, button").forEach((el) => {
+      el.disabled = true;
+    });
+    return false;
+  }
+
+  state.user = user;
+
+  const { data: profile, error: profileError } = await db
+    .from("profiles")
+    .select("id, full_name, role, institution_id, is_active")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError) throw profileError;
+
+  if (!profile || profile.is_active === false) {
+    throw new Error("Your active GAAWOW EMS profile could not be verified.");
+  }
+
+  state.profile = profile;
+
+  if (!["super_admin", "school_admin"].includes(profile.role)) {
+    throw new Error(
+      "You do not have permission to manage student enrollments."
+    );
+  }
+
+  return true;
+}
 
 async function loadInstitutions() {
-
-  const {
-    data,
-    error
-  } = await supabaseClient
+  /*
+   * RLS must limit this query to institutions the current user
+   * is allowed to access.
+   */
+  const { data, error } = await db
     .from("institutions")
     .select("*")
     .order("name");
 
-  if (error) {
-    throw error;
+  if (error) throw error;
+
+  state.institutions = data || [];
+
+  setOptions(
+    "institutionSelect",
+    state.institutions,
+    "id",
+    institutionName,
+    "Select institution"
+  );
+
+  setOptions(
+    "filterInstitution",
+    state.institutions,
+    "id",
+    institutionName,
+    "All accessible institutions"
+  );
+
+  /*
+   * For a school admin, default to their own institution.
+   * For a super admin, do not guess which institution they want.
+   */
+  if (state.profile.role === "school_admin" && state.profile.institution_id) {
+    $("institutionSelect").value = state.profile.institution_id;
+    $("institutionSelect").disabled = true;
+    $("filterInstitution").value = state.profile.institution_id;
+    $("filterInstitution").disabled = true;
   }
-
-  institutions = data || [];
-
-  populateInstitutionFilters();
 }
 
+async function loadReferenceData() {
+  const [studentsResult, coursesResult, classesResult] = await Promise.all([
+    db.from("students")
+      .select("id, student_id, full_name, institution_id")
+      .order("student_id"),
 
-function populateInstitutionFilters() {
+    db.from("courses")
+      .select("id, name, code, institution_id, is_active")
+      .order("name"),
 
-  const filter =
-    document.getElementById("institutionFilter");
+    db.from("classes")
+      .select("id, name, code, institution_id, course_id, is_active, status")
+      .order("name")
+  ]);
 
-  const form =
-    document.getElementById("formInstitution");
+  if (studentsResult.error) throw studentsResult.error;
+  if (coursesResult.error) throw coursesResult.error;
+  if (classesResult.error) throw classesResult.error;
 
-  filter.innerHTML =
-    `<option value="">All Institutions</option>`;
+  state.students = studentsResult.data || [];
+  state.courses = coursesResult.data || [];
+  state.classes = classesResult.data || [];
 
-  form.innerHTML =
-    `<option value="">Select institution</option>`;
-
-  institutions.forEach(inst => {
-
-    filter.innerHTML += `
-      <option value="${inst.id}">
-        ${escapeHtml(inst.name)}
-      </option>
-    `;
-
-    form.innerHTML += `
-      <option value="${inst.id}">
-        ${escapeHtml(inst.name)}
-      </option>
-    `;
-
-  });
-
+  populateDependentFields();
 }
 
+function populateDependentFields() {
+  const institutionId = getSelectedInstitutionId();
+  const courseId = getSelectedCourseId();
 
-// ===============================
-// COURSES
-// ===============================
+  const students = institutionId ? filteredStudents(institutionId) : [];
+  const courses = institutionId ? filteredCourses(institutionId) : [];
+  const classes = institutionId && courseId
+    ? filteredClasses(institutionId, courseId)
+    : [];
 
-async function loadCourses() {
+  setOptions(
+    "studentSelect",
+    students,
+    "id",
+    studentLabel,
+    institutionId ? "Select student" : "Select institution first"
+  );
 
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .from("courses")
-    .select(`
-      id,
-      institution_id,
-      department_id,
-      name,
-      code,
-      is_active
-    `)
-    .order("name");
+  setOptions(
+    "courseSelect",
+    courses,
+    "id",
+    courseLabel,
+    institutionId ? "Select course" : "Select institution first"
+  );
 
-  if (error) {
-    throw error;
-  }
-
-  courses = data || [];
-
-  populateCourseFilters();
+  setOptions(
+    "classSelect",
+    classes,
+    "id",
+    classLabel,
+    courseId ? "Select class" : "Select course first"
+  );
 }
 
-
-function populateCourseFilters() {
-
-  const filter =
-    document.getElementById("courseFilter");
-
-  const form =
-    document.getElementById("formCourse");
-
-  filter.innerHTML =
-    `<option value="">All Courses</option>`;
-
-  form.innerHTML =
-    `<option value="">Select course</option>`;
-
-  courses.forEach(course => {
-
-    filter.innerHTML += `
-      <option value="${course.id}">
-        ${escapeHtml(course.name)}
-        (${escapeHtml(course.code || "")})
-      </option>
-    `;
-
-    form.innerHTML += `
-      <option value="${course.id}">
-        ${escapeHtml(course.name)}
-        (${escapeHtml(course.code || "")})
-      </option>
-    `;
-
-  });
-
-}
-
-
-// ===============================
-// CLASSES
-// ===============================
-
-async function loadClasses() {
-
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .from("classes")
-    .select(`
-      id,
-      institution_id,
-      course_id,
-      name,
-      code,
-      academic_year,
-      is_active
-    `)
-    .order("name");
-
-  if (error) {
-    throw error;
-  }
-
-  classes = data || [];
-
-  populateClassFilters();
-}
-
-
-function populateClassFilters() {
-
-  const filter =
-    document.getElementById("classFilter");
-
-  const form =
-    document.getElementById("formClass");
-
-  filter.innerHTML =
-    `<option value="">All Classes</option>`;
-
-  form.innerHTML =
-    `<option value="">Select class</option>`;
-
-  classes.forEach(cls => {
-
-    filter.innerHTML += `
-      <option value="${cls.id}">
-        ${escapeHtml(cls.name)}
-        (${escapeHtml(cls.code || "")})
-      </option>
-    `;
-
-    form.innerHTML += `
-      <option value="${cls.id}">
-        ${escapeHtml(cls.name)}
-        (${escapeHtml(cls.code || "")})
-      </option>
-    `;
-
-  });
-
-}
-
-
-// ===============================
-// STUDENTS
-// ===============================
-
-async function loadStudents() {
-
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .from("students")
+async function loadEnrollments() {
+  /*
+   * These joins assume the normal foreign-key relationships:
+   * enrollments.student_id -> students.id
+   * enrollments.course_id -> courses.id
+   * enrollments.class_id -> classes.id
+   *
+   * If PostgREST reports an ambiguous/missing relationship,
+   * we must adjust the select to match your exact FK names.
+   */
+  const { data, error } = await db
+    .from("enrollments")
     .select(`
       id,
       institution_id,
       student_id,
-      full_name,
-      status
+      course_id,
+      class_id,
+      enrollment_number,
+      enrollment_date,
+      start_date,
+      end_date,
+      status,
+      students!enrollments_student_id_fkey (
+        id,
+        student_id,
+        full_name,
+        institution_id
+      ),
+      courses!enrollments_course_id_fkey (
+        id,
+        name,
+        code
+      ),
+      classes!enrollments_class_id_fkey (
+        id,
+        name,
+        code
+      )
     `)
-    .order("full_name");
+    .order("created_at", { ascending: false });
 
   if (error) {
+    /*
+     * Do not silently hide an API/schema error.
+     * The user needs the real message to diagnose relationships.
+     */
     throw error;
   }
 
-  students = data || [];
-
-  populateStudentDropdown();
-}
-
-
-function populateStudentDropdown(
-  institutionId = ""
-) {
-
-  const select =
-    document.getElementById("formStudent");
-
-  select.innerHTML =
-    `<option value="">Select student</option>`;
-
-  students
-    .filter(student => {
-
-      if (!institutionId) {
-        return true;
-      }
-
-      return student.institution_id === institutionId;
-
-    })
-    .forEach(student => {
-
-      select.innerHTML += `
-        <option value="${student.id}">
-          ${escapeHtml(student.full_name)}
-          — ${escapeHtml(student.student_id || "")}
-        </option>
-      `;
-
-    });
-
-}
-
-
-// ===============================
-// ENROLLMENTS
-// ===============================
-
-async function loadEnrollments() {
-
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .from("enrollments")
-    .select("*")
-    .order("created_at", {
-      ascending: false
-    });
-
-  if (error) {
-    throw error;
-  }
-
-  enrollments = data || [];
-
+  state.enrollments = data || [];
   renderEnrollments();
-
+  renderStats();
 }
 
+function renderStats() {
+  const rows = state.enrollments;
 
-// ===============================
-// EVENTS
-// ===============================
-
-function setupEvents() {
-
-  document
-    .getElementById("institutionFilter")
-    .addEventListener(
-      "change",
-      applyFilters
-    );
-
-  document
-    .getElementById("courseFilter")
-    .addEventListener(
-      "change",
-      applyFilters
-    );
-
-  document
-    .getElementById("classFilter")
-    .addEventListener(
-      "change",
-      applyFilters
-    );
-
-  document
-    .getElementById("statusFilter")
-    .addEventListener(
-      "change",
-      applyFilters
-    );
-
-  document
-    .getElementById("searchInput")
-    .addEventListener(
-      "input",
-      applyFilters
-    );
-
-
-  document
-    .getElementById("formInstitution")
-    .addEventListener(
-      "change",
-      () => {
-
-        const institutionId =
-          document.getElementById(
-            "formInstitution"
-          ).value;
-
-        filterFormCourses(institutionId);
-        filterFormClasses(institutionId);
-        populateStudentDropdown(institutionId);
-
-      }
-    );
-
-
-  document
-    .getElementById("formCourse")
-    .addEventListener(
-      "change",
-      () => {
-
-        const institutionId =
-          document.getElementById(
-            "formInstitution"
-          ).value;
-
-        const courseId =
-          document.getElementById(
-            "formCourse"
-          ).value;
-
-        filterFormClasses(
-          institutionId,
-          courseId
-        );
-
-      }
-    );
-
+  $("totalCount").textContent = rows.length;
+  $("activeCount").textContent =
+    rows.filter((row) => row.status === "active").length;
+  $("completedCount").textContent =
+    rows.filter((row) => row.status === "completed").length;
+  $("otherCount").textContent =
+    rows.filter((row) => ["suspended", "dropped"].includes(row.status)).length;
 }
 
+function renderEnrollments() {
+  const search = $("searchInput").value.trim().toLowerCase();
+  const institutionId = $("filterInstitution").value;
+  const courseId = $("filterCourse").value;
+  const status = $("filterStatus").value;
 
-// ===============================
-// FILTER FORM COURSES
-// ===============================
+  const rows = state.enrollments.filter((row) => {
+    const student = row.students || {};
+    const matchesSearch =
+      !search ||
+      String(student.full_name || "").toLowerCase().includes(search) ||
+      String(student.student_id || "").toLowerCase().includes(search);
 
-function filterFormCourses(
-  institutionId
-) {
+    return matchesSearch &&
+      (!institutionId || row.institution_id === institutionId) &&
+      (!courseId || row.course_id === courseId) &&
+      (!status || row.status === status);
+  });
 
-  const select =
-    document.getElementById("formCourse");
+  $("resultLabel").textContent = `${rows.length} record${rows.length === 1 ? "" : "s"}`;
 
-  select.innerHTML =
-    `<option value="">Select course</option>`;
+  const body = $("enrollmentTableBody");
 
-  courses
-    .filter(course =>
-      !institutionId ||
-      course.institution_id === institutionId
-    )
-    .forEach(course => {
-
-      select.innerHTML += `
-        <option value="${course.id}">
-          ${escapeHtml(course.name)}
-          (${escapeHtml(course.code || "")})
-        </option>
-      `;
-
-    });
-
-}
-
-
-// ===============================
-// FILTER FORM CLASSES
-// ===============================
-
-function filterFormClasses(
-  institutionId = "",
-  courseId = ""
-) {
-
-  const select =
-    document.getElementById("formClass");
-
-  select.innerHTML =
-    `<option value="">Select class</option>`;
-
-  classes
-    .filter(cls => {
-
-      if (
-        institutionId &&
-        cls.institution_id !== institutionId
-      ) {
-        return false;
-      }
-
-      if (
-        courseId &&
-        cls.course_id !== courseId
-      ) {
-        return false;
-      }
-
-      return true;
-
-    })
-    .forEach(cls => {
-
-      select.innerHTML += `
-        <option value="${cls.id}">
-          ${escapeHtml(cls.name)}
-          (${escapeHtml(cls.code || "")})
-        </option>
-      `;
-
-    });
-
-}
-
-
-// ===============================
-// RENDER
-// ===============================
-
-function renderEnrollments(
-  filtered = null
-) {
-
-  const body =
-    document.getElementById(
-      "enrollmentTableBody"
-    );
-
-  const list =
-    filtered || enrollments;
-
-  updateStats(list);
-
-  if (!list.length) {
-
+  if (!rows.length) {
     body.innerHTML = `
       <tr>
-        <td colspan="8" class="empty">
-          No enrollments found.
+        <td colspan="7" class="empty">
+          No enrollment records found for the selected filters.
         </td>
       </tr>
     `;
-
     return;
   }
 
+  body.innerHTML = rows.map((row) => {
+    const student = row.students || {};
+    const course = row.courses || {};
+    const classRow = row.classes || {};
 
-  body.innerHTML =
-    list.map(enrollment => {
-
-      const student =
-        students.find(
-          s => s.id === enrollment.student_id
-        );
-
-      const course =
-        courses.find(
-          c => c.id === enrollment.course_id
-        );
-
-      const cls =
-        classes.find(
-          c => c.id === enrollment.class_id
-        );
-
-
-      const studentName =
-        student?.full_name || "Unknown";
-
-      const studentId =
-        student?.student_id || "—";
-
-      const courseName =
-        course?.name || "Unknown";
-
-      const className =
-        cls?.name || "—";
-
-
-      return `
-        <tr>
-
-          <td>
-            <strong>
-              ${escapeHtml(studentName)}
-            </strong>
-          </td>
-
-          <td>
-            ${escapeHtml(studentId)}
-          </td>
-
-          <td>
-            ${escapeHtml(courseName)}
-          </td>
-
-          <td>
-            ${escapeHtml(className)}
-          </td>
-
-          <td>
-            ${escapeHtml(
-              enrollment.enrollment_number || "—"
-            )}
-          </td>
-
-          <td>
-            ${formatDate(
-              enrollment.enrollment_date
-            )}
-          </td>
-
-          <td>
-            <span class="badge ${enrollment.status}">
-              ${capitalize(
-                enrollment.status
-              )}
-            </span>
-          </td>
-
-          <td>
-
-            <div class="actions">
-
-              <button
-                class="btn-primary"
-                onclick="editEnrollment('${enrollment.id}')"
-              >
-                Edit
-              </button>
-
-            </div>
-
-          </td>
-
-        </tr>
-      `;
-
-    }).join("");
-
+    return `
+      <tr>
+        <td>${escapeHtml(student.student_id || "—")}</td>
+        <td>${escapeHtml(student.full_name || "Unknown student")}</td>
+        <td>${escapeHtml(course.name || "—")}</td>
+        <td>${escapeHtml(classRow.name || "—")}</td>
+        <td>${escapeHtml(formatDate(row.enrollment_date))}</td>
+        <td>${statusBadge(row.status)}</td>
+        <td class="no-print">
+          <div class="actions">
+            <button
+              class="btn btn-light"
+              type="button"
+              data-action="edit"
+              data-id="${escapeHtml(row.id)}"
+              title="Edit enrollment"
+            >
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
 }
 
-
-// ===============================
-// FILTER
-// ===============================
-
-function applyFilters() {
-
-  const institutionId =
-    document.getElementById(
-      "institutionFilter"
-    ).value;
-
-  const courseId =
-    document.getElementById(
-      "courseFilter"
-    ).value;
-
-  const classId =
-    document.getElementById(
-      "classFilter"
-    ).value;
-
-  const status =
-    document.getElementById(
-      "statusFilter"
-    ).value;
-
-  const search =
-    document.getElementById(
-      "searchInput"
-    ).value
-    .toLowerCase()
-    .trim();
-
-
-  const filtered =
-    enrollments.filter(enrollment => {
-
-      if (
-        institutionId &&
-        enrollment.institution_id !== institutionId
-      ) {
-        return false;
-      }
-
-      if (
-        courseId &&
-        enrollment.course_id !== courseId
-      ) {
-        return false;
-      }
-
-      if (
-        classId &&
-        enrollment.class_id !== classId
-      ) {
-        return false;
-      }
-
-      if (
-        status &&
-        enrollment.status !== status
-      ) {
-        return false;
-      }
-
-
-      if (search) {
-
-        const student =
-          students.find(
-            s => s.id === enrollment.student_id
-          );
-
-        const studentName =
-          student?.full_name || "";
-
-        const studentId =
-          student?.student_id || "";
-
-        const enrollmentNumber =
-          enrollment.enrollment_number || "";
-
-
-        const text =
-          (
-            studentName +
-            " " +
-            studentId +
-            " " +
-            enrollmentNumber
-          ).toLowerCase();
-
-
-        if (!text.includes(search)) {
-          return false;
-        }
-
-      }
-
-      return true;
-
-    });
-
-
-  renderEnrollments(filtered);
-
+function openForm() {
+  clearMessage("formMessage");
+  $("formPanel").hidden = false;
+  $("formPanel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function closeForm() {
+  $("formPanel").hidden = true;
+  $("enrollmentForm").reset();
+  $("enrollmentId").value = "";
+  state.editingId = null;
 
-// ===============================
-// STATS
-// ===============================
+  if (state.profile?.role === "school_admin") {
+    $("institutionSelect").value = state.profile.institution_id || "";
+  }
 
-function updateStats(list) {
+  $("enrollmentDate").value = todayISO();
+  $("startDate").value = todayISO();
+  $("statusSelect").value = "active";
 
-  const total =
-    list.length;
-
-  const active =
-    list.filter(
-      e => e.status === "active"
-    ).length;
-
-  const completed =
-    list.filter(
-      e => e.status === "completed"
-    ).length;
-
-  const other =
-    list.filter(
-      e =>
-        e.status === "dropped" ||
-        e.status === "suspended"
-    ).length;
-
-
-  document.getElementById(
-    "totalCount"
-  ).textContent = total;
-
-  document.getElementById(
-    "activeCount"
-  ).textContent = active;
-
-  document.getElementById(
-    "completedCount"
-  ).textContent = completed;
-
-  document.getElementById(
-    "otherCount"
-  ).textContent = other;
-
+  populateDependentFields();
+  clearMessage("formMessage");
 }
 
+async function startNewEnrollment() {
+  closeForm();
 
-// ===============================
-// MODAL
-// ===============================
+  if (state.profile?.role === "super_admin") {
+    $("institutionSelect").disabled = false;
+    $("institutionSelect").value = "";
+  } else {
+    $("institutionSelect").disabled = true;
+  }
 
-function openEnrollmentModal(
-  enrollment = null
-) {
+  $("studentSelect").disabled = false;
+  $("courseSelect").disabled = false;
+  $("classSelect").disabled = false;
 
-  editingId =
-    enrollment?.id || null;
-
-  document.getElementById(
-    "modalTitle"
-  ).textContent =
-    enrollment
-      ? "Edit Enrollment"
-      : "New Enrollment";
-
-
-  document.getElementById(
-    "formEnrollmentNumber"
-  ).value =
-    enrollment?.enrollment_number || "";
-
-
-  document.getElementById(
-    "formEnrollmentDate"
-  ).value =
-    enrollment?.enrollment_date ||
-    getToday();
-
-
-  document.getElementById(
-    "formStartDate"
-  ).value =
-    enrollment?.start_date || "";
-
-
-  document.getElementById(
-    "formEndDate"
-  ).value =
-    enrollment?.end_date || "";
-
-
-  document.getElementById(
-    "formStatus"
-  ).value =
-    enrollment?.status || "active";
-
-
-  document.getElementById(
-    "formInstitution"
-  ).value =
-    enrollment?.institution_id || "";
-
-
-  filterFormCourses(
-    enrollment?.institution_id || ""
-  );
-
-  document.getElementById(
-    "formCourse"
-  ).value =
-    enrollment?.course_id || "";
-
-
-  filterFormClasses(
-    enrollment?.institution_id || "",
-    enrollment?.course_id || ""
-  );
-
-  document.getElementById(
-    "formClass"
-  ).value =
-    enrollment?.class_id || "";
-
-
-  populateStudentDropdown(
-    enrollment?.institution_id || ""
-  );
-
-  document.getElementById(
-    "formStudent"
-  ).value =
-    enrollment?.student_id || "";
-
-
-  document.getElementById(
-    "enrollmentModal"
-  ).style.display = "block";
-
+  openForm();
 }
 
+function openEditForm(enrollmentId) {
+  const row = state.enrollments.find((item) => item.id === enrollmentId);
 
-function closeEnrollmentModal() {
+  if (!row) {
+    showMessage("Enrollment record was not found. Refresh and try again.", "error");
+    return;
+  }
 
-  document.getElementById(
-    "enrollmentModal"
-  ).style.display = "none";
+  closeForm();
 
-  editingId = null;
+  state.editingId = row.id;
+  $("enrollmentId").value = row.id;
+  $("formTitle").innerHTML =
+    '<i class="fa-solid fa-pen"></i> Edit Enrollment';
 
+  $("institutionSelect").value = row.institution_id;
+  populateDependentFields();
+
+  $("studentSelect").value = row.student_id;
+  $("courseSelect").value = row.course_id;
+  populateDependentFields();
+  $("classSelect").value = row.class_id;
+
+  $("enrollmentDate").value = row.enrollment_date || todayISO();
+  $("startDate").value = row.start_date || "";
+  $("endDate").value = row.end_date || "";
+  $("statusSelect").value = row.status || "active";
+
+  /*
+   * Do not allow changing the student/institution through edit.
+   * This avoids accidental cross-institution reassignment.
+   */
+  $("institutionSelect").disabled = true;
+  $("studentSelect").disabled = true;
+  $("courseSelect").disabled = true;
+  $("classSelect").disabled = false;
+
+  openForm();
 }
 
+async function validateSelection() {
+  const institutionId = getSelectedInstitutionId();
+  const studentId = selectedStudentId();
+  const courseId = getSelectedCourseId();
+  const classId = getSelectedClassId();
 
-// ===============================
-// SAVE
-// ===============================
+  if (!institutionId || !studentId || !courseId || !classId) {
+    throw new Error("Select an institution, student, course and class.");
+  }
 
-async function saveEnrollment() {
+  const student = state.students.find((item) => item.id === studentId);
+  const course = state.courses.find((item) => item.id === courseId);
+  const classRow = state.classes.find((item) => item.id === classId);
+
+  if (!student || student.institution_id !== institutionId) {
+    throw new Error("The selected student does not belong to this institution.");
+  }
+
+  if (!course || course.institution_id !== institutionId) {
+    throw new Error("The selected course does not belong to this institution.");
+  }
+
+  if (
+    !classRow ||
+    classRow.institution_id !== institutionId ||
+    classRow.course_id !== courseId
+  ) {
+    throw new Error("The selected class does not match this institution and course.");
+  }
+
+  return { institutionId, studentId, courseId, classId };
+}
+
+async function saveEnrollment(event) {
+  event.preventDefault();
+
+  if (state.busy) return;
+
+  setBusy(true);
+  clearMessage("formMessage");
 
   try {
-
-    const institutionId =
-      document.getElementById(
-        "formInstitution"
-      ).value;
-
-    const courseId =
-      document.getElementById(
-        "formCourse"
-      ).value;
-
-    const classId =
-      document.getElementById(
-        "formClass"
-      ).value || null;
-
-    const studentId =
-      document.getElementById(
-        "formStudent"
-      ).value;
-
-    const enrollmentNumber =
-      document.getElementById(
-        "formEnrollmentNumber"
-      ).value.trim() || null;
-
-    const enrollmentDate =
-      document.getElementById(
-        "formEnrollmentDate"
-      ).value;
-
-    const startDate =
-      document.getElementById(
-        "formStartDate"
-      ).value || null;
-
-    const endDate =
-      document.getElementById(
-        "formEndDate"
-      ).value || null;
-
-    const status =
-      document.getElementById(
-        "formStatus"
-      ).value;
-
-
-    if (
-      !institutionId ||
-      !courseId ||
-      !studentId ||
-      !enrollmentDate
-    ) {
-
-      showMessage(
-        "Please complete all required fields.",
-        "error"
-      );
-
-      return;
-    }
-
-
-    if (
-      startDate &&
-      endDate &&
-      endDate < startDate
-    ) {
-
-      showMessage(
-        "End date cannot be before start date.",
-        "error"
-      );
-
-      return;
-    }
-
+    const selection = await validateSelection();
 
     const payload = {
-
-      institution_id:
-        institutionId,
-
-      student_id:
-        studentId,
-
-      course_id:
-        courseId,
-
-      class_id:
-        classId,
-
-      enrollment_number:
-        enrollmentNumber,
-
-      enrollment_date:
-        enrollmentDate,
-
-      start_date:
-        startDate,
-
-      end_date:
-        endDate,
-
-      status:
-        status
-
+      institution_id: selection.institutionId,
+      student_id: selection.studentId,
+      course_id: selection.courseId,
+      class_id: selection.classId,
+      enrollment_date: $("enrollmentDate").value,
+      start_date: $("startDate").value || null,
+      end_date: $("endDate").value || null,
+      status: $("statusSelect").value
     };
 
+    if (!payload.enrollment_date) {
+      throw new Error("Enrollment date is required.");
+    }
 
-    let result;
+    if (
+      payload.start_date &&
+      payload.end_date &&
+      payload.end_date < payload.start_date
+    ) {
+      throw new Error("End date cannot be earlier than start date.");
+    }
 
+    if (state.editingId) {
+      /*
+       * Update only the selected enrollment record.
+       * RLS must verify the user's permission.
+       */
+      const { error } = await db
+        .from("enrollments")
+        .update({
+          class_id: payload.class_id,
+          enrollment_date: payload.enrollment_date,
+          start_date: payload.start_date,
+          end_date: payload.end_date,
+          status: payload.status
+        })
+        .eq("id", state.editingId)
+        .eq("institution_id", payload.institution_id);
 
-    if (editingId) {
+      if (error) throw error;
 
-      result =
-        await supabaseClient
-          .from("enrollments")
-          .update(payload)
-          .eq("id", editingId);
-
+      showMessage("Enrollment updated successfully.", "success", "formMessage");
     } else {
+      /*
+       * Prevent creating a duplicate enrollment for the same student.
+       * The database should also have a suitable unique constraint.
+       */
+      const { data: existing, error: existingError } = await db
+        .from("enrollments")
+        .select("id, status")
+        .eq("student_id", payload.student_id)
+        .limit(1);
 
-      result =
-        await supabaseClient
-          .from("enrollments")
-          .insert(payload);
+      if (existingError) throw existingError;
 
+      if (existing && existing.length) {
+        throw new Error(
+          "This student already has an enrollment. Edit the existing record instead."
+        );
+      }
+
+      const { error } = await db
+        .from("enrollments")
+        .insert(payload);
+
+      if (error) throw error;
+
+      showMessage("Enrollment created successfully.", "success", "formMessage");
     }
-
-
-    if (result.error) {
-      throw result.error;
-    }
-
-
-    closeEnrollmentModal();
 
     await loadEnrollments();
 
-    showMessage(
-      editingId
-        ? "Enrollment updated successfully."
-        : "Enrollment created successfully.",
-      "success"
-    );
-
-
+    window.setTimeout(() => {
+      closeForm();
+      showMessage("Enrollment records refreshed.", "success");
+    }, 700);
   } catch (error) {
-
-    console.error(error);
+    console.error("Enrollment save failed:", error);
 
     showMessage(
-      error.message ||
-      "Failed to save enrollment.",
+      error?.message || "Could not save enrollment. Check your connection and permissions.",
+      "error",
+      "formMessage"
+    );
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function loadFilterCourses() {
+  const institutionId = $("filterInstitution").value;
+
+  const rows = institutionId
+    ? filteredCourses(institutionId)
+    : state.courses;
+
+  setOptions(
+    "filterCourse",
+    rows,
+    "id",
+    courseLabel,
+    "All courses"
+  );
+}
+
+async function refreshAll() {
+  if (state.busy) return;
+
+  setBusy(true);
+  clearMessage();
+
+  try {
+    await loadEnrollments();
+    showMessage("Enrollment records refreshed.", "success");
+  } catch (error) {
+    console.error("Enrollment refresh failed:", error);
+    showMessage(
+      error?.message || "Could not refresh enrollment records.",
       "error"
     );
-
+  } finally {
+    setBusy(false);
   }
-
 }
 
+function attachEvents() {
+  $("newEnrollmentBtn").addEventListener("click", startNewEnrollment);
+  $("closeFormBtn").addEventListener("click", closeForm);
+  $("cancelFormBtn").addEventListener("click", closeForm);
+  $("refreshBtn").addEventListener("click", refreshAll);
+  $("printBtn").addEventListener("click", () => window.print());
 
-// ===============================
-// EDIT
-// ===============================
+  $("enrollmentForm").addEventListener("submit", saveEnrollment);
 
-function editEnrollment(id) {
+  $("institutionSelect").addEventListener("change", () => {
+    $("courseSelect").value = "";
+    populateDependentFields();
+  });
 
-  const enrollment =
-    enrollments.find(
-      e => e.id === id
+  $("courseSelect").addEventListener("change", () => {
+    $("classSelect").value = "";
+    populateDependentFields();
+  });
+
+  $("searchInput").addEventListener("input", renderEnrollments);
+  $("filterStatus").addEventListener("change", renderEnrollments);
+
+  $("filterInstitution").addEventListener("change", async () => {
+    await loadFilterCourses();
+    renderEnrollments();
+  });
+
+  $("filterCourse").addEventListener("change", renderEnrollments);
+
+  $("enrollmentTableBody").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-action='edit']");
+    if (!button) return;
+
+    openEditForm(button.dataset.id);
+  });
+}
+
+async function boot() {
+  $("enrollmentDate").value = todayISO();
+  $("startDate").value = todayISO();
+
+  attachEvents();
+
+  try {
+    const authenticated = await requireSignedInUser();
+    if (!authenticated) return;
+
+    await loadInstitutions();
+    await loadReferenceData();
+    await loadFilterCourses();
+    await loadEnrollments();
+
+    showMessage("Enrollment Management is ready.", "success");
+  } catch (error) {
+    console.error("Enrollment boot failed:", error);
+
+    showMessage(
+      `Could not initialize Enrollment Management: ${error?.message || "Unknown error"}`,
+      "error"
     );
-
-  if (!enrollment) {
-    return;
   }
-
-  openEnrollmentModal(
-    enrollment
-  );
-
 }
 
-
-// ===============================
-// MESSAGE
-// ===============================
-
-function showMessage(
-  text,
-  type
-) {
-
-  const box =
-    document.getElementById(
-      "message"
-    );
-
-  box.textContent = text;
-
-  box.className =
-    "message " +
-    (
-      type === "success"
-        ? "success-message"
-        : "error-message"
-    );
-
-  box.style.display = "block";
-
-
-  setTimeout(() => {
-
-    box.style.display = "none";
-
-  }, 5000);
-
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", boot, { once: true });
+} else {
+  boot();
 }
-
-
-// ===============================
-// HELPERS
-// ===============================
-
-function formatDate(date) {
-
-  if (!date) {
-    return "—";
-  }
-
-  return new Date(
-    date + "T00:00:00"
-  ).toLocaleDateString();
-
-}
-
-
-function getToday() {
-
-  return new Date()
-    .toISOString()
-    .split("T")[0];
-
-}
-
-
-function capitalize(value) {
-
-  if (!value) {
-    return "";
-
-  }
-
-  return value
-    .charAt(0)
-    .toUpperCase() +
-    value.slice(1);
-
-}
-
-
-function escapeHtml(value) {
-
-  if (value === null ||
-      value === undefined) {
-
-    return "";
-
-  }
-
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-
-}
-
-
-// Close modal by clicking outside
-
-window.addEventListener(
-  "click",
-  event => {
-
-    const modal =
-      document.getElementById(
-        "enrollmentModal"
-      );
-
-    if (event.target === modal) {
-      closeEnrollmentModal();
-    }
-
-  }
-);
