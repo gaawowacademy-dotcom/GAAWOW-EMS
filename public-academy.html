@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B1E63">
+  <meta name="description" content="Official public information and contact portal for GAAWOW Academy.">
+  <title>GAAWOW Academy | Public Information</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --navy: #0B1E63;
+      --blue: #0B4DA2;
+      --gold: #D4AF37;
+      --white: #FFFFFF;
+      --bg: #F5F7FA;
+      --text: #172033;
+      --muted: #64748B;
+      --border: #E2E8F0;
+      --green: #16803C;
+      --shadow: 0 14px 40px rgba(11, 30, 99, .09);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .topbar {
+      background: var(--navy);
+      color: var(--white);
+      padding: 12px 18px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .topbar strong {
+      color: #FFE28A;
+    }
+
+    .header {
+      background: rgba(255,255,255,.97);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-inner {
+      width: min(1120px, 92%);
+      margin: auto;
+      min-height: 82px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      color: var(--navy);
+      font-size: 18px;
+      line-height: 1.3;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .nav a:hover {
+      color: var(--blue);
+    }
+
+    .nav .contact-btn {
+      padding: 10px 15px;
+      border-radius: 9px;
+      color: var(--white);
+      background: var(--blue);
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0B1E63 0%, #0B4DA2 72%, #1765B5 100%);
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .hero::before {
+      width: 350px;
+      height: 350px;
+      right: -120px;
+      top: -180px;
+    }
+
+    .hero::after {
+      width: 260px;
+      height: 260px;
+      right: -60px;
+      bottom: -190px;
+    }
+
+    .hero-inner {
+      width: min(1120px, 92%);
+      margin: auto;
+      padding: 76px 0 82px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      padding: 7px 12px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .5px;
+    }
+
+    .hero h2 {
+      max-width: 760px;
+      font-size: clamp(31px, 5vw, 53px);
+      line-height: 1.15;
+      margin: 22px 0 16px;
+      letter-spacing: -1.3px;
+    }
+
+    .hero h2 span {
+      color: #FFE28A;
+    }
+
+    .hero p {
+      max-width: 650px;
+      color: #E0E9FF;
+      font-size: 16px;
+      margin: 0 0 28px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 18px;
+      min-height: 46px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 13px;
+      transition: transform .2s, opacity .2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      opacity: .94;
+    }
+
+    .btn-gold {
+      color: var(--navy);
+      background: var(--gold);
+    }
+
+    .btn-outline {
+      color: white;
+      border: 1px solid rgba(255,255,255,.55);
+      background: transparent;
+    }
+
+    .container {
+      width: min(1120px, 92%);
+      margin: auto;
+    }
+
+    .section {
+      padding: 58px 0;
+    }
+
+    .section-heading {
+      margin-bottom: 25px;
+    }
+
+    .section-heading .label {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.3px;
+    }
+
+    .section-heading h2 {
+      color: var(--navy);
+      margin: 7px 0 8px;
+      font-size: clamp(24px, 3vw, 34px);
+      line-height: 1.25;
+    }
+
+    .section-heading p {
+      max-width: 720px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .info-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 23px;
+      box-shadow: 0 5px 18px rgba(11,30,99,.035);
+    }
+
+    .info-icon {
+      width: 45px;
+      height: 45px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: #EAF0FF;
+      font-size: 22px;
+      margin-bottom: 15px;
+    }
+
+    .info-card h3 {
+      margin: 0 0 8px;
+      color: var(--navy);
+      font-size: 17px;
+    }
+
+    .info-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .contact-section {
+      background: white;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 35px;
+      align-items: start;
+    }
+
+    .contact-panel {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 13px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .contact-row:last-child {
+      border-bottom: 0;
+    }
+
+    .contact-row .icon {
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      border-radius: 10px;
+      background: white;
+      display: grid;
+      place-items: center;
+    }
+
+    .contact-row small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 3px;
+    }
+
+    .contact-row strong {
+      color: var(--navy);
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .contact-link {
+      color: var(--blue);
+    }
+
+    .privacy-box {
+      margin-top: 25px;
+      border: 1px solid #D6E6FF;
+      background: #F0F6FF;
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    .privacy-box h3 {
+      color: var(--navy);
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .privacy-box p {
+      color: #475569;
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .footer {
+      background: #071642;
+      color: #DCE5FF;
+      padding: 28px 0;
+    }
+
+    .footer-inner {
+      width: min(1120px, 92%);
+      margin: auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .footer strong {
+      color: white;
+    }
+
+    .footer p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: #B8C6E8;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      font-size: 12px;
+    }
+
+    .footer-links a:hover {
+      color: #FFE28A;
+    }
+
+    .loading {
+      opacity: .75;
+    }
+
+    .notice {
+      display: none;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 760px) {
+      .header-inner {
+        min-height: 72px;
+      }
+
+      .brand img {
+        width: 48px;
+        height: 48px;
+      }
+
+      .brand h1 {
+        font-size: 15px;
+      }
+
+      .brand p {
+        font-size: 10px;
+      }
+
+      .nav {
+        gap: 10px;
+      }
+
+      .nav a:not(.contact-btn) {
+        display: none;
+      }
+
+      .nav .contact-btn {
+        padding: 9px 11px;
+        font-size: 11px;
+      }
+
+      .hero-inner {
+        padding: 55px 0 60px;
+      }
+
+      .hero p {
+        font-size: 14px;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .contact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section {
+        padding: 43px 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <strong>GAAWOW ACADEMY</strong> · Ilayska Aqoonta iyo Xirfadda
+  </div>
+
+  <header class="header">
+    <div class="header-inner">
+      <a class="brand" href="public-academy.html" aria-label="GAAWOW Academy home">
+        <img
+          id="academyLogo"
+          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+          alt="GAAWOW Academy Logo"
+        >
+        <div>
+          <h1 id="academyName">GAAWOW Academy</h1>
+          <p id="academyTagline">Ilayska Aqoonta iyo Xirfadda</p>
+        </div>
+      </a>
+
+      <nav class="nav" aria-label="Main navigation">
+        <a href="#about">About</a>
+        <a href="#contact" class="contact-btn">Contact Us</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="eyebrow">OFFICIAL PUBLIC INFORMATION PORTAL</span>
+        <h2>Welcome to <span id="heroAcademyName">GAAWOW Academy</span></h2>
+        <p id="heroAbout">
+          Welcome to GAAWOW Academy, Ilayska Aqoonta iyo Xirfadda.
+          This page provides general information and official contact details
+          for our academy.
+        </p>
+
+        <div class="hero-actions">
+          <a class="btn btn-gold" href="#contact">☎ Contact the Academy</a>
+          <a class="btn btn-outline" href="https://gaawowacademy.com" id="websiteButton">
+            Visit Official Website
+          </a>
+        </div>
+        <p class="notice" id="loadNotice">
+          Showing the academy's default public information.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" id="about">
+      <div class="container">
+        <div class="section-heading">
+          <span class="label">About the Academy</span>
+          <h2>General Information</h2>
+          <p>
+            Official information about GAAWOW Academy and how to contact the institution.
+          </p>
+        </div>
+
+        <div class="info-grid">
+          <article class="info-card">
+            <div class="info-icon" aria-hidden="true">🏫</div>
+            <h3>Academy Identity</h3>
+            <p id="aboutAcademy">
+              GAAWOW Academy, also known as Ilayska Aqoonta iyo Xirfadda.
+            </p>
+          </article>
+
+          <article class="info-card">
+            <div class="info-icon" aria-hidden="true">📍</div>
+            <h3>Our Location</h3>
+            <p id="academyLocation">
+              Waaberi, Suuq Yaraha, Burhakaba, Bay, Somalia.
+            </p>
+          </article>
+
+          <article class="info-card">
+            <div class="info-icon" aria-hidden="true">🤝</div>
+            <h3>Public Support</h3>
+            <p>
+              For general enquiries, contact the academy using the official
+              telephone numbers or website listed below.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section contact-section" id="contact">
+      <div class="container">
+        <div class="contact-grid">
+          <div>
+            <div class="section-heading">
+              <span class="label">Get in Touch</span>
+              <h2>Official Contact Details</h2>
+              <p>
+                Contact GAAWOW Academy for general information and institutional enquiries.
+              </p>
+            </div>
+
+            <div class="privacy-box">
+              <h3>🔐 Privacy & Information Security</h3>
+              <p>
+                This public portal is intended for general academy information only.
+                Private student records, examination results, staff records, financial
+                details and internal management information must remain within
+                authorized systems and must not be published on this page.
+              </p>
+            </div>
+          </div>
+
+          <div class="contact-panel">
+            <div class="contact-row">
+              <div class="icon" aria-hidden="true">📞</div>
+              <div>
+                <small>Primary Telephone</small>
+                <strong>
+                  <a class="contact-link" id="phonePrimaryLink" href="tel:615228824">
+                    <span id="phonePrimary">615228824</span>
+                  </a>
+                </strong>
+              </div>
+            </div>
+
+            <div class="contact-row">
+              <div class="icon" aria-hidden="true">☎️</div>
+              <div>
+                <small>Secondary Telephone</small>
+                <strong>
+                  <a class="contact-link" id="phoneSecondaryLink" href="tel:625228824">
+                    <span id="phoneSecondary">625228824</span>
+                  </a>
+                </strong>
+              </div>
+            </div>
+
+            <div class="contact-row">
+              <div class="icon" aria-hidden="true">🌐</div>
+              <div>
+                <small>Official Website</small>
+                <strong>
+                  <a class="contact-link" id="websiteLink"
+                     href="https://gaawowacademy.com"
+                     target="_blank" rel="noopener noreferrer">
+                    gaawowacademy.com
+                  </a>
+                </strong>
+              </div>
+            </div>
+
+            <div class="contact-row">
+              <div class="icon" aria-hidden="true">📍</div>
+              <div>
+                <small>Office Address</small>
+                <strong id="contactLocation">
+                  Waaberi, Suuq Yaraha, Burhakaba, Bay, Somalia
+                </strong>
+              </div>
+            </div>
+
+            <div class="contact-row" id="emailRow" hidden>
+              <div class="icon" aria-hidden="true">✉️</div>
+              <div>
+                <small>Public Email</small>
+                <strong><a class="contact-link" id="emailLink" href="#">Email the Academy</a></strong>
+              </div>
+            </div>
+
+            <div class="contact-row" id="hoursRow" hidden>
+              <div class="icon" aria-hidden="true">🕒</div>
+              <div>
+                <small>Office Hours</small>
+                <strong id="officeHours"></strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <strong id="footerAcademyName">GAAWOW Academy</strong>
+        <p>Ilayska Aqoonta iyo Xirfadda</p>
+        <p>© <span id="currentYear"></span> GAAWOW Academy. All rights reserved.</p>
+      </div>
+
+      <div class="footer-links">
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+        <a href="https://gaawowacademy.com" target="_blank" rel="noopener noreferrer">
+          Official Website
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./public-academy.js?v=1"></script>
+</body>
+</html>
