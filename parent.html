@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0B1E63">
+
+<title>GAAWOW EMS | Parent Portal</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --navy:#0B1E63;
+  --blue:#0B4DA2;
+  --gold:#D4AF37;
+  --bg:#F5F7FA;
+  --white:#FFFFFF;
+  --text:#1F2937;
+  --muted:#64748B;
+  --border:#E5E7EB;
+  --green:#15803D;
+  --red:#B91C1C;
+}
+
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+header {
+  background:linear-gradient(135deg,var(--navy),var(--blue));
+  color:white;
+  padding:17px 20px;
+  box-shadow:0 4px 18px #0002;
+}
+
+.header-inner {
+  max-width:1100px;
+  margin:auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+
+.brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand img {
+  width:52px;
+  height:52px;
+  object-fit:contain;
+  background:white;
+  border-radius:10px;
+  padding:4px;
+}
+
+.brand h1 {
+  font-size:20px;
+  margin:0;
+}
+
+.brand p {
+  margin:5px 0 0;
+  font-size:12px;
+  opacity:.9;
+}
+
+button {
+  cursor:pointer;
+  font-weight:bold;
+  border-radius:8px;
+  padding:10px 13px;
+}
+
+.logout {
+  background:#ffffff16;
+  border:1px solid #ffffff66;
+  color:white;
+}
+
+main {
+  max-width:1100px;
+  margin:25px auto;
+  padding:0 16px 35px;
+}
+
+.welcome {
+  background:linear-gradient(135deg,#fff,#eef4ff);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px;
+  margin-bottom:20px;
+}
+
+.welcome h2 {
+  color:var(--navy);
+  margin:0 0 8px;
+  font-size:25px;
+}
+
+.welcome p {
+  margin:0;
+  color:var(--muted);
+  line-height:1.6;
+}
+
+.stats {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-bottom:22px;
+}
+
+.stat {
+  background:white;
+  border:1px solid var(--border);
+  border-radius:13px;
+  padding:18px;
+  box-shadow:0 3px 12px #00000008;
+}
+
+.stat-label {
+  color:var(--muted);
+  font-size:12px;
+  font-weight:bold;
+}
+
+.stat-value {
+  font-size:28px;
+  font-weight:800;
+  color:var(--navy);
+  margin-top:9px;
+}
+
+.section {
+  margin-top:23px;
+}
+
+.section-heading {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:13px;
+}
+
+.section-heading h2 {
+  color:var(--navy);
+  margin:0;
+  font-size:21px;
+}
+
+.refresh {
+  background:white;
+  border:1px solid var(--border);
+  color:var(--blue);
+}
+
+.card {
+  background:white;
+  border:1px solid var(--border);
+  border-radius:13px;
+  padding:17px;
+  margin-bottom:12px;
+  box-shadow:0 3px 12px #00000006;
+}
+
+.student-name {
+  font-size:17px;
+  color:var(--navy);
+  font-weight:800;
+}
+
+.student-meta {
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.7;
+  margin-top:7px;
+}
+
+.notification {
+  border-left:5px solid var(--red);
+}
+
+.notification.read {
+  border-left-color:#94A3B8;
+}
+
+.notification-top {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.notification h3 {
+  color:var(--navy);
+  font-size:16px;
+  margin:0;
+}
+
+.notification-message {
+  line-height:1.7;
+  margin:12px 0;
+  overflow-wrap:anywhere;
+}
+
+.badge {
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.badge-new {
+  color:#991B1B;
+  background:#FEE2E2;
+}
+
+.badge-read {
+  color:#475569;
+  background:#E2E8F0;
+}
+
+.notification-footer {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  border-top:1px solid #F1F5F9;
+  padding-top:11px;
+  margin-top:10px;
+}
+
+.date {
+  color:var(--muted);
+  font-size:12px;
+}
+
+.read-btn {
+  border:1px solid var(--blue);
+  background:white;
+  color:var(--blue);
+  font-size:12px;
+}
+
+.empty,.loading,.error-box {
+  background:white;
+  padding:27px 18px;
+  text-align:center;
+  border:1px solid var(--border);
+  border-radius:12px;
+  color:var(--muted);
+  line-height:1.7;
+}
+
+.error-box {
+  color:var(--red);
+  background:#FFF7F7;
+}
+
+footer {
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  padding:20px;
+}
+
+[hidden] { display:none !important; }
+
+@media(max-width:650px) {
+  .header-inner {
+    align-items:flex-start;
+  }
+
+  .brand h1 { font-size:17px; }
+
+  .brand img {
+    width:44px;
+    height:44px;
+  }
+
+  .stats {
+    grid-template-columns:1fr;
+  }
+
+  .welcome h2 { font-size:22px; }
+
+  .notification-top {
+    align-items:flex-start;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+           alt="GAAWOW Academy logo">
+      <div>
+        <h1>GAAWOW EMS</h1>
+        <p>Parent Portal | Ilayska Aqoonta iyo Xirfadda</p>
+      </div>
+    </div>
+
+    <button id="logoutBtn" class="logout" hidden>
+      Sign Out
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <section class="welcome">
+    <h2 id="welcomeName">Parent Portal</h2>
+    <p>
+      Halkan waxaad ka arki kartaa carruurtaada ku xiran
+      GAAWOW Academy iyo ogeysiisyada maqnaanshaha.
+    </p>
+  </section>
+
+  <div id="pageMessage" class="loading" role="status">
+    Hubinaya gelitaankaaga...
+  </div>
+
+  <div id="portalContent" hidden>
+
+    <section class="stats">
+      <div class="stat">
+        <div class="stat-label">CARRUURTA KU XIRAN</div>
+        <div class="stat-value" id="childrenCount">0</div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-label">DHAMMAAN OGEYSIISYADA</div>
+        <div class="stat-value" id="notificationsCount">0</div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-label">OGEYSIISYO CUSUB</div>
+        <div class="stat-value" id="unreadCount">0</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>👨‍👩‍👧‍👦 Carruurtayda</h2>
+      </div>
+      <div id="childrenList">
+        <div class="loading">Loading students...</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <h2>🔔 Attendance Notifications</h2>
+        <button id="refreshBtn" class="refresh">Refresh ↻</button>
+      </div>
+
+      <div id="notificationsList">
+        <div class="loading">Loading notifications...</div>
+      </div>
+    </section>
+
+  </div>
+
+</main>
+
+<footer>
+  GAAWOW Academy · GAAWOW EMS · Parent Portal
+</footer>
+
+<script src="parent.js"></script>
+</body>
+</html>
