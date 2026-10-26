@@ -52,7 +52,7 @@ const PROFILE_TABLE = "profiles";
 const PARENT_PHOTO_BUCKET = "parent-photos";
 
 const PARENT_ACCOUNT_FUNCTION =
-"${PARENT_SUPABASE_URL}/functions/v1/create-parent-account";
+  `${PARENT_SUPABASE_URL}/functions/v1/create-parent-account`;
 
 /* ---------------------------------------------------------
 2. GENERAL HELPERS
