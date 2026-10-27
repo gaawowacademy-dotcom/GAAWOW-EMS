@@ -106,7 +106,7 @@ async function refreshAll() {
 async function loadBaseData() {
   const results = await Promise.all([
     supabaseClient.from("institutions").select("id,name,code").order("name"),
-    supabaseClient.from("students").select("id,institution_id,full_name,student_number,admission_no,status,is_active").order("full_name"),
+    supabaseClient.from("students").select("id,institution_id,student_id,full_name,status").order("full_name"),
     supabaseClient.from("courses").select("id,institution_id,name,course_name,code,is_active").order("name"),
     supabaseClient.from("classes").select("id,institution_id,course_id,name,class_name,code,is_active,status").order("name"),
     supabaseClient.from("enrollments").select("id,student_id,course_id,class_id,enrollment_status,status")
@@ -182,7 +182,7 @@ function populateStudentOptions() {
     return isActiveRecord(student);
   });
   const select = byId("linkStudent");
-  select.innerHTML = `<option value="">Select student</option>` + available.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.full_name || "Student")} — ${escapeHtml(item.student_number || item.admission_no || shortId(item.id))}</option>`).join("");
+  select.innerHTML = `<option value="">Select student</option>` + available.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.full_name || "Student")} — ${escapeHtml(item.student_id || shortId(item.id))}</option>`).join("");
 }
 
 function applyFilters() {
@@ -334,7 +334,7 @@ function renderLinkedStudents() {
   }
   byId("linkedStudentsList").innerHTML = parentLinks.map(link => {
     const student = students.find(item => item.id === link.student_id);
-    return `<div class="linkrow"><div><b>${escapeHtml(student?.full_name || "Student record unavailable")}</b><small>${escapeHtml(student?.student_number || student?.admission_no || shortId(link.student_id))} · ${escapeHtml(link.relationship || "parent")}${link.is_primary ? " · Primary" : ""}</small></div><button class="btn btn-danger btn-sm" data-link-action="unlink" data-link-id="${escapeHtml(link.id)}" type="button"><i class="fa-solid fa-link-slash"></i> Unlink</button></div>`;
+    return `<div class="linkrow"><div><b>${escapeHtml(student?.full_name || "Student record unavailable")}</b><small>${escapeHtml(student?.student_id || shortId(link.student_id))} · ${escapeHtml(link.relationship || "parent")}${link.is_primary ? " · Primary" : ""}</small></div><button class="btn btn-danger btn-sm" data-link-action="unlink" data-link-id="${escapeHtml(link.id)}" type="button"><i class="fa-solid fa-link-slash"></i> Unlink</button></div>`;
   }).join("");
   populateStudentOptions();
 }
