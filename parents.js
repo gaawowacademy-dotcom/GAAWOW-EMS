@@ -107,8 +107,8 @@ async function loadBaseData() {
   const results = await Promise.all([
     supabaseClient.from("institutions").select("id,name,code").order("name"),
     supabaseClient.from("students").select("id,institution_id,student_id,full_name,status").order("full_name"),
-    supabaseClient.from("courses").select("id,institution_id,name,course_name,code,is_active").order("name"),
-    supabaseClient.from("classes").select("id,institution_id,course_id,name,class_name,code,is_active,status").order("name"),
+    supabaseClient.from("courses").select("id,institution_id,name,code,is_active").order("name"),
+    supabaseClient.from("classes").select("id,institution_id,course_id,name,code,is_active,status").order("name"),
     supabaseClient.from("enrollments").select("id,student_id,course_id,class_id,enrollment_status,status")
   ]);
   const labels = ["institutions", "students", "courses", "classes", "enrollments"];
