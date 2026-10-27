@@ -1,886 +1,101 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0B1E63">
-
+  <meta name="description" content="GAAWOW EMS Parent Management">
   <title>GAAWOW EMS | Parent Management</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
-
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
-    :root {
-      --navy: #0B1E63;
-      --blue: #0B4DA2;
-      --gold: #D4AF37;
-      --bg: #F5F7FA;
-      --white: #FFFFFF;
-      --text: #17233B;
-      --muted: #64748B;
-      --border: #E2E8F0;
-      --green: #16834A;
-      --red: #C0392B;
-      --shadow: 0 10px 30px rgba(11,30,99,.08);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: Inter, Arial, sans-serif;
-      font-size: 14px;
-    }
-
-    button, input, select {
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    .topbar {
-      background: linear-gradient(115deg, var(--navy), var(--blue));
-      color: white;
-      padding: 18px 22px;
-    }
-
-    .topinner {
-      max-width: 1400px;
-      margin: auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-    }
-
-    .logo {
-      width: 55px;
-      height: 55px;
-      object-fit: contain;
-      background: white;
-      border-radius: 12px;
-      padding: 5px;
-    }
-
-    .brand h1 {
-      margin: 0 0 5px;
-      font-size: 19px;
-      font-weight: 800;
-    }
-
-    .brand p {
-      margin: 0;
-      color: #DBEAFE;
-      font-size: 12px;
-    }
-
-    .container {
-      max-width: 1400px;
-      margin: 24px auto;
-      padding: 0 18px 40px;
-    }
-
-    .btn {
-      border: none;
-      border-radius: 9px;
-      padding: 10px 14px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-weight: 700;
-      text-decoration: none;
-    }
-
-    .btn-primary {
-      background: var(--gold);
-      color: var(--navy);
-    }
-
-    .btn-blue {
-      background: var(--blue);
-      color: white;
-    }
-
-    .btn-light {
-      background: white;
-      color: var(--navy);
-    }
-
-    .btn-muted {
-      background: #EAF0F8;
-      color: var(--navy);
-    }
-
-    .btn-danger {
-      background: #FFF0EF;
-      color: var(--red);
-    }
-
-    .btn-sm {
-      padding: 7px 10px;
-      font-size: 12px;
-    }
-
-    .top-actions {
-      display: flex;
-      gap: 9px;
-      flex-wrap: wrap;
-    }
-
-    .pagehead {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-      margin-bottom: 18px;
-    }
-
-    .pagehead h2 {
-      margin: 0 0 6px;
-      color: var(--navy);
-      font-size: 24px;
-    }
-
-    .pagehead p {
-      margin: 0;
-      color: var(--muted);
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
-      margin-bottom: 20px;
-    }
-
-    .stat {
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px;
-      box-shadow: var(--shadow);
-      display: flex;
-      gap: 14px;
-      align-items: center;
-    }
-
-    .stat-icon {
-      width: 46px;
-      height: 46px;
-      display: grid;
-      place-items: center;
-      border-radius: 12px;
-      background: #EAF1FF;
-      color: var(--blue);
-      font-size: 20px;
-    }
-
-    .stat small {
-      color: var(--muted);
-      display: block;
-      margin-bottom: 5px;
-    }
-
-    .stat strong {
-      font-size: 25px;
-      color: var(--navy);
-    }
-
-    .panel {
-      background: white;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .toolbar {
-      padding: 16px;
-      display: grid;
-      grid-template-columns: minmax(220px, 1fr) minmax(190px, 260px) auto;
-      gap: 10px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      min-width: 0;
-    }
-
-    .field label {
-      font-weight: 700;
-      color: #34415B;
-      font-size: 12px;
-    }
-
-    .field input,
-    .field select {
-      width: 100%;
-      border: 1px solid #CBD5E1;
-      border-radius: 9px;
-      padding: 11px 12px;
-      background: white;
-      color: var(--text);
-      outline: none;
-    }
-
-    .field input:focus,
-    .field select:focus {
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px #0B4DA218;
-    }
-
-    .searchbox {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      border: 1px solid #CBD5E1;
-      border-radius: 9px;
-      padding-left: 12px;
-      color: var(--muted);
-    }
-
-    .searchbox input {
-      border: none;
-      box-shadow: none;
-    }
-
-    .tablewrap {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 850px;
-    }
-
-    th, td {
-      text-align: left;
-      padding: 14px 16px;
-      border-bottom: 1px solid #EDF0F5;
-      vertical-align: middle;
-    }
-
-    th {
-      background: #F8FAFC;
-      color: #64748B;
-      text-transform: uppercase;
-      font-size: 10px;
-      letter-spacing: .7px;
-    }
-
-    tbody tr:hover {
-      background: #FBFDFF;
-    }
-
-    .person {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .avatar {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: #EAF1FF;
-      color: var(--blue);
-      display: grid;
-      place-items: center;
-      font-weight: 800;
-    }
-
-    .person strong {
-      display: block;
-      color: var(--navy);
-      margin-bottom: 3px;
-    }
-
-    .person small,
-    td small {
-      color: var(--muted);
-    }
-
-    .badge {
-      display: inline-flex;
-      border-radius: 999px;
-      padding: 5px 9px;
-      font-size: 11px;
-      font-weight: 800;
-      background: #EAF8EF;
-      color: var(--green);
-    }
-
-    .actions {
-      display: flex;
-      gap: 6px;
-      white-space: nowrap;
-    }
-
-    .empty {
-      padding: 35px;
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .tablefoot {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      flex-wrap: wrap;
-      color: var(--muted);
-    }
-
-    .pager {
-      display: flex;
-      gap: 7px;
-    }
-
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #081432A8;
-      z-index: 50;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-
-    .modal.open {
-      display: flex;
-    }
-
-    .modalbox {
-      width: min(720px, 100%);
-      max-height: 92vh;
-      overflow: auto;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 25px 70px #0004;
-    }
-
-    .modalhead {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 18px 21px;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      background: white;
-      z-index: 2;
-    }
-
-    .modalhead h3 {
-      margin: 0;
-      color: var(--navy);
-      font-size: 18px;
-    }
-
-    .xbtn {
-      border: none;
-      background: #EEF2F7;
-      color: #334155;
-      border-radius: 8px;
-      width: 34px;
-      height: 34px;
-    }
-
-    .modalbody {
-      padding: 20px;
-    }
-
-    .formgrid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-
-    .span2 {
-      grid-column: 1 / -1;
-    }
-
-    .modalfoot {
-      display: flex;
-      justify-content: flex-end;
-      gap: 9px;
-      padding: 16px 20px;
-      border-top: 1px solid var(--border);
-      position: sticky;
-      bottom: 0;
-      background: white;
-    }
-
-    .hint {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.5;
-      margin: 6px 0 0;
-    }
-
-    .callout {
-      background: #F0F6FF;
-      border: 1px solid #DBEAFE;
-      color: #23416F;
-      padding: 11px 13px;
-      border-radius: 9px;
-      line-height: 1.5;
-      margin-bottom: 15px;
-    }
-
-    .linkedlist {
-      display: flex;
-      flex-direction: column;
-      gap: 9px;
-      margin-top: 16px;
-    }
-
-    .linkeditem {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      padding: 12px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-    }
-
-    .linkeditem strong {
-      display: block;
-      color: var(--navy);
-      margin-bottom: 4px;
-    }
-
-    .linkeditem small {
-      color: var(--muted);
-    }
-
-    .primarytag {
-      font-size: 10px;
-      color: #8A6500;
-      background: #FFF4CC;
-      border-radius: 20px;
-      padding: 4px 7px;
-      margin-left: 5px;
-    }
-
-    .toast {
-      position: fixed;
-      right: 18px;
-      bottom: 18px;
-      z-index: 100;
-      max-width: calc(100% - 36px);
-      padding: 13px 16px;
-      border-radius: 10px;
-      background: #122044;
-      color: white;
-      box-shadow: var(--shadow);
-      display: none;
-      line-height: 1.5;
-    }
-
-    .toast.show {
-      display: block;
-    }
-
-    .toast.error {
-      background: #A92B25;
-    }
-
-    .required {
-      color: var(--red);
-    }
-
-    @media(max-width: 900px) {
-      .stats {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .toolbar {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .toolbar-actions {
-        grid-column: 1 / -1;
-      }
-    }
-
-    @media(max-width: 600px) {
-      .topbar {
-        padding: 15px;
-      }
-
-      .brand h1 {
-        font-size: 16px;
-      }
-
-      .logo {
-        width: 45px;
-        height: 45px;
-      }
-
-      .container {
-        padding: 0 12px 28px;
-        margin-top: 18px;
-      }
-
-      .pagehead h2 {
-        font-size: 21px;
-      }
-
-      .stats {
-        gap: 9px;
-      }
-
-      .stat {
-        padding: 13px;
-        gap: 10px;
-      }
-
-      .stat-icon {
-        width: 38px;
-        height: 38px;
-        font-size: 17px;
-      }
-
-      .stat strong {
-        font-size: 22px;
-      }
-
-      .toolbar,
-      .formgrid {
-        grid-template-columns: 1fr;
-      }
-
-      .span2 {
-        grid-column: auto;
-      }
-
-      .modalbody {
-        padding: 15px;
-      }
-
-      .modalhead {
-        padding: 15px;
-      }
-
-      .modalfoot .btn {
-        flex: 1;
-      }
-
-      .top-actions {
-        width: 100%;
-      }
-
-      .top-actions .btn {
-        flex: 1;
-      }
-    }
+    :root{--navy:#0B1E63;--blue:#0B4DA2;--gold:#D4AF37;--bg:#F5F7FA;--ink:#172554;--muted:#64748b;--line:#e2e8f0;--white:#fff;--green:#15803d;--red:#b91c1c;--shadow:0 12px 32px rgba(11,30,99,.08)}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans-serif;font-size:14px}button,input,select,textarea{font:inherit}button{cursor:pointer}.topbar{background:linear-gradient(120deg,var(--navy),var(--blue));color:#fff;padding:18px 22px;box-shadow:var(--shadow)}.topinner{max-width:1440px;margin:auto;display:flex;align-items:center;gap:16px;justify-content:space-between;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:13px}.brand img{width:58px;height:58px;object-fit:contain;background:#fff;border-radius:12px;padding:5px}.brand h1{font-size:20px;margin:0 0 5px;font-weight:800;letter-spacing:.2px}.brand p{margin:0;color:#dbeafe;font-size:12px}.topactions{display:flex;gap:9px;flex-wrap:wrap}.wrap{max-width:1440px;margin:24px auto;padding:0 18px 38px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:9px;padding:10px 14px;font-weight:700;text-decoration:none;transition:.15s}.btn:disabled{opacity:.55;cursor:not-allowed}.btn-primary{background:var(--navy);color:#fff}.btn-primary:hover{background:var(--blue)}.btn-gold{background:var(--gold);color:#172554}.btn-light{background:#fff;color:var(--navy);border:1px solid var(--line)}.btn-danger{background:#fee2e2;color:#991b1b}.btn-sm{padding:7px 9px;font-size:12px;border-radius:7px}.pagehead{display:flex;align-items:end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}.pagehead h2{margin:0 0 6px;font-size:24px;color:var(--navy)}.pagehead p{margin:0;color:var(--muted)}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}.stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px;box-shadow:0 4px 14px rgba(11,30,99,.03);display:flex;align-items:center;gap:13px}.stat-icon{width:43px;height:43px;border-radius:12px;background:#eaf1ff;color:var(--blue);display:grid;place-items:center;font-size:18px}.stat strong{display:block;font-size:24px;color:var(--navy);margin-bottom:3px}.stat span{font-size:12px;color:var(--muted)}.panel{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}.toolbar{padding:15px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)}.search{position:relative;flex:1;min-width:220px}.search i{position:absolute;left:13px;top:13px;color:#94a3b8}.search input{padding-left:37px;width:100%}.control,input,select,textarea{width:100%;border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:10px 11px;outline:none;color:var(--ink)}.control:focus,input:focus,select:focus,textarea:focus{border-color:#4777d2;box-shadow:0 0 0 3px #dbeafe}.toolbar select{width:auto;min-width:155px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:950px}th,td{padding:13px 14px;text-align:left;border-bottom:1px solid #edf0f5;vertical-align:middle}th{background:#f8fafc;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}tbody tr:hover{background:#f8fbff}.person{display:flex;align-items:center;gap:10px;min-width:180px}.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#e0e7ff;color:var(--navy);font-weight:800;flex-shrink:0}.person b{display:block;font-size:13px}.person small{display:block;color:var(--muted);margin-top:4px}.muted{color:var(--muted)}.actions{display:flex;gap:6px;flex-wrap:wrap;min-width:245px}.badge{display:inline-flex;border-radius:999px;padding:5px 8px;font-size:11px;font-weight:700;background:#e0f2fe;color:#075985}.badge.ok{background:#dcfce7;color:#166534}.badge.warn{background:#fef3c7;color:#92400e}.badge.off{background:#f1f5f9;color:#475569}.empty{padding:35px;text-align:center;color:var(--muted)}.empty i{font-size:27px;margin-bottom:10px;color:#94a3b8}.pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;color:var(--muted)}.pagebuttons{display:flex;gap:6px}.modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.58);padding:18px;overflow:auto;align-items:flex-start;justify-content:center}.modal.show{display:flex}.modalbox{width:min(720px,100%);background:#fff;border-radius:16px;box-shadow:0 25px 70px rgba(0,0,0,.25);margin:auto;overflow:hidden}.modalbox.wide{width:min(940px,100%)}.modalhead{display:flex;justify-content:space-between;align-items:center;padding:17px 20px;border-bottom:1px solid var(--line);background:#fbfcff}.modalhead h3{margin:0;font-size:18px;color:var(--navy)}.xbtn{border:0;background:#eef2ff;color:var(--navy);width:34px;height:34px;border-radius:8px}.modalbody{padding:20px}.modalfoot{display:flex;justify-content:flex-end;gap:9px;padding:14px 20px;border-top:1px solid var(--line);background:#fbfcff}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.field label{display:block;font-weight:700;font-size:12px;margin-bottom:7px;color:#334155}.field .hint{font-size:11px;line-height:1.5;color:var(--muted);margin:6px 0 0}.span2{grid-column:1/-1}.required{color:#dc2626}.callout{border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:10px;padding:12px 13px;line-height:1.55;margin-bottom:16px}.linklist{border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:240px}.linkrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid #edf0f5}.linkrow:last-child{border-bottom:0}.linkrow b{display:block}.linkrow small{display:block;color:var(--muted);margin-top:4px}.checkline{display:flex;gap:8px;align-items:center}.checkline input{width:auto}.toast{position:fixed;right:18px;bottom:18px;z-index:2000;background:#0f172a;color:#fff;padding:13px 16px;border-radius:10px;box-shadow:var(--shadow);max-width:min(420px,calc(100vw - 36px));display:none;line-height:1.5}.toast.show{display:block}.toast.error{background:#991b1b}.toast.success{background:#166534}.loading{opacity:.6;pointer-events:none}
+    @media(max-width:900px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.brand h1{font-size:17px}.pagehead h2{font-size:21px}}
+    @media(max-width:560px){.topbar{padding:14px}.wrap{padding:0 10px 28px;margin:16px auto}.brand img{width:47px;height:47px}.brand h1{font-size:15px}.topactions{width:100%}.topactions .btn{flex:1}.stats{gap:9px}.stat{padding:12px;gap:9px}.stat-icon{width:36px;height:36px;font-size:15px}.stat strong{font-size:20px}.stat span{font-size:10px}.formgrid{grid-template-columns:1fr}.span2{grid-column:auto}.modal{padding:8px}.modalbody{padding:15px}.modalhead{padding:14px 15px}.modalfoot{padding:12px 15px}.toolbar select{flex:1;min-width:0}.pagehead{align-items:stretch}.pagehead>.btn{width:100%}}
   </style>
 </head>
-
 <body>
-
-<header class="topbar">
-  <div class="topinner">
-    <div class="brand">
-      <img
-        class="logo"
-        src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-        alt="GAAWOW Academy Logo">
-
-      <div>
-        <h1>GAAWOW EMS</h1>
-        <p>Education Management &amp; Verification System</p>
+  <header class="topbar">
+    <div class="topinner">
+      <div class="brand">
+        <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy logo">
+        <div><h1>GAAWOW EMS</h1><p>Education Management &amp; Verification System</p></div>
+      </div>
+      <div class="topactions">
+        <a class="btn btn-light" href="dashboard.html"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+        <button class="btn btn-gold" id="addParentBtn" type="button"><i class="fa-solid fa-user-plus"></i> Add Parent</button>
       </div>
     </div>
+  </header>
 
-    <div class="top-actions">
-      <a class="btn btn-light" href="dashboard.html">
-        <i class="fa-solid fa-gauge-high"></i> Dashboard
-      </a>
+  <main class="wrap">
+    <div class="pagehead"><div><h2>Parent Management</h2><p>Manage parent records, student links, and secure parent portal accounts.</p></div><button class="btn btn-primary" id="refreshBtn" type="button"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
+    <section class="stats">
+      <div class="stat"><div class="stat-icon"><i class="fa-solid fa-users"></i></div><div><strong id="totalParents">0</strong><span>Total parents</span></div></div>
+      <div class="stat"><div class="stat-icon"><i class="fa-solid fa-user-check"></i></div><div><strong id="linkedParents">0</strong><span>Portal accounts linked</span></div></div>
+      <div class="stat"><div class="stat-icon"><i class="fa-solid fa-children"></i></div><div><strong id="totalLinks">0</strong><span>Parent/student links</span></div></div>
+      <div class="stat"><div class="stat-icon"><i class="fa-solid fa-building-columns"></i></div><div><strong id="totalInstitutions">0</strong><span>Institutions</span></div></div>
+    </section>
+    <section class="panel">
+      <div class="toolbar">
+        <div class="search"><i class="fa-solid fa-magnifying-glass"></i><input id="searchInput" type="search" placeholder="Search name, email, phone..." aria-label="Search parents"></div>
+        <select id="institutionFilter" aria-label="Filter by institution"><option value="">All institutions</option></select>
+        <select id="accountFilter" aria-label="Filter by portal account"><option value="">All account statuses</option><option value="linked">Account linked</option><option value="not-linked">No account</option></select>
+      </div>
+      <div class="tablewrap"><table><thead><tr><th>Parent</th><th>Contact</th><th>Institution</th><th>Students</th><th>Portal account</th><th>Created</th><th>Actions</th></tr></thead><tbody id="parentsTableBody"><tr><td colspan="7" class="empty"><i class="fa-solid fa-spinner fa-spin"></i><br>Loading parents...</td></tr></tbody></table></div>
+      <div class="pagination"><span id="pageInfo">Showing 0 parents</span><div class="pagebuttons"><button class="btn btn-light btn-sm" id="prevPageBtn" type="button">Previous</button><button class="btn btn-light btn-sm" id="nextPageBtn" type="button">Next</button></div></div>
+    </section>
+  </main>
 
-      <button class="btn btn-primary" id="addParentBtn">
-        <i class="fa-solid fa-user-plus"></i> Add Parent
-      </button>
+  <!-- Add/Edit Parent -->
+  <div class="modal" id="parentModal" role="dialog" aria-modal="true" aria-labelledby="parentModalTitle">
+    <div class="modalbox"><div class="modalhead"><h3 id="parentModalTitle">Add Parent</h3><button class="xbtn" type="button" data-close="parentModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>
+      <form id="parentForm"><div class="modalbody"><div class="formgrid">
+        <div class="field span2"><label for="parentInstitution">Institution <span class="required">*</span></label><select id="parentInstitution" required><option value="">Select institution</option></select></div>
+        <div class="field span2"><label for="parentFullName">Full name <span class="required">*</span></label><input id="parentFullName" maxlength="160" required placeholder="Parent or guardian full name"></div>
+        <div class="field"><label for="parentPhone">Phone</label><input id="parentPhone" maxlength="40" placeholder="Phone number"></div>
+        <div class="field"><label for="parentEmail">Email</label><input id="parentEmail" type="email" maxlength="160" placeholder="parent@example.com"><p class="hint">An email is required to create a parent portal account.</p></div>
+        <div class="field"><label for="parentOccupation">Occupation</label><input id="parentOccupation" maxlength="120" placeholder="Occupation"></div>
+        <div class="field"><label for="parentAddress">Address</label><input id="parentAddress" maxlength="240" placeholder="Town / area"></div>
+      </div></div><div class="modalfoot"><button class="btn btn-light" type="button" data-close="parentModal">Cancel</button><button class="btn btn-primary" id="saveParentBtn" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Parent</button></div></form>
     </div>
   </div>
-</header>
 
-<main class="container">
-
-  <div class="pagehead">
-    <div>
-      <h2>Parent Management</h2>
-      <p>Manage parent records and link parents to enrolled students.</p>
-    </div>
-  </div>
-
-  <section class="stats">
-    <div class="stat">
-      <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
-      <div><small>Total Parents</small><strong id="totalParents">0</strong></div>
-    </div>
-
-    <div class="stat">
-      <div class="stat-icon"><i class="fa-solid fa-user-check"></i></div>
-      <div><small>Parents with Students</small><strong id="linkedParents">0</strong></div>
-    </div>
-
-    <div class="stat">
-      <div class="stat-icon"><i class="fa-solid fa-link"></i></div>
-      <div><small>Student Links</small><strong id="totalLinks">0</strong></div>
-    </div>
-
-    <div class="stat">
-      <div class="stat-icon"><i class="fa-solid fa-building"></i></div>
-      <div><small>Institutions</small><strong id="totalInstitutions">0</strong></div>
-    </div>
-  </section>
-
-  <section class="panel">
-
-    <div class="toolbar">
-      <div class="searchbox">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="searchInput" type="search" placeholder="Search name, phone, email...">
-      </div>
-
-      <div class="field">
-        <select id="institutionFilter" aria-label="Filter by institution">
-          <option value="">All institutions</option>
-        </select>
-      </div>
-
-      <div class="toolbar-actions" style="display:flex;gap:8px">
-        <button class="btn btn-muted" id="clearFiltersBtn">
-          <i class="fa-solid fa-rotate-left"></i> Clear
-        </button>
-
-        <button class="btn btn-blue" id="refreshBtn">
-          <i class="fa-solid fa-rotate"></i> Refresh
-        </button>
-      </div>
-    </div>
-
-    <div class="tablewrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Parent</th>
-            <th>Contact</th>
-            <th>Institution</th>
-            <th>Students</th>
-            <th>Created</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-
-        <tbody id="parentsTableBody">
-          <tr><td colspan="6" class="empty">Loading parents...</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="tablefoot">
-      <span id="tableSummary">Showing 0 parents</span>
-      <div class="pager">
-        <button class="btn btn-muted btn-sm" id="prevPageBtn">Previous</button>
-        <button class="btn btn-muted btn-sm" id="nextPageBtn">Next</button>
-      </div>
-    </div>
-
-  </section>
-</main>
-
-<!-- ADD / EDIT PARENT -->
-<div class="modal" id="parentModal" role="dialog" aria-modal="true">
-  <div class="modalbox">
-
-    <div class="modalhead">
-      <h3 id="parentModalTitle">Add Parent</h3>
-      <button class="xbtn" data-close="parentModal" aria-label="Close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-
-    <form id="parentForm">
-      <div class="modalbody">
-
+  <!-- Link Parent to Student -->
+  <div class="modal" id="linksModal" role="dialog" aria-modal="true" aria-labelledby="linksModalTitle">
+    <div class="modalbox wide"><div class="modalhead"><h3 id="linksModalTitle">Link Parent to Students</h3><button class="xbtn" type="button" data-close="linksModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="modalbody"><div class="callout" id="linksParentInfo">Choose a student to link to this parent.</div>
         <div class="formgrid">
-
-          <div class="field span2">
-            <label for="parentInstitution">Institution <span class="required">*</span></label>
-            <select id="parentInstitution" required>
-              <option value="">Select institution</option>
-            </select>
-          </div>
-
-          <div class="field span2">
-            <label for="parentFullName">Full Name <span class="required">*</span></label>
-            <input id="parentFullName" maxlength="160" required
-              placeholder="Parent or guardian full name">
-          </div>
-
-          <div class="field">
-            <label for="parentPhone">Phone</label>
-            <input id="parentPhone" type="tel" maxlength="40" placeholder="Phone number">
-          </div>
-
-          <div class="field">
-            <label for="parentEmail">Email</label>
-            <input id="parentEmail" type="email" maxlength="160" placeholder="Email address">
-          </div>
-
-          <div class="field">
-            <label for="parentOccupation">Occupation</label>
-            <input id="parentOccupation" maxlength="120" placeholder="Occupation">
-          </div>
-
-          <div class="field">
-            <label for="parentAddress">Address</label>
-            <input id="parentAddress" maxlength="250" placeholder="Town or address">
-          </div>
-
+          <div class="field"><label for="linkCourse">Course</label><select id="linkCourse"><option value="">All courses</option></select></div>
+          <div class="field"><label for="linkClass">Class</label><select id="linkClass"><option value="">All classes</option></select></div>
+          <div class="field span2"><label for="linkStudent">Student <span class="required">*</span></label><select id="linkStudent"><option value="">Select student</option></select></div>
+          <div class="field"><label for="linkRelationship">Relationship</label><select id="linkRelationship"><option value="parent">Parent</option><option value="mother">Mother</option><option value="father">Father</option><option value="guardian">Guardian</option><option value="other">Other</option></select></div>
+          <div class="field"><label>&nbsp;</label><label class="checkline"><input id="linkPrimary" type="checkbox"> Primary parent/guardian</label></div>
+          <div class="field span2"><button class="btn btn-primary" id="linkStudentBtn" type="button"><i class="fa-solid fa-link"></i> Link Student</button></div>
         </div>
-
-        <p class="hint">
-          Saving a parent does not automatically create a portal login account.
-          Parent portal access is managed separately.
-        </p>
-
-      </div>
-
-      <div class="modalfoot">
-        <button type="button" class="btn btn-muted" data-close="parentModal">Cancel</button>
-        <button class="btn btn-primary" id="saveParentBtn" type="submit">
-          <i class="fa-solid fa-floppy-disk"></i> Save Parent
-        </button>
-      </div>
-    </form>
-
+        <h4 style="color:var(--navy);margin:23px 0 10px">Linked students</h4><div class="linklist" id="linkedStudentsList"><div class="empty">No students linked yet.</div></div>
+      </div><div class="modalfoot"><button class="btn btn-light" type="button" data-close="linksModal">Close</button></div>
+    </div>
   </div>
-</div>
 
-<!-- LINK PARENT TO STUDENTS -->
-<div class="modal" id="linksModal" role="dialog" aria-modal="true">
-  <div class="modalbox">
-
-    <div class="modalhead">
-      <h3 id="linksModalTitle">Link Students</h3>
-      <button class="xbtn" data-close="linksModal" aria-label="Close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+  <!-- Create/Reset Parent Portal Account -->
+  <div class="modal" id="parentAccountModal" role="dialog" aria-modal="true" aria-labelledby="parentAccountTitle">
+    <div class="modalbox"><div class="modalhead"><h3 id="parentAccountTitle">Create Parent Account</h3><button class="xbtn" data-close="parentAccountModal" type="button" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>
+      <form id="parentAccountForm"><div class="modalbody">
+        <div class="callout" id="parentAccountInfo">Create a secure login account for this parent.</div>
+        <div class="formgrid">
+          <div class="field span2"><label for="accountParentEmail">Login email <span class="required">*</span></label><input id="accountParentEmail" type="email" maxlength="160" autocomplete="username" required placeholder="parent@example.com"></div>
+          <div class="field span2"><label for="accountParentPassword">Temporary / new password <span class="required">*</span></label><input id="accountParentPassword" type="password" minlength="8" maxlength="72" autocomplete="new-password" required placeholder="At least 8 characters"><p class="hint">Use a strong password and share it privately with the parent. Never send passwords in a public group.</p></div>
+        </div>
+      </div><div class="modalfoot"><button type="button" class="btn btn-light" data-close="parentAccountModal">Cancel</button><button type="submit" class="btn btn-primary" id="saveParentAccountBtn"><i class="fa-solid fa-user-shield"></i> Create Account</button></div></form>
     </div>
-
-    <div class="modalbody">
-
-      <div class="callout" id="selectedParentInfo">
-        Choose a student to link to this parent.
-      </div>
-
-      <div class="formgrid">
-
-        <div class="field">
-          <label for="linkCourseSelect">Course <span class="required">*</span></label>
-          <select id="linkCourseSelect">
-            <option value="">Select course</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="linkClassSelect">Class <span class="required">*</span></label>
-          <select id="linkClassSelect" disabled>
-            <option value="">Select course first</option>
-          </select>
-        </div>
-
-        <div class="field span2">
-          <label for="linkStudentSelect">Student <span class="required">*</span></label>
-          <select id="linkStudentSelect" disabled>
-            <option value="">Select class first</option>
-          </select>
-
-          <p class="hint">
-            Only students enrolled in the selected institution, course and class are shown.
-          </p>
-        </div>
-
-        <div class="field">
-          <label for="relationshipSelect">Relationship</label>
-          <select id="relationshipSelect">
-            <option value="Father">Father</option>
-            <option value="Mother">Mother</option>
-            <option value="Guardian">Guardian</option>
-            <option value="Brother">Brother</option>
-            <option value="Sister">Sister</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-
-        <div class="field" style="justify-content:end">
-          <label style="display:flex;align-items:center;gap:9px;margin-top:22px">
-            <input type="checkbox" id="primaryCheck" style="width:auto">
-            Primary parent for this student
-          </label>
-        </div>
-
-        <div class="span2">
-          <button class="btn btn-blue" id="linkStudentBtn" type="button" style="width:100%">
-            <i class="fa-solid fa-link"></i> Link Student
-          </button>
-        </div>
-
-      </div>
-
-      <div style="margin-top:22px">
-        <h4 style="margin:0 0 10px;color:var(--navy)">Linked Students</h4>
-        <div id="linkedStudentsList" class="linkedlist">
-          <div class="empty">No linked students yet.</div>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="modalfoot">
-      <button class="btn btn-muted" data-close="linksModal">Close</button>
-    </div>
-
   </div>
-</div>
 
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-<script src="parents.js"></script>
-
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="parents.js"></script>
 </body>
 </html>
