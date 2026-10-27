@@ -1,29 +1,17 @@
 /* =========================================================
-   GAAWOW EMS
-   Parent Management System
-   Supabase + Institution / Course / Class / Student
+   GAAWOW EMS — PARENT MANAGEMENT
+   Parent CRUD, student linking, portal account create/reset.
+   Keep service-role credentials inside the Supabase Edge Function only.
    ========================================================= */
 
-"use strict";
+const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+const PARENT_ACCOUNT_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/create-parent-account`;
 
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-
-const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
-
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
-
-// =========================================================
-// APPLICATION STATE
-// =========================================================
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 let currentProfile = null;
-
 let parents = [];
 let filteredParents = [];
 let institutions = [];
@@ -32,1288 +20,502 @@ let courses = [];
 let classes = [];
 let enrollments = [];
 let links = [];
-
 let editingParentId = null;
 let selectedParent = null;
-
+let accountParentId = null;
+let parentAccountAction = "create";
 let currentPage = 1;
-const pageSize = 15;
+const pageSize = 10;
+let toastTimer = null;
 
-// =========================================================
-// INITIALIZATION
-// =========================================================
-
-document.addEventListener("DOMContentLoaded", init);
+window.addEventListener("DOMContentLoaded", init);
 
 async function init() {
   bindEvents();
-
   try {
-    const {
-      data: { session },
-      error
-    } = await supabaseClient.auth.getSession();
-
-    if (error) throw error;
-
-    if (!session) {
-      window.location.href = "index.html";
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError) throw sessionError;
+    if (!session?.user) {
+      showToast("Please sign in to GAAWOW EMS first.", true);
+      setTableMessage("You are not signed in. Please sign in, then open Parent Management.");
       return;
     }
-
     currentUser = session.user;
-
-    await loadProfile();
-
-    if (
-      !currentProfile ||
-      currentProfile.role !== "super_admin" ||
-      currentProfile.is_active === false
-    ) {
-      alert("Access denied. Super Admin access is required.");
-      window.location.href = "dashboard.html";
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("id,full_name,role,is_active,institution_id")
+      .eq("id", currentUser.id)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    currentProfile = profile;
+    if (!profile || profile.role !== "super_admin" || profile.is_active !== true) {
+      setTableMessage("Active Super Admin access is required to manage parent accounts.");
+      showToast("Active Super Admin access is required.", true);
+      document.querySelector("main")?.classList.add("loading");
       return;
     }
-
     await loadBaseData();
-    await loadAllManagementData();
-
+    await loadParents();
+    await loadLinks();
+    fillInstitutionFilter();
+    applyFilters();
+    updateStats();
   } catch (error) {
-    console.error("Parent Management initialization error:", error);
-
-    showToast(
-      errorMessage(
-        error,
-        "Could not initialize Parent Management."
-      ),
-      true
-    );
+    console.error("Parent Management initialization failed:", error);
+    setTableMessage(errorMessage(error, "Could not load Parent Management."));
+    showToast(errorMessage(error, "Could not load Parent Management."), true);
   }
 }
 
-// =========================================================
-// EVENT LISTENERS
-// =========================================================
-
 function bindEvents() {
-  byId("addParentBtn").addEventListener(
-    "click",
-    openAddParent
-  );
+  byId("addParentBtn").addEventListener("click", () => openParentModal());
+  byId("refreshBtn").addEventListener("click", refreshAll);
+  byId("searchInput").addEventListener("input", applyFilters);
+  byId("institutionFilter").addEventListener("change", applyFilters);
+  byId("accountFilter").addEventListener("change", applyFilters);
+  byId("prevPageBtn").addEventListener("click", () => { if (currentPage > 1) { currentPage--; renderParents(); } });
+  byId("nextPageBtn").addEventListener("click", () => { const max = Math.max(1, Math.ceil(filteredParents.length / pageSize)); if (currentPage < max) { currentPage++; renderParents(); } });
+  byId("parentForm").addEventListener("submit", saveParent);
+  byId("parentAccountForm").addEventListener("submit", submitParentAccount);
+  byId("linkCourse").addEventListener("change", () => { populateClassOptions(); populateStudentOptions(); });
+  byId("linkClass").addEventListener("change", populateStudentOptions);
+  byId("linkStudentBtn").addEventListener("click", linkStudent);
+  document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => closeModal(button.dataset.close)));
+  document.querySelectorAll(".modal").forEach(modal => modal.addEventListener("click", event => { if (event.target === modal) closeModal(modal.id); }));
+  byId("parentsTableBody").addEventListener("click", handleTableAction);
+  byId("linkedStudentsList").addEventListener("click", handleLinkedStudentAction);
+  document.addEventListener("keydown", event => { if (event.key === "Escape") document.querySelectorAll(".modal.show").forEach(modal => closeModal(modal.id)); });
+}
 
-  byId("parentForm").addEventListener(
-    "submit",
-    saveParent
-  );
-
-  byId("searchInput").addEventListener(
-    "input",
-    applyFilters
-  );
-
-  byId("institutionFilter").addEventListener(
-    "change",
-    applyFilters
-  );
-
-  byId("clearFiltersBtn").addEventListener("click", () => {
-    byId("searchInput").value = "";
-    byId("institutionFilter").value = "";
-    currentPage = 1;
+async function refreshAll() {
+  const button = byId("refreshBtn");
+  button.disabled = true;
+  try {
+    await loadBaseData();
+    await loadParents();
+    await loadLinks();
+    fillInstitutionFilter();
     applyFilters();
-  });
-
-  byId("refreshBtn").addEventListener(
-    "click",
-    refreshAll
-  );
-
-  byId("prevPageBtn").addEventListener("click", () => {
-    if (currentPage > 1) {
-      currentPage--;
-      renderParents();
-    }
-  });
-
-  byId("nextPageBtn").addEventListener("click", () => {
-    if (currentPage * pageSize < filteredParents.length) {
-      currentPage++;
-      renderParents();
-    }
-  });
-
-  document.querySelectorAll("[data-close]").forEach(button => {
-    button.addEventListener("click", () => {
-      closeModal(button.dataset.close);
-    });
-  });
-
-  ["parentModal", "linksModal"].forEach(modalId => {
-    byId(modalId).addEventListener("click", event => {
-      if (event.target === byId(modalId)) {
-        closeModal(modalId);
-      }
-    });
-  });
-
-  byId("linkCourseSelect").addEventListener(
-    "change",
-    onLinkCourseChange
-  );
-
-  byId("linkClassSelect").addEventListener(
-    "change",
-    onLinkClassChange
-  );
-
-  byId("linkStudentBtn").addEventListener(
-    "click",
-    linkStudent
-  );
-
-  byId("parentsTableBody").addEventListener(
-    "click",
-    handleTableAction
-  );
-
-  byId("linkedStudentsList").addEventListener(
-    "click",
-    handleLinkedAction
-  );
+    updateStats();
+    showToast("Parent records refreshed.");
+  } catch (error) {
+    showToast(errorMessage(error, "Refresh failed."), true);
+  } finally { button.disabled = false; }
 }
-
-// =========================================================
-// PROFILE AND AUTHORIZATION
-// =========================================================
-
-async function loadProfile() {
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("id,role,is_active,full_name,institution_id")
-    .eq("id", currentUser.id)
-    .maybeSingle();
-
-  if (error) throw error;
-
-  currentProfile = data;
-}
-
-// =========================================================
-// LOAD DATABASE TABLES
-// =========================================================
 
 async function loadBaseData() {
   const results = await Promise.all([
-    supabaseClient
-      .from("institutions")
-      .select("id,name,code,is_active")
-      .order("name"),
-
-    supabaseClient
-      .from("students")
-      .select("id,institution_id,student_id,full_name,status")
-      .order("full_name"),
-
-    supabaseClient
-      .from("courses")
-      .select("id,institution_id,name,code,is_active")
-      .order("name"),
-
-    supabaseClient
-      .from("classes")
-      .select(
-        "id,institution_id,course_id,name,code,academic_year,is_active,status"
-      )
-      .order("name"),
-
-    supabaseClient
-      .from("enrollments")
-      .select(
-        "id,institution_id,student_id,course_id,class_id,status,enrollment_date"
-      )
+    supabaseClient.from("institutions").select("id,name,code").order("name"),
+    supabaseClient.from("students").select("id,institution_id,full_name,student_number,admission_no,status,is_active").order("full_name"),
+    supabaseClient.from("courses").select("id,institution_id,name,course_name,code,is_active").order("name"),
+    supabaseClient.from("classes").select("id,institution_id,course_id,name,class_name,code,is_active,status").order("name"),
+    supabaseClient.from("enrollments").select("id,student_id,course_id,class_id,enrollment_status,status")
   ]);
-
-  for (const result of results) {
-    if (result.error) {
-      throw result.error;
-    }
-  }
-
+  const labels = ["institutions", "students", "courses", "classes", "enrollments"];
+  results.forEach((result, index) => { if (result.error) throw new Error(`${labels[index]}: ${result.error.message}`); });
   institutions = results[0].data || [];
   students = results[1].data || [];
   courses = results[2].data || [];
   classes = results[3].data || [];
   enrollments = results[4].data || [];
-
-  populateInstitutionSelects();
-}
-
-async function loadAllManagementData() {
-  await Promise.all([
-    loadParents(),
-    loadLinks()
-  ]);
-
-  updateStats();
-  applyFilters();
+  populateInstitutionOptions();
+  populateCourseOptions();
 }
 
 async function loadParents() {
-  const { data, error } = await supabaseClient
-    .from("parents")
-    .select(
-      "id,institution_id,profile_id,full_name,phone,email,address,occupation,created_at,updated_at"
-    )
+  const { data, error } = await supabaseClient.from("parents")
+    .select("id,institution_id,profile_id,full_name,phone,email,address,occupation,created_at,updated_at")
     .order("created_at", { ascending: false });
-
   if (error) throw error;
-
   parents = data || [];
 }
 
 async function loadLinks() {
-  const { data, error } = await supabaseClient
-    .from("parent_students")
-    .select(
-      "id,institution_id,parent_id,student_id,relationship,is_primary,created_at"
-    );
-
+  const { data, error } = await supabaseClient.from("parent_students")
+    .select("id,parent_id,student_id,relationship,is_primary,created_at");
   if (error) throw error;
-
   links = data || [];
 }
 
-// =========================================================
-// INSTITUTION DROPDOWNS
-// =========================================================
-
-function populateInstitutionSelects() {
-  const options = institutions.map(institution => {
-    const label =
-      institution.name +
-      (institution.code ? ` (${institution.code})` : "");
-
-    return `
-      <option value="${escapeHtml(institution.id)}">
-        ${escapeHtml(label)}
-      </option>
-    `;
-  }).join("");
-
-  byId("institutionFilter").innerHTML =
-    `<option value="">All institutions</option>` + options;
-
-  const oldValue = byId("parentInstitution").value;
-
-  byId("parentInstitution").innerHTML =
-    `<option value="">Select institution</option>` + options;
-
-  if (institutions.some(item => item.id === oldValue)) {
-    byId("parentInstitution").value = oldValue;
-  }
-
-  byId("totalInstitutions").textContent =
-    institutions.length;
+function fillInstitutionFilter() {
+  const select = byId("institutionFilter");
+  const old = select.value;
+  select.innerHTML = `<option value="">All institutions</option>` + institutions.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name || item.code || "Institution")}</option>`).join("");
+  if ([...select.options].some(option => option.value === old)) select.value = old;
 }
 
-// =========================================================
-// SEARCH AND FILTER
-// =========================================================
+function populateInstitutionOptions() {
+  const select = byId("parentInstitution");
+  const old = select.value;
+  select.innerHTML = `<option value="">Select institution</option>` + institutions.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name || item.code || "Institution")}</option>`).join("");
+  if ([...select.options].some(option => option.value === old)) select.value = old;
+}
+
+function populateCourseOptions() {
+  const select = byId("linkCourse");
+  const old = select.value;
+  select.innerHTML = `<option value="">All courses</option>` + courses.filter(isActiveRecord).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name || item.course_name || item.code || "Course")}</option>`).join("");
+  if ([...select.options].some(option => option.value === old)) select.value = old;
+  populateClassOptions();
+  populateStudentOptions();
+}
+
+function populateClassOptions() {
+  const courseId = byId("linkCourse").value;
+  const select = byId("linkClass");
+  const old = select.value;
+  const available = classes.filter(item => isActiveRecord(item) && (!courseId || item.course_id === courseId));
+  select.innerHTML = `<option value="">All classes</option>` + available.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name || item.class_name || item.code || "Class")}</option>`).join("");
+  if ([...select.options].some(option => option.value === old)) select.value = old;
+}
+
+function populateStudentOptions() {
+  const courseId = byId("linkCourse").value;
+  const classId = byId("linkClass").value;
+  const parentInstitutionId = selectedParent?.institution_id;
+  const linkedStudentIds = new Set(links.filter(item => item.parent_id === selectedParent?.id).map(item => item.student_id));
+  const enrolledStudentIds = new Set(enrollments.filter(item => isActiveEnrollment(item) && (!courseId || item.course_id === courseId) && (!classId || item.class_id === classId)).map(item => item.student_id));
+  const available = students.filter(student => {
+    if (parentInstitutionId && student.institution_id && student.institution_id !== parentInstitutionId) return false;
+    if (linkedStudentIds.has(student.id)) return false;
+    if (courseId || classId) return enrolledStudentIds.has(student.id);
+    return isActiveRecord(student);
+  });
+  const select = byId("linkStudent");
+  select.innerHTML = `<option value="">Select student</option>` + available.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.full_name || "Student")} — ${escapeHtml(item.student_number || item.admission_no || shortId(item.id))}</option>`).join("");
+}
 
 function applyFilters() {
-  const query = byId("searchInput")
-    .value
-    .trim()
-    .toLowerCase();
-
-  const institutionId =
-    byId("institutionFilter").value;
-
+  const query = byId("searchInput").value.trim().toLowerCase();
+  const institutionId = byId("institutionFilter").value;
+  const account = byId("accountFilter").value;
   filteredParents = parents.filter(parent => {
-    const searchableText = [
-      parent.full_name,
-      parent.phone,
-      parent.email,
-      parent.occupation,
-      parent.address
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    const matchesSearch =
-      !query || searchableText.includes(query);
-
-    const matchesInstitution =
-      !institutionId ||
-      parent.institution_id === institutionId;
-
-    return matchesSearch && matchesInstitution;
+    const text = [parent.full_name, parent.email, parent.phone, parent.address, parent.occupation].join(" ").toLowerCase();
+    if (query && !text.includes(query)) return false;
+    if (institutionId && parent.institution_id !== institutionId) return false;
+    if (account === "linked" && !parent.profile_id) return false;
+    if (account === "not-linked" && parent.profile_id) return false;
+    return true;
   });
-
   currentPage = 1;
-
   renderParents();
   updateStats();
 }
 
-// =========================================================
-// RENDER PARENT TABLE
-// =========================================================
-
 function renderParents() {
   const tbody = byId("parentsTableBody");
-
-  const start = (currentPage - 1) * pageSize;
-
-  const visibleParents = filteredParents.slice(
-    start,
-    start + pageSize
-  );
-
-  if (!visibleParents.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6" class="empty">
-          No parent records found.
-        </td>
-      </tr>
-    `;
-  } else {
-    tbody.innerHTML = visibleParents.map(parent => {
-      const institution = institutions.find(
-        item => item.id === parent.institution_id
-      );
-
-      const parentLinks = links.filter(
-        link => link.parent_id === parent.id
-      );
-
-      const initials = (parent.full_name || "P")
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map(part => part[0] || "")
-        .join("")
-        .toUpperCase();
-
-      return `
-        <tr>
-          <td>
-            <div class="person">
-              <div class="avatar">
-                ${escapeHtml(initials)}
-              </div>
-
-              <div>
-                <strong>
-                  ${escapeHtml(parent.full_name || "Unnamed parent")}
-                </strong>
-
-                <small>
-                  ${escapeHtml(parent.occupation || "Parent/Guardian")}
-                </small>
-              </div>
-            </div>
-          </td>
-
-          <td>
-            ${
-              parent.phone
-                ? `<div>${escapeHtml(parent.phone)}</div>`
-                : ""
-            }
-
-            ${
-              parent.email
-                ? `<small>${escapeHtml(parent.email)}</small>`
-                : ""
-            }
-
-            ${
-              !parent.phone && !parent.email
-                ? "<small>Not provided</small>"
-                : ""
-            }
-          </td>
-
-          <td>
-            ${escapeHtml(institution?.name || "Institution unavailable")}
-          </td>
-
-          <td>
-            <span class="badge">
-              ${parentLinks.length} linked
-            </span>
-          </td>
-
-          <td>${formatDate(parent.created_at)}</td>
-
-          <td>
-            <div class="actions">
-
-              <button
-                class="btn btn-muted btn-sm"
-                data-action="edit"
-                data-id="${escapeHtml(parent.id)}"
-                title="Edit parent">
-                <i class="fa-solid fa-pen"></i>
-              </button>
-
-              <button
-                class="btn btn-blue btn-sm"
-                data-action="links"
-                data-id="${escapeHtml(parent.id)}">
-                <i class="fa-solid fa-link"></i>
-                Students
-              </button>
-
-              <button
-                class="btn btn-danger btn-sm"
-                data-action="delete"
-                data-id="${escapeHtml(parent.id)}"
-                title="Delete parent">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join("");
-  }
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredParents.length / pageSize)
-  );
-
-  byId("tableSummary").textContent =
-    filteredParents.length
-      ? `Showing ${start + 1}-${Math.min(
-          start + pageSize,
-          filteredParents.length
-        )} of ${filteredParents.length} parents`
-      : "Showing 0 parents";
-
-  byId("prevPageBtn").disabled = currentPage <= 1;
-  byId("nextPageBtn").disabled =
-    currentPage >= totalPages;
-
-  byId("prevPageBtn").style.opacity =
-    currentPage <= 1 ? ".45" : "1";
-
-  byId("nextPageBtn").style.opacity =
-    currentPage >= totalPages ? ".45" : "1";
-}
-
-// =========================================================
-// STATISTICS
-// =========================================================
-
-function updateStats() {
-  byId("totalParents").textContent =
-    parents.length;
-
-  const linkedParentIds = new Set(
-    links.map(link => link.parent_id)
-  );
-
-  byId("linkedParents").textContent =
-    parents.filter(parent =>
-      linkedParentIds.has(parent.id)
-    ).length;
-
-  byId("totalLinks").textContent =
-    links.length;
-
-  byId("totalInstitutions").textContent =
-    institutions.length;
-}
-
-// =========================================================
-// ADD PARENT
-// =========================================================
-
-function openAddParent() {
-  editingParentId = null;
-
-  byId("parentForm").reset();
-
-  byId("parentModalTitle").textContent =
-    "Add Parent";
-
-  byId("saveParentBtn").innerHTML =
-    '<i class="fa-solid fa-floppy-disk"></i> Save Parent';
-
-  openModal("parentModal");
-}
-
-// =========================================================
-// EDIT PARENT
-// =========================================================
-
-function openEditParent(parentId) {
-  const parent = parents.find(
-    item => item.id === parentId
-  );
-
-  if (!parent) {
-    showToast("Parent record was not found.", true);
+  if (!filteredParents.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty"><i class="fa-solid fa-users-slash"></i><br>No parent records match your search.</td></tr>`;
+    byId("pageInfo").textContent = "Showing 0 parents";
+    byId("prevPageBtn").disabled = true;
+    byId("nextPageBtn").disabled = true;
     return;
   }
-
-  editingParentId = parent.id;
-
-  byId("parentForm").reset();
-
-  byId("parentInstitution").value =
-    parent.institution_id || "";
-
-  byId("parentFullName").value =
-    parent.full_name || "";
-
-  byId("parentPhone").value =
-    parent.phone || "";
-
-  byId("parentEmail").value =
-    parent.email || "";
-
-  byId("parentOccupation").value =
-    parent.occupation || "";
-
-  byId("parentAddress").value =
-    parent.address || "";
-
-  byId("parentModalTitle").textContent =
-    "Edit Parent";
-
-  byId("saveParentBtn").innerHTML =
-    '<i class="fa-solid fa-floppy-disk"></i> Update Parent';
-
-  openModal("parentModal");
+  const maxPage = Math.max(1, Math.ceil(filteredParents.length / pageSize));
+  currentPage = Math.min(currentPage, maxPage);
+  const start = (currentPage - 1) * pageSize;
+  const pageRows = filteredParents.slice(start, start + pageSize);
+  tbody.innerHTML = pageRows.map(parent => {
+    const institution = institutions.find(item => item.id === parent.institution_id);
+    const parentLinks = links.filter(item => item.parent_id === parent.id);
+    const linkedCount = parentLinks.length;
+    const initials = initialsFor(parent.full_name);
+    return `<tr>
+      <td><div class="person"><div class="avatar">${escapeHtml(initials)}</div><div><b>${escapeHtml(parent.full_name || "Unnamed parent")}</b><small>${escapeHtml(parent.occupation || "Parent / guardian")}</small></div></div></td>
+      <td><div>${escapeHtml(parent.phone || "No phone")}</div><small class="muted">${escapeHtml(parent.email || "No email")}</small></td>
+      <td>${escapeHtml(institution?.name || institution?.code || "Not set")}</td>
+      <td><span class="badge">${linkedCount} student${linkedCount === 1 ? "" : "s"}</span></td>
+      <td>${parent.profile_id ? `<span class="badge ok"><i class="fa-solid fa-circle-check"></i>&nbsp; Linked</span>` : `<span class="badge warn"><i class="fa-solid fa-circle-exclamation"></i>&nbsp; No account</span>`}</td>
+      <td>${escapeHtml(formatDate(parent.created_at))}</td>
+      <td><div class="actions">
+        <button class="btn btn-light btn-sm" data-action="edit" data-id="${escapeHtml(parent.id)}" title="Edit parent"><i class="fa-solid fa-pen"></i> Edit</button>
+        <button class="btn btn-light btn-sm" data-action="students" data-id="${escapeHtml(parent.id)}" title="Manage linked students"><i class="fa-solid fa-children"></i> Students</button>
+        <button class="btn btn-primary btn-sm" data-action="account" data-id="${escapeHtml(parent.id)}" title="${parent.profile_id ? "Reset parent password" : "Create parent account"}"><i class="fa-solid ${parent.profile_id ? "fa-key" : "fa-user-shield"}"></i> ${parent.profile_id ? "Reset Password" : "Create Account"}</button>
+        <button class="btn btn-danger btn-sm" data-action="delete" data-id="${escapeHtml(parent.id)}" title="Delete parent record"><i class="fa-solid fa-trash"></i></button>
+      </div></td>
+    </tr>`;
+  }).join("");
+  byId("pageInfo").textContent = `Showing ${start + 1}–${Math.min(start + pageSize, filteredParents.length)} of ${filteredParents.length} parents`;
+  byId("prevPageBtn").disabled = currentPage <= 1;
+  byId("nextPageBtn").disabled = currentPage >= maxPage;
 }
 
-// =========================================================
-// SAVE PARENT
-// =========================================================
+function updateStats() {
+  byId("totalParents").textContent = String(parents.length);
+  byId("linkedParents").textContent = String(parents.filter(parent => parent.profile_id).length);
+  byId("totalLinks").textContent = String(links.length);
+  byId("totalInstitutions").textContent = String(institutions.length);
+}
+
+function handleTableAction(event) {
+  const button = event.target.closest("button[data-action]");
+  if (!button) return;
+  const action = button.dataset.action;
+  const parentId = button.dataset.id;
+  if (action === "edit") openParentModal(parentId);
+  if (action === "students") openLinksModal(parentId);
+  if (action === "account") openParentAccount(parentId);
+  if (action === "delete") deleteParent(parentId);
+}
+
+function openParentModal(parentId = null) {
+  editingParentId = parentId;
+  byId("parentForm").reset();
+  const parent = parentId ? parents.find(item => item.id === parentId) : null;
+  byId("parentModalTitle").textContent = parent ? "Edit Parent" : "Add Parent";
+  byId("saveParentBtn").innerHTML = `<i class="fa-solid fa-floppy-disk"></i> ${parent ? "Save Changes" : "Save Parent"}`;
+  if (parent) {
+    byId("parentInstitution").value = parent.institution_id || "";
+    byId("parentFullName").value = parent.full_name || "";
+    byId("parentPhone").value = parent.phone || "";
+    byId("parentEmail").value = parent.email || "";
+    byId("parentOccupation").value = parent.occupation || "";
+    byId("parentAddress").value = parent.address || "";
+  }
+  openModal("parentModal");
+}
 
 async function saveParent(event) {
   event.preventDefault();
-
   const button = byId("saveParentBtn");
-
+  button.disabled = true;
   const payload = {
-    institution_id: byId("parentInstitution").value,
+    institution_id: byId("parentInstitution").value || null,
     full_name: byId("parentFullName").value.trim(),
     phone: cleanOrNull(byId("parentPhone").value),
-    email: cleanOrNull(byId("parentEmail").value),
+    email: cleanOrNull(byId("parentEmail").value)?.toLowerCase() || null,
     occupation: cleanOrNull(byId("parentOccupation").value),
-    address: cleanOrNull(byId("parentAddress").value),
-    updated_at: new Date().toISOString()
+    address: cleanOrNull(byId("parentAddress").value)
   };
-
-  if (!payload.institution_id || !payload.full_name) {
-    showToast(
-      "Institution and full name are required.",
-      true
-    );
-    return;
-  }
-
-  button.disabled = true;
-
   try {
+    if (!payload.full_name) throw new Error("Enter the parent's full name.");
+    if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) throw new Error("Enter a valid email address.");
+    let result;
     if (editingParentId) {
-      const { error } = await supabaseClient
-        .from("parents")
-        .update(payload)
-        .eq("id", editingParentId);
-
-      if (error) throw error;
-
-      showToast("Parent updated successfully.");
-
+      result = await supabaseClient.from("parents").update(payload).eq("id", editingParentId).select("id").single();
     } else {
-      const { error } = await supabaseClient
-        .from("parents")
-        .insert(payload);
-
-      if (error) throw error;
-
-      showToast("Parent added successfully.");
+      result = await supabaseClient.from("parents").insert(payload).select("id").single();
     }
-
+    if (result.error) throw result.error;
     closeModal("parentModal");
-
     await loadParents();
-    await loadLinks();
-
     applyFilters();
-
+    showToast(editingParentId ? "Parent details updated." : "Parent record created.");
   } catch (error) {
-    console.error("Save parent error:", error);
-
-    showToast(
-      errorMessage(
-        error,
-        "Could not save parent."
-      ),
-      true
-    );
-
-  } finally {
-    button.disabled = false;
-  }
+    console.error("Save parent failed:", error);
+    showToast(errorMessage(error, "Could not save parent."), true);
+  } finally { button.disabled = false; }
 }
 
-// =========================================================
-// TABLE ACTIONS
-// =========================================================
-
-async function handleTableAction(event) {
-  const button = event.target.closest(
-    "button[data-action]"
-  );
-
-  if (!button) return;
-
-  const parentId = button.dataset.id;
-  const action = button.dataset.action;
-
-  if (action === "edit") {
-    openEditParent(parentId);
-  }
-
-  if (action === "links") {
-    await manageLinks(parentId);
-  }
-
-  if (action === "delete") {
-    await deleteParent(parentId);
-  }
-}
-
-// =========================================================
-// DELETE PARENT
-// =========================================================
-
-async function deleteParent(parentId) {
-  const parent = parents.find(
-    item => item.id === parentId
-  );
-
-  if (!parent) return;
-
-  const relationshipCount = links.filter(
-    link => link.parent_id === parentId
-  ).length;
-
-  const confirmed = confirm(
-    `Delete parent "${parent.full_name}" and remove ${relationshipCount} linked student relationship(s)? This cannot be undone.`
-  );
-
-  if (!confirmed) return;
-
-  try {
-    if (relationshipCount > 0) {
-      const { error: linksError } = await supabaseClient
-        .from("parent_students")
-        .delete()
-        .eq("parent_id", parentId);
-
-      if (linksError) throw linksError;
-    }
-
-    const { error } = await supabaseClient
-      .from("parents")
-      .delete()
-      .eq("id", parentId);
-
-    if (error) throw error;
-
-    showToast("Parent and student links deleted.");
-
-    await loadParents();
-    await loadLinks();
-
-    applyFilters();
-
-  } catch (error) {
-    console.error("Delete parent error:", error);
-
-    showToast(
-      errorMessage(
-        error,
-        "Could not delete parent."
-      ),
-      true
-    );
-  }
-}
-
-// =========================================================
-// OPEN STUDENT LINK MANAGEMENT
-// =========================================================
-
-async function manageLinks(parentId) {
-  selectedParent = parents.find(
-    parent => parent.id === parentId
-  );
-
-  if (!selectedParent) {
-    showToast("Parent record was not found.", true);
-    return;
-  }
-
-  const institution = institutions.find(
-    item => item.id === selectedParent.institution_id
-  );
-
-  byId("linksModalTitle").textContent =
-    `Students for ${selectedParent.full_name}`;
-
-  byId("selectedParentInfo").innerHTML = `
-    <strong>${escapeHtml(selectedParent.full_name)}</strong>
-    <br>
-    Institution: ${escapeHtml(institution?.name || "Unknown")}
-    <br>
-    <small>Select a course, class, and enrolled student.</small>
-  `;
-
-  byId("relationshipSelect").value = "Father";
-  byId("primaryCheck").checked = false;
-
-  byId("linkCourseSelect").innerHTML =
-    '<option value="">Select course</option>';
-
-  byId("linkClassSelect").innerHTML =
-    '<option value="">Select course first</option>';
-
-  byId("linkStudentSelect").innerHTML =
-    '<option value="">Select class first</option>';
-
-  byId("linkClassSelect").disabled = true;
-  byId("linkStudentSelect").disabled = true;
-
-  const parentCourses = courses.filter(course =>
-    course.institution_id === selectedParent.institution_id &&
-    course.is_active !== false
-  );
-
-  byId("linkCourseSelect").innerHTML +=
-    parentCourses.map(course => `
-      <option value="${escapeHtml(course.id)}">
-        ${escapeHtml(course.name)}
-        ${course.code ? ` (${escapeHtml(course.code)})` : ""}
-      </option>
-    `).join("");
-
+function openLinksModal(parentId) {
+  const parent = parents.find(item => item.id === parentId);
+  if (!parent) return showToast("Parent record was not found.", true);
+  selectedParent = parent;
+  byId("linksModalTitle").textContent = `Student Links: ${parent.full_name}`;
+  byId("linksParentInfo").textContent = `Parent: ${parent.full_name}. Students listed here must belong to the same institution when their institution is set.`;
+  byId("linkCourse").value = "";
+  byId("linkClass").value = "";
+  byId("linkStudent").value = "";
+  byId("linkRelationship").value = "parent";
+  byId("linkPrimary").checked = false;
+  populateCourseOptions();
   renderLinkedStudents();
-
   openModal("linksModal");
 }
 
-// =========================================================
-// COURSE SELECTED: LOAD CLASSES
-// =========================================================
-
-function onLinkCourseChange() {
-  if (!selectedParent) return;
-
-  const courseId =
-    byId("linkCourseSelect").value;
-
-  byId("linkClassSelect").innerHTML =
-    '<option value="">Select class</option>';
-
-  byId("linkStudentSelect").innerHTML =
-    '<option value="">Select class first</option>';
-
-  byId("linkStudentSelect").disabled = true;
-
-  const matchingClasses = classes.filter(item => {
-    const sameInstitution =
-      item.institution_id === selectedParent.institution_id;
-
-    const sameCourse =
-      item.course_id === courseId;
-
-    const active =
-      item.is_active !== false;
-
-    const statusAllowed =
-      !item.status ||
-      ["active", "open", "in_progress"].includes(
-        String(item.status).toLowerCase()
-      );
-
-    return (
-      sameInstitution &&
-      sameCourse &&
-      active &&
-      statusAllowed
-    );
-  });
-
-  byId("linkClassSelect").innerHTML +=
-    matchingClasses.map(item => {
-      const label = [
-        item.name,
-        item.code,
-        item.academic_year
-      ].filter(Boolean).join(" · ");
-
-      return `
-        <option value="${escapeHtml(item.id)}">
-          ${escapeHtml(label)}
-        </option>
-      `;
-    }).join("");
-
-  byId("linkClassSelect").disabled =
-    !courseId;
-}
-
-// =========================================================
-// CLASS SELECTED: LOAD ENROLLED STUDENTS
-// =========================================================
-
-function onLinkClassChange() {
-  if (!selectedParent) return;
-
-  const courseId =
-    byId("linkCourseSelect").value;
-
-  const classId =
-    byId("linkClassSelect").value;
-
-  const alreadyLinked = new Set(
-    links
-      .filter(link =>
-        link.parent_id === selectedParent.id
-      )
-      .map(link => link.student_id)
-  );
-
-  const validEnrollments = enrollments.filter(enrollment =>
-    enrollment.institution_id === selectedParent.institution_id &&
-    enrollment.course_id === courseId &&
-    enrollment.class_id === classId &&
-    isCurrentEnrollment(enrollment.status)
-  );
-
-  const enrolledStudentIds = new Set(
-    validEnrollments.map(enrollment => enrollment.student_id)
-  );
-
-  const matchingStudents = students
-    .filter(student =>
-      student.institution_id === selectedParent.institution_id &&
-      enrolledStudentIds.has(student.id) &&
-      !alreadyLinked.has(student.id)
-    )
-    .sort((a, b) =>
-      (a.full_name || "").localeCompare(b.full_name || "")
-    );
-
-  byId("linkStudentSelect").innerHTML =
-    '<option value="">Select student</option>' +
-    matchingStudents.map(student => `
-      <option value="${escapeHtml(student.id)}">
-        ${escapeHtml(student.full_name || "Unnamed student")}
-        ·
-        ${escapeHtml(student.student_id || "No student ID")}
-      </option>
-    `).join("");
-
-  byId("linkStudentSelect").disabled =
-    !classId;
-
-  if (classId && matchingStudents.length === 0) {
-    byId("linkStudentSelect").innerHTML =
-      '<option value="">No eligible unlinked students in this class</option>';
+function renderLinkedStudents() {
+  const parent = selectedParent;
+  if (!parent) return;
+  const parentLinks = links.filter(item => item.parent_id === parent.id);
+  if (!parentLinks.length) {
+    byId("linkedStudentsList").innerHTML = `<div class="empty">No students linked yet.</div>`;
+    populateStudentOptions();
+    return;
   }
+  byId("linkedStudentsList").innerHTML = parentLinks.map(link => {
+    const student = students.find(item => item.id === link.student_id);
+    return `<div class="linkrow"><div><b>${escapeHtml(student?.full_name || "Student record unavailable")}</b><small>${escapeHtml(student?.student_number || student?.admission_no || shortId(link.student_id))} · ${escapeHtml(link.relationship || "parent")}${link.is_primary ? " · Primary" : ""}</small></div><button class="btn btn-danger btn-sm" data-link-action="unlink" data-link-id="${escapeHtml(link.id)}" type="button"><i class="fa-solid fa-link-slash"></i> Unlink</button></div>`;
+  }).join("");
+  populateStudentOptions();
 }
-
-// =========================================================
-// ENROLLMENT STATUS VALIDATION
-// =========================================================
-
-function isCurrentEnrollment(status) {
-  if (status == null || status === "") {
-    return true;
-  }
-
-  const normalizedStatus =
-    String(status).toLowerCase();
-
-  return ![
-    "completed",
-    "dropped",
-    "suspended",
-    "cancelled",
-    "canceled"
-  ].includes(normalizedStatus);
-}
-
-// =========================================================
-// LINK STUDENT TO PARENT
-// =========================================================
 
 async function linkStudent() {
   if (!selectedParent) return;
-
-  const courseId =
-    byId("linkCourseSelect").value;
-
-  const classId =
-    byId("linkClassSelect").value;
-
-  const studentId =
-    byId("linkStudentSelect").value;
-
-  const relationship =
-    byId("relationshipSelect").value;
-
-  const isPrimary =
-    byId("primaryCheck").checked;
-
-  if (!courseId || !classId || !studentId) {
-    showToast(
-      "Select a course, class, and student first.",
-      true
-    );
-    return;
+  const studentId = byId("linkStudent").value;
+  if (!studentId) return showToast("Select a student first.", true);
+  const student = students.find(item => item.id === studentId);
+  if (!student) return showToast("Student record was not found.", true);
+  if (selectedParent.institution_id && student.institution_id && selectedParent.institution_id !== student.institution_id) {
+    return showToast("This student belongs to a different institution.", true);
   }
-
-  const validEnrollment = enrollments.some(enrollment =>
-    enrollment.student_id === studentId &&
-    enrollment.course_id === courseId &&
-    enrollment.class_id === classId &&
-    enrollment.institution_id === selectedParent.institution_id &&
-    isCurrentEnrollment(enrollment.status)
-  );
-
-  if (!validEnrollment) {
-    showToast(
-      "This student is not enrolled in the selected class.",
-      true
-    );
-    return;
-  }
-
-  const existingLink = links.some(link =>
-    link.parent_id === selectedParent.id &&
-    link.student_id === studentId
-  );
-
-  if (existingLink) {
-    showToast(
-      "This student is already linked to this parent.",
-      true
-    );
-    return;
-  }
-
   const button = byId("linkStudentBtn");
-
   button.disabled = true;
-
   try {
-    /*
-      If the new relationship is marked primary,
-      first remove the primary flag from other parent
-      relationships for this student.
-
-      This depends on the applicable Supabase RLS
-      policies permitting this update.
-    */
-
-    if (isPrimary) {
-      const { error: primaryError } = await supabaseClient
-        .from("parent_students")
-        .update({ is_primary: false })
-        .eq("student_id", studentId)
-        .eq("institution_id", selectedParent.institution_id)
-        .eq("is_primary", true);
-
+    const alreadyLinked = links.some(item => item.parent_id === selectedParent.id && item.student_id === studentId);
+    if (alreadyLinked) throw new Error("This student is already linked to this parent.");
+    const payload = {
+      parent_id: selectedParent.id,
+      student_id: studentId,
+      relationship: byId("linkRelationship").value || "parent",
+      is_primary: byId("linkPrimary").checked
+    };
+    if (payload.is_primary) {
+      const { error: primaryError } = await supabaseClient.from("parent_students").update({ is_primary: false }).eq("parent_id", selectedParent.id);
       if (primaryError) throw primaryError;
     }
-
-    const { error } = await supabaseClient
-      .from("parent_students")
-      .insert({
-        institution_id: selectedParent.institution_id,
-        parent_id: selectedParent.id,
-        student_id: studentId,
-        relationship: relationship,
-        is_primary: isPrimary
-      });
-
+    const { error } = await supabaseClient.from("parent_students").insert(payload);
     if (error) throw error;
-
-    showToast("Student linked successfully.");
-
     await loadLinks();
-
     renderLinkedStudents();
-    onLinkClassChange();
-    updateStats();
     renderParents();
-
+    updateStats();
+    showToast("Student linked to parent successfully.");
   } catch (error) {
-    console.error("Link student error:", error);
-
-    showToast(
-      errorMessage(
-        error,
-        "Could not link student. Check Supabase permissions and constraints."
-      ),
-      true
-    );
-
-  } finally {
-    button.disabled = false;
-  }
+    console.error("Link student failed:", error);
+    showToast(errorMessage(error, "Could not link student."), true);
+  } finally { button.disabled = false; }
 }
 
-// =========================================================
-// RENDER LINKED STUDENTS
-// =========================================================
+async function handleLinkedStudentAction(event) {
+  const button = event.target.closest("button[data-link-action]");
+  if (!button || button.dataset.linkAction !== "unlink") return;
+  const link = links.find(item => item.id === button.dataset.linkId);
+  if (!link) return showToast("Student link was not found.", true);
+  if (!confirm("Unlink this student from the parent? The student record will not be deleted.")) return;
+  button.disabled = true;
+  try {
+    const { error } = await supabaseClient.from("parent_students").delete().eq("id", link.id);
+    if (error) throw error;
+    await loadLinks();
+    renderLinkedStudents();
+    renderParents();
+    updateStats();
+    showToast("Student unlinked.");
+  } catch (error) {
+    showToast(errorMessage(error, "Could not unlink student."), true);
+  } finally { button.disabled = false; }
+}
 
-function renderLinkedStudents() {
-  const target =
-    byId("linkedStudentsList");
-
-  const parentLinks = links.filter(link =>
-    link.parent_id === selectedParent?.id
-  );
-
-  if (!parentLinks.length) {
-    target.innerHTML = `
-      <div class="empty">
-        No linked students yet.
-        Choose a course and class above.
-      </div>
-    `;
+function openParentAccount(parentId) {
+  const parent = parents.find(item => item.id === parentId);
+  if (!parent) { showToast("Parent record was not found.", true); return; }
+  if (!parent.email) {
+    showToast("This parent has no email. Edit the parent record and add an email first.", true);
     return;
   }
-
-  target.innerHTML = parentLinks.map(link => {
-    const student = students.find(
-      item => item.id === link.student_id
-    );
-
-    return `
-      <div class="linkeditem">
-
-        <div>
-          <strong>
-            ${escapeHtml(student?.full_name || "Student record unavailable")}
-
-            ${
-              link.is_primary
-                ? '<span class="primarytag">PRIMARY</span>'
-                : ""
-            }
-          </strong>
-
-          <small>
-            ${escapeHtml(student?.student_id || "")}
-            ${student?.student_id ? " · " : ""}
-            ${escapeHtml(link.relationship || "Other")}
-          </small>
-        </div>
-
-        <button
-          class="btn btn-danger btn-sm"
-          data-unlink="${escapeHtml(link.id)}">
-          <i class="fa-solid fa-link-slash"></i>
-          Unlink
-        </button>
-
-      </div>
-    `;
-  }).join("");
+  accountParentId = parent.id;
+  parentAccountAction = parent.profile_id ? "reset" : "create";
+  byId("parentAccountForm").reset();
+  byId("accountParentEmail").value = parent.email;
+  byId("accountParentEmail").readOnly = parentAccountAction === "reset";
+  byId("parentAccountTitle").textContent = parentAccountAction === "reset" ? "Reset Parent Password" : "Create Parent Account";
+  byId("parentAccountInfo").textContent = parentAccountAction === "reset"
+    ? `An account is already linked to ${parent.full_name}. Enter a new password to reset it.`
+    : `Create a secure parent portal login for ${parent.full_name}. The account will be linked to this parent record.`;
+  byId("saveParentAccountBtn").innerHTML = parentAccountAction === "reset"
+    ? '<i class="fa-solid fa-key"></i> Reset Password'
+    : '<i class="fa-solid fa-user-shield"></i> Create Account';
+  openModal("parentAccountModal");
 }
 
-// =========================================================
-// UNLINK STUDENT
-// =========================================================
-
-async function handleLinkedAction(event) {
-  const button = event.target.closest(
-    "button[data-unlink]"
-  );
-
-  if (!button) return;
-
-  const linkId = button.dataset.unlink;
-
-  const link = links.find(
-    item => item.id === linkId
-  );
-
-  if (!link) return;
-
-  const student = students.find(
-    item => item.id === link.student_id
-  );
-
-  const confirmed = confirm(
-    `Unlink ${student?.full_name || "this student"} from ${selectedParent?.full_name || "this parent"}?`
-  );
-
-  if (!confirmed) return;
-
-  try {
-    const { error } = await supabaseClient
-      .from("parent_students")
-      .delete()
-      .eq("id", linkId);
-
-    if (error) throw error;
-
-    showToast("Student unlinked successfully.");
-
-    await loadLinks();
-
-    renderLinkedStudents();
-    onLinkClassChange();
-    updateStats();
-    renderParents();
-
-  } catch (error) {
-    console.error("Unlink student error:", error);
-
-    showToast(
-      errorMessage(
-        error,
-        "Could not unlink student."
-      ),
-      true
-    );
+async function submitParentAccount(event) {
+  event.preventDefault();
+  const parent = parents.find(item => item.id === accountParentId);
+  if (!parent) { showToast("Parent record was not found.", true); return; }
+  const email = byId("accountParentEmail").value.trim().toLowerCase();
+  const password = byId("accountParentPassword").value;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast("Enter a valid email address.", true); return;
   }
-}
-
-// =========================================================
-// REFRESH
-// =========================================================
-
-async function refreshAll() {
-  const button = byId("refreshBtn");
-
+  if (password.length < 8) { showToast("Password must contain at least 8 characters.", true); return; }
+  const button = byId("saveParentAccountBtn");
   button.disabled = true;
-
+  const originalText = button.innerHTML;
+  button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Please wait...';
   try {
-    await loadBaseData();
-    await loadAllManagementData();
-
-    showToast("Parent records refreshed.");
-
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError) throw sessionError;
+    if (!session?.access_token) throw new Error("Your login session has expired. Sign in again and retry.");
+    const response = await fetch(PARENT_ACCOUNT_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        action: parentAccountAction,
+        parent_db_id: parent.id,
+        institution_id: parent.institution_id,
+        email,
+        password,
+        full_name: parent.full_name,
+        phone: parent.phone
+      })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.success !== true) {
+      throw new Error(result.error || `Parent account request failed (HTTP ${response.status}).`);
+    }
+    closeModal("parentAccountModal");
+    byId("parentAccountForm").reset();
+    await loadParents();
+    applyFilters();
+    showToast(parentAccountAction === "reset" ? "Parent password reset successfully." : "Parent account created and linked successfully.");
   } catch (error) {
-    console.error("Refresh error:", error);
-
-    showToast(
-      errorMessage(error, "Refresh failed."),
-      true
-    );
-
+    console.error("Parent account request failed:", error);
+    showToast(errorMessage(error, "Could not complete the parent account action."), true);
   } finally {
     button.disabled = false;
+    button.innerHTML = originalText;
   }
 }
 
-// =========================================================
-// MODAL HELPERS
-// =========================================================
-
-function openModal(id) {
-  byId(id).classList.add("open");
-  document.body.style.overflow = "hidden";
+async function deleteParent(parentId) {
+  const parent = parents.find(item => item.id === parentId);
+  if (!parent) return showToast("Parent record was not found.", true);
+  if (parent.profile_id) {
+    showToast("This parent has a portal account linked. Do not delete the record here; unlink/disable the account safely first.", true);
+    return;
+  }
+  if (!confirm(`Delete parent record for ${parent.full_name}? This will also remove its student links. This cannot be undone.`)) return;
+  try {
+    const { error: linkError } = await supabaseClient.from("parent_students").delete().eq("parent_id", parentId);
+    if (linkError) throw linkError;
+    const { error } = await supabaseClient.from("parents").delete().eq("id", parentId);
+    if (error) throw error;
+    await loadParents();
+    await loadLinks();
+    applyFilters();
+    showToast("Parent record deleted.");
+  } catch (error) {
+    console.error("Delete parent failed:", error);
+    showToast(errorMessage(error, "Could not delete parent."), true);
+  }
 }
 
+function openModal(id) { byId(id).classList.add("show"); document.body.style.overflow = "hidden"; }
 function closeModal(id) {
-  byId(id).classList.remove("open");
-
-  if (!document.querySelector(".modal.open")) {
-    document.body.style.overflow = "";
-  }
+  const modal = byId(id);
+  if (modal) modal.classList.remove("show");
+  if (!document.querySelector(".modal.show")) document.body.style.overflow = "";
+  if (id === "linksModal") { selectedParent = null; }
+  if (id === "parentAccountModal") { accountParentId = null; byId("accountParentEmail").readOnly = false; }
 }
-
-// =========================================================
-// GENERAL HELPERS
-// =========================================================
-
-function byId(id) {
-  return document.getElementById(id);
-}
-
-function cleanOrNull(value) {
-  const result = String(value || "").trim();
-
-  return result ? result : null;
-}
-
-function formatDate(value) {
-  if (!value) return "—";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric"
-  });
-}
-
-function escapeHtml(value) {
-  return String(value ?? "").replace(
-    /[&<>"']/g,
-    character => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    })[character]
-  );
-}
-
+function setTableMessage(message) { byId("parentsTableBody").innerHTML = `<tr><td colspan="7" class="empty"><i class="fa-solid fa-circle-info"></i><br>${escapeHtml(message)}</td></tr>`; }
+function byId(id) { const element = document.getElementById(id); if (!element) throw new Error(`Missing required HTML element: #${id}`); return element; }
+function cleanOrNull(value) { const result = String(value ?? "").trim(); return result || null; }
+function initialsFor(name) { return String(name || "P").trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join("") || "P"; }
+function shortId(value) { return String(value || "").slice(0, 8); }
+function formatDate(value) { if (!value) return "—"; const date = new Date(value); return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); }
+function isActiveRecord(item) { return item?.is_active !== false && item?.status !== "inactive" && item?.status !== "disabled"; }
+function isActiveEnrollment(item) { const status = item?.enrollment_status || item?.status || "active"; return ["active", "enrolled", "completed"].includes(String(status).toLowerCase()); }
+function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+function errorMessage(error, fallback) { return error?.message || error?.error_description || (typeof error === "string" ? error : fallback); }
 function showToast(message, isError = false) {
   const toast = byId("toast");
-
   toast.textContent = message;
-
-  toast.classList.toggle("error", isError);
-  toast.classList.add("show");
-
-  clearTimeout(showToast.timer);
-
-  showToast.timer = setTimeout(() => {
-    toast.classList.remove("show");
-  }, 5000);
-}
-
-function errorMessage(error, fallback) {
-  const message =
-    error?.message ||
-    error?.details ||
-    error?.hint;
-
-  if (!message) return fallback;
-
-  if (/row-level security|permission denied|not allowed/i.test(message)) {
-    return (
-      "Supabase database security (RLS) denied this action. " +
-      "Check the policies for the signed-in Super Admin."
-    );
-  }
-
-  return `${fallback} ${message}`;
+  toast.className = `toast show ${isError ? "error" : "success"}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.className = "toast"; }, 5000);
 }
