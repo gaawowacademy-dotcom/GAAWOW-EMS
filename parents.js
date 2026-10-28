@@ -1,4 +1,4 @@
-/* =========================================================
+l/* =========================================================
    GAAWOW EMS — PARENT MANAGEMENT
    Parent CRUD, student linking, portal account create/reset.
    Keep service-role credentials inside the Supabase Edge Function only.
@@ -109,7 +109,7 @@ async function loadBaseData() {
     supabaseClient.from("students").select("id,institution_id,student_id,full_name,status").order("full_name"),
     supabaseClient.from("courses").select("id,institution_id,name,code,is_active").order("name"),
     supabaseClient.from("classes").select("id,institution_id,course_id,name,code,is_active,status").order("name"),
-    supabaseClient.from("enrollments").select("id,student_id,course_id,class_id,enrollment_status,status")
+    supabaseClient.from("enrollments").select("id,student_id,course_id,class_id,status")
   ]);
   const labels = ["institutions", "students", "courses", "classes", "enrollments"];
   results.forEach((result, index) => { if (result.error) throw new Error(`${labels[index]}: ${result.error.message}`); });
@@ -525,7 +525,7 @@ function initialsFor(name) { return String(name || "P").trim().split(/\s+/).filt
 function shortId(value) { return String(value || "").slice(0, 8); }
 function formatDate(value) { if (!value) return "—"; const date = new Date(value); return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); }
 function isActiveRecord(item) { return item?.is_active !== false && item?.status !== "inactive" && item?.status !== "disabled"; }
-function isActiveEnrollment(item) { const status = item?.enrollment_status || item?.status || "active"; return ["active", "enrolled", "completed"].includes(String(status).toLowerCase()); }
+function isActiveEnrollment(item) { const status = item?.status || "active"; return ["active", "enrolled", "completed"].includes(String(status).toLowerCase()); }
 function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
 function errorMessage(error, fallback) { return error?.message || error?.error_description || (typeof error === "string" ? error : fallback); }
 function showToast(message, isError = false) {
