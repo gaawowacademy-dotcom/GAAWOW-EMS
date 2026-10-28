@@ -109,7 +109,7 @@ async function loadBaseData() {
     supabaseClient.from("students").select("id,institution_id,student_id,full_name,status").order("full_name"),
     supabaseClient.from("courses").select("id,institution_id,name,code,is_active").order("name"),
     supabaseClient.from("classes").select("id,institution_id,course_id,name,code,is_active,status").order("name"),
-    supabaseClient.from("enrollments").select("id,institution_id,student_id,course_id,class_id,status")
+    supabaseClient.from("enrollments").select("id,student_id,course_id,class_id,enrollment_status,status")
   ]);
   const labels = ["institutions", "students", "courses", "classes", "enrollments"];
   results.forEach((result, index) => { if (result.error) throw new Error(`${labels[index]}: ${result.error.message}`); });
@@ -154,11 +154,7 @@ function populateInstitutionOptions() {
 function populateCourseOptions() {
   const select = byId("linkCourse");
   const old = select.value;
-  const parentInstitutionId = selectedParent?.institution_id;
-  const availableCourses = courses.filter(item =>
-    isActiveRecord(item) && (!parentInstitutionId || item.institution_id === parentInstitutionId)
-  );
-  select.innerHTML = `<option value="">All courses</option>` + availableCourses.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name || item.code || "Course")}</option>`).join("");
+  select.innerHTML = `<option value="">All courses</option>` + courses.filter(isActiveRecord).map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name || item.course_name || item.code || "Course")}</option>`).join("");
   if ([...select.options].some(option => option.value === old)) select.value = old;
   populateClassOptions();
   populateStudentOptions();
@@ -168,12 +164,7 @@ function populateClassOptions() {
   const courseId = byId("linkCourse").value;
   const select = byId("linkClass");
   const old = select.value;
-  const parentInstitutionId = selectedParent?.institution_id;
-  const available = classes.filter(item =>
-    isActiveRecord(item) &&
-    (!parentInstitutionId || item.institution_id === parentInstitutionId) &&
-    (!courseId || item.course_id === courseId)
-  );
+  const available = classes.filter(item => isActiveRecord(item) && (!courseId || item.course_id === courseId));
   select.innerHTML = `<option value="">All classes</option>` + available.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name || item.class_name || item.code || "Class")}</option>`).join("");
   if ([...select.options].some(option => option.value === old)) select.value = old;
 }
@@ -183,12 +174,7 @@ function populateStudentOptions() {
   const classId = byId("linkClass").value;
   const parentInstitutionId = selectedParent?.institution_id;
   const linkedStudentIds = new Set(links.filter(item => item.parent_id === selectedParent?.id).map(item => item.student_id));
-  const enrolledStudentIds = new Set(enrollments.filter(item =>
-    isActiveEnrollment(item) &&
-    (!parentInstitutionId || item.institution_id === parentInstitutionId) &&
-    (!courseId || item.course_id === courseId) &&
-    (!classId || item.class_id === classId)
-  ).map(item => item.student_id));
+  const enrolledStudentIds = new Set(enrollments.filter(item => isActiveEnrollment(item) && (!courseId || item.course_id === courseId) && (!classId || item.class_id === classId)).map(item => item.student_id));
   const available = students.filter(student => {
     if (parentInstitutionId && student.institution_id && student.institution_id !== parentInstitutionId) return false;
     if (linkedStudentIds.has(student.id)) return false;
@@ -302,16 +288,7 @@ async function saveParent(event) {
     address: cleanOrNull(byId("parentAddress").value)
   };
   try {
-    if (!payload.institution_id) throw new Error("Select an institution.");
     if (!payload.full_name) throw new Error("Enter the parent's full name.");
-    if (editingParentId) {
-      const existingLinks = links.filter(item => item.parent_id === editingParentId);
-      const linkedStudentIds = new Set(existingLinks.map(item => item.student_id));
-      const linkedStudents = students.filter(item => linkedStudentIds.has(item.id));
-      if (linkedStudents.some(item => item.institution_id !== payload.institution_id)) {
-        throw new Error("This parent has linked students in another institution. Unlink or correct those links before changing the institution.");
-      }
-    }
     if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) throw new Error("Enter a valid email address.");
     let result;
     if (editingParentId) {
@@ -377,7 +354,6 @@ async function linkStudent() {
     const alreadyLinked = links.some(item => item.parent_id === selectedParent.id && item.student_id === studentId);
     if (alreadyLinked) throw new Error("This student is already linked to this parent.");
     const payload = {
-      institution_id: selectedParent.institution_id,
       parent_id: selectedParent.id,
       student_id: studentId,
       relationship: byId("linkRelationship").value || "parent",
@@ -477,9 +453,20 @@ async function submitParentAccount(event) {
         phone: parent.phone
       })
     });
-    const result = await response.json().catch(() => ({}));
+    const responseText = await response.text();
+    let result = {};
+    try { result = responseText ? JSON.parse(responseText) : {}; }
+    catch { result = { error: responseText || "The server returned an unreadable response." }; }
+
     if (!response.ok || result.success !== true) {
-      throw new Error(result.error || `Parent account request failed (HTTP ${response.status}).`);
+      const parts = [result.error || `Parent account request failed (HTTP ${response.status}).`];
+      if (result.code) parts.push(`Code: ${result.code}`);
+      if (result.details) parts.push(`Details: ${result.details}`);
+      if (result.hint) parts.push(`Hint: ${result.hint}`);
+      const err = new Error(parts.join(" | "));
+      err.status = response.status;
+      err.payload = result;
+      throw err;
     }
     closeModal("parentAccountModal");
     byId("parentAccountForm").reset();
@@ -487,7 +474,12 @@ async function submitParentAccount(event) {
     applyFilters();
     showToast(parentAccountAction === "reset" ? "Parent password reset successfully." : "Parent account created and linked successfully.");
   } catch (error) {
-    console.error("Parent account request failed:", error);
+    console.error("Parent account request failed:", {
+      message: error?.message,
+      status: error?.status,
+      payload: error?.payload,
+      error
+    });
     showToast(errorMessage(error, "Could not complete the parent account action."), true);
   } finally {
     button.disabled = false;
@@ -533,7 +525,7 @@ function initialsFor(name) { return String(name || "P").trim().split(/\s+/).filt
 function shortId(value) { return String(value || "").slice(0, 8); }
 function formatDate(value) { if (!value) return "—"; const date = new Date(value); return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); }
 function isActiveRecord(item) { return item?.is_active !== false && item?.status !== "inactive" && item?.status !== "disabled"; }
-function isActiveEnrollment(item) { const status = String(item?.status || "active").toLowerCase(); return ["active", "enrolled", "completed"].includes(status); }
+function isActiveEnrollment(item) { const status = item?.enrollment_status || item?.status || "active"; return ["active", "enrolled", "completed"].includes(String(status).toLowerCase()); }
 function escapeHtml(value) { return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
 function errorMessage(error, fallback) { return error?.message || error?.error_description || (typeof error === "string" ? error : fallback); }
 function showToast(message, isError = false) {
