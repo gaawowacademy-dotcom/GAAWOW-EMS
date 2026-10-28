@@ -1,4 +1,4 @@
-l/* =========================================================
+/* =========================================================
    GAAWOW EMS — PARENT MANAGEMENT
    Parent CRUD, student linking, portal account create/reset.
    Keep service-role credentials inside the Supabase Edge Function only.
@@ -8,7 +8,7 @@ const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 const PARENT_ACCOUNT_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/create-parent-account`;
 
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let supabaseClient = null;
 
 let currentUser = null;
 let currentProfile = null;
@@ -31,8 +31,13 @@ let toastTimer = null;
 window.addEventListener("DOMContentLoaded", init);
 
 async function init() {
-  bindEvents();
   try {
+    if (!window.supabase || typeof window.supabase.createClient !== "function") {
+      setTableMessage("Supabase library did not load. Check your internet connection, then refresh this page.");
+      return;
+    }
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    bindEvents();
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
     if (sessionError) throw sessionError;
     if (!session?.user) {
@@ -54,16 +59,17 @@ async function init() {
       document.querySelector("main")?.classList.add("loading");
       return;
     }
-    await loadBaseData();
-    await loadParents();
-    await loadLinks();
+    await withTimeout(loadBaseData(), 20000, "Loading institutions, students, courses, classes, or enrollments took too long. Check the browser Console and Supabase connection.");
+    await withTimeout(loadParents(), 20000, "Loading parent records took too long. Check Supabase connectivity and permissions.");
+    await withTimeout(loadLinks(), 20000, "Loading parent-student links took too long. Check Supabase connectivity and permissions.");
     fillInstitutionFilter();
     applyFilters();
     updateStats();
   } catch (error) {
     console.error("Parent Management initialization failed:", error);
-    setTableMessage(errorMessage(error, "Could not load Parent Management."));
-    showToast(errorMessage(error, "Could not load Parent Management."), true);
+    const message = errorMessage(error, "Could not load Parent Management.");
+    try { setTableMessage(message); } catch (uiError) { console.error("Could not update Parent Management error message:", uiError); }
+    try { showToast(message, true); } catch (uiError) { console.error("Could not show Parent Management toast:", uiError); }
   }
 }
 
@@ -519,6 +525,13 @@ function closeModal(id) {
   if (id === "parentAccountModal") { accountParentId = null; byId("accountParentEmail").readOnly = false; }
 }
 function setTableMessage(message) { byId("parentsTableBody").innerHTML = `<tr><td colspan="7" class="empty"><i class="fa-solid fa-circle-info"></i><br>${escapeHtml(message)}</td></tr>`; }
+function withTimeout(promise, ms, message) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); })
+  ]).finally(() => clearTimeout(timer));
+}
 function byId(id) { const element = document.getElementById(id); if (!element) throw new Error(`Missing required HTML element: #${id}`); return element; }
 function cleanOrNull(value) { const result = String(value ?? "").trim(); return result || null; }
 function initialsFor(name) { return String(name || "P").trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join("") || "P"; }
