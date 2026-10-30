@@ -378,16 +378,24 @@
       "My Lessons"
     );
 
-    state.exams = await queryOrEmpty(
-      supabase.from("exams").select("id,institution_id,course_id,class_id,title,exam_type,exam_date,max_score,duration_minutes,description,created_by")
-        .eq("institution_id", p.institution_id).eq("created_by", uid).order("exam_date", {ascending:false}),
-      "Exams"
-    );
+    // Load enrolled students before grades so student names can be displayed.
+    await loadStudents();
 
+    // Exams belong to the teacher's assigned classes. Do not filter by created_by:
+    // an administrator may have created an exam for this teacher's class.
+    const assignedClassIds = state.classes.map(c => c.id);
+    state.exams = assignedClassIds.length ? await queryOrEmpty(
+      supabase.from("exams").select("id,institution_id,course_id,class_id,title,exam_type,exam_date,max_score,duration_minutes,description")
+        .eq("institution_id", p.institution_id).in("class_id", assignedClassIds).order("exam_date", {ascending:false}),
+      "Exams"
+    ) : [];
+
+    // Show all grades attached to exams in the teacher's assigned classes.
+    // Do not filter by entered_by, because an administrator may have entered grades.
     const examIds = state.exams.map(e => e.id);
     state.grades = examIds.length ? await queryOrEmpty(
-      supabase.from("grades").select("id,institution_id,exam_id,student_id,score,grade,remarks,entered_by")
-        .eq("institution_id", p.institution_id).eq("entered_by", uid).in("exam_id", examIds),
+      supabase.from("grades").select("id,institution_id,exam_id,student_id,score,grade,remarks")
+        .eq("institution_id", p.institution_id).in("exam_id", examIds),
       "Grades"
     ) : [];
 
@@ -616,9 +624,15 @@
   }
   function renderGrades(filter="") {
     const q = filter.toLowerCase();
-    const list = state.grades.filter(g => [g.exam_id,g.student_id,g.grade,g.score,g.remarks].join(" ").toLowerCase().includes(q));
-    renderTable("gradesTable", ["Exam ID","Student ID","Score","Grade","Remarks"], list.map(g=>tr([
-      safe(g.exam_id || "—"), safe(g.student_id || "—"), safe(g.score ?? "—"), `<span class="pill">${safe(g.grade || "—")}</span>`, safe(g.remarks || "—")
+    const examTitle = id => state.exams.find(e => e.id === id)?.title || id || "—";
+    const studentName = id => {
+      const student = state.students.find(s => s.id === id || s.student_id === id);
+      return student ? (student.full_name || student.student_id || "Arday") : (id || "Arday aan la aqoonsan");
+    };
+    const list = state.grades.filter(g => [examTitle(g.exam_id),studentName(g.student_id),g.grade,g.score,g.remarks].join(" ").toLowerCase().includes(q));
+    renderTable("gradesTable", ["Exam","Student Name","Score","Grade","Remarks"], list.map(g=>tr([
+      safe(examTitle(g.exam_id)), `<strong>${safe(studentName(g.student_id))}</strong>`, safe(g.score ?? "—"),
+      `<span class="pill">${safe(g.grade || "—")}</span>`, safe(g.remarks || "—")
     ])), "Dhibco laguu oggolaaday lama helin.");
   }
 
