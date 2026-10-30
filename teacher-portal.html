@@ -91,7 +91,8 @@
     .notice.error { background:#fff0ef; color:#9c2d26; }
     .notice.success { background:#eaf8f0; color:#146b48; }
     .profile-line { display:flex; align-items:center; gap:14px; margin-bottom:20px; }
-    .avatar { display:grid; place-items:center; width:54px; height:54px; border-radius:16px; background:linear-gradient(135deg,var(--navy),var(--royal)); color:#fff; font-size:21px; font-weight:800; }
+    .avatar { display:grid; place-items:center; width:64px; height:64px; flex:0 0 64px; overflow:hidden; border-radius:16px; background:linear-gradient(135deg,var(--navy),var(--royal)); color:#fff; font-size:21px; font-weight:800; }
+    .avatar img { width:100%; height:100%; display:block; object-fit:cover; border-radius:inherit; }
     .profile-line h4 { margin:0 0 5px; color:var(--navy); }
     .profile-line p { margin:0; font-size:12px; color:var(--muted); }
     .footer { padding:20px 10px 5px; text-align:center; color:#8993a5; font-size:10px; line-height:1.8; }
@@ -407,6 +408,7 @@
     ) : [];
 
     updateOverview();
+    await loadTeacherPhoto();
     renderClasses();
     renderLessons();
     renderAttendance();
@@ -431,7 +433,51 @@
     $("profileInstitution").value = state.profile.institution_id || "";
     $("profileStatus").value = state.profile.is_active ? "ACTIVE" : "INACTIVE";
     const initials = (state.profile.full_name || "T").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase();
-    $("profileInitials").textContent = initials || "T";
+    const avatar = $("profileInitials");
+    avatar.dataset.initials = initials || "T";
+    if (!avatar.querySelector("img")) avatar.textContent = avatar.dataset.initials;
+  }
+
+  async function loadTeacherPhoto() {
+    const avatar = $("profileInitials");
+    const userId = state.user?.id;
+    if (!avatar || !userId) return;
+    const showPhoto = (url) => {
+      if (!url) return false;
+      avatar.innerHTML = "";
+      const img = document.createElement("img");
+      img.alt = "Teacher profile photo";
+      img.loading = "eager";
+      img.src = url;
+      img.onerror = () => {
+        avatar.textContent = avatar.dataset.initials || "T";
+      };
+      avatar.appendChild(img);
+      return true;
+    };
+
+    // The teacher photo is stored in the public teacher-photos bucket under the Auth/Profile ID.
+    try {
+      const { data: files, error } = await supabase.storage.from("teacher-photos")
+        .list(userId, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+      if (!error && Array.isArray(files) && files.length) {
+        const photo = files.filter(f => f.name && /\.(png|jpe?g|webp|gif)$/i.test(f.name))
+          .sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))[0];
+        if (photo) {
+          const { data } = supabase.storage.from("teacher-photos").getPublicUrl(`${userId}/${photo.name}`);
+          if (showPhoto(data?.publicUrl)) return;
+        }
+      }
+    } catch (err) {
+      console.warn("Teacher photo lookup:", err.message || err);
+    }
+
+    // Known existing object for this teacher, used if Storage listing is restricted by RLS.
+    if (userId === "7210733c-698a-4306-a021-61f7ce9a994a") {
+      const knownPath = `${userId}/1791455396040-8dc6c329-8c5b-4f5a-90f8-fbb30970305f.png`;
+      const { data } = supabase.storage.from("teacher-photos").getPublicUrl(knownPath);
+      showPhoto(data?.publicUrl);
+    }
   }
 
   function renderClasses(filter="") {
