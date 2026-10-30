@@ -1,208 +1,100 @@
 <!DOCTYPE html>
 <html lang="so">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0B1E63">
-<meta name="description" content="GAAWOW EMS Parent Portal">
-<title>GAAWOW EMS | Parent Portal</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#0B1E63">
+<meta name="description" content="GAAWOW EMS Parent Portal"><title>GAAWOW EMS | Parent Portal</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--navy:#0B1E63;--blue:#0B4DA2;--gold:#D4AF37;--bg:#F5F7FA;--white:#fff;--text:#1F2937;--muted:#64748B;--border:#E5E7EB;--green:#15803D;--red:#B91C1C}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
-header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;padding:17px 20px;box-shadow:0 4px 18px #0002}.header-inner{max-width:1100px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:14px}.brand{display:flex;align-items:center;gap:12px;min-width:0}.brand img{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:10px;padding:4px}.brand h1{font-size:20px;margin:0}.brand p{margin:5px 0 0;font-size:12px;opacity:.9}
-button{cursor:pointer;font-weight:bold;border-radius:8px;padding:10px 13px}.logout{background:#ffffff16;border:1px solid #ffffff66;color:#fff}.logout:disabled,.refresh:disabled{opacity:.6;cursor:wait}
-main{max-width:1100px;margin:25px auto;padding:0 16px 35px}.welcome{background:linear-gradient(135deg,#fff,#eef4ff);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:20px}.welcome h2{color:var(--navy);margin:0 0 8px;font-size:25px;overflow-wrap:anywhere}.welcome p{margin:0;color:var(--muted);line-height:1.6}
-.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:22px}.stat{background:#fff;border:1px solid var(--border);border-radius:13px;padding:18px;box-shadow:0 3px 12px #00000008}.stat-label{color:var(--muted);font-size:12px;font-weight:bold}.stat-value{font-size:28px;font-weight:800;color:var(--navy);margin-top:9px}.section{margin-top:23px}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}.section-heading h2{color:var(--navy);margin:0;font-size:21px}.refresh{background:#fff;border:1px solid var(--border);color:var(--blue)}
-.card{background:#fff;border:1px solid var(--border);border-radius:13px;padding:17px;margin-bottom:12px;box-shadow:0 3px 12px #00000006}.student-card-head{display:flex;align-items:center;gap:13px}.student-avatar{width:54px;height:54px;border-radius:14px;object-fit:cover;background:#edf3ff;border:1px solid var(--border);flex:0 0 54px}.student-initial{display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));font-size:20px;font-weight:800}.student-name{font-size:17px;color:var(--navy);font-weight:800;overflow-wrap:anywhere}.student-meta{color:var(--muted);font-size:13px;line-height:1.7;margin-top:7px}
-.notification{border-left:5px solid var(--gold)}.notification-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.notification h3{color:var(--navy);font-size:16px;margin:0}.notification-message{line-height:1.7;margin:12px 0;overflow-wrap:anywhere}.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:11px;font-weight:800;white-space:nowrap;text-transform:capitalize}.badge-present{color:#166534;background:#dcfce7}.badge-absent{color:#991b1b;background:#fee2e2}.badge-late{color:#92400e;background:#fef3c7}.badge-excused{color:#1e40af;background:#dbeafe}.badge-default{color:#475569;background:#e2e8f0}.notification-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #F1F5F9;padding-top:11px;margin-top:10px}.date{color:var(--muted);font-size:12px}
-.empty,.loading,.error-box{background:#fff;padding:27px 18px;text-align:center;border:1px solid var(--border);border-radius:12px;color:var(--muted);line-height:1.7}.error-box{color:var(--red);background:#FFF7F7;border-color:#fecaca}footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}[hidden]{display:none!important}
-@media(max-width:650px){header{padding:13px 14px}.header-inner{align-items:center}.brand{gap:9px}.brand h1{font-size:17px}.brand p{font-size:10px;line-height:1.4}.brand img{width:44px;height:44px}.logout{padding:9px 10px;font-size:12px}main{margin:17px auto;padding:0 12px 25px}.welcome{padding:19px}.welcome h2{font-size:22px}.stats{grid-template-columns:1fr;gap:10px}.stat{padding:15px}.stat-value{font-size:25px}.section-heading h2{font-size:18px}.card{padding:14px}.notification-top{align-items:flex-start}}
+header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;padding:17px 20px;box-shadow:0 4px 18px #0002}.header-inner{max-width:1180px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:14px}.brand{display:flex;align-items:center;gap:12px;min-width:0}.brand img{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:10px;padding:4px}.brand h1{font-size:20px;margin:0}.brand p{margin:5px 0 0;font-size:12px;opacity:.9}button{cursor:pointer;font-weight:bold;border-radius:8px;padding:10px 13px}.logout{background:#ffffff16;border:1px solid #ffffff66;color:#fff}.logout:disabled,.refresh:disabled{opacity:.6;cursor:wait}
+main{max-width:1180px;margin:25px auto;padding:0 16px 35px}.welcome{background:linear-gradient(135deg,#fff,#eef4ff);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:20px}.welcome h2{color:var(--navy);margin:0 0 8px;font-size:25px;overflow-wrap:anywhere}.welcome p{margin:0;color:var(--muted);line-height:1.6}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:22px}.stat{background:#fff;border:1px solid var(--border);border-radius:13px;padding:16px;box-shadow:0 3px 12px #00000008}.stat-label{color:var(--muted);font-size:11px;font-weight:bold}.stat-value{font-size:27px;font-weight:800;color:var(--navy);margin-top:8px}.section{margin-top:24px}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}.section-heading h2{color:var(--navy);margin:0;font-size:21px}.refresh{background:#fff;border:1px solid var(--border);color:var(--blue)}
+.card{background:#fff;border:1px solid var(--border);border-radius:13px;padding:16px;margin-bottom:12px;box-shadow:0 3px 12px #00000006}.student-card{border-top:4px solid var(--gold);padding:19px}.student-card-head{display:flex;align-items:center;gap:14px}.student-avatar{width:76px;height:76px;border-radius:16px;object-fit:cover;background:#edf3ff;border:1px solid var(--border);flex:0 0 76px}.student-initial{display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));font-size:25px;font-weight:800}.student-name{font-size:19px;color:var(--navy);font-weight:800;overflow-wrap:anywhere}.student-meta{color:var(--muted);font-size:13px;line-height:1.8;margin-top:9px}.student-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:15px}.info-box{background:#F8FAFC;border:1px solid #E8EDF4;border-radius:10px;padding:12px}.info-box small{display:block;color:var(--muted);font-size:11px;font-weight:bold;margin-bottom:5px}.info-box strong{color:var(--navy);font-size:14px;overflow-wrap:anywhere}.child-section{margin:18px 0 26px}.child-title{display:flex;align-items:center;gap:10px;margin:0 0 12px;color:var(--navy);font-size:19px}.child-title span{background:#E8EEFF;padding:8px;border-radius:9px}.data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.data-card h4{margin:0 0 8px;color:var(--navy);font-size:15px}.data-card p{margin:5px 0;color:#475569;font-size:13px;line-height:1.55;overflow-wrap:anywhere}.data-card .subtle{color:var(--muted);font-size:12px}.list-item{padding:11px 0;border-top:1px solid #EEF2F7}.list-item:first-of-type{border-top:0}.list-item strong{display:block;color:#1E293B;font-size:13px;margin-bottom:4px}.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:11px;font-weight:800;white-space:nowrap;text-transform:capitalize}.badge-present,.badge-paid,.badge-active,.badge-completed{color:#166534;background:#dcfce7}.badge-absent,.badge-unpaid,.badge-dropped{color:#991b1b;background:#fee2e2}.badge-late,.badge-partial,.badge-pending{color:#92400e;background:#fef3c7}.badge-excused,.badge-issued{color:#1e40af;background:#dbeafe}.badge-default{color:#475569;background:#e2e8f0}.empty,.loading,.error-box,.section-error{background:#fff;padding:20px 16px;text-align:center;border:1px solid var(--border);border-radius:12px;color:var(--muted);line-height:1.7}.error-box,.section-error{color:var(--red);background:#FFF7F7;border-color:#fecaca}.section-error{text-align:left;padding:11px;font-size:12px}.institution-head{display:flex;align-items:center;gap:12px}.institution-logo{width:48px;height:48px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:9px;padding:3px}.link{color:var(--blue);text-decoration:none;font-weight:bold}.link:hover{text-decoration:underline}.table-wrap{overflow-x:auto}.mini-table{width:100%;border-collapse:collapse;font-size:12px;min-width:420px}.mini-table th,.mini-table td{text-align:left;padding:9px;border-bottom:1px solid #EEF2F7}.mini-table th{color:var(--navy);background:#F8FAFC}.child-divider{height:1px;background:#DCE3EE;margin:25px 0}footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}[hidden]{display:none!important}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.data-grid{grid-template-columns:1fr}}
+@media(max-width:650px){header{padding:13px 14px}.header-inner{align-items:center}.brand{gap:9px}.brand h1{font-size:17px}.brand p{font-size:10px;line-height:1.4}.brand img{width:44px;height:44px}.logout{padding:9px 10px;font-size:12px}main{margin:17px auto;padding:0 12px 25px}.welcome{padding:19px}.welcome h2{font-size:22px}.stat{padding:13px}.stat-value{font-size:23px}.section-heading h2{font-size:18px}.card{padding:13px}.student-grid{grid-template-columns:1fr}.student-avatar{width:65px;height:65px;flex-basis:65px}}
 @media(max-width:360px){.brand p{display:none}.brand h1{font-size:15px}}
-</style>
-</head>
+</style></head>
 <body>
 <header><div class="header-inner"><div class="brand"><img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy logo"><div><h1>GAAWOW EMS</h1><p>Parent Portal | Ilayska Aqoonta iyo Xirfadda</p></div></div><button id="logoutBtn" class="logout" hidden>Sign Out</button></div></header>
-<main>
-<section class="welcome"><h2 id="welcomeName">Parent Portal</h2><p>Halkan waxaad ka arki kartaa carruurtaada ku xiran GAAWOW Academy iyo diiwaannada xaadirinta.</p></section>
+<main><section class="welcome"><h2 id="welcomeName">Parent Portal</h2><p>Halkan waxaad kala socon kartaa xogta waxbarasho, horumarka, xaadirinta iyo maaliyadda carruurtaada.</p></section>
 <div id="pageMessage" class="loading" role="status" aria-live="polite">Hubinaya gelitaankaaga...</div>
 <div id="portalContent" hidden>
-<section class="stats"><div class="stat"><div class="stat-label">CARRUURTA KU XIRAN</div><div class="stat-value" id="childrenCount">0</div></div><div class="stat"><div class="stat-label">DHAMMAAN OGEYSIISYADA</div><div class="stat-value" id="notificationsCount">0</div></div><div class="stat"><div class="stat-label">OGEYSIISYO CUSUB</div><div class="stat-value" id="unreadCount">0</div></div></section>
-<section class="section"><div class="section-heading"><h2>👨‍👩‍👧‍👦 Carruurtayda</h2></div><div id="childrenList"><div class="loading">Loading students...</div></div></section>
-<section class="section"><div class="section-heading"><h2>🔔 Attendance Notifications</h2><button id="refreshBtn" class="refresh">Refresh ↻</button></div><div id="notificationsList"><div class="loading">Loading attendance...</div></div></section>
-</div></main>
-<footer>GAAWOW Academy · GAAWOW EMS · Parent Portal</footer>
+<section class="stats"><div class="stat"><div class="stat-label">CARRUURTA KU XIRAN</div><div class="stat-value" id="childrenCount">0</div></div><div class="stat"><div class="stat-label">KOORSOOYINKA</div><div class="stat-value" id="coursesCount">0</div></div><div class="stat"><div class="stat-label">IMTIXAANNADA</div><div class="stat-value" id="examsCount">0</div></div><div class="stat"><div class="stat-label">SHAHAADOOYINKA</div><div class="stat-value" id="certificatesCount">0</div></div></section>
+<section class="section"><div class="section-heading"><h2>👨‍👩‍👧‍👦 Carruurtayda iyo xogtooda</h2><button id="refreshBtn" class="refresh">Refresh ↻</button></div><div id="childrenList"><div class="loading">Loading students...</div></div></section>
+</div></main><footer>GAAWOW Academy · GAAWOW EMS · Parent Portal</footer>
 <script>
 "use strict";
-
-// Frontend publishable key only. Never place a service_role/secret key in browser code.
-const PARENT_PORTAL_CONFIG = {
-  supabaseUrl: window.SUPABASE_URL || "https://mytyvqwrxnxpxnxpiicj.supabase.co",
-  supabaseKey: window.SUPABASE_ANON_KEY || window.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145"
-};
-let parentPortalClient = window.supabaseClient || null;
-if (!parentPortalClient && window.supabase && typeof window.supabase.createClient === "function" && PARENT_PORTAL_CONFIG.supabaseKey) {
-  parentPortalClient = window.supabase.createClient(PARENT_PORTAL_CONFIG.supabaseUrl, PARENT_PORTAL_CONFIG.supabaseKey);
-  window.supabaseClient = parentPortalClient;
+const PARENT_PORTAL_CONFIG={supabaseUrl:window.SUPABASE_URL||"https://mytyvqwrxnxpxnxpiicj.supabase.co",supabaseKey:window.SUPABASE_ANON_KEY||window.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145"};
+let parentPortalClient=window.supabaseClient||null;
+if(!parentPortalClient&&window.supabase&&PARENT_PORTAL_CONFIG.supabaseKey){parentPortalClient=window.supabase.createClient(PARENT_PORTAL_CONFIG.supabaseUrl,PARENT_PORTAL_CONFIG.supabaseKey);window.supabaseClient=parentPortalClient;}
+let currentParentProfile=null,currentParentRecord=null,currentParentChildren=[],parentPortalCache={};
+function el(id){return document.getElementById(id)}
+function setMessage(message,type="loading"){const n=el("pageMessage");n.className=type==="error"?"error-box":"loading";n.textContent=message;n.hidden=false}
+function showContent(show){el("portalContent").hidden=!show;el("logoutBtn").hidden=!show}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function fmtDate(v){if(!v)return "—";const d=new Date(v+((/^\d{4}-\d\d-\d\d$/.test(String(v)))?"T00:00:00":""));return isNaN(d)?"—":d.toLocaleDateString()}
+function fmtMoney(v,currency="USD"){const n=Number(v||0);return `${n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(currency)}`}
+function badge(v){const s=String(v||"unknown").toLowerCase();const cls=["present","paid","active","completed"].includes(s)?`badge-${s}`:["absent","unpaid","dropped"].includes(s)?`badge-${s}`:["late","partial","pending"].includes(s)?`badge-${s}`:["excused","issued"].includes(s)?`badge-${s}`:"badge-default";return `<span class="badge ${cls}">${esc(v||"—")}</span>`}
+function initials(name){return String(name||"Arday").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase()||"A"}
+function photoMarkup(url,name){const ini=initials(name);return url?`<img class="student-avatar" src="${esc(url)}" alt="Sawirka ${esc(name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'student-avatar student-initial',textContent:'${esc(ini)}'}))">`:`<div class="student-avatar student-initial">${esc(ini)}</div>`}
+async function query(table,select,apply){let q=parentPortalClient.from(table).select(select);if(apply)q=apply(q);const {data,error}=await q;if(error)throw error;return data||[]}
+async function safeQuery(table,select,apply){try{return {data:await query(table,select,apply),error:null}}catch(error){console.warn(`Parent portal ${table}:`,error);return {data:[],error:error.message||String(error)}}}
+function errorHtml(error){return error?`<div class="section-error">Xogtan hadda lama soo bandhigi karin: ${esc(error)}. Haddii ay tahay cilad oggolaansho, maamulka ha hubiyo RLS policy-ga table-kan.</div>`:""}
+function emptyHtml(text="Weli xog lagama diiwaangelin."){return `<p class="subtle">${esc(text)}</p>`}
+function sectionCard(title,content,extra=""){return `<article class="card data-card"><h4>${title}</h4>${extra}${content}</article>`}
+function listRows(rows,renderer,empty="Weli xog lagama diiwaangelin."){return rows.length?rows.map(renderer).join(""):emptyHtml(empty)}
+async function initialize(){showContent(false);try{if(!parentPortalClient)throw new Error("Supabase lama diyaarsana. Hubi internet-ka iyo publishable key-ga.");const {data:s,error:se}=await parentPortalClient.auth.getSession();if(se)throw se;if(!s?.session?.user?.id){location.replace("index.html");return;}const uid=s.session.user.id;const {data:profile,error:pe}=await parentPortalClient.from("profiles").select("id,full_name,role,is_active,institution_id").eq("id",uid).maybeSingle();if(pe)throw pe;if(!profile)throw new Error("Profile-ka akoonkan laguma helin.");if(profile.role!=="parent"){const dest={super_admin:"dashboard.html",school_admin:"school-dashboard.html",teacher:"teacher-portal.html",student:"student.html"};if(dest[profile.role]){location.replace(dest[profile.role]);return;}throw new Error("Akoonkan looma oggola Parent Portal.");}if(profile.is_active!==true)throw new Error("Akoonka waalidka waa la joojiyey. La xiriir maamulka.");const {data:parent,error:pare}=await parentPortalClient.from("parents").select("id,institution_id,profile_id,full_name,phone,email,address,occupation").eq("profile_id",uid).maybeSingle();if(pare)throw pare;if(!parent)throw new Error("Akoonkaagu ma laha diiwaan waalid oo ku xiran.");currentParentProfile=profile;currentParentRecord=parent;el("welcomeName").textContent="Ku soo dhowow, "+(parent.full_name||profile.full_name||"Waalid");await loadPortal();showContent(true);el("pageMessage").hidden=true;}catch(e){console.error(e);showContent(false);setMessage(e.message||"Gelitaanka Parent Portal-ku wuu fashilmay.","error")}}
+async function loadPortal(){const {data:links,error:linkErr}=await safeQuery("parent_students","student_id,relationship,is_primary,institution_id",q=>q.eq("parent_id",currentParentRecord.id));if(linkErr)throw new Error("Xiriirka waalidka iyo ardayga: "+linkErr);const ids=[...new Set(links.map(x=>x.student_id).filter(Boolean))];if(!ids.length){currentParentChildren=[];el("childrenCount").textContent="0";el("childrenList").innerHTML='<div class="empty">Weli arday kuma xirna akoonkan. Fadlan la xiriir maamulka.</div>';return;}
+const {data:students,error:studentErr}=await safeQuery("students","id,institution_id,student_id,full_name,gender,date_of_birth,phone,email,address,photo_url,admission_date,status,emergency_contact_name,emergency_contact_phone",q=>q.in("id",ids));if(studentErr)throw new Error("Xogta ardayda: "+studentErr);const linkMap=new Map(links.map(x=>[x.student_id,x]));currentParentChildren=students.map(s=>({...s,relationship:linkMap.get(s.id)?.relationship||"Waalid",is_primary:linkMap.get(s.id)?.is_primary===true}));el("childrenCount").textContent=currentParentChildren.length;
+const instIds=[...new Set(currentParentChildren.map(s=>s.institution_id).filter(Boolean))];const [institutions,allEnrollments,allGrades,allAttendance,allProgress,allCerts,allInvoices,allPayments]=await Promise.all([
+ safeQuery("institutions","id,name,code,email,phone,address,city,country,logo_url,website_url",q=>q.in("id",instIds)),
+ safeQuery("enrollments","id,institution_id,student_id,course_id,class_id,enrollment_number,enrollment_date,start_date,end_date,status",q=>q.in("student_id",ids)),
+ safeQuery("grades","id,institution_id,exam_id,student_id,score,grade,remarks,created_at",q=>q.in("student_id",ids)),
+ safeQuery("attendance","id,institution_id,lesson_id,student_id,status,notes,recorded_at",q=>q.in("student_id",ids).order("recorded_at",{ascending:false}).limit(300)),
+ safeQuery("academic_progress","id,institution_id,student_id,course_id,academic_year,total_courses,completed_courses,attendance_percentage,average_score,remarks,created_at",q=>q.in("student_id",ids)),
+ safeQuery("certificates","id,institution_id,student_id,course_id,certificate_no,certificate_id,verify_code,issue_date,expiry_date,status,certificate_url,pdf_url,qr_url,course_name_snapshot,certificate_type,verification_url",q=>q.in("student_id",ids)),
+ safeQuery("invoices","id,institution_id,student_id,invoice_number,description,amount,paid_amount,due_date,status,created_at",q=>q.in("student_id",ids)),
+ safeQuery("payments","id,institution_id,invoice_id,student_id,amount,currency,payment_method,provider,transaction_reference,status,paid_at,payment_reference,receipt_number,created_at",q=>q.in("student_id",ids))
+]);
+const enrollments=allEnrollments.data,courseIds=[...new Set(enrollments.map(x=>x.course_id).filter(Boolean))],classIds=[...new Set(enrollments.map(x=>x.class_id).filter(Boolean))];
+const [courses,classes,subjects]=await Promise.all([
+ courseIds.length?safeQuery("courses","id,institution_id,department_id,name,code,description,duration_months,fee,is_active",q=>q.in("id",courseIds)):Promise.resolve({data:[],error:null}),
+ classIds.length?safeQuery("classes","id,institution_id,course_id,name,code,academic_year,teacher_id,room,start_date,end_date,is_active,status",q=>q.in("id",classIds)):Promise.resolve({data:[],error:null}),
+ courseIds.length?safeQuery("subjects","id,institution_id,course_id,name,code,max_score,is_active",q=>q.in("course_id",courseIds)):Promise.resolve({data:[],error:null})
+]);
+const departmentIds=[...new Set(courses.data.map(x=>x.department_id).filter(Boolean))],teacherIds=[...new Set([...classes.data.map(x=>x.teacher_id),].filter(Boolean))];
+const [departments,teachers]=await Promise.all([
+ departmentIds.length?safeQuery("departments","id,name,code",q=>q.in("id",departmentIds)):Promise.resolve({data:[],error:null}),
+ teacherIds.length?safeQuery("profiles","id,full_name,phone,email,avatar_url,role,is_active",q=>q.in("id",teacherIds)):Promise.resolve({data:[],error:null})
+]);
+const [lessonsByClass,examsByCourse,examsByClass]=await Promise.all([
+ classIds.length?safeQuery("lessons","id,institution_id,class_id,teacher_id,title,description,lesson_date,start_time,end_time,room",q=>q.in("class_id",classIds).order("lesson_date",{ascending:false}).limit(300)):Promise.resolve({data:[],error:null}),
+ courseIds.length?safeQuery("exams","id,institution_id,course_id,class_id,title,exam_type,exam_date,max_score,duration_minutes,description,subject_id",q=>q.in("course_id",courseIds)):Promise.resolve({data:[],error:null}),
+ classIds.length?safeQuery("exams","id,institution_id,course_id,class_id,title,exam_type,exam_date,max_score,duration_minutes,description,subject_id",q=>q.in("class_id",classIds)):Promise.resolve({data:[],error:null})
+]);
+const examMap=new Map([...examsByCourse.data,...examsByClass.data].map(x=>[x.id,x]));const examIds=[...examMap.keys()];const gradeExamIds=[...new Set(allGrades.data.map(x=>x.exam_id).filter(Boolean))];
+let extraExams=[];const missingExamIds=gradeExamIds.filter(id=>!examMap.has(id));if(missingExamIds.length){const r=await safeQuery("exams","id,institution_id,course_id,class_id,title,exam_type,exam_date,max_score,duration_minutes,description,subject_id",q=>q.in("id",missingExamIds));extraExams=r.data;extraExams.forEach(x=>examMap.set(x.id,x));}
+const subjectIds=[...new Set([...subjects.data.map(x=>x.id),...Array.from(examMap.values()).map(x=>x.subject_id)].filter(Boolean))];let subjectExtra=[];const notLoadedSubjects=subjectIds.filter(id=>!subjects.data.some(x=>x.id===id));if(notLoadedSubjects.length){const r=await safeQuery("subjects","id,institution_id,course_id,name,code,max_score,is_active",q=>q.in("id",notLoadedSubjects));subjectExtra=r.data;}
+const cache={institutions:institutions.data,enrollments,courses:courses.data,classes:classes.data,subjects:[...subjects.data,...subjectExtra],departments:departments.data,teachers:teachers.data,lessons:lessonsByClass.data,exams:[...examMap.values()],grades:allGrades.data,attendance:allAttendance.data,progress:allProgress.data,certificates:allCerts.data,invoices:allInvoices.data,payments:allPayments.data,errors:{institutions:institutions.error,enrollments:allEnrollments.error,courses:courses.error,classes:classes.error,subjects:subjects.error,departments:departments.error,teachers:teachers.error,lessons:lessonsByClass.error,exams:examsByCourse.error||examsByClass.error,grades:allGrades.error,attendance:allAttendance.error,progress:allProgress.error,certificates:allCerts.error,invoices:allInvoices.error,payments:allPayments.error}};parentPortalCache=cache;
+el("coursesCount").textContent=courseIds.length;el("examsCount").textContent=cache.exams.length;el("certificatesCount").textContent=cache.certificates.length;renderChildren(cache);
 }
-let currentParentProfile = null;
-let currentParentRecord = null;
-let currentParentChildren = [];
-
-function parentPortalMessage(message, type = "loading") {
-  const element = document.getElementById("pageMessage");
-  if (!element) return;
-  element.className = type === "error" ? "error-box" : "loading";
-  element.textContent = message;
-  element.hidden = false;
-}
-function parentPortalShowContent(show) {
-  const content = document.getElementById("portalContent");
-  if (content) content.hidden = !show;
-  const logout = document.getElementById("logoutBtn");
-  if (logout) logout.hidden = !show;
-}
-async function parentPortalInitialize() {
-  parentPortalShowContent(false);
-  try {
-    if (!parentPortalClient) throw new Error("Supabase lama diyaarsana. Hubi internet-ka iyo publishable key-ga.");
-    const { data: sessionData, error: sessionError } = await parentPortalClient.auth.getSession();
-    if (sessionError) throw sessionError;
-    const session = sessionData?.session;
-    if (!session?.user?.id) { window.location.replace("index.html"); return; }
-    const userId = session.user.id;
-    const { data: profile, error: profileError } = await parentPortalClient.from("profiles")
-      .select("id, full_name, role, is_active, institution_id").eq("id", userId).maybeSingle();
-    if (profileError) throw profileError;
-    if (!profile) throw new Error("Profile-ka akoonkan laguma helin.");
-    if (profile.role !== "parent") {
-      const destinations = {super_admin:"dashboard.html",school_admin:"school-dashboard.html",teacher:"teacher-portal.html",student:"student.html"};
-      if (destinations[profile.role]) { window.location.replace(destinations[profile.role]); return; }
-      throw new Error("Akoonkan looma oggola Parent Portal.");
-    }
-    if (profile.is_active !== true) throw new Error("Akoonka waalidka waa la joojiyey. La xiriir maamulka GAAWOW Academy.");
-    const { data: parent, error: parentError } = await parentPortalClient.from("parents")
-      .select("id, institution_id, profile_id, full_name, phone, email").eq("profile_id", userId).maybeSingle();
-    if (parentError) throw parentError;
-    if (!parent) throw new Error("Akoonkaagu ma laha diiwaan waalid oo ku xiran. La xiriir maamulka.");
-    currentParentProfile = profile;
-    currentParentRecord = parent;
-    const welcome = document.getElementById("welcomeName");
-    if (welcome) welcome.textContent = "Ku soo dhowow, " + (parent.full_name || profile.full_name || "Waalid");
-    await parentPortalLoadChildren();
-    await parentPortalLoadAttendance();
-    parentPortalShowContent(true);
-    const message = document.getElementById("pageMessage");
-    if (message) message.hidden = true;
-  } catch (error) {
-    console.error("Parent Portal authentication error:", error);
-    parentPortalShowContent(false);
-    parentPortalMessage(error.message || "Gelitaanka Parent Portal-ku wuu fashilmay.", "error");
-  }
-}
-async function parentPortalLoadChildren() {
-  if (!currentParentRecord?.id) throw new Error("Diiwaanka waalidka lama xaqiijin.");
-  const { data: links, error: linksError } = await parentPortalClient.from("parent_students")
-    .select("student_id, relationship, is_primary, institution_id").eq("parent_id", currentParentRecord.id);
-  if (linksError) throw linksError;
-  const studentIds = [...new Set((links || []).map(link => link.student_id).filter(Boolean))];
-  let students = [];
-  if (studentIds.length) {
-    // If photo_url is absent in this database version, retry without that optional field.
-    let result = await parentPortalClient.from("students")
-      .select("id, student_id, full_name, gender, photo_url, status, institution_id").in("id", studentIds);
-    if (result.error && /photo_url|column/i.test(result.error.message || "")) {
-      result = await parentPortalClient.from("students")
-        .select("id, student_id, full_name, gender, status, institution_id").in("id", studentIds);
-    }
-    if (result.error) throw result.error;
-    students = result.data || [];
-  }
-  const linkByStudentId = new Map((links || []).map(link => [link.student_id, link]));
-  currentParentChildren = students.map(student => ({...student,
-    parent_relationship: linkByStudentId.get(student.id)?.relationship || "Waalid",
-    is_primary: linkByStudentId.get(student.id)?.is_primary === true
-  }));
-  const count = document.getElementById("childrenCount");
-  if (count) count.textContent = currentParentChildren.length;
-  const container = document.getElementById("childrenList");
-  if (!container) return;
-  if (!currentParentChildren.length) {
-    container.innerHTML = '<div class="empty">Weli carruur kuma xirna akoonkan. Fadlan la xiriir maamulka GAAWOW Academy.</div>';
-    return;
-  }
-  container.innerHTML = currentParentChildren.map(student => {
-    const name = student.full_name || "Arday";
-    const initials = name.trim().split(/\\s+/).slice(0,2).map(part => part[0] || "").join("").toUpperCase() || "A";
-    const photo = student.photo_url ? `<img class="student-avatar" src="${parentPortalEscape(student.photo_url)}" alt="Sawirka ${parentPortalEscape(name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'student-avatar student-initial',textContent:'${parentPortalEscape(initials)}'}))">` : `<div class="student-avatar student-initial" aria-hidden="true">${parentPortalEscape(initials)}</div>`;
-    return `<article class="card"><div class="student-card-head">${photo}<div class="student-name">${parentPortalEscape(name)}</div></div><div class="student-meta">Student ID: ${parentPortalEscape(student.student_id || "—")}<br>Gender: ${parentPortalEscape(student.gender || "—")}<br>Relationship: ${parentPortalEscape(student.parent_relationship)}<br>Status: ${parentPortalEscape(student.status || "—")}</div></article>`;
-  }).join("");
-}
-async function parentPortalLoadAttendance() {
-  if (!currentParentChildren.length) { parentPortalRenderNotifications([]); return; }
-  const studentIds = currentParentChildren.map(student => student.id);
-  const { data: records, error } = await parentPortalClient.from("attendance")
-    .select("id, student_id, lesson_id, status, notes, recorded_at")
-    .in("student_id", studentIds).order("recorded_at", {ascending:false}).limit(100);
-  if (error) throw error;
-  parentPortalRenderNotifications(records || []);
-}
-function parentPortalRenderNotifications(records) {
-  const container = document.getElementById("notificationsList");
-  if (!container) return;
-  const count = document.getElementById("notificationsCount");
-  const unread = document.getElementById("unreadCount");
-  if (count) count.textContent = records.length;
-  // No is_read/read_at field is assumed. Until a notification table is configured, unread stays zero.
-  if (unread) unread.textContent = "0";
-  if (!records.length) {
-    container.innerHTML = '<div class="empty">Weli ma jiraan diiwaanno attendance ah oo la soo bandhigi karo.</div>';
-    return;
-  }
-  const childrenById = new Map(currentParentChildren.map(student => [student.id, student.full_name || "Arday"]));
-  container.innerHTML = records.map(record => {
-    const status = String(record.status || "unknown");
-    const statusClass = ({present:"badge-present",absent:"badge-absent",late:"badge-late",excused:"badge-excused"})[status.toLowerCase()] || "badge-default";
-    const studentName = childrenById.get(record.student_id) || "Arday";
-    return `<article class="card notification"><div class="notification-top"><h3>${parentPortalEscape(studentName)}</h3><span class="badge ${statusClass}">${parentPortalEscape(status)}</span></div><div class="notification-message">Attendance status: ${parentPortalEscape(status)}${record.notes ? `<br>Faahfaahin: ${parentPortalEscape(record.notes)}` : ""}</div><div class="notification-footer"><span class="date">${parentPortalEscape(parentPortalFormatDate(record.recorded_at))}</span></div></article>`;
-  }).join("");
-}
-function parentPortalEscape(value) {
-  const map = {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"};
-  return String(value ?? "").replace(/[&<>"']/g, character => map[character]);
-}
-function parentPortalFormatDate(value) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
-}
-async function parentPortalRefresh() {
-  const button = document.getElementById("refreshBtn");
-  try {
-    if (button) { button.disabled = true; button.textContent = "Loading..."; }
-    await parentPortalLoadChildren();
-    await parentPortalLoadAttendance();
-    const message = document.getElementById("pageMessage");
-    if (message) message.hidden = true;
-  } catch (error) {
-    parentPortalMessage(error.message || "Cusboonaysiintu way fashilantay.", "error");
-  } finally {
-    if (button) { button.disabled = false; button.textContent = "Refresh ↻"; }
-  }
-}
-async function parentPortalLogout() {
-  try {
-    if (!parentPortalClient) throw new Error("Supabase lama diyaarsana.");
-    const {error} = await parentPortalClient.auth.signOut();
-    if (error) throw error;
-    window.location.replace("index.html");
-  } catch (error) { parentPortalMessage(error.message || "Logout-ku wuu fashilmay.", "error"); }
-}
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("refreshBtn")?.addEventListener("click", parentPortalRefresh);
-  document.getElementById("logoutBtn")?.addEventListener("click", parentPortalLogout);
-  parentPortalInitialize();
-});
-</script>
-</body>
-</html>
+function renderChildren(c){const root=el("childrenList");root.innerHTML=currentParentChildren.map((s,index)=>renderStudent(s,c,index)).join('<div class="child-divider"></div>')}
+function renderStudent(s,c,index){const institution=c.institutions.find(x=>x.id===s.institution_id);const enr=c.enrollments.filter(x=>x.student_id===s.id);const courseIds=[...new Set(enr.map(x=>x.course_id).filter(Boolean))];const classIds=[...new Set(enr.map(x=>x.class_id).filter(Boolean))];const courses=c.courses.filter(x=>courseIds.includes(x.id));const classes=c.classes.filter(x=>classIds.includes(x.id));const subjects=c.subjects.filter(x=>courseIds.includes(x.course_id));const lessons=c.lessons.filter(x=>classIds.includes(x.class_id));const exams=c.exams.filter(x=>courseIds.includes(x.course_id)||classIds.includes(x.class_id));const grades=c.grades.filter(x=>x.student_id===s.id);const attendance=c.attendance.filter(x=>x.student_id===s.id);const progress=c.progress.filter(x=>x.student_id===s.id);const certs=c.certificates.filter(x=>x.student_id===s.id);const invoices=c.invoices.filter(x=>x.student_id===s.id);const payments=c.payments.filter(x=>x.student_id===s.id);const teacherById=new Map(c.teachers.map(x=>[x.id,x]));const deptById=new Map(c.departments.map(x=>[x.id,x]));const subjectById=new Map(c.subjects.map(x=>[x.id,x]));const examById=new Map(c.exams.map(x=>[x.id,x]));
+const studentInfo=`<div class="student-grid"><div class="info-box"><small>STUDENT ID</small><strong>${esc(s.student_id)}</strong></div><div class="info-box"><small>STATUS</small><strong>${badge(s.status)}</strong></div><div class="info-box"><small>GENDER</small><strong>${esc(s.gender||"—")}</strong></div><div class="info-box"><small>DATE OF BIRTH</small><strong>${fmtDate(s.date_of_birth)}</strong></div><div class="info-box"><small>PHONE / EMAIL</small><strong>${esc(s.phone||"—")}<br>${esc(s.email||"—")}</strong></div><div class="info-box"><small>ADDRESS</small><strong>${esc(s.address||"—")}</strong></div><div class="info-box"><small>ADMISSION DATE</small><strong>${fmtDate(s.admission_date)}</strong></div><div class="info-box"><small>PARENT RELATIONSHIP</small><strong>${esc(s.relationship)}</strong></div><div class="info-box"><small>EMERGENCY CONTACT</small><strong>${esc(s.emergency_contact_name||"—")}<br>${esc(s.emergency_contact_phone||"—")}</strong></div></div>`;
+const institutionHtml=institution?`<div class="institution-head">${institution.logo_url?`<img class="institution-logo" src="${esc(institution.logo_url)}" alt="Institution logo">`:''}<div><strong>${esc(institution.name)}</strong><p class="subtle">${esc(institution.code)} · ${esc([institution.city,institution.country].filter(Boolean).join(", "))}</p></div></div><p>☎ ${esc(institution.phone||"—")} · ✉ ${esc(institution.email||"—")}</p><p>${esc(institution.address||"—")}</p>${institution.website_url?`<a class="link" href="${esc(institution.website_url)}" target="_blank" rel="noopener">Website</a>`:''}`:emptyHtml("Xogta machadka lama helin.");
+const courseHtml=listRows(courses,(x)=>{const d=deptById.get(x.department_id);return `<div class="list-item"><strong>${esc(x.name)} (${esc(x.code)})</strong><p>${esc(d?.name||"Department aan la cayimin")} · ${x.duration_months?esc(x.duration_months)+" bilood":"Muddada lama cayimin"}</p><p class="subtle">Fee: ${fmtMoney(x.fee)} · ${badge(x.is_active?"Active":"Inactive")}</p>${x.description?`<p>${esc(x.description)}</p>`:''}</div>`;});
+const classHtml=listRows(classes,x=>{const t=teacherById.get(x.teacher_id);return `<div class="list-item"><strong>${esc(x.name)} (${esc(x.code)})</strong><p>Academic Year: ${esc(x.academic_year||"—")} · Room: ${esc(x.room||"—")}</p><p>Teacher: ${esc(t?.full_name||"Aan la qoon")}</p><p class="subtle">${fmtDate(x.start_date)} – ${fmtDate(x.end_date)} · ${badge(x.status|| (x.is_active?"Active":"Inactive"))}</p></div>`;});
+const subjectHtml=listRows(subjects,x=>`<div class="list-item"><strong>${esc(x.name)} ${x.code?`(${esc(x.code)})`:''}</strong><p>Max Score: ${esc(x.max_score)} · ${badge(x.is_active?"Active":"Inactive")}</p></div>`);
+const lessonHtml=listRows(lessons,x=>{const t=teacherById.get(x.teacher_id);return `<div class="list-item"><strong>${esc(x.title)}</strong><p>${esc(x.description||"")}</p><p>${fmtDate(x.lesson_date)} ${esc(x.start_time||"")} ${x.end_time?"– "+esc(x.end_time):""} · Room: ${esc(x.room||"—")}</p><p class="subtle">Class: ${esc(c.classes.find(cl=>cl.id===x.class_id)?.name||"—")} · Teacher: ${esc(t?.full_name||"Aan la qoon")}</p></div>`;});
+const attendanceHtml=listRows(attendance.slice(0,60),x=>`<div class="list-item"><strong>${fmtDate(x.recorded_at)}</strong><p>${badge(x.status)} ${x.notes?`· ${esc(x.notes)}`:''}</p></div>`,"Attendance record lama hayo.");
+const examHtml=listRows(exams,x=>{const sub=subjectById.get(x.subject_id);const g=grades.filter(gr=>gr.exam_id===x.id);return `<div class="list-item"><strong>${esc(x.title)}</strong><p>${esc(x.exam_type)} · ${fmtDate(x.exam_date)} · Max score: ${esc(x.max_score)}</p><p>Subject: ${esc(sub?.name||"—")}</p>${g.length?g.map(gr=>`<p><b>Result:</b> ${esc(gr.score)} / ${esc(x.max_score)} ${gr.grade?`· Grade ${esc(gr.grade)}`:''} ${gr.remarks?`· ${esc(gr.remarks)}`:''}</p>`).join(""): '<p class="subtle">Natiijo weli lama gelin.</p>'}</div>`;});
+const gradesHtml=listRows(grades,x=>{const ex=examById.get(x.exam_id);return `<div class="list-item"><strong>${esc(ex?.title||"Exam")}</strong><p>Score: ${esc(x.score)} ${ex?.max_score?"/ "+esc(ex.max_score):""} · Grade: ${esc(x.grade||"—")}</p><p>${esc(x.remarks||"")}</p><p class="subtle">${fmtDate(x.created_at)}</p></div>`;},"Weli grades lama diiwaangelin.");
+const progressHtml=listRows(progress,x=>`<div class="list-item"><strong>${esc(x.academic_year||"Academic Progress")}</strong><p>Courses: ${esc(x.completed_courses)} / ${esc(x.total_courses)} completed</p><p>Attendance: ${esc(x.attendance_percentage)}% · Average Score: ${esc(x.average_score)}%</p><p>${esc(x.remarks||"")}</p></div>`,"Academic progress lama diiwaangelin.");
+const certHtml=listRows(certs,x=>`<div class="list-item"><strong>${esc(x.certificate_no||x.certificate_id)}</strong><p>${esc(x.course_name_snapshot||"Certificate")} · ${esc(x.certificate_type||"")}</p><p>Issued: ${fmtDate(x.issue_date)} · Expiry: ${fmtDate(x.expiry_date)} · ${badge(x.status)}</p>${x.verification_url?`<a class="link" href="${esc(x.verification_url)}" target="_blank" rel="noopener">Verify Certificate</a>`:x.certificate_url?`<a class="link" href="${esc(x.certificate_url)}" target="_blank" rel="noopener">View Certificate</a>`:x.pdf_url?`<a class="link" href="${esc(x.pdf_url)}" target="_blank" rel="noopener">Download PDF</a>`:''}</div>`,"Weli shahaado lama bixin.");
+const invoiceHtml=listRows(invoices,x=>{const bal=Math.max(0,Number(x.amount||0)-Number(x.paid_amount||0));return `<div class="list-item"><strong>${esc(x.invoice_number)}</strong><p>${esc(x.description||"Invoice")}</p><p>Amount: ${fmtMoney(x.amount)} · Paid: ${fmtMoney(x.paid_amount)} · Balance: <b>${fmtMoney(bal)}</b></p><p>Due: ${fmtDate(x.due_date)} · ${badge(x.status)}</p></div>`;},"Invoice lama diiwaangelin.");
+const paymentHtml=listRows(payments,x=>`<div class="list-item"><strong>${esc(x.receipt_number||x.payment_reference||"Payment")}</strong><p>${fmtMoney(x.amount,x.currency||"USD")} · ${esc(x.payment_method||x.provider||"Payment")}</p><p>Reference: ${esc(x.transaction_reference||x.payment_reference||"—")}</p><p>${fmtDate(x.paid_at||x.created_at)} · ${badge(x.status)}</p></div>`,"Payment lama diiwaangelin.");
+const errs=c.errors;return `<section class="child-section"><h3 class="child-title"><span>🎓</span> Ardayga ${index+1}: ${esc(s.full_name)}</h3><article class="card student-card"><div class="student-card-head">${photoMarkup(s.photo_url,s.full_name)}<div><div class="student-name">${esc(s.full_name)}</div><div class="student-meta">Student ID: ${esc(s.student_id)}<br>Machad: ${esc(institution?.name||"—")}</div></div></div>${studentInfo}</article><div class="data-grid">${sectionCard("🏫 Institution",institutionHtml,errorHtml(errs.institutions))}${sectionCard("🎓 Courses & Departments",courseHtml,errorHtml(errs.enrollments||errs.courses||errs.departments))}${sectionCard("🏛️ Classes",classHtml,errorHtml(errs.classes))}${sectionCard("📘 Subjects",subjectHtml,errorHtml(errs.subjects))}${sectionCard("👨‍🏫 Lessons & Teachers",lessonHtml,errorHtml(errs.lessons||errs.teachers))}${sectionCard("📅 Attendance",attendanceHtml,errorHtml(errs.attendance))}${sectionCard("📝 Exams",examHtml,errorHtml(errs.exams))}${sectionCard("📊 Grades & Results",gradesHtml,errorHtml(errs.grades))}${sectionCard("📈 Academic Progress",progressHtml,errorHtml(errs.progress))}${sectionCard("🏅 Certificates",certHtml,errorHtml(errs.certificates))}${sectionCard("🧾 Invoices",invoiceHtml,errorHtml(errs.invoices))}${sectionCard("💳 Payments",paymentHtml,errorHtml(errs.payments))}</div></section>`}
+async function refresh(){const b=el("refreshBtn");try{b.disabled=true;b.textContent="Loading...";await loadPortal();el("pageMessage").hidden=true;}catch(e){console.error(e);setMessage(e.message||"Cusboonaysiintu way fashilantay.","error")}finally{b.disabled=false;b.textContent="Refresh ↻"}}
+async function logout(){try{const {error}=await parentPortalClient.auth.signOut();if(error)throw error;location.replace("index.html")}catch(e){setMessage(e.message||"Logout-ku wuu fashilmay.","error")}}
+document.addEventListener("DOMContentLoaded",()=>{el("refreshBtn").addEventListener("click",refresh);el("logoutBtn").addEventListener("click",logout);initialize()});
+</script></body></html>
