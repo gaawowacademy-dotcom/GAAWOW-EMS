@@ -1,391 +1,208 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="so">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0B1E63">
-
+<meta name="description" content="GAAWOW EMS Parent Portal">
 <title>GAAWOW EMS | Parent Portal</title>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-:root {
-  --navy:#0B1E63;
-  --blue:#0B4DA2;
-  --gold:#D4AF37;
-  --bg:#F5F7FA;
-  --white:#FFFFFF;
-  --text:#1F2937;
-  --muted:#64748B;
-  --border:#E5E7EB;
-  --green:#15803D;
-  --red:#B91C1C;
-}
-
-* { box-sizing:border-box; }
-
-body {
-  margin:0;
-  font-family:Arial,Helvetica,sans-serif;
-  background:var(--bg);
-  color:var(--text);
-}
-
-header {
-  background:linear-gradient(135deg,var(--navy),var(--blue));
-  color:white;
-  padding:17px 20px;
-  box-shadow:0 4px 18px #0002;
-}
-
-.header-inner {
-  max-width:1100px;
-  margin:auto;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:14px;
-}
-
-.brand {
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-
-.brand img {
-  width:52px;
-  height:52px;
-  object-fit:contain;
-  background:white;
-  border-radius:10px;
-  padding:4px;
-}
-
-.brand h1 {
-  font-size:20px;
-  margin:0;
-}
-
-.brand p {
-  margin:5px 0 0;
-  font-size:12px;
-  opacity:.9;
-}
-
-button {
-  cursor:pointer;
-  font-weight:bold;
-  border-radius:8px;
-  padding:10px 13px;
-}
-
-.logout {
-  background:#ffffff16;
-  border:1px solid #ffffff66;
-  color:white;
-}
-
-main {
-  max-width:1100px;
-  margin:25px auto;
-  padding:0 16px 35px;
-}
-
-.welcome {
-  background:linear-gradient(135deg,#fff,#eef4ff);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:22px;
-  margin-bottom:20px;
-}
-
-.welcome h2 {
-  color:var(--navy);
-  margin:0 0 8px;
-  font-size:25px;
-}
-
-.welcome p {
-  margin:0;
-  color:var(--muted);
-  line-height:1.6;
-}
-
-.stats {
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:14px;
-  margin-bottom:22px;
-}
-
-.stat {
-  background:white;
-  border:1px solid var(--border);
-  border-radius:13px;
-  padding:18px;
-  box-shadow:0 3px 12px #00000008;
-}
-
-.stat-label {
-  color:var(--muted);
-  font-size:12px;
-  font-weight:bold;
-}
-
-.stat-value {
-  font-size:28px;
-  font-weight:800;
-  color:var(--navy);
-  margin-top:9px;
-}
-
-.section {
-  margin-top:23px;
-}
-
-.section-heading {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:13px;
-}
-
-.section-heading h2 {
-  color:var(--navy);
-  margin:0;
-  font-size:21px;
-}
-
-.refresh {
-  background:white;
-  border:1px solid var(--border);
-  color:var(--blue);
-}
-
-.card {
-  background:white;
-  border:1px solid var(--border);
-  border-radius:13px;
-  padding:17px;
-  margin-bottom:12px;
-  box-shadow:0 3px 12px #00000006;
-}
-
-.student-name {
-  font-size:17px;
-  color:var(--navy);
-  font-weight:800;
-}
-
-.student-meta {
-  color:var(--muted);
-  font-size:13px;
-  line-height:1.7;
-  margin-top:7px;
-}
-
-.notification {
-  border-left:5px solid var(--red);
-}
-
-.notification.read {
-  border-left-color:#94A3B8;
-}
-
-.notification-top {
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:10px;
-}
-
-.notification h3 {
-  color:var(--navy);
-  font-size:16px;
-  margin:0;
-}
-
-.notification-message {
-  line-height:1.7;
-  margin:12px 0;
-  overflow-wrap:anywhere;
-}
-
-.badge {
-  display:inline-block;
-  padding:5px 9px;
-  border-radius:20px;
-  font-size:11px;
-  font-weight:800;
-  white-space:nowrap;
-}
-
-.badge-new {
-  color:#991B1B;
-  background:#FEE2E2;
-}
-
-.badge-read {
-  color:#475569;
-  background:#E2E8F0;
-}
-
-.notification-footer {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-  border-top:1px solid #F1F5F9;
-  padding-top:11px;
-  margin-top:10px;
-}
-
-.date {
-  color:var(--muted);
-  font-size:12px;
-}
-
-.read-btn {
-  border:1px solid var(--blue);
-  background:white;
-  color:var(--blue);
-  font-size:12px;
-}
-
-.empty,.loading,.error-box {
-  background:white;
-  padding:27px 18px;
-  text-align:center;
-  border:1px solid var(--border);
-  border-radius:12px;
-  color:var(--muted);
-  line-height:1.7;
-}
-
-.error-box {
-  color:var(--red);
-  background:#FFF7F7;
-}
-
-footer {
-  text-align:center;
-  color:var(--muted);
-  font-size:12px;
-  padding:20px;
-}
-
-[hidden] { display:none !important; }
-
-@media(max-width:650px) {
-  .header-inner {
-    align-items:flex-start;
-  }
-
-  .brand h1 { font-size:17px; }
-
-  .brand img {
-    width:44px;
-    height:44px;
-  }
-
-  .stats {
-    grid-template-columns:1fr;
-  }
-
-  .welcome h2 { font-size:22px; }
-
-  .notification-top {
-    align-items:flex-start;
-  }
-}
+:root{--navy:#0B1E63;--blue:#0B4DA2;--gold:#D4AF37;--bg:#F5F7FA;--white:#fff;--text:#1F2937;--muted:#64748B;--border:#E5E7EB;--green:#15803D;--red:#B91C1C}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;padding:17px 20px;box-shadow:0 4px 18px #0002}.header-inner{max-width:1100px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:14px}.brand{display:flex;align-items:center;gap:12px;min-width:0}.brand img{width:52px;height:52px;object-fit:contain;background:#fff;border-radius:10px;padding:4px}.brand h1{font-size:20px;margin:0}.brand p{margin:5px 0 0;font-size:12px;opacity:.9}
+button{cursor:pointer;font-weight:bold;border-radius:8px;padding:10px 13px}.logout{background:#ffffff16;border:1px solid #ffffff66;color:#fff}.logout:disabled,.refresh:disabled{opacity:.6;cursor:wait}
+main{max-width:1100px;margin:25px auto;padding:0 16px 35px}.welcome{background:linear-gradient(135deg,#fff,#eef4ff);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:20px}.welcome h2{color:var(--navy);margin:0 0 8px;font-size:25px;overflow-wrap:anywhere}.welcome p{margin:0;color:var(--muted);line-height:1.6}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:22px}.stat{background:#fff;border:1px solid var(--border);border-radius:13px;padding:18px;box-shadow:0 3px 12px #00000008}.stat-label{color:var(--muted);font-size:12px;font-weight:bold}.stat-value{font-size:28px;font-weight:800;color:var(--navy);margin-top:9px}.section{margin-top:23px}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}.section-heading h2{color:var(--navy);margin:0;font-size:21px}.refresh{background:#fff;border:1px solid var(--border);color:var(--blue)}
+.card{background:#fff;border:1px solid var(--border);border-radius:13px;padding:17px;margin-bottom:12px;box-shadow:0 3px 12px #00000006}.student-card-head{display:flex;align-items:center;gap:13px}.student-avatar{width:54px;height:54px;border-radius:14px;object-fit:cover;background:#edf3ff;border:1px solid var(--border);flex:0 0 54px}.student-initial{display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));font-size:20px;font-weight:800}.student-name{font-size:17px;color:var(--navy);font-weight:800;overflow-wrap:anywhere}.student-meta{color:var(--muted);font-size:13px;line-height:1.7;margin-top:7px}
+.notification{border-left:5px solid var(--gold)}.notification-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.notification h3{color:var(--navy);font-size:16px;margin:0}.notification-message{line-height:1.7;margin:12px 0;overflow-wrap:anywhere}.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:11px;font-weight:800;white-space:nowrap;text-transform:capitalize}.badge-present{color:#166534;background:#dcfce7}.badge-absent{color:#991b1b;background:#fee2e2}.badge-late{color:#92400e;background:#fef3c7}.badge-excused{color:#1e40af;background:#dbeafe}.badge-default{color:#475569;background:#e2e8f0}.notification-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid #F1F5F9;padding-top:11px;margin-top:10px}.date{color:var(--muted);font-size:12px}
+.empty,.loading,.error-box{background:#fff;padding:27px 18px;text-align:center;border:1px solid var(--border);border-radius:12px;color:var(--muted);line-height:1.7}.error-box{color:var(--red);background:#FFF7F7;border-color:#fecaca}footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}[hidden]{display:none!important}
+@media(max-width:650px){header{padding:13px 14px}.header-inner{align-items:center}.brand{gap:9px}.brand h1{font-size:17px}.brand p{font-size:10px;line-height:1.4}.brand img{width:44px;height:44px}.logout{padding:9px 10px;font-size:12px}main{margin:17px auto;padding:0 12px 25px}.welcome{padding:19px}.welcome h2{font-size:22px}.stats{grid-template-columns:1fr;gap:10px}.stat{padding:15px}.stat-value{font-size:25px}.section-heading h2{font-size:18px}.card{padding:14px}.notification-top{align-items:flex-start}}
+@media(max-width:360px){.brand p{display:none}.brand h1{font-size:15px}}
 </style>
 </head>
-
 <body>
-
-<header>
-  <div class="header-inner">
-    <div class="brand">
-      <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-           alt="GAAWOW Academy logo">
-      <div>
-        <h1>GAAWOW EMS</h1>
-        <p>Parent Portal | Ilayska Aqoonta iyo Xirfadda</p>
-      </div>
-    </div>
-
-    <button id="logoutBtn" class="logout" hidden>
-      Sign Out
-    </button>
-  </div>
-</header>
-
+<header><div class="header-inner"><div class="brand"><img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy logo"><div><h1>GAAWOW EMS</h1><p>Parent Portal | Ilayska Aqoonta iyo Xirfadda</p></div></div><button id="logoutBtn" class="logout" hidden>Sign Out</button></div></header>
 <main>
+<section class="welcome"><h2 id="welcomeName">Parent Portal</h2><p>Halkan waxaad ka arki kartaa carruurtaada ku xiran GAAWOW Academy iyo diiwaannada xaadirinta.</p></section>
+<div id="pageMessage" class="loading" role="status" aria-live="polite">Hubinaya gelitaankaaga...</div>
+<div id="portalContent" hidden>
+<section class="stats"><div class="stat"><div class="stat-label">CARRUURTA KU XIRAN</div><div class="stat-value" id="childrenCount">0</div></div><div class="stat"><div class="stat-label">DHAMMAAN OGEYSIISYADA</div><div class="stat-value" id="notificationsCount">0</div></div><div class="stat"><div class="stat-label">OGEYSIISYO CUSUB</div><div class="stat-value" id="unreadCount">0</div></div></section>
+<section class="section"><div class="section-heading"><h2>👨‍👩‍👧‍👦 Carruurtayda</h2></div><div id="childrenList"><div class="loading">Loading students...</div></div></section>
+<section class="section"><div class="section-heading"><h2>🔔 Attendance Notifications</h2><button id="refreshBtn" class="refresh">Refresh ↻</button></div><div id="notificationsList"><div class="loading">Loading attendance...</div></div></section>
+</div></main>
+<footer>GAAWOW Academy · GAAWOW EMS · Parent Portal</footer>
+<script>
+"use strict";
 
-  <section class="welcome">
-    <h2 id="welcomeName">Parent Portal</h2>
-    <p>
-      Halkan waxaad ka arki kartaa carruurtaada ku xiran
-      GAAWOW Academy iyo ogeysiisyada maqnaanshaha.
-    </p>
-  </section>
+// Frontend publishable key only. Never place a service_role/secret key in browser code.
+const PARENT_PORTAL_CONFIG = {
+  supabaseUrl: window.SUPABASE_URL || "https://mytyvqwrxnxpxnxpiicj.supabase.co",
+  supabaseKey: window.SUPABASE_ANON_KEY || window.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145"
+};
+let parentPortalClient = window.supabaseClient || null;
+if (!parentPortalClient && window.supabase && typeof window.supabase.createClient === "function" && PARENT_PORTAL_CONFIG.supabaseKey) {
+  parentPortalClient = window.supabase.createClient(PARENT_PORTAL_CONFIG.supabaseUrl, PARENT_PORTAL_CONFIG.supabaseKey);
+  window.supabaseClient = parentPortalClient;
+}
+let currentParentProfile = null;
+let currentParentRecord = null;
+let currentParentChildren = [];
 
-  <div id="pageMessage" class="loading" role="status">
-    Hubinaya gelitaankaaga...
-  </div>
-
-  <div id="portalContent" hidden>
-
-    <section class="stats">
-      <div class="stat">
-        <div class="stat-label">CARRUURTA KU XIRAN</div>
-        <div class="stat-value" id="childrenCount">0</div>
-      </div>
-
-      <div class="stat">
-        <div class="stat-label">DHAMMAAN OGEYSIISYADA</div>
-        <div class="stat-value" id="notificationsCount">0</div>
-      </div>
-
-      <div class="stat">
-        <div class="stat-label">OGEYSIISYO CUSUB</div>
-        <div class="stat-value" id="unreadCount">0</div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-heading">
-        <h2>👨‍👩‍👧‍👦 Carruurtayda</h2>
-      </div>
-      <div id="childrenList">
-        <div class="loading">Loading students...</div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-heading">
-        <h2>🔔 Attendance Notifications</h2>
-        <button id="refreshBtn" class="refresh">Refresh ↻</button>
-      </div>
-
-      <div id="notificationsList">
-        <div class="loading">Loading notifications...</div>
-      </div>
-    </section>
-
-  </div>
-
-</main>
-
-<footer>
-  GAAWOW Academy · GAAWOW EMS · Parent Portal
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="parent.js"></script>
+function parentPortalMessage(message, type = "loading") {
+  const element = document.getElementById("pageMessage");
+  if (!element) return;
+  element.className = type === "error" ? "error-box" : "loading";
+  element.textContent = message;
+  element.hidden = false;
+}
+function parentPortalShowContent(show) {
+  const content = document.getElementById("portalContent");
+  if (content) content.hidden = !show;
+  const logout = document.getElementById("logoutBtn");
+  if (logout) logout.hidden = !show;
+}
+async function parentPortalInitialize() {
+  parentPortalShowContent(false);
+  try {
+    if (!parentPortalClient) throw new Error("Supabase lama diyaarsana. Hubi internet-ka iyo publishable key-ga.");
+    const { data: sessionData, error: sessionError } = await parentPortalClient.auth.getSession();
+    if (sessionError) throw sessionError;
+    const session = sessionData?.session;
+    if (!session?.user?.id) { window.location.replace("index.html"); return; }
+    const userId = session.user.id;
+    const { data: profile, error: profileError } = await parentPortalClient.from("profiles")
+      .select("id, full_name, role, is_active, institution_id").eq("id", userId).maybeSingle();
+    if (profileError) throw profileError;
+    if (!profile) throw new Error("Profile-ka akoonkan laguma helin.");
+    if (profile.role !== "parent") {
+      const destinations = {super_admin:"dashboard.html",school_admin:"school-dashboard.html",teacher:"teacher-portal.html",student:"student.html"};
+      if (destinations[profile.role]) { window.location.replace(destinations[profile.role]); return; }
+      throw new Error("Akoonkan looma oggola Parent Portal.");
+    }
+    if (profile.is_active !== true) throw new Error("Akoonka waalidka waa la joojiyey. La xiriir maamulka GAAWOW Academy.");
+    const { data: parent, error: parentError } = await parentPortalClient.from("parents")
+      .select("id, institution_id, profile_id, full_name, phone, email").eq("profile_id", userId).maybeSingle();
+    if (parentError) throw parentError;
+    if (!parent) throw new Error("Akoonkaagu ma laha diiwaan waalid oo ku xiran. La xiriir maamulka.");
+    currentParentProfile = profile;
+    currentParentRecord = parent;
+    const welcome = document.getElementById("welcomeName");
+    if (welcome) welcome.textContent = "Ku soo dhowow, " + (parent.full_name || profile.full_name || "Waalid");
+    await parentPortalLoadChildren();
+    await parentPortalLoadAttendance();
+    parentPortalShowContent(true);
+    const message = document.getElementById("pageMessage");
+    if (message) message.hidden = true;
+  } catch (error) {
+    console.error("Parent Portal authentication error:", error);
+    parentPortalShowContent(false);
+    parentPortalMessage(error.message || "Gelitaanka Parent Portal-ku wuu fashilmay.", "error");
+  }
+}
+async function parentPortalLoadChildren() {
+  if (!currentParentRecord?.id) throw new Error("Diiwaanka waalidka lama xaqiijin.");
+  const { data: links, error: linksError } = await parentPortalClient.from("parent_students")
+    .select("student_id, relationship, is_primary, institution_id").eq("parent_id", currentParentRecord.id);
+  if (linksError) throw linksError;
+  const studentIds = [...new Set((links || []).map(link => link.student_id).filter(Boolean))];
+  let students = [];
+  if (studentIds.length) {
+    // If photo_url is absent in this database version, retry without that optional field.
+    let result = await parentPortalClient.from("students")
+      .select("id, student_id, full_name, gender, photo_url, status, institution_id").in("id", studentIds);
+    if (result.error && /photo_url|column/i.test(result.error.message || "")) {
+      result = await parentPortalClient.from("students")
+        .select("id, student_id, full_name, gender, status, institution_id").in("id", studentIds);
+    }
+    if (result.error) throw result.error;
+    students = result.data || [];
+  }
+  const linkByStudentId = new Map((links || []).map(link => [link.student_id, link]));
+  currentParentChildren = students.map(student => ({...student,
+    parent_relationship: linkByStudentId.get(student.id)?.relationship || "Waalid",
+    is_primary: linkByStudentId.get(student.id)?.is_primary === true
+  }));
+  const count = document.getElementById("childrenCount");
+  if (count) count.textContent = currentParentChildren.length;
+  const container = document.getElementById("childrenList");
+  if (!container) return;
+  if (!currentParentChildren.length) {
+    container.innerHTML = '<div class="empty">Weli carruur kuma xirna akoonkan. Fadlan la xiriir maamulka GAAWOW Academy.</div>';
+    return;
+  }
+  container.innerHTML = currentParentChildren.map(student => {
+    const name = student.full_name || "Arday";
+    const initials = name.trim().split(/\\s+/).slice(0,2).map(part => part[0] || "").join("").toUpperCase() || "A";
+    const photo = student.photo_url ? `<img class="student-avatar" src="${parentPortalEscape(student.photo_url)}" alt="Sawirka ${parentPortalEscape(name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'student-avatar student-initial',textContent:'${parentPortalEscape(initials)}'}))">` : `<div class="student-avatar student-initial" aria-hidden="true">${parentPortalEscape(initials)}</div>`;
+    return `<article class="card"><div class="student-card-head">${photo}<div class="student-name">${parentPortalEscape(name)}</div></div><div class="student-meta">Student ID: ${parentPortalEscape(student.student_id || "—")}<br>Gender: ${parentPortalEscape(student.gender || "—")}<br>Relationship: ${parentPortalEscape(student.parent_relationship)}<br>Status: ${parentPortalEscape(student.status || "—")}</div></article>`;
+  }).join("");
+}
+async function parentPortalLoadAttendance() {
+  if (!currentParentChildren.length) { parentPortalRenderNotifications([]); return; }
+  const studentIds = currentParentChildren.map(student => student.id);
+  const { data: records, error } = await parentPortalClient.from("attendance")
+    .select("id, student_id, lesson_id, status, notes, recorded_at")
+    .in("student_id", studentIds).order("recorded_at", {ascending:false}).limit(100);
+  if (error) throw error;
+  parentPortalRenderNotifications(records || []);
+}
+function parentPortalRenderNotifications(records) {
+  const container = document.getElementById("notificationsList");
+  if (!container) return;
+  const count = document.getElementById("notificationsCount");
+  const unread = document.getElementById("unreadCount");
+  if (count) count.textContent = records.length;
+  // No is_read/read_at field is assumed. Until a notification table is configured, unread stays zero.
+  if (unread) unread.textContent = "0";
+  if (!records.length) {
+    container.innerHTML = '<div class="empty">Weli ma jiraan diiwaanno attendance ah oo la soo bandhigi karo.</div>';
+    return;
+  }
+  const childrenById = new Map(currentParentChildren.map(student => [student.id, student.full_name || "Arday"]));
+  container.innerHTML = records.map(record => {
+    const status = String(record.status || "unknown");
+    const statusClass = ({present:"badge-present",absent:"badge-absent",late:"badge-late",excused:"badge-excused"})[status.toLowerCase()] || "badge-default";
+    const studentName = childrenById.get(record.student_id) || "Arday";
+    return `<article class="card notification"><div class="notification-top"><h3>${parentPortalEscape(studentName)}</h3><span class="badge ${statusClass}">${parentPortalEscape(status)}</span></div><div class="notification-message">Attendance status: ${parentPortalEscape(status)}${record.notes ? `<br>Faahfaahin: ${parentPortalEscape(record.notes)}` : ""}</div><div class="notification-footer"><span class="date">${parentPortalEscape(parentPortalFormatDate(record.recorded_at))}</span></div></article>`;
+  }).join("");
+}
+function parentPortalEscape(value) {
+  const map = {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"};
+  return String(value ?? "").replace(/[&<>"']/g, character => map[character]);
+}
+function parentPortalFormatDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
+}
+async function parentPortalRefresh() {
+  const button = document.getElementById("refreshBtn");
+  try {
+    if (button) { button.disabled = true; button.textContent = "Loading..."; }
+    await parentPortalLoadChildren();
+    await parentPortalLoadAttendance();
+    const message = document.getElementById("pageMessage");
+    if (message) message.hidden = true;
+  } catch (error) {
+    parentPortalMessage(error.message || "Cusboonaysiintu way fashilantay.", "error");
+  } finally {
+    if (button) { button.disabled = false; button.textContent = "Refresh ↻"; }
+  }
+}
+async function parentPortalLogout() {
+  try {
+    if (!parentPortalClient) throw new Error("Supabase lama diyaarsana.");
+    const {error} = await parentPortalClient.auth.signOut();
+    if (error) throw error;
+    window.location.replace("index.html");
+  } catch (error) { parentPortalMessage(error.message || "Logout-ku wuu fashilmay.", "error"); }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("refreshBtn")?.addEventListener("click", parentPortalRefresh);
+  document.getElementById("logoutBtn")?.addEventListener("click", parentPortalLogout);
+  parentPortalInitialize();
+});
+</script>
 </body>
 </html>
