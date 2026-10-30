@@ -5,65 +5,719 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <meta name="theme-color" content="#0B1E63">
 <meta name="description" content="Secure GAAWOW EMS student portal for academic information, published results, certificates and payments.">
-<title>GAAWOW EMS | Student Portal V10</title>
+<title>GAAWOW EMS | Student Portal V11</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033}.header{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:15px}.brand{display:flex;align-items:center;gap:12px}.brand img{width:46px;height:46px;background:#fff;border-radius:10px;padding:4px;object-fit:contain}.brand h1{font-size:18px;margin:0}.brand p{font-size:11px;color:#f0c94a;margin:4px 0 0}.portal-tag{font-size:11px;font-weight:800;background:#D4AF37;color:#172033;padding:7px 10px;border-radius:18px}.logout{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;padding:9px 13px;border-radius:9px;cursor:pointer}.wrap{max-width:1200px;margin:auto;padding:18px 14px 45px}.message{display:none;padding:12px 14px;border-radius:10px;margin-bottom:15px;font-size:13px}.message.error{display:block;background:#fee2e2;color:#991b1b}.message.success{display:block;background:#dcfce7;color:#166534}.loading{text-align:center;padding:45px;color:#64748b}.hero,.section,.card{background:#fff;box-shadow:0 5px 18px rgba(0,0,0,.05)}.hero{border-radius:16px;padding:20px;margin-bottom:18px;border-left:4px solid #D4AF37}.student-head{display:flex;gap:15px;align-items:center}.avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;background:#e8eef8;display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:800;color:#0B1E63;overflow:hidden}.hero h2{margin:0;color:#0B1E63}.hero p{margin:5px 0;color:#64748b;font-size:13px}.badge{display:inline-block;padding:6px 10px;border-radius:20px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}.card{border-radius:14px;padding:15px;border-top:4px solid #0B4DA2;min-width:0}.card:nth-child(2){border-top-color:#D4AF37}.card:nth-child(3){border-top-color:#16A34A}.card:nth-child(4){border-top-color:#7C3AED}.card small{display:block;color:#64748b;font-size:11px;text-transform:uppercase}.card strong{display:block;margin-top:6px;font-size:18px;color:#0B1E63;overflow-wrap:anywhere}.section{border-radius:14px;padding:18px;margin-bottom:18px}.section h3{margin:0 0 14px;color:#0B1E63}.info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.item{background:#f8fafc;border-radius:10px;padding:12px;min-width:0}.item b{display:block;color:#64748b;font-size:10px;text-transform:uppercase;margin-bottom:5px}.item span{font-size:13px;overflow-wrap:anywhere}.table-wrap{overflow-x:auto}.table{width:100%;border-collapse:collapse;min-width:650px}.table th,.table td{padding:10px 9px;border-bottom:1px solid #edf0f4;text-align:left;font-size:12px}.table th{background:#f8fafc;color:#475569;font-size:10px;text-transform:uppercase}.empty{text-align:center;padding:20px;color:#94a3b8;font-size:13px}.money{font-weight:700}.status{padding:5px 8px;border-radius:15px;font-size:10px;font-weight:700;background:#eef2ff;color:#3730a3}a{color:#0B4DA2;font-weight:700;text-decoration:none}.grade-pill{padding:5px 9px;border-radius:15px;font-size:10px;font-weight:800;display:inline-block;background:#dcfce7;color:#166534}.grade-a{background:#dcfce7;color:#166534}.grade-b{background:#dbeafe;color:#1d4ed8}.grade-c{background:#fef3c7;color:#92400e}.grade-d{background:#ffedd5;color:#9a3412}.grade-f{background:#fee2e2;color:#991b1b}.grade-na{background:#f1f5f9;color:#475569}.grades-controls{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px}.year-control{display:flex;align-items:center;gap:8px}.year-control label{color:#475569;font-size:12px;font-weight:700}.year-control select{border:1px solid #d7dee9;background:#fff;color:#172033;padding:9px 12px;border-radius:9px;min-width:130px;outline:none;font-size:12px}.grades-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}.summary-card{background:#f8fafc;border-radius:12px;padding:13px;border:1px solid #edf0f4;min-width:0}.summary-card small{display:block;color:#64748b;font-size:10px;text-transform:uppercase;font-weight:700}.summary-card strong{display:block;margin-top:6px;color:#0B1E63;font-size:19px}.grades-note{font-size:11px;color:#64748b;margin:0 0 12px}.no-results{text-align:center;padding:25px 15px;color:#94a3b8;background:#f8fafc;border-radius:10px}@media(max-width:1000px){.grades-summary{grid-template-columns:repeat(3,1fr)}}@media(max-width:600px){.grades-summary{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.grades-controls{align-items:flex-start}.year-control{width:100%;justify-content:space-between}.year-control select{flex:1;max-width:180px}}@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.info{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.grid,.info{grid-template-columns:1fr}.header{padding:12px}.brand h1{font-size:16px}.portal-tag{display:none}}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033}
+.header{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:15px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{width:46px;height:46px;background:#fff;border-radius:10px;padding:4px;object-fit:contain}
+.brand h1{font-size:18px;margin:0}
+.brand p{font-size:11px;color:#f0c94a;margin:4px 0 0}
+.portal-tag{font-size:11px;font-weight:800;background:#D4AF37;color:#172033;padding:7px 10px;border-radius:18px}
+.logout{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;padding:9px 13px;border-radius:9px;cursor:pointer}
+.logout:disabled{opacity:.6;cursor:not-allowed}
+.wrap{max-width:1200px;margin:auto;padding:18px 14px 45px}
+.message{display:none;padding:12px 14px;border-radius:10px;margin-bottom:15px;font-size:13px}
+.message.error{display:block;background:#fee2e2;color:#991b1b}
+.message.success{display:block;background:#dcfce7;color:#166534}
+.message.info{display:block;background:#dbeafe;color:#1e40af}
+.loading{text-align:center;padding:45px;color:#64748b}
+.hero,.section,.card{background:#fff;box-shadow:0 5px 18px rgba(0,0,0,.05)}
+.hero{border-radius:16px;padding:20px;margin-bottom:18px;border-left:4px solid #D4AF37}
+.student-head{display:flex;gap:15px;align-items:center}
+.avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;background:#e8eef8;display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:800;color:#0B1E63;overflow:hidden;flex-shrink:0}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.hero h2{margin:0;color:#0B1E63}
+.hero p{margin:5px 0;color:#64748b;font-size:13px}
+.badge{display:inline-block;padding:6px 10px;border-radius:20px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
+.card{border-radius:14px;padding:15px;border-top:4px solid #0B4DA2;min-width:0}
+.card:nth-child(2){border-top-color:#D4AF37}
+.card:nth-child(3){border-top-color:#16A34A}
+.card:nth-child(4){border-top-color:#7C3AED}
+.card small{display:block;color:#64748b;font-size:11px;text-transform:uppercase}
+.card strong{display:block;margin-top:6px;font-size:18px;color:#0B1E63;overflow-wrap:anywhere}
+.section{border-radius:14px;padding:18px;margin-bottom:18px}
+.section h3{margin:0 0 14px;color:#0B1E63}
+.info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.item{background:#f8fafc;border-radius:10px;padding:12px;min-width:0}
+.item b{display:block;color:#64748b;font-size:10px;text-transform:uppercase;margin-bottom:5px}
+.item span{font-size:13px;overflow-wrap:anywhere}
+.table-wrap{overflow-x:auto}
+.table{width:100%;border-collapse:collapse;min-width:650px}
+.table th,.table td{padding:10px 9px;border-bottom:1px solid #edf0f4;text-align:left;font-size:12px}
+.table th{background:#f8fafc;color:#475569;font-size:10px;text-transform:uppercase}
+.empty{text-align:center;padding:20px;color:#94a3b8;font-size:13px}
+.money{font-weight:700}
+.status{padding:5px 8px;border-radius:15px;font-size:10px;font-weight:700;background:#eef2ff;color:#3730a3}
+a{color:#0B4DA2;font-weight:700;text-decoration:none}
+.grade-pill{padding:5px 9px;border-radius:15px;font-size:10px;font-weight:800;display:inline-block;background:#dcfce7;color:#166534}
+.grade-a{background:#dcfce7;color:#166534}
+.grade-b{background:#dbeafe;color:#1d4ed8}
+.grade-c{background:#fef3c7;color:#92400e}
+.grade-d{background:#ffedd5;color:#9a3412}
+.grade-f{background:#fee2e2;color:#991b1b}
+.grade-na{background:#f1f5f9;color:#475569}
+.grades-controls{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px}
+.year-control{display:flex;align-items:center;gap:8px}
+.year-control label{color:#475569;font-size:12px;font-weight:700}
+.year-control select{border:1px solid #d7dee9;background:#fff;color:#172033;padding:9px 12px;border-radius:9px;min-width:130px;outline:none;font-size:12px}
+.grades-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.summary-card{background:#f8fafc;border-radius:12px;padding:13px;border:1px solid #edf0f4;min-width:0}
+.summary-card small{display:block;color:#64748b;font-size:10px;text-transform:uppercase;font-weight:700}
+.summary-card strong{display:block;margin-top:6px;color:#0B1E63;font-size:19px}
+.grades-note{font-size:11px;color:#64748b;margin:0 0 12px}
+.no-results{text-align:center;padding:25px 15px;color:#94a3b8;background:#f8fafc;border-radius:10px}
+.record-card{border:1px solid #edf0f4;border-radius:11px;padding:13px;margin-bottom:10px;background:#fff}
+.record-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}
+.record-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.record-grid small{display:block;color:#64748b;font-size:10px;text-transform:uppercase;margin-bottom:4px}
+.record-grid b{font-size:12px;overflow-wrap:anywhere}
+.record-link{display:inline-block;margin-top:12px;font-size:12px}
+@media(max-width:1000px){.grades-summary{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}.info{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.grades-summary{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){
+.grades-controls{align-items:flex-start}
+.year-control{width:100%;justify-content:space-between}
+.year-control select{flex:1;max-width:180px}
+.grid,.info{grid-template-columns:1fr}
+.header{padding:12px}
+.brand h1{font-size:16px}
+.portal-tag{display:none}
+.record-grid{grid-template-columns:repeat(2,1fr)}
+}
 </style>
 </head>
+
 <body>
-<header class="header"><div class="brand"><img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy"><div><h1>GAAWOW EMS</h1><p>Student Education Management Portal</p></div></div><span class="portal-tag">STUDENT PORTAL V10</span><button class="logout" id="logoutBtn">Logout</button></header>
-<main class="wrap"><div id="message" class="message"></div><div id="loading" class="loading">Loading student portal...</div><div id="portal" style="display:none">
-<section class="hero"><div class="student-head"><div id="photo" class="avatar">G</div><div><h2 id="studentName">—</h2><p id="studentId">Student ID: —</p><span class="badge" id="studentStatus">—</span></div></div></section>
-<section class="grid"><div class="card"><small>Student ID</small><strong id="topStudentId">—</strong></div><div class="card"><small>Course</small><strong id="courseName">—</strong></div><div class="card"><small>Class</small><strong id="className">—</strong></div><div class="card"><small>Department</small><strong id="departmentName">—</strong></div></section>
-<section class="section"><h3>🎓 Academic Information</h3><div class="info" id="academicInfo"></div></section>
-<section class="section"><h3>📊 Academic Progress</h3><div class="table-wrap"><table class="table"><thead><tr><th>Academic Year</th><th>Total Courses</th><th>Completed</th><th>Attendance</th><th>Average</th><th>Remarks</th></tr></thead><tbody id="progressBody"></tbody></table></div></section>
-<section class="section"><h3>📚 Grades</h3><div class="grades-controls"><p class="grades-note">Published examination results only. Overall percentage is calculated from total marks where available.</p><div class="year-control"><label for="gradeYear">Academic Year:</label><select id="gradeYear"><option value="ALL">All Years</option></select></div></div><div class="grades-summary"><div class="summary-card"><small>Total Subjects</small><strong id="gradeTotalSubjects">0</strong></div><div class="summary-card"><small>Average Score</small><strong id="gradeAverage">0%</strong></div><div class="summary-card"><small>Highest Score</small><strong id="gradeHighest">0%</strong></div><div class="summary-card"><small>Lowest Score</small><strong id="gradeLowest">0%</strong></div><div class="summary-card"><small>Overall Grade</small><strong id="gradeOverall">—</strong></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Academic Year</th><th>Subject</th><th>Code</th><th>Score</th><th>%</th><th>Grade</th><th>Remarks</th><th>Exam Date</th></tr></thead><tbody id="gradesBody"></tbody></table></div></section>
-<section class="section"><h3>🎓 Certificates</h3><div class="table-wrap"><table class="table"><thead><tr><th>Certificate No.</th><th>Course</th><th>Issue Date</th><th>Expiry</th><th>Status</th><th>Open</th></tr></thead><tbody id="certificatesBody"></tbody></table></div></section>
-<section class="section"><h3>💳 Payments</h3><div class="table-wrap"><table class="table"><thead><tr><th>Amount</th><th>Currency</th><th>Method</th><th>Reference</th><th>Status</th><th>Paid At</th></tr></thead><tbody id="paymentsBody"></tbody></table></div></section>
-<section class="section"><h3>👤 Profile</h3><div class="info" id="profileInfo"></div></section>
-</div></main>
+<header class="header">
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <p>Student Education Management Portal</p>
+    </div>
+  </div>
+  <span class="portal-tag">STUDENT PORTAL V11</span>
+  <button class="logout" id="logoutBtn">Logout</button>
+</header>
+
+<main class="wrap">
+  <div id="message" class="message"></div>
+  <div id="loading" class="loading">Loading student portal...</div>
+
+  <div id="portal" style="display:none">
+
+    <section class="hero">
+      <div class="student-head">
+        <div id="photo" class="avatar">G</div>
+        <div>
+          <h2 id="studentName">—</h2>
+          <p id="studentId">Student ID: —</p>
+          <span class="badge" id="studentStatus">—</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card"><small>Student ID</small><strong id="topStudentId">—</strong></div>
+      <div class="card"><small>Course</small><strong id="courseName">—</strong></div>
+      <div class="card"><small>Class</small><strong id="className">—</strong></div>
+      <div class="card"><small>Department</small><strong id="departmentName">—</strong></div>
+    </section>
+
+    <section class="section">
+      <h3>🎓 Academic Information</h3>
+      <div class="info" id="academicInfo"></div>
+    </section>
+
+    <section class="section">
+      <h3>📊 Academic Progress</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Academic Year</th><th>Total Courses</th><th>Completed</th>
+              <th>Attendance</th><th>Average</th><th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody id="progressBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h3>📚 Grades</h3>
+      <div class="grades-controls">
+        <p class="grades-note">Published examination results only. Overall percentage is calculated from total marks where available.</p>
+        <div class="year-control">
+          <label for="gradeYear">Academic Year:</label>
+          <select id="gradeYear"><option value="ALL">All Years</option></select>
+        </div>
+      </div>
+      <div class="grades-summary">
+        <div class="summary-card"><small>Total Subjects</small><strong id="gradeTotalSubjects">0</strong></div>
+        <div class="summary-card"><small>Average Score</small><strong id="gradeAverage">0%</strong></div>
+        <div class="summary-card"><small>Highest Score</small><strong id="gradeHighest">0%</strong></div>
+        <div class="summary-card"><small>Lowest Score</small><strong id="gradeLowest">0%</strong></div>
+        <div class="summary-card"><small>Overall Grade</small><strong id="gradeOverall">—</strong></div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Academic Year</th><th>Subject</th><th>Code</th><th>Score</th>
+              <th>%</th><th>Grade</th><th>Remarks</th><th>Exam Date</th>
+            </tr>
+          </thead>
+          <tbody id="gradesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h3>🎓 Certificates</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>Certificate No.</th><th>Course</th><th>Issue Date</th><th>Expiry</th><th>Status</th><th>Open</th></tr>
+          </thead>
+          <tbody id="certificatesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h3>💳 Payments</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>Amount</th><th>Currency</th><th>Method</th><th>Reference</th><th>Status</th><th>Paid At</th></tr>
+          </thead>
+          <tbody id="paymentsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h3>👤 Profile</h3>
+      <div class="info" id="profileInfo"></div>
+    </section>
+
+  </div>
+</main>
+
 <script>
 (() => {
 "use strict";
-const SUPABASE_URL="https://mytyvqwrxnxpxnxpiicj.supabase.co";
-const SUPABASE_KEY="sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const $=id=>document.getElementById(id);
-const esc=v=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
-const val=(v,f="—")=>v==null||String(v).trim()===""?f:String(v);
-const date=v=>{if(!v)return"—";const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleDateString();};
-const num=v=>{if(v==null||v==="")return"—";const n=Number(v);return Number.isFinite(n)?n.toLocaleString():String(v);};
-function errText(e){return e?.message||e?.details||e?.hint||"Unknown database error.";}
-function showError(t){$("message").textContent=t;$("message").className="message error";$("message").style.display="block";}
-function clearMsg(){$("message").textContent="";$("message").className="message";$("message").style.display="none";}
-function empty(id,n,t){$(id).innerHTML=`<tr><td colspan="${n}" class="empty">${esc(t)}</td></tr>`;}
-async function rows(table,columns,column,value,order){let q=sb.from(table).select(columns).eq(column,value);if(order)q=q.order(order,{ascending:false});const{data,error}=await q;if(error)throw error;return data||[];}
-async function one(table,columns,id){if(!id)return null;const{data,error}=await sb.from(table).select(columns).eq("id",id).maybeSingle();if(error)throw error;return data||null;}
-function renderStudent(s){$("studentName").textContent=val(s.full_name);$("studentId").textContent=`Student ID: ${val(s.student_id)}`;$("topStudentId").textContent=val(s.student_id);$("studentStatus").textContent=val(s.status);const p=$("photo");if(s.photo_url)p.innerHTML=`<img src="${esc(s.photo_url)}" alt="Student photo" style="width:100%;height:100%;object-fit:cover" onerror="this.remove();this.parentElement.textContent='G'">`;else p.textContent=(s.full_name||"G").trim().charAt(0).toUpperCase()||"G";$("profileInfo").innerHTML=`<div class="item"><b>Full Name</b><span>${esc(val(s.full_name))}</span></div><div class="item"><b>Email</b><span>${esc(val(s.email))}</span></div><div class="item"><b>Phone</b><span>${esc(val(s.phone))}</span></div><div class="item"><b>Gender</b><span>${esc(val(s.gender))}</span></div><div class="item"><b>Date of Birth</b><span>${esc(date(s.date_of_birth))}</span></div><div class="item"><b>Admission Date</b><span>${esc(date(s.admission_date))}</span></div><div class="item"><b>Address</b><span>${esc(val(s.address))}</span></div><div class="item"><b>Account</b><span>${s.account_enabled===true?"Enabled":"Disabled"}</span></div>`;}
-function renderAcademic(e,c,d,cl,i){$("courseName").textContent=val(c?.name);$("className").textContent=val(cl?.name);$("departmentName").textContent=val(d?.name);$("academicInfo").innerHTML=`<div class="item"><b>Institution</b><span>${esc(val(i?.name))}</span></div><div class="item"><b>Course / Program</b><span>${esc(val(c?.name))}</span></div><div class="item"><b>Course Code</b><span>${esc(val(c?.code))}</span></div><div class="item"><b>Department</b><span>${esc(val(d?.name))}</span></div><div class="item"><b>Class</b><span>${esc(val(cl?.name))}</span></div><div class="item"><b>Class Code</b><span>${esc(val(cl?.code))}</span></div><div class="item"><b>Academic Year</b><span>${esc(val(cl?.academic_year))}</span></div><div class="item"><b>Enrollment Number</b><span>${esc(val(e?.enrollment_number))}</span></div><div class="item"><b>Enrollment Date</b><span>${esc(date(e?.enrollment_date))}</span></div><div class="item"><b>Start Date</b><span>${esc(date(e?.start_date))}</span></div><div class="item"><b>End Date</b><span>${esc(date(e?.end_date))}</span></div><div class="item"><b>Enrollment Status</b><span>${esc(val(e?.status))}</span></div><div class="item"><b>Institution Code</b><span>${esc(val(i?.code))}</span></div><div class="item"><b>Course Duration</b><span>${c?.duration_months==null?"—":esc(c.duration_months+" months")}</span></div><div class="item"><b>Course Fee</b><span>${c?.fee==null?"—":esc(num(c.fee))}</span></div>`;}
-function renderProgress(a){if(!a.length)return empty("progressBody",6,"No academic progress records available yet.");$("progressBody").innerHTML=a.map(r=>`<tr><td>${esc(val(r.academic_year))}</td><td>${esc(val(r.total_courses))}</td><td>${esc(val(r.completed_courses))}</td><td>${r.attendance_percentage==null?"—":esc(r.attendance_percentage+"%")}</td><td>${r.average_score==null?"—":esc(r.average_score)}</td><td>${esc(val(r.remarks))}</td></tr>`).join("");}
-function gradeClass(grade){const g=String(grade||"").trim().toUpperCase();if(g.startsWith("A"))return"grade-a";if(g.startsWith("B"))return"grade-b";if(g.startsWith("C"))return"grade-c";if(g.startsWith("D"))return"grade-d";if(g==="F")return"grade-f";return"grade-na";}
-function calculateGradeFromPercentage(p){if(p==null||!Number.isFinite(Number(p)))return"—";p=Number(p);if(p>=90)return"A+";if(p>=80)return"A";if(p>=70)return"B";if(p>=60)return"C";if(p>=50)return"D";return"F";}
-let allGradeResults=[];
-function populateGradeYears(){const select=$("gradeYear"),current=select.value||"ALL";const years=[...new Set(allGradeResults.map(r=>r.academic_year).filter(v=>v!=null&&String(v).trim()!=="").map(String))].sort((a,b)=>(Number(b)||0)-(Number(a)||0));select.innerHTML='<option value="ALL">All Years</option>';years.forEach(y=>{const o=document.createElement("option");o.value=y;o.textContent=y;select.appendChild(o)});if(current!=="ALL"&&years.includes(current))select.value=current;else if(window.__currentAcademicYear!=null&&years.includes(String(window.__currentAcademicYear)))select.value=String(window.__currentAcademicYear);else select.value="ALL";}
-function renderGradeSummary(results){
-  const normalized = results.map(r => {
-    const score = r.score == null || r.score === "" ? null : Number(r.score);
-    const maxScore = r.max_score == null || r.max_score === "" ? null : Number(r.max_score);
-    const rawPercentage = r.percentage == null || r.percentage === ""
-      ? (maxScore > 0 && score != null ? score / maxScore * 100 : null)
-      : Number(r.percentage);
+
+/* =========================================================
+   GAAWOW EMS STUDENT PORTAL V11
+   Single-file edition: HTML + CSS + JavaScript
+   Student identity: auth.uid() -> students.auth_user_id
+   Enrollment relation: enrollments.student_id -> students.id
+   ========================================================= */
+
+const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+const sb = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: "pkce"
+    }
+  }
+);
+
+const $ = id => document.getElementById(id);
+
+const esc = value => String(value ?? "").replace(
+  /[&<>'"]/g,
+  char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#039;",
+    '"': "&quot;"
+  })[char]
+);
+
+const val = (value, fallback = "—") =>
+  value === null || value === undefined || String(value).trim() === ""
+    ? fallback
+    : String(value);
+
+function formatDate(value) {
+  if (!value) return "—";
+
+  // Avoid timezone shifting for database DATE values.
+  const raw = String(value);
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (match) {
+    const [, year, month, day] = match;
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    });
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return raw;
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function num(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString() : String(value);
+}
+
+function showMessage(message, type = "info") {
+  const element = $("message");
+  element.textContent = message;
+  element.className = `message ${type}`;
+  element.style.display = "block";
+}
+
+function clearMessage() {
+  const element = $("message");
+  element.textContent = "";
+  element.className = "message";
+  element.style.display = "none";
+}
+
+function empty(id, columns, message) {
+  const element = $(id);
+  if (!element) return;
+
+  element.innerHTML =
+    `<tr><td colspan="${columns}" class="empty">${esc(message)}</td></tr>`;
+}
+
+function firstValue(object, keys, fallback = null) {
+  for (const key of keys) {
+    const value = object?.[key];
+
+    if (
+      value !== null &&
+      value !== undefined &&
+      String(value).trim() !== ""
+    ) {
+      return value;
+    }
+  }
+
+  return fallback;
+}
+
+/* =========================================================
+   AUTHENTICATION
+   ========================================================= */
+
+async function getAuthenticatedUser() {
+  const { data: sessionData, error: sessionError } =
+    await sb.auth.getSession();
+
+  if (sessionError) throw sessionError;
+
+  let session = sessionData?.session;
+
+  if (!session?.access_token) {
+    const { data, error } = await sb.auth.refreshSession();
+    if (error) throw error;
+    session = data?.session;
+  }
+
+  if (!session?.access_token) {
+    const error = new Error("Your login session has expired. Please log in again.");
+    error.code = "SESSION_MISSING";
+    throw error;
+  }
+
+  const { data, error } = await sb.auth.getUser(session.access_token);
+
+  if (error) throw error;
+  if (!data?.user) throw new Error("Authenticated user could not be verified.");
+
+  return data.user;
+}
+
+/* =========================================================
+   DATABASE HELPERS
+   ========================================================= */
+
+async function getStudent(user) {
+  const { data, error } = await sb
+    .from("students")
+    .select("*")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) {
+    throw new Error(
+      "Your student record is not linked to this login. Please contact the GAAWOW administrator."
+    );
+  }
+
+  if (data.auth_user_id !== user.id) {
+    throw new Error("Student account verification failed.");
+  }
+
+  if (data.account_enabled === false) {
+    throw new Error("Your student account is disabled. Please contact the administrator.");
+  }
+
+  return data;
+}
+
+async function getOne(table, columns, id, institutionId = null) {
+  if (!id) return null;
+
+  let query = sb
+    .from(table)
+    .select(columns)
+    .eq("id", id);
+
+  if (institutionId) {
+    query = query.eq("institution_id", institutionId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) throw error;
+  return data || null;
+}
+
+async function getStudentRows(table, columns, studentId, orderColumn = "created_at") {
+  let query = sb
+    .from(table)
+    .select(columns)
+    .eq("student_id", studentId);
+
+  if (orderColumn) {
+    query = query.order(orderColumn, { ascending: false });
+  }
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+  return data || [];
+}
+
+/* =========================================================
+   ENROLLMENT
+   ========================================================= */
+
+async function getEnrollments(student) {
+  let query = sb
+    .from("enrollments")
+    .select(`
+      id,
+      institution_id,
+      student_id,
+      course_id,
+      class_id,
+      academic_year_id,
+      enrollment_number,
+      enrollment_date,
+      start_date,
+      end_date,
+      status,
+      created_at,
+      updated_at
+    `)
+    .eq("student_id", student.id)
+    .eq("institution_id", student.institution_id)
+    .order("created_at", { ascending: false });
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  const enrollments = data || [];
+
+  // Prefer active enrollment, otherwise use the newest record.
+  const active = enrollments.find(row =>
+    String(row.status || "").toLowerCase() === "active"
+  );
+
+  return {
+    all: enrollments,
+    primary: active || enrollments[0] || null
+  };
+}
+
+async function getAcademicYear(enrollment, institutionId) {
+  if (!enrollment?.academic_year_id) return null;
+
+  try {
+    return await getOne(
+      "academic_years",
+      "id,institution_id,year_name,start_date,end_date,is_active",
+      enrollment.academic_year_id,
+      institutionId
+    );
+  } catch (error) {
+    console.warn("Academic year could not be loaded:", error.message);
+    return null;
+  }
+}
+
+/* =========================================================
+   STUDENT PROFILE
+   ========================================================= */
+
+async function getProfile(student) {
+  if (!student.profile_id) return null;
+
+  try {
+    const profile = await getOne(
+      "profiles",
+      "id,full_name,email,phone,role,avatar_url,institution_id",
+      student.profile_id,
+      student.institution_id
+    );
+
+    if (
+      profile &&
+      String(profile.role || "").toLowerCase() !== "student"
+    ) {
+      console.warn("Linked profile does not have student role.");
+      return null;
+    }
+
+    return profile;
+  } catch (error) {
+    console.warn("Profile lookup:", error.message);
+    return null;
+  }
+}
+
+/* =========================================================
+   STUDENT PROFILE RENDERING
+   ========================================================= */
+
+function renderStudent(student, profile, user) {
+  const name =
+    student.full_name ||
+    profile?.full_name ||
+    user.user_metadata?.full_name ||
+    "Student";
+
+  $("studentName").textContent = val(name);
+  $("studentId").textContent = `Student ID: ${val(student.student_id)}`;
+  $("topStudentId").textContent = val(student.student_id);
+
+  $("studentStatus").textContent =
+    student.account_enabled === false
+      ? "Disabled"
+      : val(student.status, "Active");
+
+  const photo = $("photo");
+  const photoUrl = student.photo_url || profile?.avatar_url;
+
+  if (photoUrl) {
+    photo.innerHTML = `<img src="${esc(photoUrl)}" alt="Student photo">`;
+    const image = photo.querySelector("img");
+
+    image.onerror = () => {
+      photo.textContent = name.trim().charAt(0).toUpperCase() || "G";
+    };
+  } else {
+    photo.textContent = name.trim().charAt(0).toUpperCase() || "G";
+  }
+
+  const email = student.email || profile?.email || user.email;
+  const phone = student.phone || profile?.phone;
+
+  $("profileInfo").innerHTML = `
+    <div class="item"><b>Full Name</b><span>${esc(val(name))}</span></div>
+    <div class="item"><b>Student Number</b><span>${esc(val(student.student_id))}</span></div>
+    <div class="item"><b>Email</b><span>${esc(val(email))}</span></div>
+    <div class="item"><b>Phone</b><span>${esc(val(phone))}</span></div>
+    <div class="item"><b>Gender</b><span>${esc(val(student.gender))}</span></div>
+    <div class="item"><b>Date of Birth</b><span>${esc(formatDate(student.date_of_birth))}</span></div>
+    <div class="item"><b>Admission Date</b><span>${esc(formatDate(student.admission_date))}</span></div>
+    <div class="item"><b>Address</b><span>${esc(val(student.address))}</span></div>
+    <div class="item"><b>Account Status</b><span>${esc(student.account_enabled === false ? "Disabled" : "Enabled")}</span></div>
+  `;
+}
+
+/* =========================================================
+   ACADEMIC INFORMATION
+   ========================================================= */
+
+function renderAcademic(enrollment, course, department, studentClass, institution, academicYear) {
+  $("courseName").textContent = val(course?.name);
+  $("className").textContent = val(studentClass?.name);
+  $("departmentName").textContent = val(department?.name);
+
+  const yearName =
+    academicYear?.year_name ||
+    studentClass?.academic_year ||
+    null;
+
+  $("academicInfo").innerHTML = `
+    <div class="item"><b>Institution</b><span>${esc(val(institution?.name))}</span></div>
+    <div class="item"><b>Institution Code</b><span>${esc(val(institution?.code))}</span></div>
+
+    <div class="item"><b>Student Number</b><span>${esc(val(enrollment?.student_id ? $("topStudentId").textContent : null))}</span></div>
+    <div class="item"><b>Enrollment Number</b><span>${esc(val(enrollment?.enrollment_number))}</span></div>
+    <div class="item"><b>Enrollment Status</b><span>${esc(val(enrollment?.status))}</span></div>
+
+    <div class="item"><b>Course / Program</b><span>${esc(val(course?.name))}</span></div>
+    <div class="item"><b>Course Code</b><span>${esc(val(course?.code))}</span></div>
+    <div class="item"><b>Department</b><span>${esc(val(department?.name))}</span></div>
+
+    <div class="item"><b>Class</b><span>${esc(val(studentClass?.name))}</span></div>
+    <div class="item"><b>Class Code</b><span>${esc(val(studentClass?.code))}</span></div>
+    <div class="item"><b>Academic Year</b><span>${esc(val(yearName))}</span></div>
+
+    <div class="item"><b>Academic Year Start</b><span>${esc(formatDate(academicYear?.start_date))}</span></div>
+    <div class="item"><b>Academic Year End</b><span>${esc(formatDate(academicYear?.end_date))}</span></div>
+
+    <div class="item"><b>Enrollment Date</b><span>${esc(formatDate(enrollment?.enrollment_date))}</span></div>
+    <div class="item"><b>Start Date</b><span>${esc(formatDate(enrollment?.start_date))}</span></div>
+    <div class="item"><b>End Date</b><span>${esc(formatDate(enrollment?.end_date))}</span></div>
+
+    <div class="item"><b>Course Duration</b><span>${course?.duration_months == null ? "—" : esc(course.duration_months + " months")}</span></div>
+    <div class="item"><b>Course Fee</b><span>${course?.fee == null ? "—" : esc(num(course.fee))}</span></div>
+  `;
+
+  window.__currentAcademicYear = yearName;
+}
+
+/* =========================================================
+   ACADEMIC PROGRESS
+   ========================================================= */
+
+function renderProgress(rows) {
+  if (!rows.length) {
+    return empty("progressBody", 6, "No academic progress records available yet.");
+  }
+
+  $("progressBody").innerHTML = rows.map(row => `
+    <tr>
+      <td>${esc(val(row.academic_year))}</td>
+      <td>${esc(val(row.total_courses))}</td>
+      <td>${esc(val(row.completed_courses))}</td>
+      <td>${row.attendance_percentage == null ? "—" : esc(row.attendance_percentage + "%")}</td>
+      <td>${row.average_score == null ? "—" : esc(row.average_score)}</td>
+      <td>${esc(val(row.remarks))}</td>
+    </tr>
+  `).join("");
+}
+
+/* =========================================================
+   GRADES
+   ========================================================= */
+
+function gradeClass(grade) {
+  const value = String(grade || "").trim().toUpperCase();
+
+  if (value.startsWith("A")) return "grade-a";
+  if (value.startsWith("B")) return "grade-b";
+  if (value.startsWith("C")) return "grade-c";
+  if (value.startsWith("D")) return "grade-d";
+  if (value === "F") return "grade-f";
+
+  return "grade-na";
+}
+
+function calculateGrade(percentage) {
+  if (percentage == null || !Number.isFinite(Number(percentage))) return "—";
+
+  const value = Number(percentage);
+
+  if (value >= 90) return "A+";
+  if (value >= 80) return "A";
+  if (value >= 70) return "B";
+  if (value >= 60) return "C";
+  if (value >= 50) return "D";
+
+  return "F";
+}
+
+let allGradeResults = [];
+
+function populateGradeYears() {
+  const select = $("gradeYear");
+  const previous = select.value || "ALL";
+
+  const years = [
+    ...new Set(
+      allGradeResults
+        .map(row => row.academic_year)
+        .filter(value => value != null && String(value).trim() !== "")
+        .map(String)
+    )
+  ].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  select.innerHTML = '<option value="ALL">All Years</option>';
+
+  years.forEach(year => {
+    const option = document.createElement("option");
+    option.value = year;
+    option.textContent = year;
+    select.appendChild(option);
+  });
+
+  if (years.includes(previous)) {
+    select.value = previous;
+  } else if (
+    window.__currentAcademicYear &&
+    years.includes(String(window.__currentAcademicYear))
+  ) {
+    select.value = String(window.__currentAcademicYear);
+  } else {
+    select.value = "ALL";
+  }
+}
+
+function renderGradeSummary(results) {
+  const normalized = results.map(row => {
+    const score = row.score == null || row.score === "" ? null : Number(row.score);
+    const max = row.max_score == null || row.max_score === "" ? null : Number(row.max_score);
+
+    const rawPercentage =
+      row.percentage == null || row.percentage === ""
+        ? (max > 0 && score != null ? score / max * 100 : null)
+        : Number(row.percentage);
+
     return {
-      ...r,
+      ...row,
       _score: Number.isFinite(score) ? score : null,
-      _max: Number.isFinite(maxScore) && maxScore > 0 ? maxScore : null,
+      _max: Number.isFinite(max) && max > 0 ? max : null,
       _pct: Number.isFinite(rawPercentage) ? rawPercentage : null
     };
   });
-  const scored = normalized.filter(r => r._score !== null && r._max !== null);
-  const percentages = normalized.filter(r => r._pct !== null);
+
+  const scored = normalized.filter(row => row._score !== null && row._max !== null);
+  const percentages = normalized.filter(row => row._pct !== null);
+
   $("gradeTotalSubjects").textContent = String(results.length);
+
   if (!percentages.length) {
     $("gradeAverage").textContent = "—";
     $("gradeHighest").textContent = "—";
@@ -71,53 +725,116 @@ function renderGradeSummary(results){
     $("gradeOverall").textContent = "—";
     return;
   }
-  const totalScore = scored.reduce((sum, r) => sum + r._score, 0);
-  const totalMax = scored.reduce((sum, r) => sum + r._max, 0);
+
+  const totalScore = scored.reduce((sum, row) => sum + row._score, 0);
+  const totalMax = scored.reduce((sum, row) => sum + row._max, 0);
+
   const average = totalMax > 0
     ? totalScore / totalMax * 100
-    : percentages.reduce((sum, r) => sum + r._pct, 0) / percentages.length;
-  const highest = percentages.reduce((best, r) => r._pct > best._pct ? r : best);
-  const lowest = percentages.reduce((worst, r) => r._pct < worst._pct ? r : worst);
-  const overall = calculateGradeFromPercentage(average);
-  const label = r => esc(val(r.subject_name || r.exam_title || "Subject"));
+    : percentages.reduce((sum, row) => sum + row._pct, 0) / percentages.length;
+
+  const highest = percentages.reduce((best, row) => row._pct > best._pct ? row : best);
+  const lowest = percentages.reduce((worst, row) => row._pct < worst._pct ? row : worst);
+  const overall = calculateGrade(average);
+
   $("gradeAverage").textContent = average.toFixed(2) + "%";
-  $("gradeHighest").innerHTML = `${highest._pct.toFixed(1)}%<div style="font-size:11px;color:#64748b;margin-top:5px">${label(highest)}</div>`;
-  $("gradeLowest").innerHTML = `${lowest._pct.toFixed(1)}%<div style="font-size:11px;color:#64748b;margin-top:5px">${label(lowest)}</div>`;
-  $("gradeOverall").innerHTML = '<span class="grade-pill ' + gradeClass(overall) + '">' + esc(overall) + '</span>';
+
+  $("gradeHighest").innerHTML =
+    `${highest._pct.toFixed(1)}%<div style="font-size:11px;color:#64748b;margin-top:5px">${esc(val(highest.subject_name || highest.exam_title, "Subject"))}</div>`;
+
+  $("gradeLowest").innerHTML =
+    `${lowest._pct.toFixed(1)}%<div style="font-size:11px;color:#64748b;margin-top:5px">${esc(val(lowest.subject_name || lowest.exam_title, "Subject"))}</div>`;
+
+  $("gradeOverall").innerHTML =
+    `<span class="grade-pill ${gradeClass(overall)}">${esc(overall)}</span>`;
 }
-function renderGrades(results){renderGradeSummary(results);if(!results.length){$("gradesBody").innerHTML='<tr><td colspan="8"><div class="no-results">No published grade records are available for the selected Academic Year.</div></td></tr>';return}$("gradesBody").innerHTML=results.map(r=>{const p=r.percentage!=null?Number(r.percentage):(Number(r.max_score)>0?Number(r.score)/Number(r.max_score)*100:null);const g=val(r.grade,calculateGradeFromPercentage(p));return`<tr><td>${esc(val(r.academic_year))}</td><td>${esc(val(r.subject_name||r.exam_title))}</td><td>${esc(val(r.subject_code))}</td><td>${r.score==null?"—":esc(num(r.score))}${r.max_score!=null?` / ${esc(num(r.max_score))}`:""}</td><td>${p==null?"—":esc(Number(p).toFixed(1)+"%")}</td><td><span class="grade-pill ${gradeClass(g)}">${esc(g)}</span></td><td>${esc(val(r.remarks))}</td><td>${esc(date(r.exam_date))}</td></tr>`}).join("");}
-function applyGradeFilter(){const y=$("gradeYear").value;let filtered=[...allGradeResults];if(y&&y!=="ALL")filtered=filtered.filter(r=>String(r.academic_year??"")===String(y));filtered.sort((a,b)=>{const ya=Number(a.academic_year)||0,yb=Number(b.academic_year)||0;if(ya!==yb)return yb-ya;const da=a.exam_date?new Date(a.exam_date).getTime():0,db=b.exam_date?new Date(b.exam_date).getTime():0;if(da!==db)return db-da;return String(a.subject_name||"").localeCompare(String(b.subject_name||""));});renderGrades(filtered);}
-async function loadGrades(studentId){
-  /*
-   * GAAWOW Student Portal V10
-   *
-   * Grades are loaded through a SECURITY DEFINER RPC so the student
-   * does not depend on SELECT policies of subjects/exams/classes.
-   * The RPC returns only the currently authenticated student's
-   * published results.
-   */
-  const {data: rpcData, error: rpcError} =
+
+function renderGrades(results) {
+  renderGradeSummary(results);
+
+  if (!results.length) {
+    $("gradesBody").innerHTML =
+      '<tr><td colspan="8"><div class="no-results">No published grade records are available for the selected Academic Year.</div></td></tr>';
+    return;
+  }
+
+  $("gradesBody").innerHTML = results.map(row => {
+    const percentage =
+      row.percentage != null
+        ? Number(row.percentage)
+        : (Number(row.max_score) > 0
+            ? Number(row.score) / Number(row.max_score) * 100
+            : null);
+
+    const grade = val(row.grade, calculateGrade(percentage));
+
+    return `
+      <tr>
+        <td>${esc(val(row.academic_year))}</td>
+        <td>${esc(val(row.subject_name || row.exam_title))}</td>
+        <td>${esc(val(row.subject_code))}</td>
+        <td>${row.score == null ? "—" : esc(num(row.score))}${row.max_score != null ? ` / ${esc(num(row.max_score))}` : ""}</td>
+        <td>${percentage == null ? "—" : esc(percentage.toFixed(1) + "%")}</td>
+        <td><span class="grade-pill ${gradeClass(grade)}">${esc(grade)}</span></td>
+        <td>${esc(val(row.remarks))}</td>
+        <td>${esc(formatDate(row.exam_date))}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function applyGradeFilter() {
+  const year = $("gradeYear").value;
+
+  let filtered = [...allGradeResults];
+
+  if (year && year !== "ALL") {
+    filtered = filtered.filter(row =>
+      String(row.academic_year ?? "") === String(year)
+    );
+  }
+
+  filtered.sort((a, b) => {
+    const yearA = String(a.academic_year || "");
+    const yearB = String(b.academic_year || "");
+
+    if (yearA !== yearB) return yearB.localeCompare(yearA, undefined, { numeric: true });
+
+    const dateA = a.exam_date ? new Date(a.exam_date).getTime() : 0;
+    const dateB = b.exam_date ? new Date(b.exam_date).getTime() : 0;
+
+    if (dateA !== dateB) return dateB - dateA;
+
+    return String(a.subject_name || "").localeCompare(String(b.subject_name || ""));
+  });
+
+  renderGrades(filtered);
+}
+
+async function loadGrades(studentId) {
+  // Primary method: authenticated SECURITY DEFINER RPC.
+  const { data: rpcData, error: rpcError } =
     await sb.rpc("get_my_student_results");
 
-  if(!rpcError && Array.isArray(rpcData)){
-    allGradeResults = rpcData.map(r=>({
-      id:r.result_id,
-      academic_year:r.academic_year ?? window.__currentAcademicYear ?? null,
-      subject_name:r.subject_name ?? r.exam_title ?? "Subject",
-      subject_code:r.subject_code ?? "—",
-      score:r.score,
-      max_score:r.max_score,
-      percentage:r.percentage != null
-        ? Number(r.percentage)
-        : (Number(r.max_score)>0
-            ? Number(r.score)/Number(r.max_score)*100
+  if (!rpcError && Array.isArray(rpcData)) {
+    allGradeResults = rpcData.map(row => ({
+      id: row.result_id,
+      academic_year: row.academic_year ?? window.__currentAcademicYear ?? null,
+      subject_name: row.subject_name ?? row.exam_title ?? "Subject",
+      subject_code: row.subject_code ?? "—",
+      score: row.score,
+      max_score: row.max_score,
+      percentage: row.percentage != null
+        ? Number(row.percentage)
+        : (Number(row.max_score) > 0
+            ? Number(row.score) / Number(row.max_score) * 100
             : null),
-      grade:r.grade || calculateGradeFromPercentage(r.percentage),
-      remarks:r.remarks,
-      exam_title:r.exam_title ?? null,
-      exam_type:r.exam_type ?? null,
-      exam_date:r.exam_date ?? null,
-      created_at:r.created_at ?? null
+      grade: row.grade || calculateGrade(row.percentage),
+      remarks: row.remarks,
+      exam_title: row.exam_title ?? null,
+      exam_type: row.exam_type ?? null,
+      exam_date: row.exam_date ?? null,
+      created_at: row.created_at ?? null
     }));
 
     populateGradeYears();
@@ -125,84 +842,90 @@ async function loadGrades(studentId){
     return;
   }
 
-  console.warn("V10 RPC unavailable, using direct results fallback:", rpcError);
+  console.warn("Grades RPC unavailable; trying direct results fallback:", rpcError);
 
-  /*
-   * Fallback keeps the portal functional if the RPC has not yet
-   * been installed. It can display score/grade immediately.
-   */
-  const {data: source, error: resultsError} = await sb
+  const { data: source, error } = await sb
     .from("results")
     .select("id,institution_id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at")
     .eq("student_id", studentId)
     .eq("is_published", true)
-    .order("created_at", {ascending:false});
+    .order("created_at", { ascending: false });
 
-  if(resultsError) throw resultsError;
+  if (error) throw error;
 
-  const results = Array.isArray(source) ? source : [];
-  const subjectIds = [...new Set(results.map(r=>r.subject_id).filter(Boolean))];
-  const examIds = [...new Set(results.map(r=>r.exam_id).filter(Boolean))];
+  const results = source || [];
+  const subjectIds = [...new Set(results.map(row => row.subject_id).filter(Boolean))];
+  const examIds = [...new Set(results.map(row => row.exam_id).filter(Boolean))];
 
-  let subjects=[], exams=[], classes=[];
+  let subjects = [];
+  let exams = [];
+  let classes = [];
 
-  if(subjectIds.length){
-    try{
-      const q=await sb.from("subjects")
-        .select("id,name,code,max_score")
-        .in("id",subjectIds);
-      if(!q.error) subjects=q.data||[];
-    }catch(e){ console.warn("V10 subjects fallback:",e); }
+  if (subjectIds.length) {
+    const response = await sb
+      .from("subjects")
+      .select("id,name,code,max_score")
+      .in("id", subjectIds);
+
+    if (!response.error) subjects = response.data || [];
   }
 
-  if(examIds.length){
-    try{
-      const q=await sb.from("exams")
-        .select("id,title,exam_type,exam_date,max_score,class_id")
-        .in("id",examIds);
-      if(!q.error) exams=q.data||[];
-    }catch(e){ console.warn("V10 exams fallback:",e); }
+  if (examIds.length) {
+    const response = await sb
+      .from("exams")
+      .select("id,title,exam_type,exam_date,max_score,class_id")
+      .in("id", examIds);
+
+    if (!response.error) exams = response.data || [];
   }
 
-  const classIds=[...new Set(exams.map(e=>e.class_id).filter(Boolean))];
+  const classIds = [...new Set(exams.map(row => row.class_id).filter(Boolean))];
 
-  if(classIds.length){
-    try{
-      const q=await sb.from("classes")
-        .select("id,name,code,academic_year")
-        .in("id",classIds);
-      if(!q.error) classes=q.data||[];
-    }catch(e){ console.warn("V10 classes fallback:",e); }
+  if (classIds.length) {
+    const response = await sb
+      .from("classes")
+      .select("id,name,code,academic_year")
+      .in("id", classIds);
+
+    if (!response.error) classes = response.data || [];
   }
 
-  const subjectMap=new Map(subjects.map(x=>[x.id,x]));
-  const examMap=new Map(exams.map(x=>[x.id,x]));
-  const classMap=new Map(classes.map(x=>[x.id,x]));
+  const subjectMap = new Map(subjects.map(row => [row.id, row]));
+  const examMap = new Map(exams.map(row => [row.id, row]));
+  const classMap = new Map(classes.map(row => [row.id, row]));
 
-  allGradeResults=results.map(r=>{
-    const subject=subjectMap.get(r.subject_id)||null;
-    const exam=examMap.get(r.exam_id)||null;
-    const cl=exam ? (classMap.get(exam.class_id)||null) : null;
-    const academicYear=cl?.academic_year ?? window.__currentAcademicYear ?? null;
-    const maxScore=r.max_score ?? subject?.max_score ?? exam?.max_score ?? null;
-    const percentage=r.percentage!=null
-      ? Number(r.percentage)
-      : (Number(maxScore)>0 ? Number(r.score)/Number(maxScore)*100 : null);
+  allGradeResults = results.map(row => {
+    const subject = subjectMap.get(row.subject_id) || null;
+    const exam = examMap.get(row.exam_id) || null;
+    const studentClass = exam ? classMap.get(exam.class_id) : null;
+
+    const maxScore =
+      row.max_score ??
+      subject?.max_score ??
+      exam?.max_score ??
+      null;
+
+    const percentage =
+      row.percentage != null
+        ? Number(row.percentage)
+        : (Number(maxScore) > 0
+            ? Number(row.score) / Number(maxScore) * 100
+            : null);
 
     return {
-      id:r.id,
-      academic_year:academicYear,
-      subject_name:subject?.name ?? exam?.title ?? "Subject",
-      subject_code:subject?.code ?? "—",
-      score:r.score,
-      max_score:maxScore,
-      percentage:Number.isFinite(Number(percentage))?Number(percentage):null,
-      grade:r.grade || calculateGradeFromPercentage(percentage),
-      remarks:r.remarks,
-      exam_title:exam?.title ?? null,
-      exam_type:exam?.exam_type ?? null,
-      exam_date:exam?.exam_date ?? null,
-      created_at:r.created_at
+      id: row.id,
+      academic_year: studentClass?.academic_year ?? window.__currentAcademicYear ?? null,
+      subject_name: subject?.name ?? exam?.title ?? "Subject",
+      subject_code: subject?.code ?? "—",
+      score: row.score,
+      max_score: maxScore,
+      percentage: Number.isFinite(Number(percentage)) ? Number(percentage) : null,
+      grade: row.grade || calculateGrade(percentage),
+      remarks: row.remarks,
+      exam_title: exam?.title ?? null,
+      exam_type: exam?.exam_type ?? null,
+      exam_date: exam?.exam_date ?? null,
+      created_at: row.created_at
     };
   });
 
@@ -210,32 +933,313 @@ async function loadGrades(studentId){
   applyGradeFilter();
 }
 
-$("gradeYear").addEventListener("change",applyGradeFilter);
+/* =========================================================
+   CERTIFICATES
+   ========================================================= */
 
-function renderCertificates(a){
-  if(!a.length) return empty("certificatesBody",6,"No certificates available yet.");
-  $("certificatesBody").innerHTML = a.map(r => {
-    const code = r.verify_code || "";
+function renderCertificates(rows) {
+  if (!rows.length) {
+    return empty("certificatesBody", 6, "No certificates available yet.");
+  }
+
+  $("certificatesBody").innerHTML = rows.map(row => {
+    const code = row.verify_code || "";
+
     const generated = code
-      ? "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify.html?code=" + encodeURIComponent(code)
+      ? "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify.html?code=" +
+        encodeURIComponent(code)
       : "";
-    const candidate = r.verification_url || generated || r.certificate_url || r.pdf_url || "";
+
+    const candidate =
+      row.verification_url ||
+      generated ||
+      row.certificate_url ||
+      row.pdf_url ||
+      "";
+
     let safeLink = "";
+
     try {
-      if(candidate){
+      if (candidate) {
         const parsed = new URL(candidate, window.location.href);
-        if(parsed.protocol === "https:" || parsed.protocol === "http:") safeLink = parsed.href;
+
+        if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+          safeLink = parsed.href;
+        }
       }
-    } catch (_) { safeLink = ""; }
+    } catch (_) {
+      safeLink = "";
+    }
+
     const button = safeLink
       ? `<a href="${esc(safeLink)}" target="_blank" rel="noopener noreferrer">Verify / Open</a>`
       : "Verification link unavailable";
-    return `<tr><td>${esc(val(r.certificate_no || r.certificate_id))}</td><td>${esc(val(r.course_name_snapshot))}</td><td>${esc(date(r.issue_date))}</td><td>${esc(date(r.expiry_date))}</td><td><span class="status">${esc(val(r.status))}</span></td><td>${button}</td></tr>`;
+
+    return `
+      <tr>
+        <td>${esc(val(row.certificate_no || row.certificate_id))}</td>
+        <td>${esc(val(row.course_name_snapshot))}</td>
+        <td>${esc(formatDate(row.issue_date))}</td>
+        <td>${esc(formatDate(row.expiry_date))}</td>
+        <td><span class="status">${esc(val(row.status))}</span></td>
+        <td>${button}</td>
+      </tr>
+    `;
   }).join("");
 }
-function renderPayments(a){if(!a.length)return empty("paymentsBody",6,"No payment records available yet.");$("paymentsBody").innerHTML=a.map(r=>`<tr><td class="money">${esc(num(r.amount))}</td><td>${esc(val(r.currency))}</td><td>${esc(val(r.payment_method))}</td><td>${esc(val(r.transaction_reference||r.provider_transaction_id))}</td><td><span class="status">${esc(val(r.status))}</span></td><td>${esc(date(r.paid_at||r.created_at))}</td></tr>`).join("");}
-async function load(){clearMsg();$("loading").style.display="block";$("portal").style.display="none";try{const{data,error}=await sb.auth.getSession();if(error)throw error;const uid=data?.session?.user?.id;if(!uid)throw new Error("Login session is missing or expired. Please login again.");const studentCols="id,institution_id,profile_id,student_id,full_name,gender,date_of_birth,phone,email,address,photo_url,admission_date,status,account_enabled,auth_user_id,login_username,account_created_at,last_login_at,password_changed_at,created_at,updated_at";const students=await rows("students",studentCols,"auth_user_id",uid,"created_at");if(!students.length)throw new Error("Student record not found for this login account. Please contact the GAAWOW administrator.");const s=students[0];renderStudent(s);let institution=null,enrollment=null,course=null,department=null,cl=null;try{institution=await one("institutions","id,name,code,email,phone,address,city,country,logo_url,website_url,is_active",s.institution_id)}catch(e){console.warn("Institution",e)}try{const a=await rows("enrollments","id,institution_id,student_id,course_id,class_id,enrollment_number,enrollment_date,start_date,end_date,status,created_at,updated_at","student_id",s.id,"created_at");enrollment=a[0]||null}catch(e){console.warn("Enrollment",e)}try{if(enrollment?.course_id)course=await one("courses","id,institution_id,department_id,name,code,description,duration_months,fee,is_active,created_at,updated_at",enrollment.course_id)}catch(e){console.warn("Course",e)}try{if(course?.department_id)department=await one("departments","id,institution_id,name,code,description,head_profile_id,is_active,created_at,updated_at",course.department_id)}catch(e){console.warn("Department",e)}try{if(enrollment?.class_id)cl=await one("classes","id,institution_id,course_id,name,code,academic_year,teacher_id,room,start_date,end_date,is_active,created_at,updated_at,status",enrollment.class_id)}catch(e){console.warn("Class",e)}renderAcademic(enrollment,course,department,cl,institution);window.__currentAcademicYear=cl?.academic_year??null;try{renderProgress(await rows("academic_progress","id,institution_id,student_id,course_id,academic_year,total_courses,completed_courses,attendance_percentage,average_score,remarks,created_at,updated_at","student_id",s.id,"created_at"))}catch(e){console.warn("Academic progress",e);empty("progressBody",6,"Academic progress could not be loaded.")}try{await loadGrades(s.id)}catch(e){console.warn("Results / Grades",e);allGradeResults=[];populateGradeYears();renderGrades([])}try{renderCertificates(await rows("certificates","id,institution_id,student_id,course_id,certificate_no,certificate_id,verify_code,hash_code,issue_date,expiry_date,status,certificate_url,pdf_url,qr_url,student_name_snapshot,course_name_snapshot,issued_by,created_at,updated_at,certificate_type,template_url,student_photo_url,verification_url","student_id",s.id,"created_at"))}catch(e){console.warn("Certificates",e);empty("certificatesBody",6,"Certificates could not be loaded.")}try{renderPayments(await rows("payments","id,institution_id,invoice_id,student_id,amount,currency,payment_method,provider,provider_transaction_id,transaction_reference,payer_phone,status,paid_at,metadata,created_at","student_id",s.id,"created_at"))}catch(e){console.warn("Payments",e);empty("paymentsBody",6,"Payments could not be loaded.")}$("loading").style.display="none";$("portal").style.display="block"}catch(e){console.error("GAAWOW V10 PORTAL ERROR",e);$("loading").style.display="none";showError(errText(e))}}
-$("logoutBtn").addEventListener("click",async()=>{await sb.auth.signOut();window.location.replace("index.html")});sb.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"||!session)window.location.replace("index.html")});document.addEventListener("DOMContentLoaded",load);
+
+/* =========================================================
+   PAYMENTS
+   ========================================================= */
+
+function renderPayments(rows) {
+  if (!rows.length) {
+    return empty("paymentsBody", 6, "No payment records available yet.");
+  }
+
+  $("paymentsBody").innerHTML = rows.map(row => `
+    <tr>
+      <td class="money">${esc(num(row.amount))}</td>
+      <td>${esc(val(row.currency))}</td>
+      <td>${esc(val(row.payment_method))}</td>
+      <td>${esc(val(row.transaction_reference || row.provider_transaction_id))}</td>
+      <td><span class="status">${esc(val(row.status))}</span></td>
+      <td>${esc(formatDate(row.paid_at || row.created_at))}</td>
+    </tr>
+  `).join("");
+}
+
+/* =========================================================
+   MAIN PORTAL LOADER
+   ========================================================= */
+
+async function loadPortal() {
+  clearMessage();
+
+  $("loading").style.display = "block";
+  $("portal").style.display = "none";
+
+  try {
+    showMessage("Verifying your student account...", "info");
+
+    const user = await getAuthenticatedUser();
+    const student = await getStudent(user);
+
+    const [profile, institution] = await Promise.all([
+      getProfile(student),
+      getOne(
+        "institutions",
+        "id,name,code,email,phone,address,city,country,logo_url,website_url,is_active",
+        student.institution_id
+      ).catch(error => {
+        console.warn("Institution lookup:", error.message);
+        return null;
+      })
+    ]);
+
+    renderStudent(student, profile, user);
+
+    showMessage("Loading your academic information...", "info");
+
+    let enrollment = null;
+    let allEnrollments = [];
+
+    try {
+      const result = await getEnrollments(student);
+      enrollment = result.primary;
+      allEnrollments = result.all;
+    } catch (error) {
+      console.error("Enrollment loading:", error);
+      showMessage(
+        "Your profile loaded, but enrollment information could not be retrieved. Please contact the administrator.",
+        "error"
+      );
+    }
+
+    let course = null;
+    let department = null;
+    let studentClass = null;
+    let academicYear = null;
+
+    if (enrollment) {
+      const [courseResult, classResult, yearResult] = await Promise.all([
+        getOne(
+          "courses",
+          "id,institution_id,department_id,name,code,description,duration_months,fee,is_active",
+          enrollment.course_id,
+          student.institution_id
+        ).catch(error => {
+          console.warn("Course lookup:", error.message);
+          return null;
+        }),
+
+        getOne(
+          "classes",
+          "id,institution_id,course_id,name,code,academic_year,teacher_id,room,start_date,end_date,is_active,status",
+          enrollment.class_id,
+          student.institution_id
+        ).catch(error => {
+          console.warn("Class lookup:", error.message);
+          return null;
+        }),
+
+        getAcademicYear(enrollment, student.institution_id)
+      ]);
+
+      course = courseResult;
+      studentClass = classResult;
+      academicYear = yearResult;
+
+      if (course?.department_id) {
+        department = await getOne(
+          "departments",
+          "id,institution_id,name,code,description,head_profile_id,is_active",
+          course.department_id,
+          student.institution_id
+        ).catch(error => {
+          console.warn("Department lookup:", error.message);
+          return null;
+        });
+      }
+    }
+
+    renderAcademic(
+      enrollment,
+      course,
+      department,
+      studentClass,
+      institution,
+      academicYear
+    );
+
+    showMessage("Loading academic records...", "info");
+
+    try {
+      const progress = await getStudentRows(
+        "academic_progress",
+        "id,institution_id,student_id,course_id,academic_year,total_courses,completed_courses,attendance_percentage,average_score,remarks,created_at,updated_at",
+        student.id
+      );
+
+      renderProgress(progress);
+    } catch (error) {
+      console.warn("Academic progress:", error);
+      empty("progressBody", 6, "Academic progress could not be loaded.");
+    }
+
+    try {
+      await loadGrades(student.id);
+    } catch (error) {
+      console.warn("Grades:", error);
+      allGradeResults = [];
+      populateGradeYears();
+      renderGrades([]);
+    }
+
+    try {
+      const certificates = await getStudentRows(
+        "certificates",
+        "id,institution_id,student_id,course_id,certificate_no,certificate_id,verify_code,hash_code,issue_date,expiry_date,status,certificate_url,pdf_url,qr_url,student_name_snapshot,course_name_snapshot,issued_by,created_at,updated_at,certificate_type,template_url,student_photo_url,verification_url",
+        student.id
+      );
+
+      renderCertificates(certificates);
+    } catch (error) {
+      console.warn("Certificates:", error);
+      empty("certificatesBody", 6, "Certificates could not be loaded.");
+    }
+
+    try {
+      const payments = await getStudentRows(
+        "payments",
+        "id,institution_id,invoice_id,student_id,amount,currency,payment_method,provider,provider_transaction_id,transaction_reference,payer_phone,status,paid_at,metadata,created_at",
+        student.id
+      );
+
+      renderPayments(payments);
+    } catch (error) {
+      console.warn("Payments:", error);
+      empty("paymentsBody", 6, "Payments could not be loaded.");
+    }
+
+    $("loading").style.display = "none";
+    $("portal").style.display = "block";
+
+    clearMessage();
+
+    console.info("GAAWOW EMS Student Portal loaded.", {
+      studentId: student.student_id,
+      enrollmentRecords: allEnrollments.length,
+      selectedEnrollment: enrollment?.enrollment_number || null,
+      academicYear: academicYear?.year_name || null
+    });
+
+  } catch (error) {
+    console.error("GAAWOW EMS STUDENT PORTAL ERROR:", error);
+
+    $("loading").style.display = "none";
+
+    if (
+      error?.code === "SESSION_MISSING" ||
+      /jwt expired|not authenticated|session missing/i.test(error?.message || "")
+    ) {
+      showMessage("Your login session has expired. Redirecting to login...", "error");
+      setTimeout(() => window.location.replace("index.html"), 1800);
+      return;
+    }
+
+    showMessage(
+      error?.message || "Unable to load the student portal.",
+      "error"
+    );
+  }
+}
+
+/* =========================================================
+   LOGOUT
+   ========================================================= */
+
+$("logoutBtn").addEventListener("click", async () => {
+  const button = $("logoutBtn");
+
+  button.disabled = true;
+  button.textContent = "LOGGING OUT...";
+
+  const { error } = await sb.auth.signOut();
+
+  if (error) {
+    console.error("Logout error:", error);
+    button.disabled = false;
+    button.textContent = "Logout";
+    showMessage("Logout failed. Please try again.", "error");
+    return;
+  }
+
+  window.location.replace("index.html");
+});
+
+/* =========================================================
+   GRADE FILTER
+   ========================================================= */
+
+$("gradeYear").addEventListener("change", applyGradeFilter);
+
+/* =========================================================
+   AUTH STATE
+   ========================================================= */
+
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_OUT" && !session) {
+    window.location.replace("index.html");
+  }
+});
+
+/* =========================================================
+   START
+   ========================================================= */
+
+loadPortal();
+
 })();
 </script>
 </body>
