@@ -1,7 +1,9 @@
 /* ============================================================
-   GAAWOW EMS — ATTENDANCE MANAGEMENT V2
+   GAAWOW EMS — ATTENDANCE MANAGEMENT V2 (Save / Publish / Unpublish)
    Scope: attendance.html only. Uses Supabase publishable key.
    Preserves existing schema, enum values, and RLS policies.
+   Publishing uses existing columns: is_published, published_at, published_by
+   (published_at / published_by are set by the existing DB trigger).
    ============================================================ */
 (() => {
   "use strict";
@@ -12,6 +14,7 @@
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
   const STATUS = ["present", "absent", "late", "excused"];
   const STATUS_LABEL = {present:"Present · Jooga", absent:"Absent · Maqan", late:"Late · Daahay", excused:"Excused · Fasax la oggolaaday"};
+  const REC_COLS = "id,institution_id,lesson_id,student_id,status,notes,recorded_by,recorded_at,is_published,published_at";
   const $ = id => document.getElementById(id);
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}
@@ -36,18 +39,75 @@
   function lockSelect(id, locked=true){ $(id).disabled = locked || state.busy; }
   function selectedLesson(){ return state.lessons.find(x => x.id === state.selectedLesson) || null; }
   function dateLabel(value){ if(!value) return ""; const d=new Date(`${String(value).slice(0,10)}T00:00:00`); return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString(); }
+
+  /* ---------- Publishing helpers ---------- */
+  function publishInfo(){
+    const total=state.students.length;
+    const recs=state.students.map(s=>state.records.get(s.id)).filter(Boolean);
+    const pub=recs.filter(r=>r.is_published===true).length;
+    return {total, saved:recs.length, pub, unpub:recs.length-pub, complete: total>0 && recs.length===total};
+  }
+  function studentChanged(s){
+    const r=state.records.get(s.id);
+    const d=state.draft.get(s.id)||{status:"present",notes:""};
+    if(!r) return true;
+    return r.status!==d.status || (r.notes||"")!==String(d.notes||"").trim();
+  }
+  function isDirty(){ return state.students.some(studentChanged); }
+  function renderPublishStatus(){
+    const el=$("publishStatus"); if(!el) return;
+    const i=publishInfo();
+    let cls="idle", text="Publishing status: select a lesson";
+    if(state.selectedLesson && i.total>0){
+      if(i.complete && i.pub===i.total){cls="published";text="Published: Successfully published";}
+      else if(i.pub===0){cls="draft";text="Draft: Not published";}
+      else {cls="partial";text="Partially published: Records have inconsistent publishing states";}
+    }
+    el.className=`pub-badge ${cls}`; el.textContent=text;
+  }
+  function updateActions(){
+    const i=publishInfo(), busy=state.busy;
+    $("saveBtn").disabled = busy || !state.selectedLesson || state.students.length===0;
+    $("publishBtn").disabled = busy || !i.complete || i.unpub===0;
+    $("unpublishBtn").disabled = busy || i.pub===0;
+    renderPublishStatus();
+  }
   function setBusy(value){
     state.busy=value;
-    $("saveBtn").disabled=value || !state.selectedLesson || state.students.length===0;
     $("reloadBtn").disabled=value; $("clearBtn").disabled=value;
     $("institution").disabled=value || (state.profile && state.profile.role!=="super_admin");
     $("class").disabled=value || !state.selectedInstitution || state.classes.length===0;
     $("lesson").disabled=value || !state.selectedClass || state.lessons.length===0;
+    updateActions();
   }
+  function assertAccess(lesson){
+    if(!lesson || !state.students.length) throw new Error("Marka hore dooro cashar ay arday ku jiraan.");
+    if(lesson.institution_id!==state.selectedInstitution || lesson.class_id!==state.selectedClass) throw new Error("Institution/Class/Lesson selection is inconsistent. Reload and try again.");
+    if(state.profile.role!=="super_admin" && lesson.institution_id!==state.profile.institution_id) throw new Error("Access denied: institution mismatch.");
+    if(state.profile.role==="teacher" && lesson.teacher_id!==state.user.id) throw new Error("Access denied: casharkan adiga laguma xilsaarin.");
+  }
+  async function verifyAuthorization(){
+    const {data:{session},error}=await db.auth.getSession();
+    if(error) throw new Error("Session lama hubin: "+error.message);
+    if(!session || session.user.id!==state.user.id){window.location.replace("index.html");throw new Error("Login-kaaga wuu dhammaaday. Dib uga gal.");}
+    const {data:p,error:pe}=await db.from("profiles").select("id,role,is_active,institution_id").eq("id",session.user.id).maybeSingle();
+    if(pe) throw new Error("Authorization lama hubin: "+pe.message);
+    if(!p || p.is_active!==true || !["super_admin","school_admin","teacher"].includes(p.role)) throw new Error("Access denied: akoonkaagu ma haysto rukhsad.");
+    if(p.role!=="super_admin" && p.institution_id!==state.selectedInstitution) throw new Error("Access denied: cross-institution action blocked.");
+    state.profile={...state.profile,...p};
+  }
+  async function refreshRecords(lesson){
+    state.records.clear();
+    if(!state.students.length) return;
+    const {data,error}=await db.from("attendance").select(REC_COLS).eq("institution_id",lesson.institution_id).eq("lesson_id",lesson.id).in("student_id",state.students.map(s=>s.id));
+    if(error) throw new Error("Attendance hore loo diiwaangeliyey lama akhrin: "+error.message);
+    (data||[]).forEach(r=>state.records.set(r.student_id,r));
+  }
+
   function resetStudents(text="Select a lesson to load students.") {
     state.students=[]; state.records.clear(); state.draft.clear(); renderStats();
     $("tableContainer").innerHTML=`<div class="empty">${esc(text)}</div>`;
-    $("tableInfo").textContent=text; $("saveBtn").disabled=true;
+    $("tableInfo").textContent=text; updateActions();
   }
   function renderStats(){
     const vals=state.students.map(s=>state.draft.get(s.id)?.status || "present");
@@ -130,6 +190,7 @@
     if(state.profile.role==="teacher" && lesson.teacher_id!==state.user.id) throw new Error("Casharkan macallin kale ayaa loo xilsaaray.");
     $("lessonDate").value=lesson.lesson_date ? dateLabel(lesson.lesson_date) : "Not set";
     $("tableContainer").innerHTML='<div class="empty">Loading students…</div>';
+    updateActions();
     const {data:enrollments,error:enrollmentError}=await db.from("enrollments").select("student_id").eq("institution_id",lesson.institution_id).eq("class_id",lesson.class_id).eq("status","active").limit(5000);
     if(enrollmentError) throw new Error("Enrollments lama akhrin: "+enrollmentError.message);
     const ids=[...new Set((enrollments||[]).map(x=>x.student_id).filter(Boolean))];
@@ -137,24 +198,28 @@
     const {data:students,error:studentsError}=await db.from("students").select("id,institution_id,student_id,full_name,status").eq("institution_id",lesson.institution_id).in("id",ids).order("full_name").limit(5000);
     if(studentsError) throw new Error("Ardayda lama akhrin: "+studentsError.message);
     state.students=(students||[]).filter(s=>!s.status || String(s.status).toLowerCase()==="active");
-    const {data:records,error:recordsError}=await db.from("attendance").select("id,institution_id,lesson_id,student_id,status,notes,recorded_by,recorded_at").eq("institution_id",lesson.institution_id).eq("lesson_id",lesson.id).in("student_id",state.students.map(s=>s.id));
-    if(recordsError) throw new Error("Attendance hore loo diiwaangeliyey lama akhrin: "+recordsError.message);
-    (records||[]).forEach(r=>state.records.set(r.student_id,r));
+    await refreshRecords(lesson);
     state.students.forEach(s=>{const r=state.records.get(s.id);state.draft.set(s.id,{status:STATUS.includes(r?.status)?r.status:"present",notes:r?.notes||""});});
     renderStudents();
+  }
+  function recordCell(s){
+    const r=state.records.get(s.id);
+    if(!r) return '<span style="color:#64748b">New</span>';
+    if(r.is_published===true) return '<span style="color:#166534;font-weight:700">Published</span>';
+    return '<span style="color:#92400e;font-weight:700">Saved (draft)</span>';
   }
   function renderStudents(){
     const query=$("studentSearch").value.trim().toLowerCase();
     const filtered=state.students.filter(s=>`${s.full_name||""} ${s.student_id||""}`.toLowerCase().includes(query));
-    if(!state.students.length){$("tableContainer").innerHTML='<div class="empty">Arday lama helin.</div>';$("tableInfo").textContent="0 students";renderStats();$("saveBtn").disabled=true;return;}
+    if(!state.students.length){$("tableContainer").innerHTML='<div class="empty">Arday lama helin.</div>';$("tableInfo").textContent="0 students";renderStats();updateActions();return;}
     const rows=filtered.map(s=>{
       const d=state.draft.get(s.id)||{status:"present",notes:""};
       const opts=STATUS.map(v=>`<option value="${v}" ${d.status===v?"selected":""}>${STATUS_LABEL[v]}</option>`).join("");
-      return `<tr data-student-id="${esc(s.id)}"><td><span class="student-name">${esc(s.full_name||"Unnamed student")}</span><span class="student-id">${esc(s.student_id||"")}</span></td><td><select class="status-select" data-status="${esc(d.status)}" data-field="status" aria-label="Attendance status for ${esc(s.full_name||s.student_id)}">${opts}</select></td><td><input class="notes" data-field="notes" type="text" maxlength="500" value="${esc(d.notes)}" placeholder="Optional note / cudurdaar" aria-label="Notes for ${esc(s.full_name||s.student_id)}"></td><td>${state.records.has(s.id)?'<span style="color:#166534;font-weight:700">Recorded</span>':'<span style="color:#64748b">New</span>'}</td></tr>`;
+      return `<tr data-student-id="${esc(s.id)}"><td><span class="student-name">${esc(s.full_name||"Unnamed student")}</span><span class="student-id">${esc(s.student_id||"")}</span></td><td><select class="status-select" data-status="${esc(d.status)}" data-field="status" aria-label="Attendance status for ${esc(s.full_name||s.student_id)}">${opts}</select></td><td><input class="notes" data-field="notes" type="text" maxlength="500" value="${esc(d.notes)}" placeholder="Optional note / cudurdaar" aria-label="Notes for ${esc(s.full_name||s.student_id)}"></td><td>${recordCell(s)}</td></tr>`;
     }).join("");
     $("tableContainer").innerHTML=filtered.length?`<div class="table-wrap"><table><thead><tr><th>Student / Arday</th><th>Attendance Status / Xaalad</th><th>Notes / Faahfaahin</th><th>Record</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">Arday ku habboon raadinta lama helin.</div>';
     $("tableInfo").textContent=`Showing ${filtered.length} of ${state.students.length} students · ${state.records.size} existing records`;
-    renderStats(); $("saveBtn").disabled=state.busy || state.students.length===0;
+    renderStats(); updateActions();
   }
   function syncDraftFromTable(event){
     const field=event.target.dataset.field; if(!field)return;
@@ -167,32 +232,36 @@
   async function saveAttendance(){
     if(state.busy)return;
     const lesson=selectedLesson();
-    if(!lesson || !state.students.length) return message("Marka hore dooro cashar ay arday ku jiraan.","error");
-    if(lesson.institution_id!==state.selectedInstitution || lesson.class_id!==state.selectedClass) return message("Institution/Class/Lesson selection is inconsistent. Reload and try again.","error");
-    if(state.profile.role!=="super_admin" && lesson.institution_id!==state.profile.institution_id) return message("Access denied: institution mismatch.","error");
-    if(state.profile.role==="teacher" && lesson.teacher_id!==state.user.id) return message("Access denied: casharkan adiga laguma xilsaarin.","error");
-    const confirmText=`Ma hubtaa inaad kaydinayso attendance-ka ${state.students.length} arday ee ${lesson.title||"casharkan"}?`;
+    try{ assertAccess(lesson); }catch(e){ return message(e.message,"error"); }
+    const changed=state.students.filter(studentChanged);
+    if(!changed.length) return message("Isbeddel la kaydin karo ma jiro. Attendance-ka waa la kaydiyey.","info");
+    const willUnpublish=changed.some(s=>state.records.get(s.id)?.is_published===true);
+    const confirmText=`Ma hubtaa inaad kaydinayso attendance-ka ${changed.length} arday ee ${lesson.title||"casharkan"}?`+(willUnpublish?"\n\nQeybaha hore loo daabacay ee la beddelay waxaa si toos ah loo unpublish-gareynayaa.":"");
     if(!window.confirm(confirmText))return;
     setBusy(true); clearMessage(); let saved=0, failed=[];
     try{
-      for(const student of state.students){
+      await verifyAuthorization();
+      for(const student of changed){
         const draft=state.draft.get(student.id)||{status:"present",notes:""};
         if(!STATUS.includes(draft.status)){failed.push(`${student.full_name}: invalid status`);continue;}
         const payload={institution_id:lesson.institution_id,lesson_id:lesson.id,student_id:student.id,status:draft.status,notes:String(draft.notes||"").trim()||null,recorded_by:state.user.id};
         const existing=state.records.get(student.id);
+        const upd={status:payload.status,notes:payload.notes,recorded_by:payload.recorded_by};
+        if(existing && existing.is_published===true) upd.is_published=false; // modified published record becomes draft
         let result;
         if(existing){
-          result=await db.from("attendance").update({status:payload.status,notes:payload.notes,recorded_by:payload.recorded_by}).eq("id",existing.id).eq("institution_id",lesson.institution_id).select("id,institution_id,lesson_id,student_id,status,notes,recorded_by,recorded_at").maybeSingle();
+          result=await db.from("attendance").update(upd).eq("id",existing.id).eq("institution_id",lesson.institution_id).eq("lesson_id",lesson.id).select(REC_COLS).maybeSingle();
         } else {
-          result=await db.from("attendance").insert(payload).select("id,institution_id,lesson_id,student_id,status,notes,recorded_by,recorded_at").maybeSingle();
+          result=await db.from("attendance").insert(payload).select(REC_COLS).maybeSingle();
         }
         if(result.error || !result.data){
           let errorText=result.error?.message||"No row returned (check RLS/policy)";
           // A concurrent insert can hit the existing unique key. Re-read and update that row safely.
           if(!existing && result.error?.code==="23505"){
-            const reread=await db.from("attendance").select("id").eq("institution_id",lesson.institution_id).eq("lesson_id",lesson.id).eq("student_id",student.id).maybeSingle();
+            const reread=await db.from("attendance").select("id,is_published").eq("institution_id",lesson.institution_id).eq("lesson_id",lesson.id).eq("student_id",student.id).maybeSingle();
             if(!reread.error&&reread.data){
-              const retry=await db.from("attendance").update({status:payload.status,notes:payload.notes,recorded_by:payload.recorded_by}).eq("id",reread.data.id).eq("institution_id",lesson.institution_id).select("id").maybeSingle();
+              const u2={...upd}; if(reread.data.is_published===true) u2.is_published=false;
+              const retry=await db.from("attendance").update(u2).eq("id",reread.data.id).eq("institution_id",lesson.institution_id).select("id").maybeSingle();
               if(!retry.error&&retry.data){saved++;continue;} errorText=retry.error?.message||errorText;
             }
           }
@@ -200,11 +269,47 @@
         }
         state.records.set(student.id,result.data); saved++;
       }
-      renderStudents();
+      try{ await refreshRecords(lesson); }catch(e){ console.error(e); }
       if(failed.length){message(`Kaydinta qayb ahaan way dhacday: ${saved} waa la kaydiyey, ${failed.length} way fashilmeen. Sababaha ugu horreeya: ${failed.slice(0,3).join(" | ")}`,"error");}
       else message(`Attendance si guul leh ayaa loo kaydiyey: ${saved} arday.`,"success");
     }catch(e){console.error("GAAWOW Attendance save error",e);message("Kaydintu way fashilantay: "+(e?.message||String(e)),"error");}
-    finally{setBusy(false);}
+    finally{setBusy(false);renderStudents();}
+  }
+  async function setPublished(flag){
+    if(state.busy)return;
+    const lesson=selectedLesson();
+    try{ assertAccess(lesson); }catch(e){ return message(e.message,"error"); }
+    let info=publishInfo();
+    if(flag){
+      if(!info.complete) return message(`Publish lama samayn karo: ${info.total-info.saved} arday ayaan weli attendance loo kaydin. Marka hore kaydi dhammaan ardayda.`,"error");
+      if(isDirty()) return message("Isbeddello aan la kaydin ayaa jira. Marka hore riix Save Attendance, kadibna Publish.","error");
+      if(info.unpub===0) return message("Attendance-ka horey ayaa loo daabacay.","info");
+    } else if(info.pub===0) return message("Attendance daabacan ma jiro.","info");
+    const txt=flag
+      ?`Ma hubtaa inaad PUBLISH garaynayso attendance-ka ${info.total} arday ee ${lesson.title||"casharkan"}? Ardayda ayaa arki doona.`
+      :`Ma hubtaa inaad UNPUBLISH garaynayso attendance-ka ${lesson.title||"casharkan"}? Xaaladaha iyo notes-ka waa la ilaalinayaa.`;
+    if(!window.confirm(txt))return;
+    setBusy(true); clearMessage();
+    try{
+      await verifyAuthorization();
+      await refreshRecords(lesson);
+      info=publishInfo();
+      if(flag){
+        if(!info.complete) throw new Error("Attendance wuu dhammaystiranayn. Dib u soo rar oo kaydi dhammaan ardayda.");
+        if(isDirty()) throw new Error("Attendance-ka Supabase ku jira wuu ka duwan yahay waxa shaashadda ku jira. Save samee marka hore.");
+      }
+      const target=flag?info.unpub:info.pub;
+      if(!target) throw new Error(flag?"Ma jiraan diiwaano la daabaco.":"Ma jiraan diiwaano la unpublish-gareeyo.");
+      const {data,error}=await db.from("attendance").update({is_published:flag}).eq("institution_id",lesson.institution_id).eq("lesson_id",lesson.id).eq("is_published",!flag).in("student_id",state.students.map(s=>s.id)).select("id");
+      if(error) throw new Error(error.message);
+      const updated=(data||[]).length;
+      await refreshRecords(lesson);
+      if(updated!==target) throw new Error(`${updated} ka mid ah ${target} diiwaan ayaa la cusboonaysiiyey. Hubi RLS/policy-ga attendance.`);
+      message(flag?`Attendance si guul leh ayaa loo daabacay: ${updated} diiwaan.`:`Attendance waa la unpublish-gareeyey: ${updated} diiwaan. Waad saxi kartaa oo mar kale daabici kartaa.`,"success");
+    }catch(e){
+      console.error("GAAWOW Attendance publish error",e);
+      message((flag?"Publish":"Unpublish")+" way fashilantay: "+(e?.message||String(e)),"error");
+    }finally{setBusy(false);renderStudents();}
   }
   async function reloadCurrent(){
     clearMessage();
@@ -229,13 +334,15 @@
     $("tableContainer").addEventListener("change",syncDraftFromTable);
     $("tableContainer").addEventListener("input",syncDraftFromTable);
     $("saveBtn").addEventListener("click",saveAttendance);
+    $("publishBtn").addEventListener("click",()=>setPublished(true));
+    $("unpublishBtn").addEventListener("click",()=>setPublished(false));
     $("reloadBtn").addEventListener("click",async()=>{try{await reloadCurrent();message("Xogta waa la cusboonaysiiyey.","success");}catch(e){message(e.message,"error");}});
     $("clearBtn").addEventListener("click",clearChanges);
     $("logoutBtn").addEventListener("click",async()=>{const {error}=await db.auth.signOut();if(error)message("Logout error: "+error.message,"error");else window.location.replace("index.html");});
     db.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"||!session)window.location.replace("index.html");});
   }
   async function init(){
-    $("year").textContent=String(new Date().getFullYear());bind();
+    $("year").textContent=String(new Date().getFullYear());bind();updateActions();
     try{await checkSession();await loadInstitutions();}
     catch(e){console.error("GAAWOW Attendance init error",e);message(e.message||String(e),"error");resetStudents("Attendance lama bilaabi karin. Akhri fariinta qaladka ee kore.");}
   }
