@@ -609,24 +609,163 @@ function renderAcademic(enrollment, course, department, studentClass, institutio
 }
 
 /* =========================================================
-   ACADEMIC PROGRESS
-   ========================================================= */
+DYNAMIC ACADEMIC PROGRESS V12
+Uses existing enrollments, attendance and published results.
+Does not read or write academic_progress.
+========================================================= */
 
-function renderProgress(rows) {
-  if (!rows.length) {
-    return empty("progressBody", 6, "No academic progress records available yet.");
+async function loadDynamicAcademicProgress(student, enrollments, academicYear) {
+const institutionId = student.institution_id;
+const studentId = student.id;
+
+// 1. Calculate distinct courses and completed courses.
+const courseIds = [
+...new Set(
+enrollments
+.map(row => row.course_id)
+.filter(Boolean)
+)
+];
+
+const completedCourseIds = [
+...new Set(
+enrollments
+.filter(row =>
+String(row.status || "").toLowerCase() === "completed"
+)
+.map(row => row.course_id)
+.filter(Boolean)
+)
+];
+
+// 2. Fetch attendance separately to avoid join multiplication.
+const attendanceResponse = await sb
+.from("attendance")
+.select("id,status")
+.eq("student_id", studentId)
+.eq("institution_id", institutionId);
+
+if (attendanceResponse.error) {
+throw attendanceResponse.error;
+}
+
+const attendanceRows = attendanceResponse.data || [];
+
+const attendanceCounts = {
+present: 0,
+absent: 0,
+late: 0,
+excused: 0
+};
+
+attendanceRows.forEach(row => {
+const status = String(row.status || "").toLowerCase();
+
+if (Object.prototype.hasOwnProperty.call(attendanceCounts, status)) {
+  attendanceCounts[status]++;
+}
+
+});
+
+const attendanceDenominator =
+attendanceCounts.present +
+attendanceCounts.absent +
+attendanceCounts.late;
+
+const attendancePercentage =
+attendanceDenominator > 0
+? attendanceCounts.present / attendanceDenominator * 100
+: null;
+
+// 3. Fetch published results separately.
+const resultsResponse = await sb
+.from("results")
+.select("id,score,max_score,percentage,grade,is_published")
+.eq("student_id", studentId)
+.eq("institution_id", institutionId)
+.eq("is_published", true);
+
+if (resultsResponse.error) {
+throw resultsResponse.error;
+}
+
+const publishedResults = resultsResponse.data || [];
+
+const percentages = publishedResults
+.map(row => {
+if (row.percentage !== null && row.percentage !== undefined) {
+const percentage = Number(row.percentage);
+return Number.isFinite(percentage) ? percentage : null;
+}
+
+  const score = Number(row.score);
+  const maxScore = Number(row.max_score);
+
+  if (
+    row.score !== null &&
+    row.max_score !== null &&
+    Number.isFinite(score) &&
+    Number.isFinite(maxScore) &&
+    maxScore > 0
+  ) {
+    return score / maxScore * 100;
   }
 
-  $("progressBody").innerHTML = rows.map(row => `
-    <tr>
-      <td>${esc(val(row.academic_year))}</td>
-      <td>${esc(val(row.total_courses))}</td>
-      <td>${esc(val(row.completed_courses))}</td>
-      <td>${row.attendance_percentage == null ? "—" : esc(row.attendance_percentage + "%")}</td>
-      <td>${row.average_score == null ? "—" : esc(row.average_score)}</td>
-      <td>${esc(val(row.remarks))}</td>
-    </tr>
-  `).join("");
+  return null;
+})
+.filter(value => value !== null);
+
+const averageScore = percentages.length
+? percentages.reduce((sum, value) => sum + value, 0) / percentages.length
+: null;
+
+// 4. Build the academic progress row.
+const selectedYear =
+academicYear?.year_name ||
+window.__currentAcademicYear ||
+"Current Academic Year";
+
+const enrollmentStatuses = enrollments.map(row =>
+String(row.status || "").toLowerCase()
+);
+
+const remarks =
+enrollmentStatuses.length &&
+enrollmentStatuses.every(status => status === "completed")
+? "Completed"
+: "In Progress";
+
+const progress = {
+academic_year: selectedYear,
+total_courses: courseIds.length,
+completed_courses: completedCourseIds.length,
+attendance_percentage: attendancePercentage,
+average_score: averageScore,
+remarks
+};
+
+renderProgress([progress]);
+
+console.info("Dynamic Academic Progress:", {
+studentId: student.student_id,
+courses: courseIds.length,
+completedCourses: completedCourseIds.length,
+attendance: attendancePercentage,
+publishedResults: publishedResults.length,
+averageScore
+});
+}
+
+function renderProgress(rows) {
+if (!rows.length) {
+return empty(
+"progressBody",
+6,
+"No enrollment records available yet."
+);
+}
+
+$("progressBody").innerHTML = rows.map(row => "<tr> <td>${esc(val(row.academic_year))}</td> <td>${esc(val(row.total_courses, "0"))}</td> <td>${esc(val(row.completed_courses, "0"))}</td> <td> ${ row.attendance_percentage === null ? "No attendance records yet" : esc(row.attendance_percentage.toFixed(1) + "%") } </td> <td> ${ row.average_score === null ? "No published results yet" : esc(row.average_score.toFixed(2) + "%") } </td> <td>${esc(val(row.remarks))}</td> </tr>").join("");
 }
 
 /* =========================================================
@@ -1115,17 +1254,20 @@ async function loadPortal() {
     showMessage("Loading academic records...", "info");
 
     try {
-      const progress = await getStudentRows(
-        "academic_progress",
-        "id,institution_id,student_id,course_id,academic_year,total_courses,completed_courses,attendance_percentage,average_score,remarks,created_at,updated_at",
-        student.id
-      );
+await loadDynamicAcademicProgress(
+student,
+allEnrollments,
+academicYear
+);
+} catch (error) {
+console.error("Dynamic academic progress error:", error);
 
-      renderProgress(progress);
-    } catch (error) {
-      console.warn("Academic progress:", error);
-      empty("progressBody", 6, "Academic progress could not be loaded.");
-    }
+empty(
+"progressBody",
+6,
+"Academic progress could not be calculated. Please contact the administrator."
+);
+}
 
     try {
       await loadGrades(student.id);
