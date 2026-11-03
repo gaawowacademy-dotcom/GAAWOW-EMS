@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0B1E63">
+
+<title>GAAWOW EMS | School Admin Management</title>
+
+<style>
+:root{
+--navy:#0B1E63;
+--blue:#0B4DA2;
+--gold:#D4AF37;
+--bg:#F5F7FA;
+--muted:#64748B;
+}
+
+*{box-sizing:border-box}
+
+body{
+margin:0;
+background:var(--bg);
+font-family:Arial,sans-serif;
+color:#17233f;
+}
+
+header{
+background:linear-gradient(120deg,var(--navy),var(--blue));
+color:white;
+padding:14px 4%;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.brand{
+display:flex;
+align-items:center;
+gap:10px;
+}
+
+.brand img{
+width:46px;
+height:46px;
+object-fit:contain;
+background:white;
+padding:4px;
+border-radius:9px;
+}
+
+.brand h2{font-size:16px;margin:0 0 4px}
+.brand p{font-size:11px;margin:0}
+
+header a{
+color:white;
+text-decoration:none;
+border:1px solid #ffffff66;
+padding:9px 12px;
+border-radius:8px;
+font-size:12px;
+}
+
+main{
+max-width:1200px;
+margin:25px auto;
+padding:0 15px;
+}
+
+.heading{
+display:flex;
+justify-content:space-between;
+align-items:center;
+gap:10px;
+}
+
+.heading h2{
+color:var(--navy);
+margin:0 0 6px;
+}
+
+.heading p{
+color:var(--muted);
+font-size:12px;
+margin:0;
+}
+
+.badge{
+background:#fff1c9;
+color:#806000;
+padding:8px 12px;
+border-radius:20px;
+font-size:10px;
+font-weight:bold;
+}
+
+.notice{
+display:none;
+padding:12px;
+margin:15px 0;
+border-radius:8px;
+font-size:12px;
+line-height:1.5;
+}
+
+.notice.show{display:block}
+.notice.success{background:#e8f8ed;color:#176b35}
+.notice.error{background:#fff0f0;color:#a32323}
+.notice.info{background:#eaf1ff;color:#17468d}
+
+.stats{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:12px;
+margin:20px 0;
+}
+
+.stat,.panel{
+background:white;
+border:1px solid #e5eaf3;
+border-radius:12px;
+padding:16px;
+}
+
+.stat span{
+font-size:11px;
+color:var(--muted);
+}
+
+.stat strong{
+display:block;
+font-size:23px;
+color:var(--navy);
+margin-top:6px;
+}
+
+.panel{margin-bottom:16px}
+.panel h3{color:var(--navy);font-size:15px;margin:0 0 15px}
+
+.form-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:12px;
+}
+
+label{
+display:block;
+font-size:11px;
+font-weight:bold;
+margin-bottom:6px;
+}
+
+input,select{
+width:100%;
+height:41px;
+padding:0 10px;
+border:1px solid #d9e1ee;
+border-radius:8px;
+font-size:12px;
+background:white;
+}
+
+button{
+cursor:pointer;
+}
+
+.primary{
+height:41px;
+border:0;
+border-radius:8px;
+background:var(--navy);
+color:white;
+font-weight:bold;
+padding:0 16px;
+}
+
+.primary:disabled{opacity:.6}
+
+.toolbar{
+display:flex;
+justify-content:space-between;
+gap:10px;
+margin-bottom:12px;
+}
+
+.toolbar input{max-width:350px}
+
+.table-wrap{overflow-x:auto}
+
+table{
+width:100%;
+min-width:760px;
+border-collapse:collapse;
+}
+
+th,td{
+text-align:left;
+padding:11px 9px;
+border-bottom:1px solid #edf0f5;
+font-size:11px;
+}
+
+th{
+background:#f9fbfe;
+color:#64748b;
+font-size:10px;
+}
+
+.status{
+padding:5px 8px;
+border-radius:20px;
+font-size:10px;
+font-weight:bold;
+}
+
+.active{background:#e8f8ed;color:#18743a}
+.inactive{background:#fff0f0;color:#a32323}
+
+.small-btn{
+padding:7px 9px;
+border:1px solid #d8e0ed;
+background:white;
+color:var(--navy);
+border-radius:7px;
+font-size:10px;
+font-weight:bold;
+margin:2px;
+}
+
+.danger{color:#a32323}
+
+footer{
+text-align:center;
+padding:25px;
+color:#8290a7;
+font-size:11px;
+}
+
+@media(max-width:700px){
+.form-grid{grid-template-columns:1fr 1fr}
+.stats{gap:7px}
+.toolbar{flex-direction:column}
+.toolbar input{max-width:none}
+.heading{align-items:flex-start;flex-direction:column}
+}
+
+@media(max-width:450px){
+.form-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="brand">
+<img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+<div>
+<h2>GAAWOW EMS</h2>
+<p>School Admin Management</p>
+</div>
+</div>
+
+<a href="dashboard.html">← Dashboard</a>
+</header>
+
+<main>
+
+<section class="heading">
+<div>
+<h2>School Admin Management</h2>
+<p>Create and manage institution administrators.</p>
+</div>
+<span class="badge">SUPER ADMIN ONLY</span>
+</section>
+
+<div id="notice" class="notice" role="status"></div>
+
+<section class="stats">
+<div class="stat">
+<span>Total School Admins</span>
+<strong id="totalAdmins">0</strong>
+</div>
+
+<div class="stat">
+<span>Active Accounts</span>
+<strong id="activeAdmins">0</strong>
+</div>
+
+<div class="stat">
+<span>Inactive Accounts</span>
+<strong id="inactiveAdmins">0</strong>
+</div>
+</section>
+
+<section class="panel">
+<h3>Create New School Admin</h3>
+
+<form id="createAdminForm">
+
+<div class="form-grid">
+
+<div>
+<label>Full Name *</label>
+<input id="full_name" required maxlength="120">
+</div>
+
+<div>
+<label>Email Address *</label>
+<input id="email" type="email" required>
+</div>
+
+<div>
+<label>Temporary Password *</label>
+<input id="password" type="password" minlength="8" required>
+</div>
+
+<div>
+<label>Phone</label>
+<input id="phone" type="tel">
+</div>
+
+<div>
+<label>Institution *</label>
+<select id="institution_id" required>
+<option value="">Loading institutions...</option>
+</select>
+</div>
+
+<div style="display:flex;align-items:end">
+<button class="primary" id="createBtn" type="submit" style="width:100%">
+Create School Admin
+</button>
+</div>
+
+</div>
+</form>
+</section>
+
+<section class="panel">
+
+<h3>Existing School Admin Accounts</h3>
+
+<div class="toolbar">
+<input id="searchInput" type="search" placeholder="Search name, email or institution">
+
+<select id="statusFilter">
+<option value="all">All Statuses</option>
+<option value="active">Active</option>
+<option value="inactive">Inactive</option>
+</select>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Email</th>
+<th>Institution</th>
+<th>Status</th>
+<th>Created</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody id="adminsTable">
+<tr><td colspan="6">Loading...</td></tr>
+</tbody>
+
+</table>
+</div>
+
+</section>
+
+</main>
+
+<footer>GAAWOW Academy · Ilayska Aqoonta iyo Xirfadda</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./school-admins.js?v=20261103"></script>
+
+</body>
+</html>
