@@ -7,7 +7,7 @@
   const SUPABASE_URL = 'https://mytyvqwrxnxpxnxpiicj.supabase.co';
   // Copy the EXISTING publishable/anon key from app.js into this value before deployment.
   // Never place a service_role key in browser code.
-  const SUPABASE_ANON_KEY = 'PASTE_EXISTING_SUPABASE_PUBLISHABLE_OR_ANON_KEY_HERE';
+  const SUPABASE_ANON_KEY = 'sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145';
   const $ = (id) => document.getElementById(id);
   const notice = $('notice');
   const setNotice = (message, type='') => { notice.textContent = message; notice.className = `notice ${type}`.trim(); };
