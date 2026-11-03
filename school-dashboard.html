@@ -1,30 +1,744 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0B1E63"><meta name="description" content="GAAWOW EMS School Admin Dashboard">
-  <title>GAAWOW EMS | School Admin Dashboard</title>
-  <link rel="icon" href="logo.png"><link rel="stylesheet" href="school-dashboard.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-  <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <div class="brand"><img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy logo"><div><strong>GAAWOW EMS</strong><small>School Administration</small></div></div>
-      <div class="side-label">WORKSPACE</div><nav id="moduleNav" aria-label="School modules"></nav>
-      <div class="sidebar-foot"><span class="status-dot"></span> Secure school workspace</div>
-    </aside>
-    <main class="main">
-      <header class="topbar"><button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button><div><div class="eyebrow">EDUCATION MANAGEMENT SYSTEM</div><h1>School Admin Dashboard</h1></div><div class="top-actions"><span class="school-chip" id="schoolName">Loading institution…</span><button id="signOutBtn" class="signout">Sign out</button></div></header>
-      <section class="welcome"><div><p class="eyebrow gold">ILAYSKA AQOONTA IYO XIRFADDA</p><h2>Welcome back, <span id="adminName">School Administrator</span></h2><p class="muted">Manage your institution from one secure workspace.</p></div><div class="welcome-mark">GA</div></section>
-      <section class="notice" id="notice" role="status">Loading your secure school workspace…</section>
-      <section class="section-head"><div><h2>Available modules</h2><p class="muted">Only modules enabled in this dashboard are shown. Access is still enforced by each module and Supabase policies.</p></div><div class="search-wrap"><input type="search" id="moduleSearch" placeholder="Search modules…" aria-label="Search modules"></div></section>
-      <section id="moduleGrid" class="module-grid" aria-live="polite"></section>
-      <footer>© <span id="year"></span> GAAWOW Academy · Burhakaba, Bay, Somalia</footer>
-    </main>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script src="./school-dashboard.js?v=1"></script>
+<title>School Admin Management | GAAWOW EMS</title>
+<meta name="theme-color" content="#0B1E63">
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Arial,Helvetica,sans-serif;
+    background:linear-gradient(135deg,#F5F7FA,#EEF3FA,#FFFFFF);
+    color:#1F2937;
+    min-height:100vh;
+}
+
+.topbar{
+    background:linear-gradient(135deg,#0B1E63,#0B4DA2);
+    color:white;
+    padding:17px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    box-shadow:0 6px 20px rgba(11,30,99,.2);
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:13px;
+}
+
+.brand img{
+    width:52px;
+    height:52px;
+    object-fit:contain;
+    background:white;
+    border-radius:11px;
+    padding:5px;
+}
+
+.brand h1{
+    font-size:19px;
+}
+
+.brand p{
+    font-size:11px;
+    opacity:.85;
+    margin-top:4px;
+}
+
+.admin-badge{
+    background:#D4AF37;
+    color:#0B1E63;
+    padding:8px 13px;
+    border-radius:30px;
+    font-size:11px;
+    font-weight:800;
+}
+
+.container{
+    width:min(1200px,94%);
+    margin:auto;
+    padding:30px 0 45px;
+}
+
+.page-heading{
+    margin-bottom:22px;
+}
+
+.page-heading h2{
+    color:#0B1E63;
+    font-size:27px;
+    margin-bottom:8px;
+}
+
+.page-heading p{
+    color:#64748B;
+    font-size:13px;
+    line-height:1.6;
+}
+
+.back-btn{
+    display:inline-block;
+    text-decoration:none;
+    background:#0B1E63;
+    color:white;
+    padding:10px 16px;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:700;
+    margin-bottom:20px;
+}
+
+.back-btn:hover{
+    background:#0B4DA2;
+}
+
+/* STATISTICS */
+
+.stats-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:16px;
+    margin-bottom:25px;
+}
+
+.stat-card{
+    background:white;
+    padding:21px;
+    border:1px solid #E5E7EB;
+    border-radius:16px;
+    box-shadow:0 7px 20px rgba(15,23,42,.06);
+    position:relative;
+    overflow:hidden;
+}
+
+.stat-card:before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    height:4px;
+    background:#0B4DA2;
+}
+
+.stat-card.gold:before{
+    background:#D4AF37;
+}
+
+.stat-card.green:before{
+    background:#16A34A;
+}
+
+.stat-icon{
+    font-size:25px;
+    margin-bottom:10px;
+}
+
+.stat-number{
+    color:#0B1E63;
+    font-size:27px;
+    font-weight:800;
+}
+
+.stat-label{
+    color:#64748B;
+    font-size:12px;
+    margin-top:5px;
+}
+
+/* PANELS */
+
+.panel{
+    background:white;
+    border:1px solid #E5E7EB;
+    border-radius:18px;
+    padding:23px;
+    margin-bottom:23px;
+    box-shadow:0 7px 22px rgba(15,23,42,.06);
+}
+
+.panel-title{
+    color:#0B1E63;
+    font-size:18px;
+    margin-bottom:18px;
+}
+
+/* FORM */
+
+.form-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:16px;
+}
+
+.form-group{
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+}
+
+.form-group label{
+    color:#334155;
+    font-size:12px;
+    font-weight:700;
+}
+
+.form-group input,
+.form-group select{
+    width:100%;
+    padding:12px;
+    border:1px solid #CBD5E1;
+    border-radius:10px;
+    font-size:13px;
+    outline:none;
+    background:#fff;
+}
+
+.form-group input:focus,
+.form-group select:focus{
+    border-color:#0B4DA2;
+    box-shadow:0 0 0 3px rgba(11,77,162,.1);
+}
+
+.full-width{
+    grid-column:1/-1;
+}
+
+.primary-btn{
+    background:#0B1E63;
+    color:white;
+    border:0;
+    border-radius:10px;
+    padding:13px 19px;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.primary-btn:hover{
+    background:#0B4DA2;
+}
+
+.primary-btn:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
+
+/* SEARCH */
+
+.toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:17px;
+}
+
+.search-input{
+    width:100%;
+    max-width:350px;
+    padding:12px;
+    border:1px solid #CBD5E1;
+    border-radius:10px;
+    outline:none;
+    font-size:13px;
+}
+
+/* TABLE */
+
+.table-wrap{
+    width:100%;
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:750px;
+}
+
+thead{
+    background:#0B1E63;
+    color:white;
+}
+
+th{
+    padding:13px 11px;
+    font-size:11px;
+    text-align:left;
+    white-space:nowrap;
+}
+
+td{
+    padding:13px 11px;
+    border-bottom:1px solid #E5E7EB;
+    font-size:12px;
+    color:#334155;
+}
+
+tbody tr:nth-child(even){
+    background:#F8FAFC;
+}
+
+tbody tr:hover{
+    background:#EEF4FF;
+}
+
+.status-badge{
+    display:inline-block;
+    padding:6px 10px;
+    border-radius:30px;
+    font-size:10px;
+    font-weight:800;
+}
+
+.active{
+    background:#DCFCE7;
+    color:#15803D;
+}
+
+.inactive{
+    background:#FEE2E2;
+    color:#B91C1C;
+}
+
+.action-btn{
+    border:0;
+    padding:8px 10px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:10px;
+    font-weight:700;
+    margin:2px;
+}
+
+.assign-btn{
+    background:#DBEAFE;
+    color:#1D4ED8;
+}
+
+.toggle-btn{
+    background:#FEF3C7;
+    color:#92400E;
+}
+
+.loading{
+    text-align:center;
+    padding:25px;
+    color:#64748B;
+}
+
+.message{
+    padding:13px;
+    border-radius:10px;
+    font-size:12px;
+    margin-bottom:15px;
+    display:none;
+    line-height:1.5;
+}
+
+.message.success{
+    display:block;
+    background:#DCFCE7;
+    color:#166534;
+}
+
+.message.error{
+    display:block;
+    background:#FEE2E2;
+    color:#991B1B;
+}
+
+.message.info{
+    display:block;
+    background:#DBEAFE;
+    color:#1E40AF;
+}
+
+/* MODAL */
+
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.6);
+    z-index:500;
+    align-items:center;
+    justify-content:center;
+    padding:15px;
+}
+
+.modal.show{
+    display:flex;
+}
+
+.modal-content{
+    width:min(450px,100%);
+    background:white;
+    border-radius:18px;
+    padding:24px;
+    box-shadow:0 15px 40px rgba(0,0,0,.2);
+}
+
+.modal-content h3{
+    color:#0B1E63;
+    margin-bottom:17px;
+}
+
+.modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+}
+
+.secondary-btn{
+    background:#E2E8F0;
+    color:#334155;
+    border:0;
+    border-radius:9px;
+    padding:12px 17px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+footer{
+    background:#0B1E63;
+    color:white;
+    text-align:center;
+    padding:25px 15px;
+    border-radius:18px 18px 0 0;
+    margin-top:40px;
+}
+
+footer img{
+    width:50px;
+    height:50px;
+    object-fit:contain;
+    background:white;
+    padding:4px;
+    border-radius:10px;
+    margin-bottom:9px;
+}
+
+footer h4{
+    font-size:14px;
+    margin-bottom:5px;
+}
+
+footer p{
+    font-size:11px;
+    opacity:.8;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:700px){
+
+    .topbar{
+        padding:13px;
+    }
+
+    .brand img{
+        width:44px;
+        height:44px;
+    }
+
+    .brand h1{
+        font-size:15px;
+    }
+
+    .brand p{
+        font-size:9px;
+    }
+
+    .admin-badge{
+        font-size:9px;
+        padding:7px 9px;
+    }
+
+    .container{
+        width:92%;
+        padding-top:22px;
+    }
+
+    .page-heading h2{
+        font-size:23px;
+    }
+
+    .stats-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:11px;
+    }
+
+    .stat-card{
+        padding:16px;
+    }
+
+    .stat-number{
+        font-size:23px;
+    }
+
+    .panel{
+        padding:16px;
+    }
+
+    .form-grid{
+        grid-template-columns:1fr;
+    }
+
+    .full-width{
+        grid-column:auto;
+    }
+
+    .toolbar{
+        flex-direction:column;
+        align-items:stretch;
+    }
+
+    .search-input{
+        max-width:none;
+    }
+
+    .primary-btn{
+        width:100%;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <div class="brand">
+        <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+             alt="GAAWOW Academy Logo">
+        <div>
+            <h1>GAAWOW EMS</h1>
+            <p>Education Management &amp; Verification System</p>
+        </div>
+    </div>
+
+    <div class="admin-badge">SUPER ADMIN</div>
+</header>
+
+<main class="container">
+
+    <a href="dashboard.html" class="back-btn">
+        ← Back to Dashboard
+    </a>
+
+    <section class="page-heading">
+        <h2>School Admin Management</h2>
+        <p>
+            Create and manage school administrator accounts,
+            assign institutions and control administrative access.
+        </p>
+    </section>
+
+    <div id="pageMessage" class="message"></div>
+
+    <!-- STATISTICS -->
+
+    <section class="stats-grid">
+
+        <div class="stat-card">
+            <div class="stat-icon">👨‍💼</div>
+            <div class="stat-number" id="totalAdmins">0</div>
+            <div class="stat-label">Total School Admins</div>
+        </div>
+
+        <div class="stat-card green">
+            <div class="stat-icon">✅</div>
+            <div class="stat-number" id="activeAdmins">0</div>
+            <div class="stat-label">Active Accounts</div>
+        </div>
+
+        <div class="stat-card gold">
+            <div class="stat-icon">⏸️</div>
+            <div class="stat-number" id="inactiveAdmins">0</div>
+            <div class="stat-label">Inactive Accounts</div>
+        </div>
+
+    </section>
+
+    <!-- CREATE SCHOOL ADMIN -->
+
+    <section class="panel">
+
+        <h3 class="panel-title">➕ Create New School Admin</h3>
+
+        <form id="createAdminForm">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+                    <label for="adminName">Full Name</label>
+                    <input
+                        type="text"
+                        id="adminName"
+                        placeholder="Enter full name"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="adminEmail">Email Address</label>
+                    <input
+                        type="email"
+                        id="adminEmail"
+                        placeholder="admin@example.com"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="adminPassword">Temporary Password</label>
+                    <input
+                        type="password"
+                        id="adminPassword"
+                        minlength="8"
+                        autocomplete="new-password"
+                        placeholder="Minimum 8 characters"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="adminInstitution">Assign Institution</label>
+                    <select id="adminInstitution" required>
+                        <option value="">Loading institutions...</option>
+                    </select>
+                </div>
+
+                <div class="form-group full-width">
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                        id="createAdminBtn"
+                    >
+                        Create School Admin Account
+                    </button>
+                </div>
+
+            </div>
+
+        </form>
+
+    </section>
+
+    <!-- ADMIN LIST -->
+
+    <section class="panel">
+
+        <div class="toolbar">
+            <h3 class="panel-title" style="margin:0">
+                👨‍💼 School Administrators
+            </h3>
+
+            <input
+                type="search"
+                id="adminSearch"
+                class="search-input"
+                placeholder="Search by name or institution..."
+            >
+        </div>
+
+        <div class="table-wrap">
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Full Name</th>
+                        <th>Account ID</th>
+                        <th>Institution</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="adminTableBody">
+                    <tr>
+                        <td colspan="6" class="loading">
+                            Loading School Admins...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+
+    </section>
+
+    <!-- ASSIGN INSTITUTION MODAL -->
+
+    <div class="modal" id="assignModal">
+
+        <div class="modal-content">
+
+            <h3>Assign Institution</h3>
+
+            <p id="assignAdminName"
+               style="font-size:12px;color:#64748B;margin-bottom:16px">
+            </p>
+
+            <div class="form-group">
+                <label for="assignInstitution">
+                    Select Institution
+                </label>
+
+                <select id="assignInstitution">
+                    <option value="">Select institution</option>
+                </select>
+            </div>
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="primary-btn"
+                    id="saveAssignmentBtn"
+                >
+                    Save Assignment
+                </button>
+
+                <button
+                    type="button"
+                    class="secondary-btn"
+                    onclick="closeAssignModal()"
+                >
+                    Cancel
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <footer>
+        <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+             alt="GAAWOW Academy">
+
+        <h4>GAAWOW ACADEMY</h4>
+        <p>Ilayska Aqoonta iyo Xirfadda</p>
+    </footer>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./school-admins.js?v=20261103"></script>
+
+</body>
+</html>
