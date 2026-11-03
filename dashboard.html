@@ -1,10 +1,13 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GAAWOW EMS — Super Admin</title>
 <meta name="theme-color" content="#0B1E63">
-<meta name="description" content="GAAWOW EMS Super Admin Dashboard"><style>
+<meta name="description" content="GAAWOW EMS Super Admin Dashboard">
+
+<style>
 *{box-sizing:border-box;margin:0;padding:0}
 
 body{
@@ -379,6 +382,21 @@ body{
   background:linear-gradient(135deg,#FFF1B8,#EAF0FF)
 }
 
+/* SCHOOL ADMIN MANAGEMENT */
+.school-admin-card{
+  border-top:4px solid #7C3AED;
+  background:linear-gradient(145deg,#FFFFFF,#F5F0FF)
+}
+
+.school-admin-card:hover{
+  border-color:#7C3AED;
+  box-shadow:0 14px 30px rgba(124,58,237,.15)
+}
+
+.school-admin-card .menu-icon{
+  background:linear-gradient(135deg,#EDE9FE,#F5F3FF)
+}
+
 /* FOOTER */
 footer{
   margin-top:45px;
@@ -451,7 +469,12 @@ footer p{font-size:12px;opacity:.8;margin-bottom:16px}
   }
   .results-view-btn{width:100%}
 }
-</style></head><body><header class="topbar">
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
   <div class="brand">
     <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy Logo">
     <div>
@@ -460,302 +483,215 @@ footer p{font-size:12px;opacity:.8;margin-bottom:16px}
     </div>
   </div>
   <div class="admin-badge">SUPER ADMIN</div>
-</header><main class="container">  <!-- WELCOME -->  <section class="welcome">
-    <h2 id="superAdminWelcome">Welcome, GAAWOW Academy</h2>
-    <p>Manage institutions, students, teachers, academic records, certificates and the complete GAAWOW EMS system.</p>
-    <div class="status">
-      <span class="status-dot"></span>
-      System Online
+</header>
+
+<main class="container">
+
+<!-- WELCOME -->
+<section class="welcome">
+  <h2 id="superAdminWelcome">Welcome, GAAWOW Academy</h2>
+  <p>Manage institutions, students, teachers, academic records, certificates and the complete GAAWOW EMS system.</p>
+  <div class="status">
+    <span class="status-dot"></span>
+    System Online
+  </div>
+</section>
+
+<!-- DASHBOARD STATISTICS -->
+<section class="stats-grid">
+
+  <div class="stat-card gold">
+    <div class="stat-icon">🏫</div>
+    <div class="stat-number" id="institutionCount">0</div>
+    <div class="stat-label">Institutions</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon">👨‍🎓</div>
+    <div class="stat-number" id="studentCount">0</div>
+    <div class="stat-label">Students</div>
+  </div>
+
+  <div class="stat-card gold">
+    <div class="stat-icon">👨‍🏫</div>
+    <div class="stat-number" id="teacherCount">0</div>
+    <div class="stat-label">Teachers</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon">🎓</div>
+    <div class="stat-number" id="certificateCount">0</div>
+    <div class="stat-label">Certificates</div>
+  </div>
+
+</section>
+
+<!-- ACADEMIC RESULTS -->
+<section class="academic-results-section" id="academicResultsSection">
+
+  <div class="section-header">
+    <div>
+      <h3>Academic Results</h3>
+      <p class="academic-results-subtitle">Live overview of student grades and published academic results.</p>
     </div>
-  </section>  <!-- DASHBOARD STATISTICS -->  <section class="stats-grid"><div class="stat-card gold">
-  <div class="stat-icon">🏫</div>
-  <div class="stat-number" id="institutionCount">0</div>
-  <div class="stat-label">Institutions</div>
-</div>
-
-<div class="stat-card">
-  <div class="stat-icon">👨‍🎓</div>
-  <div class="stat-number" id="studentCount">0</div>
-  <div class="stat-label">Students</div>
-</div>
-
-<div class="stat-card gold">
-  <div class="stat-icon">👨‍🏫</div>
-  <div class="stat-number" id="teacherCount">0</div>
-  <div class="stat-label">Teachers</div>
-</div>
-
-<div class="stat-card">
-  <div class="stat-icon">🎓</div>
-  <div class="stat-number" id="certificateCount">0</div>
-  <div class="stat-label">Certificates</div>
-</div>
-
-  </section>  <!-- ACADEMIC RESULTS -->  <section class="academic-results-section" id="academicResultsSection"><div class="section-header">
-  <div>
-    <h3>Academic Results</h3>
-    <p class="academic-results-subtitle">Live overview of student grades and published academic results.</p>
-  </div>
-  <button class="results-view-btn" type="button" onclick="openPage('grades.html')">
-    View All Results
-  </button>
-</div>
-
-<div class="academic-stats-grid">
-
-  <div class="academic-stat-card">
-    <div class="academic-stat-icon">📝</div>
-    <div class="academic-stat-number" id="academicTotalResults">0</div>
-    <div class="academic-stat-label">Total Results</div>
+    <button class="results-view-btn" type="button" onclick="openPage('grades.html')">
+      View All Results
+    </button>
   </div>
 
-  <div class="academic-stat-card green">
-    <div class="academic-stat-icon">✅</div>
-    <div class="academic-stat-number" id="academicPublishedResults">0</div>
-    <div class="academic-stat-label">Published</div>
+  <div class="academic-stats-grid">
+
+    <div class="academic-stat-card">
+      <div class="academic-stat-icon">📝</div>
+      <div class="academic-stat-number" id="academicTotalResults">0</div>
+      <div class="academic-stat-label">Total Results</div>
+    </div>
+
+    <div class="academic-stat-card green">
+      <div class="academic-stat-icon">✅</div>
+      <div class="academic-stat-number" id="academicPublishedResults">0</div>
+      <div class="academic-stat-label">Published</div>
+    </div>
+
+    <div class="academic-stat-card gold">
+      <div class="academic-stat-icon">⏳</div>
+      <div class="academic-stat-number" id="academicPendingResults">0</div>
+      <div class="academic-stat-label">Pending</div>
+    </div>
+
+    <div class="academic-stat-card green">
+      <div class="academic-stat-icon">🎯</div>
+      <div class="academic-stat-number" id="academicPassedResults">0</div>
+      <div class="academic-stat-label">Passed</div>
+    </div>
+
+    <div class="academic-stat-card red">
+      <div class="academic-stat-icon">❌</div>
+      <div class="academic-stat-number" id="academicFailedResults">0</div>
+      <div class="academic-stat-label">Failed</div>
+    </div>
+
+    <div class="academic-stat-card">
+      <div class="academic-stat-icon">📈</div>
+      <div class="academic-stat-number" id="academicAverage">0%</div>
+      <div class="academic-stat-label">Average</div>
+    </div>
+
+    <div class="academic-stat-card purple">
+      <div class="academic-stat-icon">👨‍🎓</div>
+      <div class="academic-stat-number" id="academicStudentsWithResults">0</div>
+      <div class="academic-stat-label">Students with Results</div>
+    </div>
+
+    <div class="academic-stat-card gold">
+      <div class="academic-stat-icon">📚</div>
+      <div class="academic-stat-number" id="academicSubjectCount">0</div>
+      <div class="academic-stat-label">Subjects</div>
+    </div>
+
   </div>
 
-  <div class="academic-stat-card gold">
-    <div class="academic-stat-icon">⏳</div>
-    <div class="academic-stat-number" id="academicPendingResults">0</div>
-    <div class="academic-stat-label">Pending</div>
+  <div class="academic-subject-card">
+
+    <div class="academic-subject-title">
+      <h4>Results by Subject</h4>
+      <span id="academicResultsStatus">Loading...</span>
+    </div>
+
+    <div class="academic-table-wrap">
+      <table class="academic-dashboard-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Subject</th>
+            <th>Results</th>
+            <th>Published</th>
+            <th>Average</th>
+          </tr>
+        </thead>
+        <tbody id="academicSubjectRows">
+          <tr>
+            <td colspan="5" class="academic-loading">Loading academic results...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
   </div>
 
-  <div class="academic-stat-card green">
-    <div class="academic-stat-icon">🎯</div>
-    <div class="academic-stat-number" id="academicPassedResults">0</div>
-    <div class="academic-stat-label">Passed</div>
+</section>
+
+<!-- SYSTEM MANAGEMENT -->
+<div class="section-header">
+  <h3>System Management</h3>
+  <span class="module-count">25 Core EMS Modules</span>
+</div>
+
+<section class="menu-grid">
+
+  <!-- INSTITUTIONS -->
+  <div class="menu-card" onclick="openPage('institutions.html')">
+    <div class="menu-icon">🏫</div>
+    <h4>Institutions</h4>
+    <p>Manage schools and educational institutions.</p>
   </div>
 
-  <div class="academic-stat-card red">
-    <div class="academic-stat-icon">❌</div>
-    <div class="academic-stat-number" id="academicFailedResults">0</div>
-    <div class="academic-stat-label">Failed</div>
+  <!-- SCHOOL ADMIN MANAGEMENT -->
+  <div class="menu-card school-admin-card" onclick="openPage('school-admins.html')">
+    <div class="menu-icon">🛡️</div>
+    <h4>School Admin Management</h4>
+    <p>Create school administrator accounts, assign institutions, manage passwords and activate or deactivate accounts.</p>
   </div>
 
-  <div class="academic-stat-card">
-    <div class="academic-stat-icon">📈</div>
-    <div class="academic-stat-number" id="academicAverage">0%</div>
-    <div class="academic-stat-label">Average</div>
+  <!-- PUBLIC ACADEMY PORTAL -->
+  <div class="menu-card public-academy-card" onclick="openPage('public-academy.html')">
+    <div class="menu-icon">🏛️</div>
+    <h4>Public Academy Portal</h4>
+    <p>View official GAAWOW Academy information, contact details and institutional profile.</p>
   </div>
 
-  <div class="academic-stat-card purple">
-    <div class="academic-stat-icon">👨‍🎓</div>
-    <div class="academic-stat-number" id="academicStudentsWithResults">0</div>
-    <div class="academic-stat-label">Students with Results</div>
+  <!-- STUDENTS -->
+  <div class="menu-card" onclick="openPage('students.html')">
+    <div class="menu-icon">👨‍🎓</div>
+    <h4>Students</h4>
+    <p>Add, edit, search and manage students.</p>
   </div>
 
-  <div class="academic-stat-card gold">
-    <div class="academic-stat-icon">📚</div>
-    <div class="academic-stat-number" id="academicSubjectCount">0</div>
-    <div class="academic-stat-label">Subjects</div>
+  <!-- PARENTS -->
+  <div class="menu-card" onclick="openPage('parents.html')">
+    <div class="menu-icon">👨‍👩‍👧</div>
+    <h4>Parents</h4>
+    <p>Manage parent accounts and student links.</p>
   </div>
 
-</div>
-
-<div class="academic-subject-card">
-
-  <div class="academic-subject-title">
-    <h4>Results by Subject</h4>
-    <span id="academicResultsStatus">Loading...</span>
+  <!-- TEACHERS -->
+  <div class="menu-card" onclick="openPage('./teacher.html')">
+    <div class="menu-icon">👨‍🏫</div>
+    <h4>Teachers</h4>
+    <p>Manage teachers and institutional assignments.</p>
   </div>
 
-  <div class="academic-table-wrap">
-    <table class="academic-dashboard-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Subject</th>
-          <th>Results</th>
-          <th>Published</th>
-          <th>Average</th>
-        </tr>
-      </thead>
-      <tbody id="academicSubjectRows">
-        <tr>
-          <td colspan="5" class="academic-loading">Loading academic results...</td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- DEPARTMENTS -->
+  <div class="menu-card" onclick="openPage('departments.html')">
+    <div class="menu-icon">🏢</div>
+    <h4>Departments</h4>
+    <p>Organize academic departments.</p>
   </div>
 
-</div>
+  <!-- COURSES -->
+  <div class="menu-card" onclick="openPage('courses.html')">
+    <div class="menu-icon">📚</div>
+    <h4>Courses</h4>
+    <p>Create and manage academic courses.</p>
+  </div>
 
-  </section>  <!-- SYSTEM MANAGEMENT -->  <div class="section-header">
-    <h3>System Management</h3>
-    <span class="module-count">24 Core EMS Modules</span>
-  </div>  <section class="menu-grid"><!-- INSTITUTIONS -->
-<div class="menu-card" onclick="openPage('institutions.html')">
-  <div class="menu-icon">🏫</div>
-  <h4>Institutions</h4>
-  <p>Manage schools and educational institutions.</p>
-</div>
+  <!-- CLASSES -->
+  <div class="menu-card" onclick="openPage('classes.html')">
+    <div class="menu-icon">🧑‍🏫</div>
+    <h4>Classes</h4>
+    <p>Manage classes and student enrollment.</p>
+  </div>
 
-<!-- PUBLIC ACADEMY PORTAL -->
-<div class="menu-card public-academy-card" onclick="openPage('public-academy.html')">
-  <div class="menu-icon">🏛️</div>
-  <h4>Public Academy Portal</h4>
-  <p>View official GAAWOW Academy information, contact details and institutional profile.</p>
-</div>
-
-<!-- STUDENTS -->
-<div class="menu-card" onclick="openPage('students.html')">
-  <div class="menu-icon">👨‍🎓</div>
-  <h4>Students</h4>
-  <p>Add, edit, search and manage students.</p>
-</div>
-
-<!-- PARENTS -->
-<div class="menu-card" onclick="openPage('parents.html')">
-  <div class="menu-icon">👨‍👩‍👧</div>
-  <h4>Parents</h4>
-  <p>Manage parent accounts and student links.</p>
-</div>
-
-<!-- TEACHERS -->
-<div class="menu-card" onclick="openPage('./teacher.html')">
-  <div class="menu-icon">👨‍🏫</div>
-  <h4>Teachers</h4>
-  <p>Manage teachers and institutional assignments.</p>
-</div>
-
-<!-- DEPARTMENTS -->
-<div class="menu-card" onclick="openPage('departments.html')">
-  <div class="menu-icon">🏢</div>
-  <h4>Departments</h4>
-  <p>Organize academic departments.</p>
-</div>
-
-<!-- COURSES -->
-<div class="menu-card" onclick="openPage('courses.html')">
-  <div class="menu-icon">📚</div>
-  <h4>Courses</h4>
-  <p>Create and manage academic courses.</p>
-</div>
-
-<!-- CLASSES -->
-<div class="menu-card" onclick="openPage('classes.html')">
-  <div class="menu-icon">🧑‍🏫</div>
-  <h4>Classes</h4>
-  <p>Manage classes and student enrollment.</p>
-</div>
-
-<!-- ENROLLMENT MANAGEMENT -->
-<div class="menu-card enrollment-card" onclick="openPage('enrollment.html')">
-  <div class="menu-icon">🎓</div>
-  <h4>Enrollment Management</h4>
-  <p>Register students into courses and classes. Manage enrollment records, dates and enrollment status.</p>
-</div>
-
-<!-- LESSONS -->
-<div class="menu-card lessons-card" onclick="openPage('lessons.html')">
-  <div class="menu-icon">📝</div>
-  <h4>Lessons Management</h4>
-  <p>Schedule lessons, assign teachers, manage dates, times, rooms and lesson descriptions.</p>
-</div>
-
-<!-- EXAMS -->
-<div class="menu-card" onclick="openPage('exams.html')">
-  <div class="menu-icon">📝</div>
-  <h4>Exams</h4>
-  <p>Manage examinations and assessments.</p>
-</div>
-
-<!-- GRADES -->
-<div class="menu-card" onclick="openPage('grades.html')">
-  <div class="menu-icon">📊</div>
-  <h4>Grades</h4>
-  <p>Record and manage student grades.</p>
-</div>
-
-<!-- CERTIFICATES -->
-<div class="menu-card" onclick="openPage('certificates.html')">
-  <div class="menu-icon">🏆</div>
-  <h4>Certificates</h4>
-  <p>View and manage issued certificates.</p>
-</div>
-
-<!-- CERTIFICATE GENERATION -->
-<div class="menu-card certificate-generate-card" onclick="openPage('certificate.html')">
-  <div class="menu-icon">🎓</div>
-  <h4>Certificate Generate</h4>
-  <p>Generate certificates, diplomas and authentication letters.</p>
-</div>
-
-<!-- AUTHENTICATION LETTER -->
-<div class="menu-card verify-card" onclick="openPage('authentication-letter.html')">
-  <div class="menu-icon">📜</div>
-  <h4>Authentication Letter</h4>
-  <p>Generate and verify official student authentication letters.</p>
-</div>
-
-<!-- VERIFICATION -->
-<div class="menu-card verify-card" onclick="openPage('verify.html')">
-  <div class="menu-icon">✅</div>
-  <h4>Verify</h4>
-  <p>Public certificate verification system.</p>
-</div>
-
-<!-- AUDIT LOGS -->
-<div class="menu-card" onclick="openPage('audit-logs.html')">
-  <div class="menu-icon">🔐</div>
-  <h4>Audit Logs</h4>
-  <p>Monitor important system activities.</p>
-</div>
-
-<!-- SUBJECTS -->
-<div class="menu-card" onclick="openPage('subjects.html')">
-  <div class="menu-icon">📖</div>
-  <h4>Subjects</h4>
-  <p>Manage academic subjects.</p>
-</div>
-
-<!-- FINANCIAL MANAGEMENT -->
-<div class="menu-card financial-card" onclick="openPage('financial.html')">
-  <div class="menu-icon">💰</div>
-  <h4>Financial Management</h4>
-  <p>Manage invoices, payments, receipts, student balances and financial records in one integrated portal.</p>
-</div>
-
-<!-- MOBILE MONEY -->
-<div class="menu-card" onclick="openPage('mobile-money.html')">
-  <div class="menu-icon">📱</div>
-  <h4>Mobile Money</h4>
-  <p>Manage mobile money transactions.</p>
-</div>
-
-<!-- REPORTS -->
-<div class="menu-card" onclick="openPage('reports.html')">
-  <div class="menu-icon">📈</div>
-  <h4>Reports</h4>
-  <p>View system and academic reports.</p>
-</div>
-
-<!-- ATTENDANCE -->
-<div class="menu-card attendance-card" onclick="openPage('attendance.html')">
-  <div class="menu-icon">📋</div>
-  <h4>Attendance</h4>
-  <p>Record and manage student attendance, absences, lateness and excused sessions.</p>
-</div>
-
-<!-- SETTINGS -->
-<div class="menu-card settings-card" onclick="openPage('settings.html')">
-  <div class="menu-icon">⚙️</div>
-  <h4>Settings</h4>
-  <p>Manage system preferences and administrative settings.</p>
-</div>
-
-<!-- NOTIFICATIONS -->
-<div class="menu-card notifications-card" onclick="openPage('notifications.html')">
-  <div class="menu-icon">🔔</div>
-  <h4>Notifications</h4>
-  <p>View announcements, system alerts and important notifications.</p>
-</div>
-
-  </section>  <!-- FOOTER -->  <footer>
-    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
-    <h4>GAAWOW ACADEMY</h4>
-    <p>Ilayska Aqoonta iyo Xirfadda</p>
-    <button class="logout-btn" id="logoutBtn">Logout</button>
-  </footer></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./dashboard.js?v=201"></script></body>
-</html>
+  <!-- ENROLLMENT MANAGEMENT -->
+  <div class="menu-card enrollment-card" onclick="openPage('enrollment.html')">
+    <
