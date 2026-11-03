@@ -1,6 +1,12 @@
 /* =========================================================
    GAAWOW EMS — SUPER ADMIN DASHBOARD
+   Version: 2026.11.03
    Secure Role-Based Access
+   ========================================================= */
+
+
+/* =========================================================
+   1. SUPABASE CONFIGURATION
    ========================================================= */
 
 const SUPABASE_URL =
@@ -8,6 +14,19 @@ const SUPABASE_URL =
 
 const SUPABASE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+
+if (!window.supabase) {
+
+  console.error("Supabase library was not loaded.");
+
+  alert(
+    "System connection error. Please refresh the page."
+  );
+
+  throw new Error("Supabase library unavailable.");
+}
+
 
 const supabaseClient =
   window.supabase.createClient(
@@ -17,16 +36,109 @@ const supabaseClient =
 
 
 /* =========================================================
-   NAVIGATION
+   2. GLOBAL STATE
    ========================================================= */
 
-function openPage(page) {
+let dashboardStarted = false;
+let dashboardAuthorized = false;
+let authRedirecting = false;
+
+
+/* =========================================================
+   3. NAVIGATION
+   ========================================================= */
+
+window.openPage = function(page) {
+
+  if (!page) {
+    console.error("Page destination is missing.");
+    return;
+  }
+
   window.location.href = page;
+
+};
+
+
+/* =========================================================
+   4. HELPER FUNCTIONS
+   ========================================================= */
+
+function getElement(id) {
+
+  return document.getElementById(id);
+
+}
+
+
+function setText(id, value) {
+
+  const element = getElement(id);
+
+  if (element) {
+    element.textContent = value;
+  }
+
+}
+
+
+function escapeHtml(value) {
+
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+}
+
+
+function showAcademicMessage(message, type = "loading") {
+
+  const rowsEl =
+    getElement("academicSubjectRows");
+
+  if (!rowsEl) return;
+
+  rowsEl.innerHTML = `
+    <tr>
+      <td colspan="5"
+          class="academic-${type}">
+        ${escapeHtml(message)}
+      </td>
+    </tr>
+  `;
+
+}
+
+
+function formatNumber(value) {
+
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return "0";
+  }
+
+  return number.toLocaleString();
+
+}
+
+
+function redirectToLogin() {
+
+  if (authRedirecting) return;
+
+  authRedirecting = true;
+
+  window.location.replace("index.html");
+
 }
 
 
 /* =========================================================
-   AUTH + ROLE CHECK
+   5. AUTHENTICATION AND ROLE CHECK
    ========================================================= */
 
 async function checkDashboardAccess() {
@@ -38,24 +150,53 @@ async function checkDashboardAccess() {
       error: sessionError
     } = await supabaseClient.auth.getSession();
 
-    if (
-      sessionError ||
-      !sessionData ||
-      !sessionData.session
-    ) {
 
-      window.location.replace("index.html");
+    if (sessionError) {
+
+      console.error(
+        "Session error:",
+        sessionError
+      );
+
+      redirectToLogin();
+
+      return false;
+    }
+
+
+    const session =
+      sessionData?.session;
+
+
+    if (!session) {
+
+      console.warn(
+        "No active authentication session."
+      );
+
+      redirectToLogin();
+
       return false;
     }
 
 
     const user =
-      sessionData.session.user;
-console.log("CURRENT AUTH USER ID:", user.id);
-console.log("CURRENT AUTH EMAIL:", user.email);
+      session.user;
+
+
+    console.log(
+      "CURRENT AUTH USER ID:",
+      user.id
+    );
+
+    console.log(
+      "CURRENT AUTH EMAIL:",
+      user.email
+    );
+
 
     /* -----------------------------------------
-       LOAD PROFILE
+       LOAD USER PROFILE
     ----------------------------------------- */
 
     const {
@@ -76,13 +217,15 @@ console.log("CURRENT AUTH EMAIL:", user.email);
     if (profileError) {
 
       console.error(
-        "Profile error:",
+        "Profile loading error:",
         profileError
       );
 
-      await supabaseClient.auth.signOut();
+      alert(
+        "Unable to verify your account. Please try again."
+      );
 
-      window.location.replace("index.html");
+      redirectToLogin();
 
       return false;
     }
@@ -91,46 +234,38 @@ console.log("CURRENT AUTH EMAIL:", user.email);
     if (!profile) {
 
       console.error(
-        "No profile found for:",
-        user.id
+        "No profile found for authenticated user."
       );
 
-      await supabaseClient.auth.signOut();
-
-      window.location.replace("index.html");
+      redirectToLogin();
 
       return false;
     }
 
 
     /* -----------------------------------------
-       ACCOUNT ACTIVE CHECK
+       ACTIVE ACCOUNT CHECK
     ----------------------------------------- */
 
     if (profile.is_active !== true) {
 
       alert(
-        "Your account is inactive."
+        "Your account is inactive. Contact the system administrator."
       );
 
       await supabaseClient.auth.signOut();
 
-      window.location.replace("index.html");
+      redirectToLogin();
 
       return false;
     }
 
 
-    /* =====================================================
-       IMPORTANT:
-       STUDENT MUST NEVER STAY ON SUPER ADMIN DASHBOARD
-       ===================================================== */
+    /* -----------------------------------------
+       ROLE CHECK
+    ----------------------------------------- */
 
     if (profile.role === "student") {
-
-      console.log(
-        "Student detected. Redirecting..."
-      );
 
       window.location.replace(
         "student.html"
@@ -140,21 +275,13 @@ console.log("CURRENT AUTH EMAIL:", user.email);
     }
 
 
-    /* -----------------------------------------
-       OTHER ROLES
-    ----------------------------------------- */
-
-    if (
-      profile.role !== "super_admin"
-    ) {
+    if (profile.role !== "super_admin") {
 
       alert(
-        "Access denied. Super Admin only."
+        "Access denied. Super Admin privileges are required."
       );
 
-      window.location.replace(
-        "index.html"
-      );
+      redirectToLogin();
 
       return false;
     }
@@ -165,9 +292,8 @@ console.log("CURRENT AUTH EMAIL:", user.email);
     ----------------------------------------- */
 
     const welcome =
-      document.getElementById(
-        "superAdminWelcome"
-      );
+      getElement("superAdminWelcome");
+
 
     if (welcome) {
 
@@ -175,10 +301,19 @@ console.log("CURRENT AUTH EMAIL:", user.email);
         profile.full_name
           ? `Welcome, ${profile.full_name}`
           : "Welcome, GAAWOW Academy";
+
     }
 
 
+    console.log(
+      "SUPER ADMIN ACCESS APPROVED."
+    );
+
+
+    dashboardAuthorized = true;
+
     return true;
+
 
   } catch (error) {
 
@@ -187,422 +322,709 @@ console.log("CURRENT AUTH EMAIL:", user.email);
       error
     );
 
-    window.location.replace(
-      "index.html"
-    );
+    redirectToLogin();
 
     return false;
+
   }
+
 }
 
 
 /* =========================================================
-   LOAD SYSTEM COUNTS
+   6. LOAD SYSTEM STATISTICS
    ========================================================= */
 
 async function loadSystemCounts() {
 
-  try {
+  const queries = [
 
-    const [
-      institutions,
-      students,
-      teachers,
-      certificates
-    ] = await Promise.all([
+    {
+      name: "institutions",
+      table: "institutions",
+      element: "institutionCount"
+    },
 
-      supabaseClient
-        .from("institutions")
-        .select("id", {
-          count: "exact",
-          head: true
-        }),
+    {
+      name: "students",
+      table: "students",
+      element: "studentCount"
+    },
 
-      supabaseClient
-        .from("students")
-        .select("id", {
-          count: "exact",
-          head: true
-        }),
+    {
+      name: "teachers",
+      table: "profiles",
+      element: "teacherCount",
+      filter: {
+        column: "role",
+        value: "teacher"
+      }
+    },
 
-      supabaseClient
-        .from("profiles")
-        .select("id", {
-          count: "exact",
-          head: true
-        })
-        .eq("role", "teacher"),
-
-      supabaseClient
-        .from("certificates")
-        .select("id", {
-          count: "exact",
-          head: true
-        })
-    ]);
-
-
-    if (institutions.error)
-      console.error(
-        "Institutions:",
-        institutions.error
-      );
-
-    if (students.error)
-      console.error(
-        "Students:",
-        students.error
-      );
-
-    if (teachers.error)
-      console.error(
-        "Teachers:",
-        teachers.error
-      );
-
-    if (certificates.error)
-      console.error(
-        "Certificates:",
-        certificates.error
-      );
-
-
-    const institutionEl =
-      document.getElementById(
-        "institutionCount"
-      );
-
-    const studentEl =
-      document.getElementById(
-        "studentCount"
-      );
-
-    const teacherEl =
-      document.getElementById(
-        "teacherCount"
-      );
-
-    const certificateEl =
-      document.getElementById(
-        "certificateCount"
-      );
-
-
-    if (institutionEl) {
-
-      institutionEl.textContent =
-        institutions.count ?? 0;
+    {
+      name: "certificates",
+      table: "certificates",
+      element: "certificateCount"
     }
 
-    if (studentEl) {
+  ];
 
-      studentEl.textContent =
-        students.count ?? 0;
-    }
 
-    if (teacherEl) {
+  await Promise.all(
 
-      teacherEl.textContent =
-        teachers.count ?? 0;
-    }
+    queries.map(async item => {
 
-    if (certificateEl) {
+      try {
 
-      certificateEl.textContent =
-        certificates.count ?? 0;
-    }
+        let query =
+          supabaseClient
+            .from(item.table)
+            .select("id", {
+              count: "exact",
+              head: true
+            });
 
-  } catch (error) {
 
-    console.error(
-      "System count error:",
-      error
-    );
-  }
+        if (item.filter) {
+
+          query = query.eq(
+            item.filter.column,
+            item.filter.value
+          );
+
+        }
+
+
+        const {
+          count,
+          error
+        } = await query;
+
+
+        if (error) {
+
+          console.error(
+            `${item.name} count error:`,
+            error
+          );
+
+          setText(
+            item.element,
+            "!"
+          );
+
+          return;
+        }
+
+
+        setText(
+          item.element,
+          formatNumber(count ?? 0)
+        );
+
+
+      } catch (error) {
+
+        console.error(
+          `${item.name} unexpected error:`,
+          error
+        );
+
+        setText(
+          item.element,
+          "!"
+        );
+
+      }
+
+    })
+
+  );
+
 }
 
 
 /* =========================================================
-   ACADEMIC RESULTS
+   7. ACADEMIC RESULTS
    ========================================================= */
 
 async function loadAcademicResults() {
 
   const statusEl =
-    document.getElementById(
-      "academicResultsStatus"
-    );
+    getElement("academicResultsStatus");
 
-  const rowsEl =
-    document.getElementById(
-      "academicSubjectRows"
-    );
+
+  if (statusEl) {
+    statusEl.textContent = "Loading...";
+  }
+
+
+  showAcademicMessage(
+    "Loading academic results...",
+    "loading"
+  );
 
 
   try {
 
-    /*
-     * NOTE:
-     * This section intentionally handles
-     * missing/unknown academic tables safely.
-     *
-     * Your existing academic-results logic
-     * can remain here if already implemented.
-     */
-
-    if (statusEl) {
-
-      statusEl.textContent =
-        "Live";
-    }
-
-    /*
-     * Do not break the whole dashboard if
-     * the academic table/RLS is unavailable.
-     */
+    /* -----------------------------------------
+       LOAD GRADES
+    ----------------------------------------- */
 
     const {
-      data,
-      error
+      data: grades,
+      error: gradesError
     } = await supabaseClient
       .from("grades")
       .select("*")
       .limit(1000);
 
 
-    if (error) {
+    if (gradesError) {
 
-      console.warn(
-        "Academic results unavailable:",
-        error.message
+      console.error(
+        "Grades loading error:",
+        gradesError
       );
 
-      if (statusEl) {
-
-        statusEl.textContent =
-          "Unavailable";
-      }
-
-      if (rowsEl) {
-
-        rowsEl.innerHTML = `
-          <tr>
-            <td
-              colspan="5"
-              class="academic-error"
-            >
-              Academic results could not be loaded.
-            </td>
-          </tr>
-        `;
-      }
-
-      return;
+      throw gradesError;
     }
 
 
     const results =
-      Array.isArray(data)
-        ? data
+      Array.isArray(grades)
+        ? grades
         : [];
 
 
     /* -----------------------------------------
-       TOTAL
-    ----------------------------------------- */
-
-    const total =
-      results.length;
-
-
-    const totalEl =
-      document.getElementById(
-        "academicTotalResults"
-      );
-
-    if (totalEl)
-      totalEl.textContent = total;
-
-
-    /* -----------------------------------------
-       SUBJECT COUNT
-    ----------------------------------------- */
-
-    const subjects =
-      new Set();
-
-
-    results.forEach(row => {
-
-      const subject =
-        row.subject_id ??
-        row.subject ??
-        row.subject_name;
-
-      if (subject) {
-
-        subjects.add(
-          String(subject)
-        );
-      }
-    });
-
-
-    const subjectCountEl =
-      document.getElementById(
-        "academicSubjectCount"
-      );
-
-    if (subjectCountEl) {
-
-      subjectCountEl.textContent =
-        subjects.size;
-    }
-
-
-    /* -----------------------------------------
-       EMPTY STATE
+       EMPTY RESULTS
     ----------------------------------------- */
 
     if (!results.length) {
 
-      if (rowsEl) {
+      setText(
+        "academicTotalResults",
+        "0"
+      );
 
-        rowsEl.innerHTML = `
-          <tr>
-            <td
-              colspan="5"
-              class="academic-loading"
-            >
-              No academic results found.
-            </td>
-          </tr>
-        `;
+      setText(
+        "academicPublishedResults",
+        "N/A"
+      );
+
+      setText(
+        "academicPendingResults",
+        "N/A"
+      );
+
+      setText(
+        "academicPassedResults",
+        "0"
+      );
+
+      setText(
+        "academicFailedResults",
+        "0"
+      );
+
+      setText(
+        "academicAverage",
+        "0%"
+      );
+
+      setText(
+        "academicStudentsWithResults",
+        "0"
+      );
+
+      setText(
+        "academicSubjectCount",
+        "0"
+      );
+
+
+      showAcademicMessage(
+        "No academic results found.",
+        "loading"
+      );
+
+
+      if (statusEl) {
+        statusEl.textContent = "No results";
       }
 
       return;
     }
 
 
-    /*
-     * Generic subject grouping.
-     */
+    /* -----------------------------------------
+       LOAD EXAMS
+    ----------------------------------------- */
 
-    const grouped = {};
-
-
-    results.forEach(row => {
-
-      const subject =
-        row.subject_name ??
-        row.subject ??
-        row.subject_id ??
-        "Unknown Subject";
+    const {
+      data: exams,
+      error: examsError
+    } = await supabaseClient
+      .from("exams")
+      .select("*")
+      .limit(1000);
 
 
-      const key =
-        String(subject);
+    if (examsError) {
+
+      console.warn(
+        "Exam information unavailable:",
+        examsError.message
+      );
+
+    }
 
 
-      if (!grouped[key]) {
-
-        grouped[key] = {
-          total: 0,
-          published: 0,
-          scores: []
-        };
-      }
+    const examList =
+      Array.isArray(exams)
+        ? exams
+        : [];
 
 
-      grouped[key].total++;
+    const examMap = new Map();
 
 
-      if (
-        row.published === true ||
-        row.status === "published"
-      ) {
+    examList.forEach(exam => {
 
-        grouped[key].published++;
-      }
+      if (exam.id) {
 
-
-      const score =
-        Number(
-          row.score ??
-          row.marks ??
-          row.grade ??
-          row.percentage
+        examMap.set(
+          String(exam.id),
+          exam
         );
 
-
-      if (
-        Number.isFinite(score)
-      ) {
-
-        grouped[key].scores.push(
-          score
-        );
       }
 
     });
 
 
     /* -----------------------------------------
-       TABLE
+       LOAD SUBJECTS
     ----------------------------------------- */
+
+    const {
+      data: subjects,
+      error: subjectsError
+    } = await supabaseClient
+      .from("subjects")
+      .select("*")
+      .limit(1000);
+
+
+    if (subjectsError) {
+
+      console.warn(
+        "Subjects information unavailable:",
+        subjectsError.message
+      );
+
+    }
+
+
+    const subjectList =
+      Array.isArray(subjects)
+        ? subjects
+        : [];
+
+
+    const subjectMap = new Map();
+
+
+    subjectList.forEach(subject => {
+
+      if (subject.id) {
+
+        subjectMap.set(
+          String(subject.id),
+          subject
+        );
+
+      }
+
+    });
+
+
+    /* -----------------------------------------
+       CALCULATE SUMMARY
+    ----------------------------------------- */
+
+    const uniqueStudents = new Set();
+
+    const uniqueSubjects = new Set();
+
+    const groups = new Map();
+
+
+    let passed = 0;
+    let failed = 0;
+
+    let percentageTotal = 0;
+    let percentageCount = 0;
+
+    let published = 0;
+    let pending = 0;
+
+    let publicationAvailable = false;
+
+
+    results.forEach(row => {
+
+      /* STUDENTS */
+
+      if (row.student_id) {
+
+        uniqueStudents.add(
+          String(row.student_id)
+        );
+
+      }
+
+
+      /* EXAM */
+
+      const exam =
+        examMap.get(
+          String(row.exam_id)
+        );
+
+
+      /* SUBJECT */
+
+      const subjectId =
+        exam?.subject_id ??
+        row.subject_id ??
+        null;
+
+
+      const subject =
+        subjectId
+          ? subjectMap.get(
+              String(subjectId)
+            )
+          : null;
+
+
+      const subjectName =
+        subject?.name ??
+        subject?.subject_name ??
+        subject?.title ??
+        subject?.subject_name_en ??
+        (subjectId
+          ? `Subject ${subjectId}`
+          : exam?.title
+            ? exam.title
+            : "Unassigned Subject");
+
+
+      const groupKey =
+        subjectId
+          ? String(subjectId)
+          : String(
+              exam?.title ??
+              row.exam_id ??
+              "unassigned"
+            );
+
+
+      uniqueSubjects.add(groupKey);
+
+
+      /* GROUP INITIALIZATION */
+
+      if (!groups.has(groupKey)) {
+
+        groups.set(groupKey, {
+
+          name: subjectName,
+
+          total: 0,
+
+          published: 0,
+
+          scores: [],
+
+          percentages: []
+
+        });
+
+      }
+
+
+      const group =
+        groups.get(groupKey);
+
+
+      group.total++;
+
+
+      /* -------------------------------------
+         PUBLICATION STATUS
+      ------------------------------------- */
+
+      const publicationField =
+        Object.keys(row).find(key => {
+
+          return [
+            "is_published",
+            "published",
+            "publication_status"
+          ].includes(key);
+
+        });
+
+
+      if (publicationField) {
+
+        publicationAvailable = true;
+
+        const isPublished =
+          row[publicationField] === true ||
+          row[publicationField] === "published";
+
+
+        if (isPublished) {
+
+          published++;
+
+          group.published++;
+
+        } else {
+
+          pending++;
+
+        }
+
+      }
+
+
+      /* -------------------------------------
+         SCORE
+      ------------------------------------- */
+
+      const score =
+        Number(row.score);
+
+
+      const maxScore =
+        Number(exam?.max_score);
+
+
+      if (
+        Number.isFinite(score) &&
+        Number.isFinite(maxScore) &&
+        maxScore > 0
+      ) {
+
+        const percentage =
+          (score / maxScore) * 100;
+
+
+        if (
+          percentage >= 0 &&
+          percentage <= 100
+        ) {
+
+          percentageTotal += percentage;
+
+          percentageCount++;
+
+          group.percentages.push(
+            percentage
+          );
+
+        }
+
+      }
+
+
+      if (Number.isFinite(score)) {
+
+        group.scores.push(score);
+
+      }
+
+
+      /* -------------------------------------
+         PASS / FAIL
+         Only use known grade letters.
+      ------------------------------------- */
+
+      const grade =
+        String(row.grade ?? "")
+          .trim()
+          .toUpperCase();
+
+
+      if (
+        ["A", "A+", "A-", "B", "B+", "B-", "C", "C+", "C-", "D", "D+", "D-"].includes(grade)
+      ) {
+
+        passed++;
+
+      } else if (
+        grade === "F"
+      ) {
+
+        failed++;
+
+      }
+
+    });
+
+
+    /* -----------------------------------------
+       UPDATE SUMMARY CARDS
+    ----------------------------------------- */
+
+    setText(
+      "academicTotalResults",
+      formatNumber(results.length)
+    );
+
+
+    setText(
+      "academicPublishedResults",
+      publicationAvailable
+        ? formatNumber(published)
+        : "N/A"
+    );
+
+
+    setText(
+      "academicPendingResults",
+      publicationAvailable
+        ? formatNumber(pending)
+        : "N/A"
+    );
+
+
+    setText(
+      "academicPassedResults",
+      formatNumber(passed)
+    );
+
+
+    setText(
+      "academicFailedResults",
+      formatNumber(failed)
+    );
+
+
+    const average =
+      percentageCount
+        ? (
+            percentageTotal /
+            percentageCount
+          ).toFixed(1)
+        : "N/A";
+
+
+    setText(
+      "academicAverage",
+      average === "N/A"
+        ? average
+        : `${average}%`
+    );
+
+
+    setText(
+      "academicStudentsWithResults",
+      formatNumber(uniqueStudents.size)
+    );
+
+
+    setText(
+      "academicSubjectCount",
+      formatNumber(uniqueSubjects.size)
+    );
+
+
+    /* -----------------------------------------
+       BUILD RESULTS TABLE
+    ----------------------------------------- */
+
+    const rowsEl =
+      getElement("academicSubjectRows");
+
 
     if (rowsEl) {
 
       rowsEl.innerHTML = "";
 
+
       const entries =
-        Object.entries(grouped);
+        Array.from(groups.entries());
 
 
       entries.forEach(
-        ([subject, item], index) => {
+        ([key, item], index) => {
 
-          const average =
-            item.scores.length
+          const averagePercentage =
+            item.percentages.length
               ? (
-                  item.scores.reduce(
+                  item.percentages.reduce(
                     (a, b) => a + b,
                     0
                   ) /
-                  item.scores.length
+                  item.percentages.length
                 ).toFixed(1)
-              : "0";
+              : "N/A";
+
+
+          const publishedValue =
+            publicationAvailable
+              ? item.published
+              : "N/A";
 
 
           const tr =
             document.createElement("tr");
 
 
-          tr.innerHTML = `
-            <td>${index + 1}</td>
+          const values = [
 
-            <td>
-              ${escapeHtml(subject)}
-            </td>
+            index + 1,
 
-            <td>
-              ${item.total}
-            </td>
+            item.name,
 
-            <td>
-              ${item.published}
-            </td>
+            item.total,
 
-            <td>
-              ${average}%
-            </td>
-          `;
+            publishedValue,
+
+            averagePercentage === "N/A"
+              ? "N/A"
+              : `${averagePercentage}%`
+
+          ];
+
+
+          values.forEach(value => {
+
+            const td =
+              document.createElement("td");
+
+
+            td.textContent =
+              String(value);
+
+
+            tr.appendChild(td);
+
+          });
 
 
           rowsEl.appendChild(tr);
 
         }
+
       );
+
     }
 
 
@@ -610,7 +1032,14 @@ async function loadAcademicResults() {
 
       statusEl.textContent =
         `${results.length} result(s)`;
+
     }
+
+
+    console.log(
+      "Academic results loaded successfully:",
+      results.length
+    );
 
 
   } catch (error) {
@@ -620,44 +1049,43 @@ async function loadAcademicResults() {
       error
     );
 
+
     if (statusEl) {
 
       statusEl.textContent =
-        "Error";
+        "Unavailable";
+
     }
+
+
+    showAcademicMessage(
+      "Academic results could not be loaded. Check database access and table structure.",
+      "error"
+    );
+
   }
+
 }
 
 
 /* =========================================================
-   HTML ESCAPE
-   ========================================================= */
-
-function escapeHtml(value) {
-
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-
-/* =========================================================
-   LOGOUT
+   8. LOGOUT
    ========================================================= */
 
 function setupLogout() {
 
   const logoutBtn =
-    document.getElementById(
-      "logoutBtn"
+    getElement("logoutBtn");
+
+
+  if (!logoutBtn) {
+
+    console.warn(
+      "Logout button not found."
     );
 
-
-  if (!logoutBtn)
     return;
+  }
 
 
   logoutBtn.addEventListener(
@@ -672,12 +1100,25 @@ function setupLogout() {
 
       try {
 
-        await supabaseClient.auth.signOut();
+        const {
+          error
+        } = await supabaseClient.auth.signOut();
+
+
+        if (error) {
+
+          console.error(
+            "Logout error:",
+            error
+          );
+
+        }
+
 
       } catch (error) {
 
         console.error(
-          "Logout error:",
+          "Logout exception:",
           error
         );
 
@@ -687,44 +1128,61 @@ function setupLogout() {
       sessionStorage.clear();
 
 
-      window.location.replace(
-        "index.html"
-      );
+      redirectToLogin();
+
     }
+
   );
+
 }
 
 
 /* =========================================================
-   AUTH STATE LISTENER
+   9. AUTH STATE LISTENER
    ========================================================= */
 
 supabaseClient.auth.onAuthStateChange(
+
   (event, session) => {
 
+    console.log(
+      "Authentication event:",
+      event
+    );
+
+
     if (
-      event === "SIGNED_OUT" ||
-      !session
+      event === "SIGNED_OUT"
     ) {
 
-      window.location.replace(
-        "index.html"
-      );
+      redirectToLogin();
+
     }
+
   }
+
 );
 
 
 /* =========================================================
-   START DASHBOARD
+   10. START DASHBOARD
    ========================================================= */
 
 async function startDashboard() {
 
-  /*
-   * IMPORTANT:
-   * Check role BEFORE loading dashboard data.
-   */
+  if (dashboardStarted) return;
+
+  dashboardStarted = true;
+
+
+  console.log(
+    "Starting GAAWOW EMS Super Admin Dashboard..."
+  );
+
+
+  /* -----------------------------------------
+     CHECK ACCESS FIRST
+  ----------------------------------------- */
 
   const allowed =
     await checkDashboardAccess();
@@ -732,25 +1190,63 @@ async function startDashboard() {
 
   if (!allowed) {
 
+    console.warn(
+      "Dashboard access denied."
+    );
+
     return;
+
   }
 
 
-  await Promise.all([
+  /* -----------------------------------------
+     INITIALIZE LOGOUT
+  ----------------------------------------- */
+
+  setupLogout();
+
+
+  /* -----------------------------------------
+     LOAD DASHBOARD DATA
+  ----------------------------------------- */
+
+  await Promise.allSettled([
+
     loadSystemCounts(),
+
     loadAcademicResults()
+
   ]);
 
 
-  setupLogout();
+  console.log(
+    "GAAWOW EMS Dashboard initialized."
+  );
+
 }
 
 
 /* =========================================================
-   START
+   11. DOM READY
    ========================================================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  startDashboard
-);
+if (
+  document.readyState === "loading"
+) {
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    startDashboard,
+    { once: true }
+  );
+
+} else {
+
+  startDashboard();
+
+}
+
+
+/* =========================================================
+   END OF DASHBOARD.JS
+   ========================================================= */
