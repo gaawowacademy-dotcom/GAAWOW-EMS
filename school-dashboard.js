@@ -1,85 +1,748 @@
-/* GAAWOW EMS School Admin Dashboard
- * Depends on the same Supabase URL and publishable/anon key used by app.js.
- * Does not expose service-role credentials. Does not grant database permissions.
- */
-(() => {
-  'use strict';
-  const SUPABASE_URL = 'https://mytyvqwrxnxpxnxpiicj.supabase.co';
-  // Copy the EXISTING publishable/anon key from app.js into this value before deployment.
-  // Never place a service_role key in browser code.
-  const SUPABASE_ANON_KEY = 'sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145';
-  const $ = (id) => document.getElementById(id);
-  const notice = $('notice');
-  const setNotice = (message, type='') => { notice.textContent = message; notice.className = `notice ${type}`.trim(); };
-  const modules = [
-    {group:'People & Admissions',items:[
-      ['Students','students.html','👨‍🎓','Manage enrolled students'],
-      ['Teachers','teacher.html','👩‍🏫','Teacher records and assignments'],
-      ['Parents','parents.html','👪','Parent and guardian records'],
-      ['Enrollment','enrollment.html','📝','Student enrollment records']
-    ]},
-    {group:'Academic Management',items:[
-      ['Departments','departments.html','🏢','Academic departments'],
-      ['Courses','courses.html','📚','Courses offered by your institution'],
-      ['Classes','classes.html','🏫','Classes and cohorts'],
-      ['Subjects','subjects.html','📖','Subjects and curriculum'],
-      ['Lessons','lessons.html','🗓️','Lessons and teaching schedule'],
-      ['Attendance','attendance.html','✅','Daily attendance records'],
-      ['Exams','exams.html','🧾','Examinations'],
-      ['Grades','grades.html','📊','Student grades and results']
-    ]},
-    {group:'Finance',items:[
-      ['Financial','financial.html','💳','Financial overview'],
-      ['Payments','payments.html','💰','Payment records'],
-      ['Mobile Money','mobile-money.html','📱','Mobile money transactions'],
-      ['Invoices','invoices.html','🧮','Student invoices']
-    ]},
-    {group:'Reports & Administration',items:[
-      ['Certificates','certificates.html','🎓','Certificates and issuance'],
-      ['Reports','reports.html','📈','Institution reports'],
-      ['Notifications','notifications.html','🔔','System notifications'],
-      ['Support','support.html','🛟','Support requests'],
-      ['Settings','settings.html','⚙️','Institution settings']
-    ]}
-  ];
-  let sb = null;
-  function renderNav() {
-    const nav = $('moduleNav'); nav.innerHTML = '';
-    modules.forEach(group => {
-      const wrap = document.createElement('div'); wrap.className = 'nav-group';
-      const title = document.createElement('div'); title.className = 'nav-title'; title.textContent = group.group; wrap.appendChild(title);
-      group.items.forEach(([name,url,icon]) => { const a=document.createElement('a'); a.className='nav-link'; a.href=url; a.innerHTML=`<span class="nav-icon" aria-hidden="true">${icon}</span><span></span>`; a.querySelector('span:last-child').textContent=name; wrap.appendChild(a); });
-      nav.appendChild(wrap);
+/* =========================================================
+   GAAWOW EMS — SCHOOL ADMIN DASHBOARD
+   Secure Institution-Based Access
+   ========================================================= */
+
+const SUPABASE_URL =
+  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+let currentInstitutionId = null;
+
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+function openPage(page) {
+  window.location.href = page;
+}
+
+
+/* =========================================================
+   AUTHENTICATION AND ROLE VERIFICATION
+   ========================================================= */
+
+async function checkDashboardAccess() {
+
+  try {
+
+    const {
+      data: sessionData,
+      error: sessionError
+    } = await supabaseClient.auth.getSession();
+
+    if (
+      sessionError ||
+      !sessionData?.session
+    ) {
+
+      window.location.replace("index.html");
+      return false;
+    }
+
+    const user = sessionData.session.user;
+
+    /* LOAD USER PROFILE */
+
+    const {
+      data: profile,
+      error: profileError
+    } = await supabaseClient
+      .from("profiles")
+      .select(`
+        id,
+        full_name,
+        role,
+        is_active,
+        institution_id
+      `)
+      .eq("id", user.id)
+      .maybeSingle();
+
+
+    if (profileError || !profile) {
+
+      console.error(
+        "Profile verification failed:",
+        profileError
+      );
+
+      await supabaseClient.auth.signOut();
+
+      window.location.replace("index.html");
+
+      return false;
+    }
+
+
+    /* ACCOUNT ACTIVE CHECK */
+
+    if (profile.is_active !== true) {
+
+      alert("Your account is inactive.");
+
+      await supabaseClient.auth.signOut();
+
+      window.location.replace("index.html");
+
+      return false;
+    }
+
+
+    /* SUPER ADMIN REDIRECTION */
+
+    if (profile.role === "super_admin") {
+
+      window.location.replace("dashboard.html");
+
+      return false;
+    }
+
+
+    /* SCHOOL ADMIN ROLE CHECK */
+
+    if (
+      profile.role !== "school_admin"
+    ) {
+
+      alert(
+        "Access denied. School Admin only."
+      );
+
+      window.location.replace("index.html");
+
+      return false;
+    }
+
+
+    /* INSTITUTION CHECK */
+
+    if (!profile.institution_id) {
+
+      alert(
+        "Your account has no institution assigned. Contact Super Admin."
+      );
+
+      await supabaseClient.auth.signOut();
+
+      window.location.replace("index.html");
+
+      return false;
+    }
+
+
+    currentInstitutionId =
+      profile.institution_id;
+
+
+    /* WELCOME MESSAGE */
+
+    const welcome =
+      document.getElementById(
+        "schoolAdminWelcome"
+      );
+
+    if (welcome) {
+
+      welcome.textContent =
+        profile.full_name
+          ? `Welcome, ${profile.full_name}`
+          : "Welcome, School Admin";
+    }
+
+
+    await loadInstitutionName();
+
+    const status =
+      document.getElementById("systemStatus");
+
+    if (status) {
+      status.textContent = "Secure session active";
+    }
+
+    return true;
+
+  } catch (error) {
+
+    console.error(
+      "Dashboard authentication error:",
+      error
+    );
+
+    window.location.replace("index.html");
+
+    return false;
+  }
+}
+
+
+/* =========================================================
+   INSTITUTION INFORMATION
+   ========================================================= */
+
+async function loadInstitutionName() {
+
+  const element =
+    document.getElementById("institutionName");
+
+  if (!element) return;
+
+  const {
+    data,
+    error
+  } = await supabaseClient
+    .from("institutions")
+    .select("*")
+    .eq("id", currentInstitutionId)
+    .maybeSingle();
+
+
+  if (error) {
+
+    console.error(
+      "Institution information:",
+      error
+    );
+
+    element.textContent =
+      "Institution dashboard";
+
+    return;
+  }
+
+
+  if (data) {
+
+    const name =
+      data.name ||
+      data.institution_name ||
+      "Your Institution";
+
+    element.textContent =
+      name + " — Institution Dashboard";
+  }
+}
+
+
+/* =========================================================
+   HELPER: UPDATE HTML ELEMENT
+   ========================================================= */
+
+function setDashboardValue(id, value) {
+
+  const element =
+    document.getElementById(id);
+
+  if (element) {
+
+    element.textContent =
+      value === null || value === undefined
+        ? "N/A"
+        : value;
+  }
+}
+
+
+/* =========================================================
+   LOAD INSTITUTION COUNTS
+   ========================================================= */
+
+async function countInstitutionRecords(table) {
+
+  const {
+    count,
+    error
+  } = await supabaseClient
+    .from(table)
+    .select("id", {
+      count: "exact",
+      head: true
+    })
+    .eq(
+      "institution_id",
+      currentInstitutionId
+    );
+
+
+  if (error) {
+
+    console.error(
+      `${table} count error:`,
+      error
+    );
+
+    return null;
+  }
+
+  return count ?? 0;
+}
+
+
+/* =========================================================
+   COUNT TEACHERS AND PARENTS
+   ========================================================= */
+
+async function countProfilesByRole(role) {
+
+  const {
+    count,
+    error
+  } = await supabaseClient
+    .from("profiles")
+    .select("id", {
+      count: "exact",
+      head: true
+    })
+    .eq(
+      "institution_id",
+      currentInstitutionId
+    )
+    .eq("role", role);
+
+
+  if (error) {
+
+    console.error(
+      `${role} count error:`,
+      error
+    );
+
+    return null;
+  }
+
+  return count ?? 0;
+}
+
+
+/* =========================================================
+   LOAD DASHBOARD STATISTICS
+   ========================================================= */
+
+async function loadInstitutionCounts() {
+
+  const [
+    students,
+    teachers,
+    parents,
+    certificates
+  ] = await Promise.all([
+
+    countInstitutionRecords("students"),
+
+    countProfilesByRole("teacher"),
+
+    countProfilesByRole("parent"),
+
+    countInstitutionRecords("certificates")
+
+  ]);
+
+
+  setDashboardValue(
+    "studentCount",
+    students
+  );
+
+  setDashboardValue(
+    "teacherCount",
+    teachers
+  );
+
+  setDashboardValue(
+    "parentCount",
+    parents
+  );
+
+  setDashboardValue(
+    "certificateCount",
+    certificates
+  );
+}
+
+
+/* =========================================================
+   HTML ESCAPE
+   ========================================================= */
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+/* =========================================================
+   ACADEMIC RESULTS
+   ========================================================= */
+
+async function loadAcademicResults() {
+
+  const statusEl =
+    document.getElementById(
+      "academicResultsStatus"
+    );
+
+  const rowsEl =
+    document.getElementById(
+      "academicSubjectRows"
+    );
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from("grades")
+      .select("*")
+      .eq(
+        "institution_id",
+        currentInstitutionId
+      )
+      .limit(1000);
+
+
+    if (error) {
+
+      throw error;
+    }
+
+
+    const results =
+      Array.isArray(data) ? data : [];
+
+
+    /* TOTAL RESULTS */
+
+    const total =
+      results.length;
+
+
+    /* PUBLISHED RESULTS */
+
+    const published =
+      results.filter(row =>
+
+        row.is_published === true ||
+        row.published === true ||
+        row.status === "published"
+
+      ).length;
+
+
+    setDashboardValue(
+      "academicTotalResults",
+      total
+    );
+
+    setDashboardValue(
+      "academicPublishedResults",
+      published
+    );
+
+    setDashboardValue(
+      "academicPendingResults",
+      total - published
+    );
+
+
+    /* GROUP BY SUBJECT */
+
+    const grouped = {};
+
+
+    results.forEach(row => {
+
+      const subject =
+        row.subject_name ||
+        row.subject ||
+        row.subject_id ||
+        "Unknown Subject";
+
+
+      const key = String(subject);
+
+
+      if (!grouped[key]) {
+
+        grouped[key] = {
+          total: 0,
+          published: 0,
+          scores: []
+        };
+      }
+
+
+      grouped[key].total++;
+
+
+      if (
+        row.is_published === true ||
+        row.published === true ||
+        row.status === "published"
+      ) {
+
+        grouped[key].published++;
+      }
+
+
+      const rawScore =
+        row.score ??
+        row.marks ??
+        row.percentage;
+
+
+      if (
+        rawScore !== null &&
+        rawScore !== undefined &&
+        rawScore !== ""
+      ) {
+
+        const score = Number(rawScore);
+
+        if (Number.isFinite(score)) {
+
+          grouped[key].scores.push(score);
+        }
+      }
+
     });
+
+
+    const subjects =
+      Object.entries(grouped);
+
+
+    setDashboardValue(
+      "academicSubjectCount",
+      subjects.length
+    );
+
+
+    /* EMPTY RESULTS */
+
+    if (!results.length) {
+
+      if (rowsEl) {
+
+        rowsEl.innerHTML = `
+          <tr>
+            <td colspan="5" class="loading">
+              No academic results found.
+            </td>
+          </tr>
+        `;
+      }
+
+      if (statusEl) {
+        statusEl.textContent = "No results";
+      }
+
+      return;
+    }
+
+
+    /* RESULTS TABLE */
+
+    if (rowsEl) {
+
+      rowsEl.innerHTML = "";
+
+      subjects.forEach(
+        ([subject, item], index) => {
+
+          const average =
+            item.scores.length
+              ? (
+                  item.scores.reduce(
+                    (a, b) => a + b,
+                    0
+                  ) / item.scores.length
+                ).toFixed(1) + "%"
+              : "N/A";
+
+
+          const tr =
+            document.createElement("tr");
+
+
+          tr.innerHTML = `
+            <td>${index + 1}</td>
+
+            <td>
+              ${escapeHtml(subject)}
+            </td>
+
+            <td>
+              ${item.total}
+            </td>
+
+            <td>
+              ${item.published}
+            </td>
+
+            <td>
+              ${average}
+            </td>
+          `;
+
+
+          rowsEl.appendChild(tr);
+
+        }
+      );
+    }
+
+
+    if (statusEl) {
+
+      statusEl.textContent =
+        `${total} institution result(s)`;
+    }
+
+
+  } catch (error) {
+
+    console.error(
+      "Academic results error:",
+      error
+    );
+
+    if (statusEl) {
+      statusEl.textContent = "Unavailable";
+    }
+
+    if (rowsEl) {
+
+      rowsEl.innerHTML = `
+        <tr>
+          <td colspan="5" class="loading">
+            Academic results could not be loaded.
+            Please check the grades table and RLS policies.
+          </td>
+        </tr>
+      `;
+    }
+
+    [
+      "academicTotalResults",
+      "academicPublishedResults",
+      "academicPendingResults",
+      "academicSubjectCount"
+    ].forEach(id => setDashboardValue(id, "N/A"));
   }
-  function renderCards(filter='') {
-    const grid=$('moduleGrid'); grid.innerHTML=''; let count=0;
-    modules.forEach(group => group.items.forEach(([name,url,icon,description]) => {
-      if (!`${name} ${description} ${group.group}`.toLowerCase().includes(filter.toLowerCase())) return;
-      count++; const a=document.createElement('a'); a.className='module-card'; a.href=url;
-      a.innerHTML=`<div class="card-top"><span class="card-icon" aria-hidden="true">${icon}</span><span class="card-arrow">↗</span></div><h3></h3><p></p>`;
-      a.querySelector('h3').textContent=name; a.querySelector('p').textContent=description; grid.appendChild(a);
-    }));
-    if (!count) grid.innerHTML='<div class="empty">No modules match your search.</div>';
+}
+
+
+/* =========================================================
+   LOGOUT
+   ========================================================= */
+
+function setupLogout() {
+
+  const logoutBtn =
+    document.getElementById("logoutBtn");
+
+
+  if (!logoutBtn) return;
+
+
+  logoutBtn.addEventListener(
+    "click",
+    async () => {
+
+      logoutBtn.disabled = true;
+
+      logoutBtn.textContent =
+        "Logging out...";
+
+
+      try {
+
+        const { error } =
+          await supabaseClient.auth.signOut();
+
+        if (error) {
+          console.error("Logout error:", error);
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Logout error:",
+          error
+        );
+      }
+
+
+      sessionStorage.clear();
+
+      window.location.replace("index.html");
+    }
+  );
+}
+
+
+/* =========================================================
+   AUTH STATE LISTENER
+   ========================================================= */
+
+supabaseClient.auth.onAuthStateChange(
+  (event) => {
+
+    if (event === "SIGNED_OUT") {
+
+      window.location.replace("index.html");
+    }
   }
-  async function signOut() { try { if(sb) await sb.auth.signOut(); } finally { location.replace('index.html'); } }
-  async function init() {
-    $('year').textContent=new Date().getFullYear(); renderNav(); renderCards();
-    $('moduleSearch').addEventListener('input',e=>renderCards(e.target.value));
-    $('signOutBtn').addEventListener('click',signOut);
-    $('menuBtn').addEventListener('click',()=>$('sidebar').classList.toggle('open'));
-    if (!window.supabase?.createClient) { setNotice('Supabase library failed to load. Check your internet connection.','error'); return; }
-    if (SUPABASE_ANON_KEY.startsWith('PASTE_')) { setNotice('Setup required: copy the existing publishable/anon key from app.js into school-dashboard.js. No secret service-role key is needed.','error'); return; }
-    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-    const {data:{session},error:sessionError}=await sb.auth.getSession();
-    if(sessionError || !session) { location.replace('index.html'); return; }
-    const {data:profile,error}=await sb.from('profiles').select('id,full_name,role,is_active,institution_id').eq('id',session.user.id).maybeSingle();
-    if(error || !profile) { setNotice('Your profile could not be verified. Contact the system administrator.','error'); return; }
-    if(profile.role!=='school_admin' || profile.is_active!==true || !profile.institution_id) { setNotice('Access denied. This page is only for an active School Admin account linked to an institution.','error'); await sb.auth.signOut(); location.replace('index.html'); return; }
-    $('adminName').textContent=profile.full_name || session.user.email || 'School Administrator';
-    const {data:institution,error:instError}=await sb.from('institutions').select('name').eq('id',profile.institution_id).maybeSingle();
-    $('schoolName').textContent=(!instError && institution?.name) || 'My Institution';
-    setNotice('Signed in securely. Module links open existing GAAWOW EMS pages. Each page and Supabase RLS must independently authorize School Admin access.','success');
-  }
-  init().catch(err=>{ console.error('School dashboard initialization failed:',err); setNotice('Dashboard could not initialize. Check browser console and Supabase configuration.','error'); });
-})();
+);
+
+
+/* =========================================================
+   START DASHBOARD
+   ========================================================= */
+
+async function startDashboard() {
+
+  const allowed =
+    await checkDashboardAccess();
+
+
+  if (!allowed) return;
+
+
+  await Promise.all([
+
+    loadInstitutionCounts(),
+
+    loadAcademicResults()
+
+  ]);
+
+
+  setupLogout();
+}
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  startDashboard
+);
