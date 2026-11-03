@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0B1E63">
-<title>GAAWOW EMS | Super Admin Dashboard</title>
+
+<title>GAAWOW EMS | School Admin Dashboard</title>
 
 <style>
-:root {
+:root{
   --navy:#0B1E63;
   --blue:#0B4DA2;
   --gold:#D4AF37;
   --bg:#F5F7FA;
-  --white:#fff;
   --text:#17233F;
   --muted:#64748B;
 }
@@ -85,7 +85,23 @@ header button{
 .welcome p{
   color:var(--muted);
   font-size:13px;
-  margin:0;
+  margin:5px 0;
+}
+
+.school-info{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:15px;
+}
+
+.info-badge{
+  background:#eaf1ff;
+  color:var(--blue);
+  padding:8px 12px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:bold;
 }
 
 .section-title{
@@ -159,14 +175,17 @@ header button{
   margin:0;
 }
 
-.school-admin-card{
-  border:1px solid var(--gold);
-  background:linear-gradient(135deg,#fff,#fff9e9);
+.notice{
+  display:none;
+  padding:12px;
+  margin:15px 0;
+  border-radius:8px;
+  font-size:12px;
 }
 
-.school-admin-card .icon{
-  background:#fff0c2;
-}
+.notice.show{display:block}
+.notice.error{background:#fff0f0;color:#a32323}
+.notice.info{background:#eaf1ff;color:#17468d}
 
 footer{
   text-align:center;
@@ -200,150 +219,163 @@ footer{
          alt="GAAWOW Academy Logo">
     <div>
       <h1>GAAWOW EMS</h1>
-      <p>Education Management & Verification System</p>
+      <p>School Management Dashboard</p>
     </div>
   </div>
 
-  <button id="logoutBtn">Logout</button>
+  <button id="logoutBtn" type="button">Logout</button>
 </header>
 
 <main class="container">
 
   <section class="welcome">
-    <h2>Super Admin Dashboard</h2>
-    <p>Central management of GAAWOW Education Management System.</p>
+    <h2>School Admin Dashboard</h2>
+    <p>Welcome, <strong id="adminName">Loading...</strong></p>
+    <p>Manage your institution's academic activities.</p>
+
+    <div class="school-info">
+      <span class="info-badge" id="schoolName">
+        Loading Institution...
+      </span>
+      <span class="info-badge">SCHOOL ADMIN</span>
+    </div>
   </section>
 
+  <div id="dashboardNotice" class="notice" role="status"></div>
+
   <div class="section-title">
-    <h2>System Management</h2>
-    <span class="module-count">25 Core EMS Modules</span>
+    <h2>Institution Management</h2>
+    <span class="module-count">School Modules</span>
   </div>
 
   <section class="grid">
 
-    <a class="card" href="institutions.html">
-      <span class="icon">🏫</span>
-      <div><h3>Institutions</h3><p>Manage institutions.</p></div>
-    </a>
-
-    <a class="card school-admin-card" href="school-admins.html">
-      <span class="icon">👨‍💼</span>
-      <div><h3>School Admin Management</h3><p>Create accounts and assign institutions.</p></div>
-    </a>
-
-    <a class="card" href="public-academy.html">
-      <span class="icon">🌐</span>
-      <div><h3>Public Academy Portal</h3><p>Manage public portal.</p></div>
-    </a>
-
     <a class="card" href="students.html">
       <span class="icon">🎓</span>
-      <div><h3>Students</h3><p>Manage student records.</p></div>
+      <div>
+        <h3>Students</h3>
+        <p>Manage your institution's students.</p>
+      </div>
     </a>
 
     <a class="card" href="parents.html">
       <span class="icon">👨‍👩‍👧</span>
-      <div><h3>Parents</h3><p>Manage parent records.</p></div>
+      <div>
+        <h3>Parents</h3>
+        <p>Manage student parents and guardians.</p>
+      </div>
     </a>
 
     <a class="card" href="teacher.html">
       <span class="icon">👩‍🏫</span>
-      <div><h3>Teachers</h3><p>Manage teachers.</p></div>
+      <div>
+        <h3>Teachers</h3>
+        <p>Manage teachers and assignments.</p>
+      </div>
     </a>
 
     <a class="card" href="departments.html">
       <span class="icon">🏢</span>
-      <div><h3>Departments</h3><p>Manage departments.</p></div>
+      <div>
+        <h3>Departments</h3>
+        <p>Manage academic departments.</p>
+      </div>
     </a>
 
     <a class="card" href="courses.html">
       <span class="icon">📚</span>
-      <div><h3>Courses</h3><p>Manage courses.</p></div>
+      <div>
+        <h3>Courses</h3>
+        <p>Manage institution courses.</p>
+      </div>
     </a>
 
     <a class="card" href="classes.html">
       <span class="icon">🏛️</span>
-      <div><h3>Classes</h3><p>Manage classes.</p></div>
+      <div>
+        <h3>Classes</h3>
+        <p>Manage classes and groups.</p>
+      </div>
     </a>
 
     <a class="card" href="enrollment.html">
       <span class="icon">📝</span>
-      <div><h3>Enrollment Management</h3><p>Manage enrollment.</p></div>
+      <div>
+        <h3>Enrollment</h3>
+        <p>Manage student enrollment.</p>
+      </div>
     </a>
 
     <a class="card" href="lessons.html">
       <span class="icon">📖</span>
-      <div><h3>Lessons Management</h3><p>Manage lessons.</p></div>
-    </a>
-
-    <a class="card" href="exams.html">
-      <span class="icon">🧪</span>
-      <div><h3>Exams</h3><p>Manage examinations.</p></div>
-    </a>
-
-    <a class="card" href="grades.html">
-      <span class="icon">📊</span>
-      <div><h3>Grades</h3><p>Manage grades.</p></div>
-    </a>
-
-    <a class="card" href="certificates.html">
-      <span class="icon">📜</span>
-      <div><h3>Certificates</h3><p>Manage certificates.</p></div>
-    </a>
-
-    <a class="card" href="certificate.html">
-      <span class="icon">🖨️</span>
-      <div><h3>Certificate Generate</h3><p>Generate certificates.</p></div>
-    </a>
-
-    <a class="card" href="authentication-letter.html">
-      <span class="icon">✉️</span>
-      <div><h3>Authentication Letter</h3><p>Issue official letters.</p></div>
-    </a>
-
-    <a class="card" href="verify.html">
-      <span class="icon">🔎</span>
-      <div><h3>Verification</h3><p>Verify documents.</p></div>
-    </a>
-
-    <a class="card" href="audit-logs.html">
-      <span class="icon">🛡️</span>
-      <div><h3>Audit Logs</h3><p>Review activities.</p></div>
+      <div>
+        <h3>Lessons</h3>
+        <p>Manage academic lessons.</p>
+      </div>
     </a>
 
     <a class="card" href="subjects.html">
       <span class="icon">🧬</span>
-      <div><h3>Subjects</h3><p>Manage subjects.</p></div>
+      <div>
+        <h3>Subjects</h3>
+        <p>Manage academic subjects.</p>
+      </div>
     </a>
 
-    <a class="card" href="financial.html">
-      <span class="icon">💳</span>
-      <div><h3>Financial Management</h3><p>Manage finances.</p></div>
+    <a class="card" href="exams.html">
+      <span class="icon">🧪</span>
+      <div>
+        <h3>Exams</h3>
+        <p>Prepare and manage examinations.</p>
+      </div>
     </a>
 
-    <a class="card" href="mobile-money.html">
-      <span class="icon">📱</span>
-      <div><h3>Mobile Money</h3><p>Manage transactions.</p></div>
-    </a>
-
-    <a class="card" href="reports.html">
-      <span class="icon">📈</span>
-      <div><h3>Reports</h3><p>View reports.</p></div>
+    <a class="card" href="grades.html">
+      <span class="icon">📊</span>
+      <div>
+        <h3>Grades</h3>
+        <p>Manage student examination results.</p>
+      </div>
     </a>
 
     <a class="card" href="attendance.html">
       <span class="icon">📅</span>
-      <div><h3>Attendance</h3><p>Manage attendance.</p></div>
+      <div>
+        <h3>Attendance</h3>
+        <p>Manage student attendance.</p>
+      </div>
     </a>
 
-    <a class="card" href="settings.html">
-      <span class="icon">⚙️</span>
-      <div><h3>Settings</h3><p>System settings.</p></div>
+    <a class="card" href="certificates.html">
+      <span class="icon">📜</span>
+      <div>
+        <h3>Certificates</h3>
+        <p>Manage student certificates.</p>
+      </div>
+    </a>
+
+    <a class="card" href="authentication-letter.html">
+      <span class="icon">✉️</span>
+      <div>
+        <h3>Authentication Letters</h3>
+        <p>Issue student authentication letters.</p>
+      </div>
+    </a>
+
+    <a class="card" href="reports.html">
+      <span class="icon">📈</span>
+      <div>
+        <h3>Reports</h3>
+        <p>View institutional reports.</p>
+      </div>
     </a>
 
     <a class="card" href="notifications.html">
       <span class="icon">🔔</span>
-      <div><h3>Notifications</h3><p>Manage notifications.</p></div>
+      <div>
+        <h3>Notifications</h3>
+        <p>View institutional notifications.</p>
+      </div>
     </a>
 
   </section>
@@ -355,7 +387,7 @@ footer{
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./dashboard.js?v=20261103"></script>
+<script src="./school-dashboard.js?v=20261103"></script>
 
 </body>
 </html>
