@@ -2,743 +2,360 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>School Admin Management | GAAWOW EMS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0B1E63">
+<title>GAAWOW EMS | Super Admin Dashboard</title>
 
 <style>
-*{
-    box-sizing:border-box;
-    margin:0;
-    padding:0;
+:root {
+  --navy:#0B1E63;
+  --blue:#0B4DA2;
+  --gold:#D4AF37;
+  --bg:#F5F7FA;
+  --white:#fff;
+  --text:#17233F;
+  --muted:#64748B;
 }
+
+*{box-sizing:border-box}
 
 body{
-    font-family:Arial,Helvetica,sans-serif;
-    background:linear-gradient(135deg,#F5F7FA,#EEF3FA,#FFFFFF);
-    color:#1F2937;
-    min-height:100vh;
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,sans-serif;
 }
 
-.topbar{
-    background:linear-gradient(135deg,#0B1E63,#0B4DA2);
-    color:white;
-    padding:17px 24px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    box-shadow:0 6px 20px rgba(11,30,99,.2);
+header{
+  background:linear-gradient(120deg,var(--navy),var(--blue));
+  color:white;
+  padding:16px 4%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
 }
 
 .brand{
-    display:flex;
-    align-items:center;
-    gap:13px;
+  display:flex;
+  align-items:center;
+  gap:12px;
 }
 
 .brand img{
-    width:52px;
-    height:52px;
-    object-fit:contain;
-    background:white;
-    border-radius:11px;
-    padding:5px;
+  width:52px;
+  height:52px;
+  object-fit:contain;
+  background:white;
+  border-radius:10px;
+  padding:4px;
 }
 
-.brand h1{
-    font-size:19px;
-}
+.brand h1{font-size:18px;margin:0 0 5px}
+.brand p{font-size:11px;margin:0;opacity:.85}
 
-.brand p{
-    font-size:11px;
-    opacity:.85;
-    margin-top:4px;
-}
-
-.admin-badge{
-    background:#D4AF37;
-    color:#0B1E63;
-    padding:8px 13px;
-    border-radius:30px;
-    font-size:11px;
-    font-weight:800;
+header button{
+  background:#ffffff18;
+  border:1px solid #ffffff66;
+  color:white;
+  padding:10px 14px;
+  border-radius:8px;
+  cursor:pointer;
 }
 
 .container{
-    width:min(1200px,94%);
-    margin:auto;
-    padding:30px 0 45px;
+  max-width:1400px;
+  margin:25px auto;
+  padding:0 16px;
 }
 
-.page-heading{
-    margin-bottom:22px;
+.welcome{
+  background:white;
+  padding:23px;
+  border-radius:14px;
+  border:1px solid #e5eaf3;
+  margin-bottom:20px;
 }
 
-.page-heading h2{
-    color:#0B1E63;
-    font-size:27px;
-    margin-bottom:8px;
+.welcome h2{
+  color:var(--navy);
+  margin:0 0 8px;
 }
 
-.page-heading p{
-    color:#64748B;
-    font-size:13px;
-    line-height:1.6;
+.welcome p{
+  color:var(--muted);
+  font-size:13px;
+  margin:0;
 }
 
-.back-btn{
-    display:inline-block;
-    text-decoration:none;
-    background:#0B1E63;
-    color:white;
-    padding:10px 16px;
-    border-radius:10px;
-    font-size:12px;
-    font-weight:700;
-    margin-bottom:20px;
+.section-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:25px 0 15px;
+  gap:10px;
 }
 
-.back-btn:hover{
-    background:#0B4DA2;
+.section-title h2{
+  color:var(--navy);
+  font-size:19px;
 }
 
-/* STATISTICS */
-
-.stats-grid{
-    display:grid;
-    grid-template-columns:repeat(3,minmax(0,1fr));
-    gap:16px;
-    margin-bottom:25px;
+.module-count{
+  background:#eaf1ff;
+  color:var(--blue);
+  padding:8px 12px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:bold;
 }
 
-.stat-card{
-    background:white;
-    padding:21px;
-    border:1px solid #E5E7EB;
-    border-radius:16px;
-    box-shadow:0 7px 20px rgba(15,23,42,.06);
-    position:relative;
-    overflow:hidden;
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
 }
 
-.stat-card:before{
-    content:"";
-    position:absolute;
-    top:0;
-    left:0;
-    width:100%;
-    height:4px;
-    background:#0B4DA2;
+.card{
+  background:white;
+  border:1px solid #e5eaf3;
+  border-radius:13px;
+  padding:17px;
+  display:flex;
+  gap:12px;
+  text-decoration:none;
+  color:var(--text);
+  min-height:105px;
+  transition:.2s;
 }
 
-.stat-card.gold:before{
-    background:#D4AF37;
+.card:hover{
+  transform:translateY(-3px);
+  border-color:#b8c9ec;
+  box-shadow:0 8px 20px #10265012;
 }
 
-.stat-card.green:before{
-    background:#16A34A;
+.icon{
+  width:42px;
+  height:42px;
+  flex-shrink:0;
+  border-radius:11px;
+  background:#edf3ff;
+  display:grid;
+  place-items:center;
+  font-size:21px;
 }
 
-.stat-icon{
-    font-size:25px;
-    margin-bottom:10px;
+.card h3{
+  color:var(--navy);
+  font-size:13px;
+  margin:3px 0 7px;
 }
 
-.stat-number{
-    color:#0B1E63;
-    font-size:27px;
-    font-weight:800;
+.card p{
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+  margin:0;
 }
 
-.stat-label{
-    color:#64748B;
-    font-size:12px;
-    margin-top:5px;
+.school-admin-card{
+  border:1px solid var(--gold);
+  background:linear-gradient(135deg,#fff,#fff9e9);
 }
 
-/* PANELS */
-
-.panel{
-    background:white;
-    border:1px solid #E5E7EB;
-    border-radius:18px;
-    padding:23px;
-    margin-bottom:23px;
-    box-shadow:0 7px 22px rgba(15,23,42,.06);
-}
-
-.panel-title{
-    color:#0B1E63;
-    font-size:18px;
-    margin-bottom:18px;
-}
-
-/* FORM */
-
-.form-grid{
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:16px;
-}
-
-.form-group{
-    display:flex;
-    flex-direction:column;
-    gap:7px;
-}
-
-.form-group label{
-    color:#334155;
-    font-size:12px;
-    font-weight:700;
-}
-
-.form-group input,
-.form-group select{
-    width:100%;
-    padding:12px;
-    border:1px solid #CBD5E1;
-    border-radius:10px;
-    font-size:13px;
-    outline:none;
-    background:#fff;
-}
-
-.form-group input:focus,
-.form-group select:focus{
-    border-color:#0B4DA2;
-    box-shadow:0 0 0 3px rgba(11,77,162,.1);
-}
-
-.full-width{
-    grid-column:1/-1;
-}
-
-.primary-btn{
-    background:#0B1E63;
-    color:white;
-    border:0;
-    border-radius:10px;
-    padding:13px 19px;
-    font-size:13px;
-    font-weight:800;
-    cursor:pointer;
-}
-
-.primary-btn:hover{
-    background:#0B4DA2;
-}
-
-.primary-btn:disabled{
-    opacity:.6;
-    cursor:not-allowed;
-}
-
-/* SEARCH */
-
-.toolbar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:17px;
-}
-
-.search-input{
-    width:100%;
-    max-width:350px;
-    padding:12px;
-    border:1px solid #CBD5E1;
-    border-radius:10px;
-    outline:none;
-    font-size:13px;
-}
-
-/* TABLE */
-
-.table-wrap{
-    width:100%;
-    overflow-x:auto;
-}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-    min-width:750px;
-}
-
-thead{
-    background:#0B1E63;
-    color:white;
-}
-
-th{
-    padding:13px 11px;
-    font-size:11px;
-    text-align:left;
-    white-space:nowrap;
-}
-
-td{
-    padding:13px 11px;
-    border-bottom:1px solid #E5E7EB;
-    font-size:12px;
-    color:#334155;
-}
-
-tbody tr:nth-child(even){
-    background:#F8FAFC;
-}
-
-tbody tr:hover{
-    background:#EEF4FF;
-}
-
-.status-badge{
-    display:inline-block;
-    padding:6px 10px;
-    border-radius:30px;
-    font-size:10px;
-    font-weight:800;
-}
-
-.active{
-    background:#DCFCE7;
-    color:#15803D;
-}
-
-.inactive{
-    background:#FEE2E2;
-    color:#B91C1C;
-}
-
-.action-btn{
-    border:0;
-    padding:8px 10px;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:10px;
-    font-weight:700;
-    margin:2px;
-}
-
-.assign-btn{
-    background:#DBEAFE;
-    color:#1D4ED8;
-}
-
-.toggle-btn{
-    background:#FEF3C7;
-    color:#92400E;
-}
-
-.loading{
-    text-align:center;
-    padding:25px;
-    color:#64748B;
-}
-
-.message{
-    padding:13px;
-    border-radius:10px;
-    font-size:12px;
-    margin-bottom:15px;
-    display:none;
-    line-height:1.5;
-}
-
-.message.success{
-    display:block;
-    background:#DCFCE7;
-    color:#166534;
-}
-
-.message.error{
-    display:block;
-    background:#FEE2E2;
-    color:#991B1B;
-}
-
-.message.info{
-    display:block;
-    background:#DBEAFE;
-    color:#1E40AF;
-}
-
-/* MODAL */
-
-.modal{
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(15,23,42,.6);
-    z-index:500;
-    align-items:center;
-    justify-content:center;
-    padding:15px;
-}
-
-.modal.show{
-    display:flex;
-}
-
-.modal-content{
-    width:min(450px,100%);
-    background:white;
-    border-radius:18px;
-    padding:24px;
-    box-shadow:0 15px 40px rgba(0,0,0,.2);
-}
-
-.modal-content h3{
-    color:#0B1E63;
-    margin-bottom:17px;
-}
-
-.modal-actions{
-    display:flex;
-    gap:10px;
-    margin-top:18px;
-}
-
-.secondary-btn{
-    background:#E2E8F0;
-    color:#334155;
-    border:0;
-    border-radius:9px;
-    padding:12px 17px;
-    font-weight:700;
-    cursor:pointer;
+.school-admin-card .icon{
+  background:#fff0c2;
 }
 
 footer{
-    background:#0B1E63;
-    color:white;
-    text-align:center;
-    padding:25px 15px;
-    border-radius:18px 18px 0 0;
-    margin-top:40px;
+  text-align:center;
+  color:#8290a7;
+  padding:25px;
+  font-size:11px;
 }
 
-footer img{
-    width:50px;
-    height:50px;
-    object-fit:contain;
-    background:white;
-    padding:4px;
-    border-radius:10px;
-    margin-bottom:9px;
+@media(max-width:1000px){
+  .grid{grid-template-columns:repeat(3,1fr)}
 }
 
-footer h4{
-    font-size:14px;
-    margin-bottom:5px;
+@media(max-width:650px){
+  .grid{grid-template-columns:repeat(2,1fr)}
+  header{padding:12px}
+  .brand img{width:43px;height:43px}
+  .brand h1{font-size:15px}
 }
 
-footer p{
-    font-size:11px;
-    opacity:.8;
-}
-
-/* RESPONSIVE */
-
-@media(max-width:700px){
-
-    .topbar{
-        padding:13px;
-    }
-
-    .brand img{
-        width:44px;
-        height:44px;
-    }
-
-    .brand h1{
-        font-size:15px;
-    }
-
-    .brand p{
-        font-size:9px;
-    }
-
-    .admin-badge{
-        font-size:9px;
-        padding:7px 9px;
-    }
-
-    .container{
-        width:92%;
-        padding-top:22px;
-    }
-
-    .page-heading h2{
-        font-size:23px;
-    }
-
-    .stats-grid{
-        grid-template-columns:repeat(2,minmax(0,1fr));
-        gap:11px;
-    }
-
-    .stat-card{
-        padding:16px;
-    }
-
-    .stat-number{
-        font-size:23px;
-    }
-
-    .panel{
-        padding:16px;
-    }
-
-    .form-grid{
-        grid-template-columns:1fr;
-    }
-
-    .full-width{
-        grid-column:auto;
-    }
-
-    .toolbar{
-        flex-direction:column;
-        align-items:stretch;
-    }
-
-    .search-input{
-        max-width:none;
-    }
-
-    .primary-btn{
-        width:100%;
-    }
+@media(max-width:420px){
+  .grid{grid-template-columns:1fr}
 }
 </style>
 </head>
 
 <body>
 
-<header class="topbar">
-    <div class="brand">
-        <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-             alt="GAAWOW Academy Logo">
-        <div>
-            <h1>GAAWOW EMS</h1>
-            <p>Education Management &amp; Verification System</p>
-        </div>
+<header>
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+         alt="GAAWOW Academy Logo">
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <p>Education Management & Verification System</p>
     </div>
+  </div>
 
-    <div class="admin-badge">SUPER ADMIN</div>
+  <button id="logoutBtn">Logout</button>
 </header>
 
 <main class="container">
 
-    <a href="dashboard.html" class="back-btn">
-        ← Back to Dashboard
+  <section class="welcome">
+    <h2>Super Admin Dashboard</h2>
+    <p>Central management of GAAWOW Education Management System.</p>
+  </section>
+
+  <div class="section-title">
+    <h2>System Management</h2>
+    <span class="module-count">25 Core EMS Modules</span>
+  </div>
+
+  <section class="grid">
+
+    <a class="card" href="institutions.html">
+      <span class="icon">🏫</span>
+      <div><h3>Institutions</h3><p>Manage institutions.</p></div>
     </a>
 
-    <section class="page-heading">
-        <h2>School Admin Management</h2>
-        <p>
-            Create and manage school administrator accounts,
-            assign institutions and control administrative access.
-        </p>
-    </section>
+    <a class="card school-admin-card" href="school-admins.html">
+      <span class="icon">👨‍💼</span>
+      <div><h3>School Admin Management</h3><p>Create accounts and assign institutions.</p></div>
+    </a>
 
-    <div id="pageMessage" class="message"></div>
+    <a class="card" href="public-academy.html">
+      <span class="icon">🌐</span>
+      <div><h3>Public Academy Portal</h3><p>Manage public portal.</p></div>
+    </a>
 
-    <!-- STATISTICS -->
+    <a class="card" href="students.html">
+      <span class="icon">🎓</span>
+      <div><h3>Students</h3><p>Manage student records.</p></div>
+    </a>
 
-    <section class="stats-grid">
+    <a class="card" href="parents.html">
+      <span class="icon">👨‍👩‍👧</span>
+      <div><h3>Parents</h3><p>Manage parent records.</p></div>
+    </a>
 
-        <div class="stat-card">
-            <div class="stat-icon">👨‍💼</div>
-            <div class="stat-number" id="totalAdmins">0</div>
-            <div class="stat-label">Total School Admins</div>
-        </div>
+    <a class="card" href="teacher.html">
+      <span class="icon">👩‍🏫</span>
+      <div><h3>Teachers</h3><p>Manage teachers.</p></div>
+    </a>
 
-        <div class="stat-card green">
-            <div class="stat-icon">✅</div>
-            <div class="stat-number" id="activeAdmins">0</div>
-            <div class="stat-label">Active Accounts</div>
-        </div>
+    <a class="card" href="departments.html">
+      <span class="icon">🏢</span>
+      <div><h3>Departments</h3><p>Manage departments.</p></div>
+    </a>
 
-        <div class="stat-card gold">
-            <div class="stat-icon">⏸️</div>
-            <div class="stat-number" id="inactiveAdmins">0</div>
-            <div class="stat-label">Inactive Accounts</div>
-        </div>
+    <a class="card" href="courses.html">
+      <span class="icon">📚</span>
+      <div><h3>Courses</h3><p>Manage courses.</p></div>
+    </a>
 
-    </section>
+    <a class="card" href="classes.html">
+      <span class="icon">🏛️</span>
+      <div><h3>Classes</h3><p>Manage classes.</p></div>
+    </a>
 
-    <!-- CREATE SCHOOL ADMIN -->
+    <a class="card" href="enrollment.html">
+      <span class="icon">📝</span>
+      <div><h3>Enrollment Management</h3><p>Manage enrollment.</p></div>
+    </a>
 
-    <section class="panel">
+    <a class="card" href="lessons.html">
+      <span class="icon">📖</span>
+      <div><h3>Lessons Management</h3><p>Manage lessons.</p></div>
+    </a>
 
-        <h3 class="panel-title">➕ Create New School Admin</h3>
+    <a class="card" href="exams.html">
+      <span class="icon">🧪</span>
+      <div><h3>Exams</h3><p>Manage examinations.</p></div>
+    </a>
 
-        <form id="createAdminForm">
+    <a class="card" href="grades.html">
+      <span class="icon">📊</span>
+      <div><h3>Grades</h3><p>Manage grades.</p></div>
+    </a>
 
-            <div class="form-grid">
+    <a class="card" href="certificates.html">
+      <span class="icon">📜</span>
+      <div><h3>Certificates</h3><p>Manage certificates.</p></div>
+    </a>
 
-                <div class="form-group">
-                    <label for="adminName">Full Name</label>
-                    <input
-                        type="text"
-                        id="adminName"
-                        placeholder="Enter full name"
-                        required
-                    >
-                </div>
+    <a class="card" href="certificate.html">
+      <span class="icon">🖨️</span>
+      <div><h3>Certificate Generate</h3><p>Generate certificates.</p></div>
+    </a>
 
-                <div class="form-group">
-                    <label for="adminEmail">Email Address</label>
-                    <input
-                        type="email"
-                        id="adminEmail"
-                        placeholder="admin@example.com"
-                        required
-                    >
-                </div>
+    <a class="card" href="authentication-letter.html">
+      <span class="icon">✉️</span>
+      <div><h3>Authentication Letter</h3><p>Issue official letters.</p></div>
+    </a>
 
-                <div class="form-group">
-                    <label for="adminPassword">Temporary Password</label>
-                    <input
-                        type="password"
-                        id="adminPassword"
-                        minlength="8"
-                        autocomplete="new-password"
-                        placeholder="Minimum 8 characters"
-                        required
-                    >
-                </div>
+    <a class="card" href="verify.html">
+      <span class="icon">🔎</span>
+      <div><h3>Verification</h3><p>Verify documents.</p></div>
+    </a>
 
-                <div class="form-group">
-                    <label for="adminInstitution">Assign Institution</label>
-                    <select id="adminInstitution" required>
-                        <option value="">Loading institutions...</option>
-                    </select>
-                </div>
+    <a class="card" href="audit-logs.html">
+      <span class="icon">🛡️</span>
+      <div><h3>Audit Logs</h3><p>Review activities.</p></div>
+    </a>
 
-                <div class="form-group full-width">
-                    <button
-                        type="submit"
-                        class="primary-btn"
-                        id="createAdminBtn"
-                    >
-                        Create School Admin Account
-                    </button>
-                </div>
+    <a class="card" href="subjects.html">
+      <span class="icon">🧬</span>
+      <div><h3>Subjects</h3><p>Manage subjects.</p></div>
+    </a>
 
-            </div>
+    <a class="card" href="financial.html">
+      <span class="icon">💳</span>
+      <div><h3>Financial Management</h3><p>Manage finances.</p></div>
+    </a>
 
-        </form>
+    <a class="card" href="mobile-money.html">
+      <span class="icon">📱</span>
+      <div><h3>Mobile Money</h3><p>Manage transactions.</p></div>
+    </a>
 
-    </section>
+    <a class="card" href="reports.html">
+      <span class="icon">📈</span>
+      <div><h3>Reports</h3><p>View reports.</p></div>
+    </a>
 
-    <!-- ADMIN LIST -->
+    <a class="card" href="attendance.html">
+      <span class="icon">📅</span>
+      <div><h3>Attendance</h3><p>Manage attendance.</p></div>
+    </a>
 
-    <section class="panel">
+    <a class="card" href="settings.html">
+      <span class="icon">⚙️</span>
+      <div><h3>Settings</h3><p>System settings.</p></div>
+    </a>
 
-        <div class="toolbar">
-            <h3 class="panel-title" style="margin:0">
-                👨‍💼 School Administrators
-            </h3>
+    <a class="card" href="notifications.html">
+      <span class="icon">🔔</span>
+      <div><h3>Notifications</h3><p>Manage notifications.</p></div>
+    </a>
 
-            <input
-                type="search"
-                id="adminSearch"
-                class="search-input"
-                placeholder="Search by name or institution..."
-            >
-        </div>
-
-        <div class="table-wrap">
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Full Name</th>
-                        <th>Account ID</th>
-                        <th>Institution</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-
-                <tbody id="adminTableBody">
-                    <tr>
-                        <td colspan="6" class="loading">
-                            Loading School Admins...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-
-        </div>
-
-    </section>
-
-    <!-- ASSIGN INSTITUTION MODAL -->
-
-    <div class="modal" id="assignModal">
-
-        <div class="modal-content">
-
-            <h3>Assign Institution</h3>
-
-            <p id="assignAdminName"
-               style="font-size:12px;color:#64748B;margin-bottom:16px">
-            </p>
-
-            <div class="form-group">
-                <label for="assignInstitution">
-                    Select Institution
-                </label>
-
-                <select id="assignInstitution">
-                    <option value="">Select institution</option>
-                </select>
-            </div>
-
-            <div class="modal-actions">
-
-                <button
-                    type="button"
-                    class="primary-btn"
-                    id="saveAssignmentBtn"
-                >
-                    Save Assignment
-                </button>
-
-                <button
-                    type="button"
-                    class="secondary-btn"
-                    onclick="closeAssignModal()"
-                >
-                    Cancel
-                </button>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <footer>
-        <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-             alt="GAAWOW Academy">
-
-        <h4>GAAWOW ACADEMY</h4>
-        <p>Ilayska Aqoonta iyo Xirfadda</p>
-    </footer>
+  </section>
 
 </main>
 
+<footer>
+  GAAWOW Academy · Ilayska Aqoonta iyo Xirfadda
+</footer>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./school-admins.js?v=20261103"></script>
+<script src="./dashboard.js?v=20261103"></script>
 
 </body>
 </html>
