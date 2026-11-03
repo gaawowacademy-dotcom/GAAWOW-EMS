@@ -1,748 +1,737 @@
 /* =========================================================
-   GAAWOW EMS — SCHOOL ADMIN DASHBOARD
-   Secure Institution-Based Access
+   GAAWOW EMS
+   SCHOOL ADMIN MANAGEMENT
+   Secure Role-Based Access
    ========================================================= */
+
+"use strict";
+
+/* SUPABASE CONFIGURATION */
 
 const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
 const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-const supabaseClient =
-  window.supabase.createClient(
+const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
-  );
+);
 
-let currentInstitutionId = null;
+/* GLOBAL STATE */
 
-
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
-
-function openPage(page) {
-  window.location.href = page;
-}
+let schoolAdmins = [];
+let institutions = [];
+let selectedAdminId = null;
 
 
 /* =========================================================
-   AUTHENTICATION AND ROLE VERIFICATION
-   ========================================================= */
-
-async function checkDashboardAccess() {
-
-  try {
-
-    const {
-      data: sessionData,
-      error: sessionError
-    } = await supabaseClient.auth.getSession();
-
-    if (
-      sessionError ||
-      !sessionData?.session
-    ) {
-
-      window.location.replace("index.html");
-      return false;
-    }
-
-    const user = sessionData.session.user;
-
-    /* LOAD USER PROFILE */
-
-    const {
-      data: profile,
-      error: profileError
-    } = await supabaseClient
-      .from("profiles")
-      .select(`
-        id,
-        full_name,
-        role,
-        is_active,
-        institution_id
-      `)
-      .eq("id", user.id)
-      .maybeSingle();
-
-
-    if (profileError || !profile) {
-
-      console.error(
-        "Profile verification failed:",
-        profileError
-      );
-
-      await supabaseClient.auth.signOut();
-
-      window.location.replace("index.html");
-
-      return false;
-    }
-
-
-    /* ACCOUNT ACTIVE CHECK */
-
-    if (profile.is_active !== true) {
-
-      alert("Your account is inactive.");
-
-      await supabaseClient.auth.signOut();
-
-      window.location.replace("index.html");
-
-      return false;
-    }
-
-
-    /* SUPER ADMIN REDIRECTION */
-
-    if (profile.role === "super_admin") {
-
-      window.location.replace("dashboard.html");
-
-      return false;
-    }
-
-
-    /* SCHOOL ADMIN ROLE CHECK */
-
-    if (
-      profile.role !== "school_admin"
-    ) {
-
-      alert(
-        "Access denied. School Admin only."
-      );
-
-      window.location.replace("index.html");
-
-      return false;
-    }
-
-
-    /* INSTITUTION CHECK */
-
-    if (!profile.institution_id) {
-
-      alert(
-        "Your account has no institution assigned. Contact Super Admin."
-      );
-
-      await supabaseClient.auth.signOut();
-
-      window.location.replace("index.html");
-
-      return false;
-    }
-
-
-    currentInstitutionId =
-      profile.institution_id;
-
-
-    /* WELCOME MESSAGE */
-
-    const welcome =
-      document.getElementById(
-        "schoolAdminWelcome"
-      );
-
-    if (welcome) {
-
-      welcome.textContent =
-        profile.full_name
-          ? `Welcome, ${profile.full_name}`
-          : "Welcome, School Admin";
-    }
-
-
-    await loadInstitutionName();
-
-    const status =
-      document.getElementById("systemStatus");
-
-    if (status) {
-      status.textContent = "Secure session active";
-    }
-
-    return true;
-
-  } catch (error) {
-
-    console.error(
-      "Dashboard authentication error:",
-      error
-    );
-
-    window.location.replace("index.html");
-
-    return false;
-  }
-}
-
-
-/* =========================================================
-   INSTITUTION INFORMATION
-   ========================================================= */
-
-async function loadInstitutionName() {
-
-  const element =
-    document.getElementById("institutionName");
-
-  if (!element) return;
-
-  const {
-    data,
-    error
-  } = await supabaseClient
-    .from("institutions")
-    .select("*")
-    .eq("id", currentInstitutionId)
-    .maybeSingle();
-
-
-  if (error) {
-
-    console.error(
-      "Institution information:",
-      error
-    );
-
-    element.textContent =
-      "Institution dashboard";
-
-    return;
-  }
-
-
-  if (data) {
-
-    const name =
-      data.name ||
-      data.institution_name ||
-      "Your Institution";
-
-    element.textContent =
-      name + " — Institution Dashboard";
-  }
-}
-
-
-/* =========================================================
-   HELPER: UPDATE HTML ELEMENT
-   ========================================================= */
-
-function setDashboardValue(id, value) {
-
-  const element =
-    document.getElementById(id);
-
-  if (element) {
-
-    element.textContent =
-      value === null || value === undefined
-        ? "N/A"
-        : value;
-  }
-}
-
-
-/* =========================================================
-   LOAD INSTITUTION COUNTS
-   ========================================================= */
-
-async function countInstitutionRecords(table) {
-
-  const {
-    count,
-    error
-  } = await supabaseClient
-    .from(table)
-    .select("id", {
-      count: "exact",
-      head: true
-    })
-    .eq(
-      "institution_id",
-      currentInstitutionId
-    );
-
-
-  if (error) {
-
-    console.error(
-      `${table} count error:`,
-      error
-    );
-
-    return null;
-  }
-
-  return count ?? 0;
-}
-
-
-/* =========================================================
-   COUNT TEACHERS AND PARENTS
-   ========================================================= */
-
-async function countProfilesByRole(role) {
-
-  const {
-    count,
-    error
-  } = await supabaseClient
-    .from("profiles")
-    .select("id", {
-      count: "exact",
-      head: true
-    })
-    .eq(
-      "institution_id",
-      currentInstitutionId
-    )
-    .eq("role", role);
-
-
-  if (error) {
-
-    console.error(
-      `${role} count error:`,
-      error
-    );
-
-    return null;
-  }
-
-  return count ?? 0;
-}
-
-
-/* =========================================================
-   LOAD DASHBOARD STATISTICS
-   ========================================================= */
-
-async function loadInstitutionCounts() {
-
-  const [
-    students,
-    teachers,
-    parents,
-    certificates
-  ] = await Promise.all([
-
-    countInstitutionRecords("students"),
-
-    countProfilesByRole("teacher"),
-
-    countProfilesByRole("parent"),
-
-    countInstitutionRecords("certificates")
-
-  ]);
-
-
-  setDashboardValue(
-    "studentCount",
-    students
-  );
-
-  setDashboardValue(
-    "teacherCount",
-    teachers
-  );
-
-  setDashboardValue(
-    "parentCount",
-    parents
-  );
-
-  setDashboardValue(
-    "certificateCount",
-    certificates
-  );
-}
-
-
-/* =========================================================
-   HTML ESCAPE
+   HELPERS
    ========================================================= */
 
 function escapeHtml(value) {
 
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    })[char]);
+}
+
+
+function showMessage(message, type = "info") {
+
+    const box = document.getElementById("pageMessage");
+
+    box.textContent = message;
+    box.className = "message " + type;
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
+}
+
+
+function getInstitutionName(id) {
+
+    if (!id) {
+        return "Not Assigned";
+    }
+
+    const institution = institutions.find(
+        item => item.id === id
+    );
+
+    if (!institution) {
+        return "Institution not found";
+    }
+
+    return (
+        institution.name ||
+        institution.institution_name ||
+        institution.school_name ||
+        institution.full_name ||
+        institution.code ||
+        "Institution"
+    );
 }
 
 
 /* =========================================================
-   ACADEMIC RESULTS
+   AUTHENTICATION AND ROLE CHECK
    ========================================================= */
 
-async function loadAcademicResults() {
-
-  const statusEl =
-    document.getElementById(
-      "academicResultsStatus"
-    );
-
-  const rowsEl =
-    document.getElementById(
-      "academicSubjectRows"
-    );
-
-
-  try {
+async function checkSuperAdminAccess() {
 
     const {
-      data,
-      error
-    } = await supabaseClient
-      .from("grades")
-      .select("*")
-      .eq(
-        "institution_id",
-        currentInstitutionId
-      )
-      .limit(1000);
+        data: { session },
+        error
+    } = await supabaseClient.auth.getSession();
 
+    if (error || !session) {
+
+        window.location.replace("index.html");
+        return false;
+
+    }
+
+    const userId = session.user.id;
+
+    const { data: profile, error: profileError } =
+        await supabaseClient
+            .from("profiles")
+            .select("id,full_name,role,is_active,institution_id")
+            .eq("id", userId)
+            .maybeSingle();
+
+    if (profileError || !profile) {
+
+        alert("Unable to verify your account.");
+
+        await supabaseClient.auth.signOut();
+
+        window.location.replace("index.html");
+
+        return false;
+
+    }
+
+    if (
+        profile.role !== "super_admin" ||
+        profile.is_active !== true
+    ) {
+
+        alert("Access denied. Super Admin permission required.");
+
+        window.location.replace("index.html");
+
+        return false;
+
+    }
+
+    return true;
+
+}
+
+
+/* =========================================================
+   LOAD INSTITUTIONS
+   ========================================================= */
+
+async function loadInstitutions() {
+
+    const { data, error } = await supabaseClient
+        .from("institutions")
+        .select("*")
+        .order("created_at", { ascending: true });
 
     if (error) {
 
-      throw error;
+        console.error("Institution loading error:", error);
+
+        showMessage(
+            "Unable to load institutions. Check your Supabase permissions and table schema.",
+            "error"
+        );
+
+        return;
+
     }
 
+    institutions = data || [];
 
-    const results =
-      Array.isArray(data) ? data : [];
+    const createSelect =
+        document.getElementById("adminInstitution");
 
+    const assignSelect =
+        document.getElementById("assignInstitution");
 
-    /* TOTAL RESULTS */
+    const options = institutions.map(item => {
 
-    const total =
-      results.length;
+        const name = getInstitutionName(item.id);
 
+        return `
+            <option value="${escapeHtml(item.id)}">
+                ${escapeHtml(name)}
+            </option>
+        `;
 
-    /* PUBLISHED RESULTS */
+    }).join("");
 
-    const published =
-      results.filter(row =>
+    createSelect.innerHTML =
+        `<option value="">Select institution</option>` + options;
 
-        row.is_published === true ||
-        row.published === true ||
-        row.status === "published"
+    assignSelect.innerHTML =
+        `<option value="">Select institution</option>` + options;
 
-      ).length;
-
-
-    setDashboardValue(
-      "academicTotalResults",
-      total
-    );
-
-    setDashboardValue(
-      "academicPublishedResults",
-      published
-    );
-
-    setDashboardValue(
-      "academicPendingResults",
-      total - published
-    );
+}
 
 
-    /* GROUP BY SUBJECT */
+/* =========================================================
+   LOAD SCHOOL ADMINS
+   ========================================================= */
 
-    const grouped = {};
+async function loadSchoolAdmins() {
+
+    const tbody = document.getElementById("adminTableBody");
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6" class="loading">
+                Loading School Admins...
+            </td>
+        </tr>
+    `;
+
+    const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("id,full_name,role,is_active,institution_id")
+        .eq("role", "school_admin")
+        .order("full_name", { ascending: true });
+
+    if (error) {
+
+        console.error("School Admin loading error:", error);
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="loading">
+                    Failed to load School Admins.
+                </td>
+            </tr>
+        `;
+
+        showMessage(
+            "Could not load School Admin accounts. Check profiles table permissions.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    schoolAdmins = data || [];
+
+    updateStatistics();
+
+    renderSchoolAdmins();
+
+}
 
 
-    results.forEach(row => {
+/* =========================================================
+   UPDATE STATISTICS
+   ========================================================= */
 
-      const subject =
-        row.subject_name ||
-        row.subject ||
-        row.subject_id ||
-        "Unknown Subject";
+function updateStatistics() {
 
+    const total = schoolAdmins.length;
 
-      const key = String(subject);
+    const active = schoolAdmins.filter(
+        admin => admin.is_active === true
+    ).length;
 
+    const inactive = total - active;
 
-      if (!grouped[key]) {
+    document.getElementById("totalAdmins").textContent = total;
 
-        grouped[key] = {
-          total: 0,
-          published: 0,
-          scores: []
-        };
-      }
+    document.getElementById("activeAdmins").textContent = active;
 
+    document.getElementById("inactiveAdmins").textContent = inactive;
 
-      grouped[key].total++;
+}
 
 
-      if (
-        row.is_published === true ||
-        row.published === true ||
-        row.status === "published"
-      ) {
+/* =========================================================
+   RENDER SCHOOL ADMINS
+   ========================================================= */
 
-        grouped[key].published++;
-      }
+function renderSchoolAdmins(searchTerm = "") {
 
+    const tbody = document.getElementById("adminTableBody");
 
-      const rawScore =
-        row.score ??
-        row.marks ??
-        row.percentage;
+    const query = searchTerm.toLowerCase().trim();
 
+    const filtered = schoolAdmins.filter(admin => {
 
-      if (
-        rawScore !== null &&
-        rawScore !== undefined &&
-        rawScore !== ""
-      ) {
+        const name = String(admin.full_name || "").toLowerCase();
 
-        const score = Number(rawScore);
+        const institution = getInstitutionName(
+            admin.institution_id
+        ).toLowerCase();
 
-        if (Number.isFinite(score)) {
+        const id = String(admin.id || "").toLowerCase();
 
-          grouped[key].scores.push(score);
-        }
-      }
+        return (
+            name.includes(query) ||
+            institution.includes(query) ||
+            id.includes(query)
+        );
 
     });
 
+    if (!filtered.length) {
 
-    const subjects =
-      Object.entries(grouped);
-
-
-    setDashboardValue(
-      "academicSubjectCount",
-      subjects.length
-    );
-
-
-    /* EMPTY RESULTS */
-
-    if (!results.length) {
-
-      if (rowsEl) {
-
-        rowsEl.innerHTML = `
-          <tr>
-            <td colspan="5" class="loading">
-              No academic results found.
-            </td>
-          </tr>
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="loading">
+                    No School Admin accounts found.
+                </td>
+            </tr>
         `;
-      }
 
-      if (statusEl) {
-        statusEl.textContent = "No results";
-      }
+        return;
 
-      return;
     }
 
+    tbody.innerHTML = filtered.map((admin, index) => {
 
-    /* RESULTS TABLE */
+        const active = admin.is_active === true;
 
-    if (rowsEl) {
+        const status = active
+            ? `<span class="status-badge active">ACTIVE</span>`
+            : `<span class="status-badge inactive">INACTIVE</span>`;
 
-      rowsEl.innerHTML = "";
+        const institution = getInstitutionName(
+            admin.institution_id
+        );
 
-      subjects.forEach(
-        ([subject, item], index) => {
+        return `
+            <tr>
 
-          const average =
-            item.scores.length
-              ? (
-                  item.scores.reduce(
-                    (a, b) => a + b,
-                    0
-                  ) / item.scores.length
-                ).toFixed(1) + "%"
-              : "N/A";
+                <td>${index + 1}</td>
 
+                <td>
+                    <strong>${escapeHtml(admin.full_name || "Unnamed Admin")}</strong>
+                </td>
 
-          const tr =
-            document.createElement("tr");
+                <td>
+                    <small>${escapeHtml(admin.id)}</small>
+                </td>
 
+                <td>
+                    ${escapeHtml(institution)}
+                </td>
 
-          tr.innerHTML = `
-            <td>${index + 1}</td>
+                <td>
+                    ${status}
+                </td>
 
-            <td>
-              ${escapeHtml(subject)}
-            </td>
+                <td>
 
-            <td>
-              ${item.total}
-            </td>
+                    <button
+                        class="action-btn assign-btn"
+                        onclick="openAssignModal('${escapeHtml(admin.id)}')"
+                    >
+                        Assign
+                    </button>
 
-            <td>
-              ${item.published}
-            </td>
+                    <button
+                        class="action-btn toggle-btn"
+                        onclick="toggleAdminStatus('${escapeHtml(admin.id)}')"
+                    >
+                        ${active ? "Deactivate" : "Activate"}
+                    </button>
 
-            <td>
-              ${average}
-            </td>
-          `;
+                </td>
 
+            </tr>
+        `;
 
-          rowsEl.appendChild(tr);
+    }).join("");
 
-        }
-      );
-    }
-
-
-    if (statusEl) {
-
-      statusEl.textContent =
-        `${total} institution result(s)`;
-    }
-
-
-  } catch (error) {
-
-    console.error(
-      "Academic results error:",
-      error
-    );
-
-    if (statusEl) {
-      statusEl.textContent = "Unavailable";
-    }
-
-    if (rowsEl) {
-
-      rowsEl.innerHTML = `
-        <tr>
-          <td colspan="5" class="loading">
-            Academic results could not be loaded.
-            Please check the grades table and RLS policies.
-          </td>
-        </tr>
-      `;
-    }
-
-    [
-      "academicTotalResults",
-      "academicPublishedResults",
-      "academicPendingResults",
-      "academicSubjectCount"
-    ].forEach(id => setDashboardValue(id, "N/A"));
-  }
 }
 
 
 /* =========================================================
-   LOGOUT
+   CREATE SCHOOL ADMIN
+   Uses secure Supabase Edge Function.
    ========================================================= */
 
-function setupLogout() {
+async function createSchoolAdmin(event) {
 
-  const logoutBtn =
-    document.getElementById("logoutBtn");
+    event.preventDefault();
 
+    const name = document.getElementById("adminName").value.trim();
 
-  if (!logoutBtn) return;
+    const email = document.getElementById("adminEmail").value.trim();
 
+    const password = document.getElementById("adminPassword").value;
 
-  logoutBtn.addEventListener(
-    "click",
-    async () => {
+    const institutionId =
+        document.getElementById("adminInstitution").value;
 
-      logoutBtn.disabled = true;
+    const button = document.getElementById("createAdminBtn");
 
-      logoutBtn.textContent =
-        "Logging out...";
+    if (!name || !email || !password || !institutionId) {
 
+        showMessage(
+            "Please complete all fields.",
+            "error"
+        );
 
-      try {
+        return;
 
-        const { error } =
-          await supabaseClient.auth.signOut();
+    }
+
+    if (password.length < 8) {
+
+        showMessage(
+            "Password must contain at least 8 characters.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    if (!confirm(
+        "Create a new School Admin account for " + name + "?"
+    )) {
+
+        return;
+
+    }
+
+    button.disabled = true;
+
+    button.textContent = "Creating Account...";
+
+    try {
+
+        const {
+            data: { session }
+        } = await supabaseClient.auth.getSession();
+
+        if (!session) {
+            throw new Error("Your session has expired. Please log in again.");
+        }
+
+        const { data, error } = await supabaseClient.functions.invoke(
+            "create-school-admin",
+            {
+                body: {
+                    full_name: name,
+                    email: email,
+                    password: password,
+                    institution_id: institutionId
+                }
+            }
+        );
 
         if (error) {
-          console.error("Logout error:", error);
+
+            console.error("Edge Function error:", error);
+
+            throw new Error(
+                error.message ||
+                "Unable to create School Admin account."
+            );
+
         }
 
-      } catch (error) {
+        if (data && data.error) {
+            throw new Error(data.error);
+        }
 
-        console.error(
-          "Logout error:",
-          error
+        document.getElementById("createAdminForm").reset();
+
+        showMessage(
+            "School Admin account created successfully.",
+            "success"
         );
-      }
 
+        await loadSchoolAdmins();
 
-      sessionStorage.clear();
+    } catch (error) {
 
-      window.location.replace("index.html");
+        console.error("Create School Admin error:", error);
+
+        showMessage(
+            error.message || "Account creation failed.",
+            "error"
+        );
+
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent = "Create School Admin Account";
+
     }
-  );
+
 }
 
 
 /* =========================================================
-   AUTH STATE LISTENER
+   OPEN ASSIGNMENT MODAL
    ========================================================= */
 
-supabaseClient.auth.onAuthStateChange(
-  (event) => {
+function openAssignModal(adminId) {
 
-    if (event === "SIGNED_OUT") {
+    const admin = schoolAdmins.find(
+        item => item.id === adminId
+    );
 
-      window.location.replace("index.html");
+    if (!admin) {
+        return;
     }
-  }
+
+    selectedAdminId = adminId;
+
+    document.getElementById("assignAdminName").textContent =
+        "Administrator: " + (admin.full_name || admin.id);
+
+    document.getElementById("assignInstitution").value =
+        admin.institution_id || "";
+
+    document.getElementById("assignModal").classList.add("show");
+
+}
+
+
+function closeAssignModal() {
+
+    document.getElementById("assignModal").classList.remove("show");
+
+    selectedAdminId = null;
+
+}
+
+
+/* =========================================================
+   SAVE INSTITUTION ASSIGNMENT
+   ========================================================= */
+
+async function saveInstitutionAssignment() {
+
+    if (!selectedAdminId) {
+        return;
+    }
+
+    const institutionId =
+        document.getElementById("assignInstitution").value;
+
+    if (!institutionId) {
+
+        showMessage(
+            "Please select an institution.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    const button =
+        document.getElementById("saveAssignmentBtn");
+
+    button.disabled = true;
+
+    button.textContent = "Saving...";
+
+    try {
+
+        const { error } = await supabaseClient
+            .from("profiles")
+            .update({
+                institution_id: institutionId
+            })
+            .eq("id", selectedAdminId)
+            .eq("role", "school_admin");
+
+        if (error) {
+            throw error;
+        }
+
+        closeAssignModal();
+
+        showMessage(
+            "Institution assignment updated successfully.",
+            "success"
+        );
+
+        await loadSchoolAdmins();
+
+    } catch (error) {
+
+        console.error("Assignment error:", error);
+
+        showMessage(
+            error.message ||
+            "Could not update institution assignment.",
+            "error"
+        );
+
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent = "Save Assignment";
+
+    }
+
+}
+
+
+/* =========================================================
+   ACTIVATE / DEACTIVATE SCHOOL ADMIN
+   ========================================================= */
+
+async function toggleAdminStatus(adminId) {
+
+    const admin = schoolAdmins.find(
+        item => item.id === adminId
+    );
+
+    if (!admin) {
+        return;
+    }
+
+    const newStatus = admin.is_active !== true;
+
+    const action = newStatus ? "activate" : "deactivate";
+
+    if (!confirm(
+        "Are you sure you want to " +
+        action +
+        " this School Admin account?"
+    )) {
+
+        return;
+
+    }
+
+    try {
+
+        const { error } = await supabaseClient
+            .from("profiles")
+            .update({
+                is_active: newStatus
+            })
+            .eq("id", adminId)
+            .eq("role", "school_admin");
+
+        if (error) {
+            throw error;
+        }
+
+        showMessage(
+            "School Admin account " +
+            (newStatus ? "activated" : "deactivated") +
+            " successfully.",
+            "success"
+        );
+
+        await loadSchoolAdmins();
+
+    } catch (error) {
+
+        console.error("Status update error:", error);
+
+        showMessage(
+            error.message ||
+            "Unable to update account status.",
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+document.getElementById("adminSearch").addEventListener(
+    "input",
+    function () {
+
+        renderSchoolAdmins(this.value);
+
+    }
 );
 
 
 /* =========================================================
-   START DASHBOARD
+   EVENT LISTENERS
    ========================================================= */
 
-async function startDashboard() {
-
-  const allowed =
-    await checkDashboardAccess();
-
-
-  if (!allowed) return;
+document.getElementById("createAdminForm").addEventListener(
+    "submit",
+    createSchoolAdmin
+);
 
 
-  await Promise.all([
-
-    loadInstitutionCounts(),
-
-    loadAcademicResults()
-
-  ]);
+document.getElementById("saveAssignmentBtn").addEventListener(
+    "click",
+    saveInstitutionAssignment
+);
 
 
-  setupLogout();
+/* =========================================================
+   START APPLICATION
+   ========================================================= */
+
+async function startSchoolAdminManagement() {
+
+    const authorized = await checkSuperAdminAccess();
+
+    if (!authorized) {
+        return;
+    }
+
+    await loadInstitutions();
+
+    await loadSchoolAdmins();
+
 }
 
 
 /* =========================================================
-   INITIALIZE
+   AUTH STATE
    ========================================================= */
 
+supabaseClient.auth.onAuthStateChange((event, session) => {
+
+    if (event === "SIGNED_OUT" || !session) {
+
+        window.location.replace("index.html");
+
+    }
+
+});
+
+
+/* INITIALIZE */
+
 document.addEventListener(
-  "DOMContentLoaded",
-  startDashboard
+    "DOMContentLoaded",
+    startSchoolAdminManagement
 );
