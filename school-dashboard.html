@@ -1,13 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0B1E63">
-
-<title>GAAWOW EMS | School Admin Dashboard</title>
-
-<style>
+<meta name="theme-color" content="#0B1E63"><link rel="manifest" href="./manifest.json"><title>GAAWOW EMS | School Admin Dashboard</title><style>
 :root{
   --navy:#0B1E63;
   --blue:#0B4DA2;
@@ -208,12 +203,7 @@ footer{
 @media(max-width:420px){
   .grid{grid-template-columns:1fr}
 }
-</style>
-</head>
-
-<body>
-
-<header>
+</style></head><body><header>
   <div class="brand">
     <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
          alt="GAAWOW Academy Logo">
@@ -221,173 +211,173 @@ footer{
       <h1>GAAWOW EMS</h1>
       <p>School Management Dashboard</p>
     </div>
-  </div>
+  </div><button id="logoutBtn" type="button">Logout</button>
 
-  <button id="logoutBtn" type="button">Logout</button>
-</header>
-
-<main class="container">
-
-  <section class="welcome">
+</header><main class="container">  <section class="welcome">
     <h2>School Admin Dashboard</h2>
     <p>Welcome, <strong id="adminName">Loading...</strong></p>
-    <p>Manage your institution's academic activities.</p>
+    <p>Manage your institution's academic activities.</p><div class="school-info">
+  <span class="info-badge" id="schoolName">
+    Loading Institution...
+  </span>
+  <span class="info-badge">SCHOOL ADMIN</span>
+</div>
 
-    <div class="school-info">
-      <span class="info-badge" id="schoolName">
-        Loading Institution...
-      </span>
-      <span class="info-badge">SCHOOL ADMIN</span>
-    </div>
-  </section>
-
-  <div id="dashboardNotice" class="notice" role="status"></div>
-
-  <div class="section-title">
+  </section>  <div id="dashboardNotice" class="notice" role="status"></div>  <div class="section-title">
     <h2>Institution Management</h2>
     <span class="module-count">School Modules</span>
+  </div>  <section class="grid"><a class="card" href="students.html">
+  <span class="icon">🎓</span>
+  <div>
+    <h3>Students</h3>
+    <p>Manage your institution's students.</p>
   </div>
+</a>
 
-  <section class="grid">
+<a class="card" href="parents.html">
+  <span class="icon">👨‍👩‍👧</span>
+  <div>
+    <h3>Parents</h3>
+    <p>Manage student parents and guardians.</p>
+  </div>
+</a>
 
-    <a class="card" href="students.html">
-      <span class="icon">🎓</span>
-      <div>
-        <h3>Students</h3>
-        <p>Manage your institution's students.</p>
-      </div>
-    </a>
+<a class="card" href="teacher.html">
+  <span class="icon">👩‍🏫</span>
+  <div>
+    <h3>Teachers</h3>
+    <p>Manage teachers and assignments.</p>
+  </div>
+</a>
 
-    <a class="card" href="parents.html">
-      <span class="icon">👨‍👩‍👧</span>
-      <div>
-        <h3>Parents</h3>
-        <p>Manage student parents and guardians.</p>
-      </div>
-    </a>
+<a class="card" href="departments.html">
+  <span class="icon">🏢</span>
+  <div>
+    <h3>Departments</h3>
+    <p>Manage academic departments.</p>
+  </div>
+</a>
 
-    <a class="card" href="teacher.html">
-      <span class="icon">👩‍🏫</span>
-      <div>
-        <h3>Teachers</h3>
-        <p>Manage teachers and assignments.</p>
-      </div>
-    </a>
+<a class="card" href="courses.html">
+  <span class="icon">📚</span>
+  <div>
+    <h3>Courses</h3>
+    <p>Manage institution courses.</p>
+  </div>
+</a>
 
-    <a class="card" href="departments.html">
-      <span class="icon">🏢</span>
-      <div>
-        <h3>Departments</h3>
-        <p>Manage academic departments.</p>
-      </div>
-    </a>
+<a class="card" href="classes.html">
+  <span class="icon">🏛️</span>
+  <div>
+    <h3>Classes</h3>
+    <p>Manage classes and groups.</p>
+  </div>
+</a>
 
-    <a class="card" href="courses.html">
-      <span class="icon">📚</span>
-      <div>
-        <h3>Courses</h3>
-        <p>Manage institution courses.</p>
-      </div>
-    </a>
+<a class="card" href="enrollment.html">
+  <span class="icon">📝</span>
+  <div>
+    <h3>Enrollment</h3>
+    <p>Manage student enrollment.</p>
+  </div>
+</a>
 
-    <a class="card" href="classes.html">
-      <span class="icon">🏛️</span>
-      <div>
-        <h3>Classes</h3>
-        <p>Manage classes and groups.</p>
-      </div>
-    </a>
+<a class="card" href="lessons.html">
+  <span class="icon">📖</span>
+  <div>
+    <h3>Lessons</h3>
+    <p>Manage academic lessons.</p>
+  </div>
+</a>
 
-    <a class="card" href="enrollment.html">
-      <span class="icon">📝</span>
-      <div>
-        <h3>Enrollment</h3>
-        <p>Manage student enrollment.</p>
-      </div>
-    </a>
+<a class="card" href="subjects.html">
+  <span class="icon">🧬</span>
+  <div>
+    <h3>Subjects</h3>
+    <p>Manage academic subjects.</p>
+  </div>
+</a>
 
-    <a class="card" href="lessons.html">
-      <span class="icon">📖</span>
-      <div>
-        <h3>Lessons</h3>
-        <p>Manage academic lessons.</p>
-      </div>
-    </a>
+<a class="card" href="exams.html">
+  <span class="icon">🧪</span>
+  <div>
+    <h3>Exams</h3>
+    <p>Prepare and manage examinations.</p>
+  </div>
+</a>
 
-    <a class="card" href="subjects.html">
-      <span class="icon">🧬</span>
-      <div>
-        <h3>Subjects</h3>
-        <p>Manage academic subjects.</p>
-      </div>
-    </a>
+<a class="card" href="grades.html">
+  <span class="icon">📊</span>
+  <div>
+    <h3>Grades</h3>
+    <p>Manage student examination results.</p>
+  </div>
+</a>
 
-    <a class="card" href="exams.html">
-      <span class="icon">🧪</span>
-      <div>
-        <h3>Exams</h3>
-        <p>Prepare and manage examinations.</p>
-      </div>
-    </a>
+<a class="card" href="attendance.html">
+  <span class="icon">📅</span>
+  <div>
+    <h3>Attendance</h3>
+    <p>Manage student attendance.</p>
+  </div>
+</a>
 
-    <a class="card" href="grades.html">
-      <span class="icon">📊</span>
-      <div>
-        <h3>Grades</h3>
-        <p>Manage student examination results.</p>
-      </div>
-    </a>
+<a class="card" href="certificates.html">
+  <span class="icon">📜</span>
+  <div>
+    <h3>Certificates</h3>
+    <p>Manage student certificates.</p>
+  </div>
+</a>
 
-    <a class="card" href="attendance.html">
-      <span class="icon">📅</span>
-      <div>
-        <h3>Attendance</h3>
-        <p>Manage student attendance.</p>
-      </div>
-    </a>
+<a class="card" href="authentication-letter.html">
+  <span class="icon">✉️</span>
+  <div>
+    <h3>Authentication Letters</h3>
+    <p>Issue student authentication letters.</p>
+  </div>
+</a>
 
-    <a class="card" href="certificates.html">
-      <span class="icon">📜</span>
-      <div>
-        <h3>Certificates</h3>
-        <p>Manage student certificates.</p>
-      </div>
-    </a>
+<a class="card" href="reports.html">
+  <span class="icon">📈</span>
+  <div>
+    <h3>Reports</h3>
+    <p>View institutional reports.</p>
+  </div>
+</a>
 
-    <a class="card" href="authentication-letter.html">
-      <span class="icon">✉️</span>
-      <div>
-        <h3>Authentication Letters</h3>
-        <p>Issue student authentication letters.</p>
-      </div>
-    </a>
+<a class="card" href="notifications.html">
+  <span class="icon">🔔</span>
+  <div>
+    <h3>Notifications</h3>
+    <p>View institutional notifications.</p>
+  </div>
+</a>
 
-    <a class="card" href="reports.html">
-      <span class="icon">📈</span>
-      <div>
-        <h3>Reports</h3>
-        <p>View institutional reports.</p>
-      </div>
-    </a>
-
-    <a class="card" href="notifications.html">
-      <span class="icon">🔔</span>
-      <div>
-        <h3>Notifications</h3>
-        <p>View institutional notifications.</p>
-      </div>
-    </a>
-
-  </section>
-
-</main>
-
-<footer>
+  </section></main><footer>
   GAAWOW Academy · Ilayska Aqoonta iyo Xirfadda
-</footer>
+</footer><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./school-dashboard.js?v=20261103"></script><script>
+(function () {
+  "use strict";
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./school-dashboard.js?v=20261103"></script>
-
-</body>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .then(function (registration) {
+          console.log(
+            "GAAWOW EMS PWA registered:",
+            registration.scope
+          );
+        })
+        .catch(function (error) {
+          console.error(
+            "GAAWOW EMS PWA registration failed:",
+            error
+          );
+        });
+    });
+  }
+})();
+</script></body>
 </html>
