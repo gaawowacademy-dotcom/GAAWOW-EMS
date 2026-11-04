@@ -5,11 +5,19 @@
   "description": "GAAWOW Academy Education Management and Verification System",
   "lang": "en",
   "start_url": "/GAAWOW-EMS/index.html",
-    "scope": "/GAAWOW-EMS/",
+  "scope": "/GAAWOW-EMS/",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait",
   "background_color": "#F5F7FA",
   "theme_color": "#0B1E63",
+  "categories": [
+    "education",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "/GAAWOW-EMS/icon-192.png",
@@ -22,11 +30,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/GAAWOW-EMS/logo.png",
-      "sizes": "any",
-      "type": "image/png"
     }
   ]
 }
