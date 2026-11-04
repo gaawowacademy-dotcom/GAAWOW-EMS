@@ -1,9 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0B1E63">
+<link rel="manifest" href="./manifest.json">
 <title>GAAWOW EMS — Students</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -73,8 +73,28 @@ button,input,select,textarea{font:inherit}
   </section>
   <div class="footer">GAAWOW ACADEMY — Ilayska Aqoonta iyo Xirfadda</div>
 </main>
-<div id="profileModal" class="modal" aria-hidden="true"><div class="modal-card"><button type="button" id="closeProfileModal" class="modal-close" aria-label="Close">×</button><div id="profileContent"></div></div></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="students.js"></script>
-</body>
+<div id="profileModal" class="modal" aria-hidden="true"><div class="modal-card"><button type="button" id="closeProfileModal" class="modal-close" aria-label="Close">×</button><div id="profileContent"></div></div></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="students.js"></script><!-- GAAWOW EMS PWA SERVICE WORKER --><script>
+(function () {
+  "use strict";
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .then(function (registration) {
+          console.log(
+            "GAAWOW EMS Student Portal PWA registered:",
+            registration.scope
+          );
+        })
+        .catch(function (error) {
+          console.error(
+            "GAAWOW EMS PWA registration failed:",
+            error
+          );
+        });
+    });
+  }
+})();
+</script></body>
 </html>
