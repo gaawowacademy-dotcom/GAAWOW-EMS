@@ -1,0 +1,20 @@
+{
+  "id": "/GAAWOW-EMS/",
+  "name": "GAAWOW EMS - Education Management & Verification System",
+  "short_name": "GAAWOW EMS",
+  "description": "GAAWOW Academy Education Management and Verification System",
+  "lang": "en",
+  "start_url": "/GAAWOW-EMS/index.html",
+  "scope": "/GAAWOW-EMS/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F7FA",
+  "theme_color": "#0B1E63",
+  "icons": [
+    {
+      "src": "/GAAWOW-EMS/logo.png",
+      "sizes": "any",
+      "type": "image/png"
+    }
+  ]
+}
