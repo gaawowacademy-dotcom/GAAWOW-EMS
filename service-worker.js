@@ -1,10 +1,15 @@
+/* =====================================================
+   GAAWOW EMS - PROGRESSIVE WEB APP
+   Safe Offline Navigation
+   ===================================================== */
+
 const CACHE_NAME = "gaawow-ems-pwa-v1";
 
 const APP_PREFIX = "/GAAWOW-EMS/";
 
-const OFFLINE_PAGE =
-  APP_PREFIX + "offline.html";
+const OFFLINE_PAGE = APP_PREFIX + "offline.html";
 
+/* INSTALL */
 self.addEventListener("install", event => {
 
   event.waitUntil(
@@ -17,6 +22,7 @@ self.addEventListener("install", event => {
 
 });
 
+/* ACTIVATE */
 self.addEventListener("activate", event => {
 
   event.waitUntil(
@@ -38,12 +44,13 @@ self.addEventListener("activate", event => {
 
 });
 
+/* FETCH */
 self.addEventListener("fetch", event => {
 
   const request = event.request;
   const url = new URL(request.url);
 
-  // Only handle page navigation inside GAAWOW EMS.
+  // Handle navigation requests only.
   if (
     request.method !== "GET" ||
     request.mode !== "navigate" ||
@@ -59,7 +66,21 @@ self.addEventListener("fetch", event => {
 
       const cache = await caches.open(CACHE_NAME);
 
-      return await cache.match(OFFLINE_PAGE);
+      const offlinePage = await cache.match(OFFLINE_PAGE);
+
+      if (offlinePage) {
+        return offlinePage;
+      }
+
+      return new Response(
+        "GAAWOW EMS is currently offline. Please check your internet connection.",
+        {
+          status: 503,
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8"
+          }
+        }
+      );
 
     })
 
