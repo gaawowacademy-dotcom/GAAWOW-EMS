@@ -1,24 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
   <meta name="theme-color" content="#0B1E63">
 
-  <meta
-    name="description"
-    content="GAAWOW EMS Secure Login Portal"
-  >
+  <meta name="description"
+        content="GAAWOW EMS - Education Management and Verification System">
 
-  <!-- PWA MANIFEST -->
-  <link rel="manifest" href="./manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <meta name="apple-mobile-web-app-capable"
+        content="yes">
+
+  <meta name="apple-mobile-web-app-status-bar-style"
+        content="black-translucent">
+
+  <meta name="application-name" content="GAAWOW EMS">
+
+  <link rel="manifest"
+        href="/GAAWOW-EMS/manifest.json">
+
+  <link rel="icon"
+        type="image/png"
+        href="/GAAWOW-EMS/icon-192.png">
+
+  <link rel="apple-touch-icon"
+        href="/GAAWOW-EMS/icon-192.png">
 
   <title>GAAWOW EMS | Secure Login</title>
 
   <style>
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -28,17 +45,25 @@
     body {
       min-height: 100vh;
       min-height: 100dvh;
+
       font-family: Arial, Helvetica, sans-serif;
+
       background:
         radial-gradient(
           circle at top right,
-          rgba(212, 175, 55, 0.22),
+          rgba(212,175,55,0.22),
           transparent 32%
         ),
-        linear-gradient(135deg, #07164a, #0B4DA2);
+        linear-gradient(
+          135deg,
+          #07164a,
+          #0B4DA2
+        );
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       padding: 20px;
     }
 
@@ -49,55 +74,80 @@
 
     .card {
       background: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.5);
+
+      border: 1px solid rgba(255,255,255,0.5);
+
       border-radius: 24px;
+
       padding: 34px 28px 28px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+
+      box-shadow:
+        0 24px 60px rgba(0,0,0,0.28);
+
       text-align: center;
     }
 
     .logo {
       display: block;
+
       width: 155px;
       max-width: 72%;
+
       height: auto;
+
       margin: 0 auto 18px;
+
       object-fit: contain;
     }
 
     .brand {
       color: #0B1E63;
+
       font-size: 27px;
+
       font-weight: 800;
+
       letter-spacing: 0.4px;
     }
 
     .gold-line {
       width: 72px;
       height: 4px;
+
       border-radius: 20px;
+
       background: #D4AF37;
+
       margin: 12px auto;
     }
 
     .subtitle {
       color: #64748b;
+
       font-size: 14px;
+
       line-height: 1.6;
+
       margin-bottom: 24px;
     }
 
     .form-heading {
       color: #0B1E63;
+
       font-size: 19px;
+
       font-weight: 800;
+
       margin-bottom: 7px;
     }
 
     .form-description {
       color: #64748b;
+
       font-size: 13px;
+
       line-height: 1.6;
+
       margin-bottom: 22px;
     }
 
@@ -108,33 +158,43 @@
 
     label {
       display: block;
+
       color: #1F2937;
+
       font-size: 14px;
+
       font-weight: 700;
+
       margin-bottom: 7px;
     }
 
     input {
       display: block;
+
       width: 100%;
+
       min-height: 48px;
+
       border: 1px solid #d7dce5;
+
       border-radius: 11px;
+
       padding: 14px 15px;
+
       font-size: 16px;
+
       outline: none;
+
       background: #ffffff;
+
       color: #111827;
     }
 
     input:focus {
       border-color: #0B4DA2;
-      box-shadow: 0 0 0 3px rgba(11, 77, 162, 0.12);
-    }
 
-    input:disabled {
-      background: #f1f5f9;
-      cursor: not-allowed;
+      box-shadow:
+        0 0 0 3px rgba(11,77,162,0.12);
     }
 
     .password-wrap {
@@ -147,57 +207,113 @@
 
     .toggle-password {
       position: absolute;
+
       right: 9px;
+
       top: 50%;
+
       transform: translateY(-50%);
+
       width: auto;
+
       min-height: 30px;
+
       margin: 0;
+
       padding: 6px 8px;
+
       border: 0;
+
       border-radius: 6px;
+
       background: #eef2f8;
+
       color: #0B1E63;
+
       font-size: 12px;
+
       font-weight: 700;
+
+      cursor: pointer;
+    }
+
+    .submit-btn,
+    .install-btn {
+      display: block;
+
+      width: 100%;
+
+      min-height: 49px;
+
+      border: 0;
+
+      border-radius: 11px;
+
+      padding: 14px;
+
+      font-size: 16px;
+
+      font-weight: 800;
+
       cursor: pointer;
     }
 
     .submit-btn {
-      display: block;
-      width: 100%;
-      min-height: 49px;
-      border: 0;
-      border-radius: 11px;
-      padding: 14px;
       margin-top: 5px;
-      background: linear-gradient(135deg, #0B4DA2, #0B1E63);
+
+      background:
+        linear-gradient(
+          135deg,
+          #0B4DA2,
+          #0B1E63
+        );
+
       color: #ffffff;
-      font-size: 16px;
-      font-weight: 800;
-      cursor: pointer;
-      transition: filter 0.2s ease;
     }
 
-    .submit-btn:hover:not(:disabled) {
+    .submit-btn:hover {
       filter: brightness(1.08);
     }
 
-    .submit-btn:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
+    .install-btn {
+      display: none;
+
+      margin-top: 15px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #D4AF37,
+          #F4AF1B
+        );
+
+      color: #0B1E63;
+    }
+
+    .install-btn:active,
+    .submit-btn:active {
+      transform: scale(0.99);
     }
 
     #message {
       display: block;
+
       min-height: 24px;
+
       margin-top: 17px;
+
       padding: 0;
+
       border-radius: 8px;
+
       font-size: 14px;
+
       line-height: 1.55;
+
       overflow-wrap: anywhere;
+
       white-space: pre-wrap;
+
       text-align: left;
     }
 
@@ -208,35 +324,47 @@
 
     #message.error {
       color: #842029;
+
       background: #f8d7da;
+
       border: 1px solid #f5c2c7;
     }
 
     #message.success {
       color: #155724;
+
       background: #d4edda;
+
       border: 1px solid #c3e6cb;
     }
 
     #message.info {
       color: #64748b;
+
       background: transparent;
-      border: 0;
     }
 
     .security-note {
       margin-top: 12px;
+
       color: #64748b;
+
       font-size: 12px;
+
       line-height: 1.6;
     }
 
     .footer {
       margin-top: 25px;
+
       padding-top: 18px;
+
       border-top: 1px solid #e5e7eb;
+
       color: #64748b;
+
       font-size: 12px;
+
       line-height: 1.7;
     }
 
@@ -246,6 +374,7 @@
 
     .security {
       margin-top: 7px;
+
       color: #94a3b8;
     }
 
@@ -260,37 +389,46 @@
     }
 
     @media (max-width: 480px) {
+
       body {
         padding: 13px;
       }
 
       .card {
         padding: 29px 20px 24px;
+
         border-radius: 20px;
       }
 
       .brand {
         font-size: 24px;
       }
+
     }
 
     @media (prefers-reduced-motion: reduce) {
+
       *,
       *::before,
       *::after {
-        scroll-behavior: auto !important;
         transition: none !important;
       }
+
     }
+
   </style>
+
 </head>
 
 <body>
 
   <main class="page">
-    <section class="card" aria-labelledby="brand-title">
 
-      <!-- OFFICIAL GAAWOW ACADEMY LOGO -->
+    <section class="card"
+             aria-labelledby="brand-title">
+
+      <!-- OFFICIAL GAAWOW LOGO -->
+
       <img
         class="logo"
         src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
@@ -302,13 +440,15 @@
         GAAWOW EMS
       </div>
 
-      <div class="gold-line" aria-hidden="true"></div>
+      <div class="gold-line"></div>
 
       <p class="subtitle">
         Education Management &amp; Verification System
       </p>
 
+
       <!-- SYSTEM LOGIN -->
+
       <section id="systemLoginSection">
 
         <h2 class="form-heading">
@@ -322,6 +462,7 @@
         <form id="loginForm" autocomplete="on">
 
           <div class="form-group">
+
             <label for="email">
               Email Address
             </label>
@@ -335,14 +476,18 @@
               maxlength="254"
               required
             >
+
           </div>
 
+
           <div class="form-group">
+
             <label for="password">
               Password
             </label>
 
             <div class="password-wrap">
+
               <input
                 id="password"
                 name="password"
@@ -361,8 +506,11 @@
               >
                 Show
               </button>
+
             </div>
+
           </div>
+
 
           <button
             id="loginButton"
@@ -373,7 +521,20 @@
           </button>
 
         </form>
+
       </section>
+
+
+      <!-- INSTALL APP -->
+
+      <button
+        id="installButton"
+        class="install-btn"
+        type="button"
+      >
+        INSTALL GAAWOW EMS
+      </button>
+
 
       <div
         id="message"
@@ -383,38 +544,56 @@
         aria-atomic="true"
       ></div>
 
+
       <!-- FOOTER -->
+
       <footer class="footer">
+
         <strong>GAAWOW ACADEMY</strong>
+
         <br>
+
         Ilayska Aqoonta iyo Xirfadda
 
         <div class="security">
           Secure access powered by Supabase
         </div>
+
       </footer>
 
     </section>
+
   </main>
 
+
   <!-- SUPABASE LIBRARY -->
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+
   <!-- LOGIN CONTROLLER -->
+
   <script>
+
     (function () {
+
       "use strict";
 
-      var messageBox = document.getElementById("message");
+      var messageBox =
+        document.getElementById("message");
 
       function showScriptError(text) {
+
         if (!messageBox) return;
 
         messageBox.textContent = text;
+
         messageBox.className = "error";
+
       }
 
       window.addEventListener("error", function (event) {
+
         console.error(
           "GAAWOW EMS JavaScript error:",
           event.message,
@@ -426,22 +605,29 @@
           event.target &&
           event.target.tagName === "SCRIPT"
         ) {
+
           showScriptError(
             "JavaScript file lama soo dejin. Hubi internet-ka iyo faylasha app.js."
           );
+
           return;
+
         }
 
         if (event.message) {
+
           showScriptError(
             "JavaScript error: " + event.message
           );
+
         }
+
       });
 
       window.addEventListener(
         "unhandledrejection",
         function (event) {
+
           console.error(
             "GAAWOW EMS rejected promise:",
             event.reason
@@ -450,12 +636,18 @@
           var reason = event.reason;
 
           if (reason && reason.message) {
+
             showScriptError(
               "System error: " + reason.message
             );
+
           }
+
         }
       );
+
+
+      // PASSWORD VISIBILITY
 
       var toggleButton =
         document.getElementById("togglePassword");
@@ -464,12 +656,17 @@
         document.getElementById("password");
 
       if (toggleButton && passwordInput) {
+
         toggleButton.addEventListener("click", function () {
-          var show = passwordInput.type === "password";
 
-          passwordInput.type = show ? "text" : "password";
+          var show =
+            passwordInput.type === "password";
 
-          toggleButton.textContent = show ? "Hide" : "Show";
+          passwordInput.type =
+            show ? "text" : "password";
+
+          toggleButton.textContent =
+            show ? "Hide" : "Show";
 
           toggleButton.setAttribute(
             "aria-pressed",
@@ -480,16 +677,23 @@
             "aria-label",
             show ? "Hide password" : "Show password"
           );
+
         });
+
       }
 
+
+      // SUPABASE CHECK
+
       window.addEventListener("load", function () {
+
         if (
           !window.supabase ||
           typeof window.supabase.createClient !== "function"
         ) {
+
           showScriptError(
-            "Supabase library lama soo dejin. Hubi internet-ka, CDN-ga iyo script order-ka."
+            "Supabase library lama soo dejin. Hubi internet-ka iyo CDN-ga."
           );
 
           console.error(
@@ -497,50 +701,195 @@
           );
 
           return;
+
         }
 
         console.info(
           "GAAWOW EMS: Supabase JavaScript library loaded."
         );
+
       });
+
     })();
+
   </script>
 
+
   <!-- EXISTING LOGIN APPLICATION -->
+
   <script src="./app.js"></script>
 
-  <!-- GAAWOW EMS PWA REGISTRATION -->
+
+  <!-- GAAWOW EMS PWA INSTALLATION -->
+
   <script>
+
     (function () {
+
       "use strict";
+
+      var deferredPrompt = null;
+
+      var installButton =
+        document.getElementById("installButton");
+
+      var messageBox =
+        document.getElementById("message");
+
+
+      function showMessage(text, type) {
+
+        messageBox.textContent = text;
+
+        messageBox.className = type || "info";
+
+      }
+
+
+      // SERVICE WORKER REGISTRATION
 
       if ("serviceWorker" in navigator) {
 
-        window.addEventListener("load", function () {
+        window.addEventListener("load", async function () {
 
-          navigator.serviceWorker
-            .register("./service-worker.js")
-            .then(function (registration) {
+          try {
 
-              console.log(
-                "GAAWOW EMS PWA registered:",
-                registration.scope
+            var registration =
+              await navigator.serviceWorker.register(
+                "/GAAWOW-EMS/service-worker.js",
+                {
+                  scope: "/GAAWOW-EMS/"
+                }
               );
 
-            })
-            .catch(function (error) {
+            console.log(
+              "GAAWOW EMS PWA registered:",
+              registration.scope
+            );
 
-              console.error(
-                "GAAWOW EMS PWA registration failed:",
-                error
-              );
+            await registration.update();
 
-            });
+          } catch (error) {
+
+            console.error(
+              "PWA registration failed:",
+              error
+            );
+
+          }
 
         });
 
       }
+
+
+      // ANDROID INSTALL PROMPT
+
+      window.addEventListener(
+        "beforeinstallprompt",
+        function (event) {
+
+          event.preventDefault();
+
+          deferredPrompt = event;
+
+          installButton.style.display = "block";
+
+          console.log(
+            "GAAWOW EMS installation is available."
+          );
+
+        }
+      );
+
+
+      // INSTALL BUTTON
+
+      installButton.addEventListener(
+        "click",
+        async function () {
+
+          if (!deferredPrompt) {
+
+            showMessage(
+              "Install prompt is not currently available. Open Chrome menu and select Add to Home screen.",
+              "info"
+            );
+
+            return;
+
+          }
+
+          deferredPrompt.prompt();
+
+          var choice =
+            await deferredPrompt.userChoice;
+
+          console.log(
+            "Installation result:",
+            choice.outcome
+          );
+
+          if (choice.outcome === "accepted") {
+
+            showMessage(
+              "GAAWOW EMS installation accepted.",
+              "success"
+            );
+
+          } else {
+
+            showMessage(
+              "Installation was cancelled.",
+              "info"
+            );
+
+          }
+
+          deferredPrompt = null;
+
+          installButton.style.display = "none";
+
+        }
+      );
+
+
+      // INSTALL SUCCESS
+
+      window.addEventListener(
+        "appinstalled",
+        function () {
+
+          installButton.style.display = "none";
+
+          showMessage(
+            "GAAWOW EMS has been installed successfully!",
+            "success"
+          );
+
+          console.log(
+            "GAAWOW EMS installed successfully."
+          );
+
+        }
+      );
+
+
+      // ALREADY INSTALLED CHECK
+
+      if (
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone === true
+      ) {
+
+        console.log(
+          "GAAWOW EMS is running as an installed app."
+        );
+
+      }
+
     })();
+
   </script>
 
 </body>
