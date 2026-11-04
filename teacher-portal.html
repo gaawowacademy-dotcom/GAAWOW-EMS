@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head><meta name="theme-color" content="#0B1E63">
+<link rel="manifest" href="./manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0B1E63">
@@ -753,6 +754,33 @@
   }
   init();
 })();
+</script><!-- GAAWOW EMS PWA SERVICE WORKER -->
+<script>
+(function () {
+  "use strict";
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .then(function (registration) {
+          console.log(
+            "GAAWOW EMS Teacher Portal PWA registered:",
+            registration.scope
+          );
+        })
+        .catch(function (error) {
+          console.error(
+            "GAAWOW EMS PWA registration failed:",
+            error
+          );
+        });
+    });
+  }
+})();
 </script>
+
+</body>
+</html>
 </body>
 </html>
