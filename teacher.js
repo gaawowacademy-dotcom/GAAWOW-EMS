@@ -427,77 +427,72 @@ async function getSessionOrRedirect() {
 }
 
 /* ============================================================
-   SUPER ADMIN ACCESS CONTROL
-   ============================================================ */
+   SUPER ADMIN + SCHOOL ADMIN ACCESS CONTROL
+============================================================ */
 
 async function checkAccess() {
+
   const session = await getSessionOrRedirect();
 
   if (!session || !currentUser) {
     return false;
   }
 
-  let profileResult;
+  const { data: profile, error } = await supabaseClient
+    .from("profiles")
+    .select(`
+      id,
+      full_name,
+      email,
+      phone,
+      avatar_url,
+      role,
+      institution_id,
+      is_active
+    `)
+    .eq("id", currentUser.id)
+    .maybeSingle();
 
-  try {
-    profileResult = await withTimeout(
-      supabaseClient
-        .from("profiles")
-        .select(
-          "id,full_name,email,phone,avatar_url,role,institution_id,is_active"
-        )
-        .eq("id", currentUser.id)
-        .maybeSingle(),
-      "Loading your profile"
-    );
-  } catch (error) {
-    console.error(
-      "Profile request failed:",
-      error
-    );
+  if (error || !profile) {
 
-    setTableMessage(
-      `Profile request failed: ${error.message}`,
-      "empty"
-    );
+    console.error("Profile error:", error);
+
+    alert("Your profile could not be loaded.");
+
+    window.location.href = "./index.html";
 
     return false;
   }
 
-  /*
-   * Fallback for a database schema without profiles.email.
-   */
-  if (
-    profileResult.error &&
-    /email|column/i.test(
-      profileResult.error.message || ""
-    )
-  ) {
-    profileResult = await withTimeout(
-      supabaseClient
-        .from("profiles")
-        .select(
-          "id,full_name,phone,avatar_url,role,institution_id,is_active"
-        )
-        .eq("id", currentUser.id)
-        .maybeSingle(),
-      "Loading your profile"
-    );
+  if (profile.is_active !== true) {
+
+    alert("Your account is inactive.");
+
+    window.location.href = "./index.html";
+
+    return false;
   }
 
-  const profile = profileResult?.data;
-  const error = profileResult?.error;
+  const allowedRoles = [
+    "super_admin",
+    "school_admin"
+  ];
 
-  if (error || !profile) {
-    console.error(
-      "Profile could not be loaded:",
-      error
-    );
+  if (!allowedRoles.includes(profile.role)) {
 
-    alert(
-      "Your profile could not be loaded.\n\n" +
-      (error?.message || "Profile not found.")
-    );
+    alert("Access denied. Administrator access is required.");
+
+    window.location.href = "./dashboard.html";
+
+    return false;
+  }
+
+  if (
+    profile.role === "school_admin" &&
+    !profile.institution_id
+  ) {
+
+    alert("Your School Admin account has no assigned institution.");
 
     window.location.href = "./dashboard.html";
 
@@ -506,81 +501,97 @@ async function checkAccess() {
 
   currentProfile = profile;
 
-  if (
-    profile.role !== "super_admin" ||
-    profile.is_active !== true
-  ) {
-    alert(
-      "Access denied. Super Admin access is required."
-    );
-
-    window.location.href = "./dashboard.html";
-
-    return false;
-  }
-
   return true;
 }
-
 /* ============================================================
    INSTITUTIONS
    ============================================================ */
 
 async function loadInstitutions() {
   const filter = $("institutionFilter");
+async function loadInstitutions() {
+
+  const filter = $("institutionFilter");
   const select = $("institutionId");
 
   if (filter) {
-    filter.innerHTML =
-      '<option value="">All Institutions</option>';
+    filter.innerHTML = "";
   }
 
   if (select) {
-    select.innerHTML =
-      '<option value="">Select Institution</option>';
+    select.innerHTML = "";
+  }
+
+  let query = supabaseClient
+    .from("institutions")
+    .select("id,name")
+    .order("name");
+
+  // School Admin only sees their own institution.
+  if (currentProfile.role === "school_admin") {
+
+    query = query.eq(
+      "id",
+      currentProfile.institution_id
+    );
+
   }
 
   const { data, error } = await withTimeout(
-    supabaseClient
-      .from("institutions")
-      .select("id,name")
-      .order("name", {
-        ascending: true
-      }),
+    query,
     "Loading institutions"
   );
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   institutions = data || [];
 
   institutions.forEach(institution => {
+
     if (filter) {
-      const option =
-        document.createElement("option");
+
+      const option = document.createElement("option");
 
       option.value = institution.id;
-
-      option.textContent =
-        institution.name || "Unnamed Institution";
+      option.textContent = institution.name;
 
       filter.appendChild(option);
+
     }
 
     if (select) {
-      const option =
-        document.createElement("option");
+
+      const option = document.createElement("option");
 
       option.value = institution.id;
-
-      option.textContent =
-        institution.name || "Unnamed Institution";
+      option.textContent = institution.name;
 
       select.appendChild(option);
+
     }
+
   });
+
+  if (currentProfile.role === "school_admin") {
+
+    const ownInstitution = currentProfile.institution_id;
+
+    if (filter) {
+      filter.value = ownInstitution;
+      filter.disabled = true;
+    }
+
+    if (select) {
+      select.value = ownInstitution;
+      select.disabled = true;
+    }
+
+  } else {
+
+    if (filter) filter.disabled = false;
+    if (select) select.disabled = false;
+
+  }
 
   return institutions;
 }
@@ -634,15 +645,29 @@ async function loadTeachers() {
     )
   ) {
     result = await withTimeout(
-      supabaseClient
-        .from("profiles")
-        .select(
-          "id,full_name,phone,avatar_url,role,institution_id,is_active,created_at,updated_at"
-        )
-        .eq("role", "teacher")
-        .order("full_name", {
-          ascending: true
-        }),
+      let teacherQuery = supabaseClient
+  .from("profiles")
+  .select(
+    "id,full_name,email,phone,avatar_url,role,institution_id,is_active,created_at,updated_at"
+  )
+  .eq("role", "teacher");
+
+// School Admin can only load teachers from their institution.
+if (currentProfile.role === "school_admin") {
+
+  teacherQuery = teacherQuery.eq(
+    "institution_id",
+    currentProfile.institution_id
+  );
+
+}
+
+const result = await withTimeout(
+  teacherQuery.order("full_name", {
+    ascending: true
+  }),
+  "Loading teachers"
+);
       "Loading teachers"
     );
   }
