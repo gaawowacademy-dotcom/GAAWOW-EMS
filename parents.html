@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0B1E63">
+  <meta name="theme-color" content="#0B1E63"><link rel="manifest" href="./manifest.json">
   <meta name="description" content="GAAWOW EMS Parent Management">
   <title>GAAWOW EMS | Parent Management</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -96,6 +96,35 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="parents.js?v=20261028-3"></script>
+    <script src="parents.js?v=20261028-3"></script>
+
+  <!-- GAAWOW EMS PWA SERVICE WORKER -->
+  <script>
+  (function () {
+    "use strict";
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker
+          .register("./service-worker.js")
+          .then(function (registration) {
+            console.log(
+              "GAAWOW EMS Parent Portal PWA registered:",
+              registration.scope
+            );
+          })
+          .catch(function (error) {
+            console.error(
+              "GAAWOW EMS PWA registration failed:",
+              error
+            );
+          });
+      });
+    }
+  })();
+  </script>
+
+</body>
+</html>
 </body>
 </html>
