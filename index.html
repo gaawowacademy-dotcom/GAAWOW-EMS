@@ -13,6 +13,9 @@
     content="GAAWOW EMS Secure Login Portal"
   >
 
+  <!-- PWA MANIFEST -->
+  <link rel="manifest" href="./manifest.json">
+
   <title>GAAWOW EMS | Secure Login</title>
 
   <style>
@@ -246,8 +249,6 @@
       color: #94a3b8;
     }
 
-    /* Teacher Login is disabled.
-       Keep its HTML IDs available for compatibility. */
     .login-switch,
     #teacherLoginSection,
     #teacherTab {
@@ -374,10 +375,6 @@
         </form>
       </section>
 
-      <!--
-        ACCESSIBLE STATUS MESSAGE
-        app.js can use #message to show login errors.
-      -->
       <div
         id="message"
         class="info"
@@ -400,15 +397,10 @@
     </section>
   </main>
 
-  <!-- =====================================================
-       SUPABASE LIBRARY
-       Must load before app.js.
-       ===================================================== -->
+  <!-- SUPABASE LIBRARY -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- =====================================================
-       LOGIN CONTROLLER
-       ===================================================== -->
+  <!-- LOGIN CONTROLLER -->
   <script>
     (function () {
       "use strict";
@@ -457,10 +449,7 @@
 
           var reason = event.reason;
 
-          if (
-            reason &&
-            reason.message
-          ) {
+          if (reason && reason.message) {
             showScriptError(
               "System error: " + reason.message
             );
@@ -478,13 +467,9 @@
         toggleButton.addEventListener("click", function () {
           var show = passwordInput.type === "password";
 
-          passwordInput.type = show
-            ? "text"
-            : "password";
+          passwordInput.type = show ? "text" : "password";
 
-          toggleButton.textContent = show
-            ? "Hide"
-            : "Show";
+          toggleButton.textContent = show ? "Hide" : "Show";
 
           toggleButton.setAttribute(
             "aria-pressed",
@@ -498,10 +483,6 @@
         });
       }
 
-      /*
-       * Confirm the Supabase library is loaded.
-       * Do not attempt authentication in this script.
-       */
       window.addEventListener("load", function () {
         if (
           !window.supabase ||
@@ -525,11 +506,42 @@
     })();
   </script>
 
-  <!--
-    app.js must be in the same directory as index.html.
-    Keep only one login controller.
-  -->
+  <!-- EXISTING LOGIN APPLICATION -->
   <script src="./app.js"></script>
+
+  <!-- GAAWOW EMS PWA REGISTRATION -->
+  <script>
+    (function () {
+      "use strict";
+
+      if ("serviceWorker" in navigator) {
+
+        window.addEventListener("load", function () {
+
+          navigator.serviceWorker
+            .register("./service-worker.js")
+            .then(function (registration) {
+
+              console.log(
+                "GAAWOW EMS PWA registered:",
+                registration.scope
+              );
+
+            })
+            .catch(function (error) {
+
+              console.error(
+                "GAAWOW EMS PWA registration failed:",
+                error
+              );
+
+            });
+
+        });
+
+      }
+    })();
+  </script>
 
 </body>
 </html>
