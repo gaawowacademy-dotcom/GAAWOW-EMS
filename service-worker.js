@@ -1,9 +1,9 @@
-/* =====================================================
-   GAAWOW EMS - PROGRESSIVE WEB APP
+/* ==========================================
+   GAAWOW EMS PWA V2
    Safe Offline Navigation
-   ===================================================== */
+   ========================================== */
 
-const CACHE_NAME = "gaawow-ems-pwa-v1";
+const CACHE_NAME = "gaawow-ems-pwa-v2";
 
 const APP_PREFIX = "/GAAWOW-EMS/";
 
@@ -13,8 +13,14 @@ const OFFLINE_PAGE = APP_PREFIX + "offline.html";
 self.addEventListener("install", event => {
 
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.add(OFFLINE_PAGE);
+    caches.open(CACHE_NAME).then(async cache => {
+
+      try {
+        await cache.add(OFFLINE_PAGE);
+      } catch (error) {
+        console.warn("Offline page cache failed:", error);
+      }
+
     })
   );
 
@@ -26,9 +32,10 @@ self.addEventListener("install", event => {
 self.addEventListener("activate", event => {
 
   event.waitUntil(
-    caches.keys().then(keys => {
 
-      return Promise.all(
+    caches.keys().then(async keys => {
+
+      await Promise.all(
         keys
           .filter(key =>
             key.startsWith("gaawow-ems-pwa-") &&
@@ -37,10 +44,11 @@ self.addEventListener("activate", event => {
           .map(key => caches.delete(key))
       );
 
-    })
-  );
+      await self.clients.claim();
 
-  self.clients.claim();
+    })
+
+  );
 
 });
 
@@ -48,9 +56,9 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
 
   const request = event.request;
+
   const url = new URL(request.url);
 
-  // Handle navigation requests only.
   if (
     request.method !== "GET" ||
     request.mode !== "navigate" ||
@@ -66,14 +74,14 @@ self.addEventListener("fetch", event => {
 
       const cache = await caches.open(CACHE_NAME);
 
-      const offlinePage = await cache.match(OFFLINE_PAGE);
+      const offline = await cache.match(OFFLINE_PAGE);
 
-      if (offlinePage) {
-        return offlinePage;
+      if (offline) {
+        return offline;
       }
 
       return new Response(
-        "GAAWOW EMS is currently offline. Please check your internet connection.",
+        "GAAWOW EMS is offline. Please check your internet connection.",
         {
           status: 503,
           headers: {
