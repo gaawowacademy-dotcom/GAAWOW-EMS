@@ -1,7 +1,9 @@
+
 /* =========================================================
    GAAWOW EMS — SUPER ADMIN DASHBOARD
-   Version: 2026.11.03
+   Version: 2026.11.05
    Secure Role-Based Access
+   Academic Results & Subjects Display Fix
    ========================================================= */
 
 
@@ -468,7 +470,7 @@ async function loadAcademicResults() {
   try {
 
     /* -----------------------------------------
-       LOAD GRADES
+       1. LOAD ALL GRADES
     ----------------------------------------- */
 
     const {
@@ -498,68 +500,7 @@ async function loadAcademicResults() {
 
 
     /* -----------------------------------------
-       EMPTY RESULTS
-    ----------------------------------------- */
-
-    if (!results.length) {
-
-      setText(
-        "academicTotalResults",
-        "0"
-      );
-
-      setText(
-        "academicPublishedResults",
-        "N/A"
-      );
-
-      setText(
-        "academicPendingResults",
-        "N/A"
-      );
-
-      setText(
-        "academicPassedResults",
-        "0"
-      );
-
-      setText(
-        "academicFailedResults",
-        "0"
-      );
-
-      setText(
-        "academicAverage",
-        "0%"
-      );
-
-      setText(
-        "academicStudentsWithResults",
-        "0"
-      );
-
-      setText(
-        "academicSubjectCount",
-        "0"
-      );
-
-
-      showAcademicMessage(
-        "No academic results found.",
-        "loading"
-      );
-
-
-      if (statusEl) {
-        statusEl.textContent = "No results";
-      }
-
-      return;
-    }
-
-
-    /* -----------------------------------------
-       LOAD EXAMS
+       2. LOAD EXAMS
     ----------------------------------------- */
 
     const {
@@ -605,7 +546,13 @@ async function loadAcademicResults() {
 
 
     /* -----------------------------------------
-       LOAD SUBJECTS
+       3. LOAD ALL ACTIVE SUBJECTS
+       IMPORTANT:
+       Subjects are loaded independently
+       from grades.
+
+       This ensures Nutrition and other
+       subjects appear even without results.
     ----------------------------------------- */
 
     const {
@@ -614,16 +561,18 @@ async function loadAcademicResults() {
     } = await supabaseClient
       .from("subjects")
       .select("*")
-      .limit(1000);
+      .eq("is_active", true)
+      .order("name");
 
 
     if (subjectsError) {
 
-      console.warn(
-        "Subjects information unavailable:",
-        subjectsError.message
+      console.error(
+        "Subjects loading error:",
+        subjectsError
       );
 
+      throw subjectsError;
     }
 
 
@@ -651,14 +600,50 @@ async function loadAcademicResults() {
 
 
     /* -----------------------------------------
-       CALCULATE SUMMARY
+       4. INITIALIZE SUBJECT GROUPS
+       Every active subject starts with zero
+       results and zero published results.
+    ----------------------------------------- */
+
+    const groups = new Map();
+
+
+    subjectList.forEach(subject => {
+
+      if (!subject.id) return;
+
+      const groupKey =
+        String(subject.id);
+
+
+      groups.set(
+        groupKey,
+        {
+
+          name:
+            subject.name ||
+            subject.subject_name ||
+            "Unnamed Subject",
+
+          total: 0,
+
+          published: 0,
+
+          percentages: []
+
+        }
+      );
+
+    });
+
+
+    /* -----------------------------------------
+       5. SUMMARY VARIABLES
     ----------------------------------------- */
 
     const uniqueStudents = new Set();
 
     const uniqueSubjects = new Set();
-
-    const groups = new Map();
 
 
     let passed = 0;
@@ -672,6 +657,10 @@ async function loadAcademicResults() {
 
     let publicationAvailable = false;
 
+
+    /* -----------------------------------------
+       6. PROCESS RESULTS
+    ----------------------------------------- */
 
     results.forEach(row => {
 
@@ -715,11 +704,13 @@ async function loadAcademicResults() {
         subject?.subject_name ??
         subject?.title ??
         subject?.subject_name_en ??
-        (subjectId
-          ? `Subject ${subjectId}`
-          : exam?.title
-            ? exam.title
-            : "Unassigned Subject");
+        (
+          subjectId
+            ? `Subject ${subjectId}`
+            : exam?.title
+              ? exam.title
+              : "Unassigned Subject"
+        );
 
 
       const groupKey =
@@ -735,23 +726,24 @@ async function loadAcademicResults() {
       uniqueSubjects.add(groupKey);
 
 
-      /* GROUP INITIALIZATION */
+      /* CREATE GROUP IF NOT ALREADY AVAILABLE */
 
       if (!groups.has(groupKey)) {
 
-        groups.set(groupKey, {
+        groups.set(
+          groupKey,
+          {
 
-          name: subjectName,
+            name: subjectName,
 
-          total: 0,
+            total: 0,
 
-          published: 0,
+            published: 0,
 
-          scores: [],
+            percentages: []
 
-          percentages: []
-
-        });
+          }
+        );
 
       }
 
@@ -768,13 +760,16 @@ async function loadAcademicResults() {
       ------------------------------------- */
 
       const publicationField =
-        Object.keys(row).find(key => {
+        [
+          "is_published",
+          "published",
+          "publication_status"
+        ].find(key => {
 
-          return [
-            "is_published",
-            "published",
-            "publication_status"
-          ].includes(key);
+          return Object.prototype.hasOwnProperty.call(
+            row,
+            key
+          );
 
         });
 
@@ -783,9 +778,14 @@ async function loadAcademicResults() {
 
         publicationAvailable = true;
 
+
+        const publicationValue =
+          row[publicationField];
+
+
         const isPublished =
-          row[publicationField] === true ||
-          row[publicationField] === "published";
+          publicationValue === true ||
+          String(publicationValue).toLowerCase() === "published";
 
 
         if (isPublished) {
@@ -804,7 +804,7 @@ async function loadAcademicResults() {
 
 
       /* -------------------------------------
-         SCORE
+         SCORE AND AVERAGE
       ------------------------------------- */
 
       const score =
@@ -843,16 +843,8 @@ async function loadAcademicResults() {
       }
 
 
-      if (Number.isFinite(score)) {
-
-        group.scores.push(score);
-
-      }
-
-
       /* -------------------------------------
          PASS / FAIL
-         Only use known grade letters.
       ------------------------------------- */
 
       const grade =
@@ -862,7 +854,12 @@ async function loadAcademicResults() {
 
 
       if (
-        ["A", "A+", "A-", "B", "B+", "B-", "C", "C+", "C-", "D", "D+", "D-"].includes(grade)
+        [
+          "A", "A+", "A-",
+          "B", "B+", "B-",
+          "C", "C+", "C-",
+          "D", "D+", "D-"
+        ].includes(grade)
       ) {
 
         passed++;
@@ -879,7 +876,17 @@ async function loadAcademicResults() {
 
 
     /* -----------------------------------------
-       UPDATE SUMMARY CARDS
+       7. SUBJECT COUNT
+       Count all active subjects, including
+       subjects that have no grades.
+    ----------------------------------------- */
+
+    const subjectCount =
+      subjectList.length;
+
+
+    /* -----------------------------------------
+       8. UPDATE SUMMARY CARDS
     ----------------------------------------- */
 
     setText(
@@ -941,12 +948,12 @@ async function loadAcademicResults() {
 
     setText(
       "academicSubjectCount",
-      formatNumber(uniqueSubjects.size)
+      formatNumber(subjectCount)
     );
 
 
     /* -----------------------------------------
-       BUILD RESULTS TABLE
+       9. BUILD RESULTS BY SUBJECT TABLE
     ----------------------------------------- */
 
     const rowsEl =
@@ -959,86 +966,143 @@ async function loadAcademicResults() {
 
 
       const entries =
-        Array.from(groups.entries());
+        Array.from(groups.entries())
+          .sort((a, b) =>
+            a[1].name.localeCompare(
+              b[1].name
+            )
+          );
 
 
-      entries.forEach(
-        ([key, item], index) => {
+      if (!entries.length) {
 
-          const averagePercentage =
-            item.percentages.length
-              ? (
-                  item.percentages.reduce(
-                    (a, b) => a + b,
-                    0
-                  ) /
-                  item.percentages.length
-                ).toFixed(1)
-              : "N/A";
+        showAcademicMessage(
+          "No active subjects found.",
+          "loading"
+        );
 
+      } else {
 
-          const publishedValue =
-            publicationAvailable
-              ? item.published
-              : "N/A";
+        entries.forEach(
+          ([key, item], index) => {
 
-
-          const tr =
-            document.createElement("tr");
-
-
-          const values = [
-
-            index + 1,
-
-            item.name,
-
-            item.total,
-
-            publishedValue,
-
-            averagePercentage === "N/A"
-              ? "N/A"
-              : `${averagePercentage}%`
-
-          ];
+            const averagePercentage =
+              item.percentages.length
+                ? (
+                    item.percentages.reduce(
+                      (a, b) => a + b,
+                      0
+                    ) /
+                    item.percentages.length
+                  ).toFixed(1)
+                : "N/A";
 
 
-          values.forEach(value => {
-
-            const td =
-              document.createElement("td");
-
-
-            td.textContent =
-              String(value);
+            const publishedValue =
+              publicationAvailable
+                ? item.published
+                : "N/A";
 
 
-            tr.appendChild(td);
+            const tr =
+              document.createElement("tr");
 
-          });
+
+            const values = [
+
+              index + 1,
+
+              item.name,
+
+              item.total,
+
+              publishedValue,
+
+              averagePercentage === "N/A"
+                ? "N/A"
+                : `${averagePercentage}%`
+
+            ];
 
 
-          rowsEl.appendChild(tr);
+            values.forEach(value => {
 
-        }
+              const td =
+                document.createElement("td");
 
-      );
+
+              td.textContent =
+                String(value);
+
+
+              tr.appendChild(td);
+
+            });
+
+
+            rowsEl.appendChild(tr);
+
+          }
+
+        );
+
+      }
 
     }
 
+
+    /* -----------------------------------------
+       10. UPDATE STATUS
+    ----------------------------------------- */
 
     if (statusEl) {
 
       statusEl.textContent =
-        `${results.length} result(s)`;
+        `${results.length} result(s) · ${subjectCount} subject(s)`;
 
     }
 
 
+    /* -----------------------------------------
+       11. DEBUG INFORMATION
+    ----------------------------------------- */
+
+    const nutritionFound =
+      subjectList.some(subject => {
+
+        return String(subject.name || "")
+          .trim()
+          .toLowerCase() === "nutrition";
+
+      });
+
+
     console.log(
-      "Academic results loaded successfully:",
-      results.length
+      "ACADEMIC DASHBOARD SUCCESS:",
+      {
+
+        totalResults:
+          results.length,
+
+        activeSubjects:
+          subjectList.length,
+
+        displayedSubjects:
+          groups.size,
+
+        nutritionFound:
+          nutritionFound,
+
+        studentsWithResults:
+          uniqueStudents.size,
+
+        publishedResults:
+          published,
+
+        pendingResults:
+          pending
+
+      }
     );
 
 
