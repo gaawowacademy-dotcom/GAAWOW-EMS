@@ -1,1692 +1,2054 @@
-/* ============================================================
-   GAAWOW EMS — TEACHER MANAGEMENT V9.0
-   Super Admin + School Admin
-   Supabase + GitHub Pages
-   ============================================================ */
+/* =========================================================
+   GAAWOW EMS — TEACHER MANAGEMENT
+   VERSION: 10.0
+   Compatible with: teacher.html V10.0
 
-"use strict";
+   Roles:
+   - super_admin
+   - school_admin
 
-/* ================= CONFIGURATION ================= */
+   Database:
+   - teachers
+   - profiles
+   - institutions
 
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+   Edge Functions:
+   - create-teacher-account
+   - set-teacher-status
 
-const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
-
-const CREATE_TEACHER_FUNCTION_URL =
-  `${SUPABASE_URL}/functions/v1/create-teacher-account`;
-
-const DELETE_TEACHER_FUNCTION_URL =
-  `${SUPABASE_URL}/functions/v1/delete-teacher`;
-
-const TEACHER_PHOTO_BUCKET = "teacher-photos";
-
-const MAX_PHOTO_SIZE = 2 * 1024 * 1024;
-
-const ALLOWED_PHOTO_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp"
-];
-
-const REQUEST_TIMEOUT = 15000;
-
-/* ================= APPLICATION STATE ================= */
-
-let supabaseClient = null;
-
-let teachers = [];
-let institutions = [];
-
-let currentUser = null;
-let currentProfile = null;
-
-let selectedPhotoFile = null;
+   ========================================================= */
 
 window.__teacherJsLoaded = true;
 
-/* ================= SUPABASE INITIALIZATION ================= */
+(() => {
+    "use strict";
 
-if (window.supabase) {
-  try {
-    supabaseClient = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY
-    );
-  } catch (error) {
-    console.error("Supabase initialization failed:", error);
-  }
-} else {
-  console.error("Supabase library is unavailable.");
-}
+    /* =====================================================
+       1. SUPABASE CONFIGURATION
+       ===================================================== */
 
-/* ================= HELPERS ================= */
+    const SUPABASE_URL =
+        "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-function $(id) {
-  return document.getElementById(id);
-}
+    const SUPABASE_KEY =
+        "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+    const CREATE_FUNCTION =
+        "create-teacher-account";
 
-function normalizeUrl(value) {
-  if (!value) return "";
+    const STATUS_FUNCTION =
+        "set-teacher-status";
 
-  try {
-    const url = new URL(value, window.location.href);
+    const PHOTO_BUCKET =
+        "teacher-photos";
 
-    if (!["http:", "https:"].includes(url.protocol)) {
-      return "";
-    }
+    const DEFAULT_LOGO =
+        "https://i.ibb.co/4ZCRpm30/gaawow-logo.png";
 
-    return url.href;
-  } catch (_) {
-    return "";
-  }
-}
+    const { createClient } = window.supabase;
 
-function isSuperAdmin() {
-  return currentProfile?.role === "super_admin";
-}
-
-function isSchoolAdmin() {
-  return currentProfile?.role === "school_admin";
-}
-
-function isOwnInstitution(institutionId) {
-  if (isSuperAdmin()) return true;
-
-  return (
-    isSchoolAdmin() &&
-    institutionId === currentProfile.institution_id
-  );
-}
-
-/* ================= TIMEOUT ================= */
-
-function withTimeout(
-  promise,
-  label = "Request",
-  ms = REQUEST_TIMEOUT
-) {
-  let timer;
-
-  const timeoutPromise = new Promise((_, reject) => {
-    timer = setTimeout(() => {
-      reject(new Error(
-        `${label} timed out after ${ms / 1000} seconds.`
-      ));
-    }, ms);
-  });
-
-  return Promise.race([
-    promise,
-    timeoutPromise
-  ]).finally(() => clearTimeout(timer));
-}
-
-/* ================= MESSAGES ================= */
-
-function setTableMessage(message, type = "empty") {
-  const tbody = $("teachersTableBody");
-
-  if (!tbody) return;
-
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="7" class="${escapeHtml(type)}">
-        ${escapeHtml(message)}
-      </td>
-    </tr>
-  `;
-}
-
-function showMessage(message) {
-  const box = $("messageBox");
-
-  if (!box) {
-    alert(message);
-    return;
-  }
-
-  box.textContent = message;
-  box.hidden = false;
-
-  setTimeout(() => {
-    box.hidden = true;
-  }, 6000);
-}
-
-/* ================= PHOTO HELPERS ================= */
-
-function photoPlaceholder(name = "Teacher") {
-  const initials = String(name)
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(part => part.charAt(0).toUpperCase())
-    .join("") || "T";
-
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg"
-         width="120" height="120"
-         viewBox="0 0 120 120">
-      <rect width="120" height="120"
-            rx="60" fill="#0B1E63"/>
-      <text x="60" y="70"
-            text-anchor="middle"
-            font-family="Arial"
-            font-size="42"
-            font-weight="700"
-            fill="#D4AF37">${initials}</text>
-    </svg>
-  `;
-
-  return "data:image/svg+xml;charset=UTF-8," +
-    encodeURIComponent(svg);
-}
-
-function renderPhotoPreview(url, name = "Teacher") {
-  const img = $("photoPreview");
-
-  if (!img) return;
-
-  const cleanUrl = normalizeUrl(url);
-
-  img.dataset.currentUrl = cleanUrl;
-  img.src = cleanUrl || photoPlaceholder(name);
-
-  img.onerror = function () {
-    img.onerror = null;
-    img.src = photoPlaceholder(name);
-  };
-}
-
-function setPhotoStatus(message = "") {
-  if ($("photoStatus")) {
-    $("photoStatus").textContent = message;
-  }
-}
-
-function clearPhotoSelection() {
-  selectedPhotoFile = null;
-
-  if ($("photoFile")) {
-    $("photoFile").value = "";
-  }
-
-  setPhotoStatus("");
-}
-
-/* ================= FORM AND MODALS ================= */
-
-function resetTeacherForm() {
-  $("teacherForm")?.reset();
-
-  if ($("editId")) $("editId").value = "";
-
-  if ($("email")) {
-    $("email").disabled = false;
-  }
-
-  if ($("teacherId")) {
-    $("teacherId").disabled = false;
-    $("teacherId").required = true;
-  }
-
-  if ($("password")) {
-    $("password").required = true;
-    $("password").value = "";
-  }
-
-  if ($("isActive")) {
-    $("isActive").value = "true";
-  }
-
-  clearPhotoSelection();
-
-  renderPhotoPreview("", "Teacher");
-
-  /*
-   * School Admin must always use their own institution.
-   */
-  if (isSchoolAdmin() && $("institutionId")) {
-    $("institutionId").value =
-      currentProfile.institution_id;
-
-    $("institutionId").disabled = true;
-  }
-}
-
-function openAddTeacher() {
-  resetTeacherForm();
-
-  $("modalTitle").textContent =
-    "Create Teacher Account";
-
-  $("saveBtn").textContent =
-    "Create Teacher Account";
-
-  $("teacherModal")?.classList.add("show");
-
-  $("teacherModal")?.setAttribute(
-    "aria-hidden",
-    "false"
-  );
-}
-
-function closeTeacherModal() {
-  $("teacherModal")?.classList.remove("show");
-
-  $("teacherModal")?.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-
-  clearPhotoSelection();
-}
-
-function closeViewModal() {
-  $("viewModal")?.classList.remove("show");
-
-  $("viewModal")?.setAttribute(
-    "aria-hidden",
-    "true"
-  );
-}
-
-/* ================= AUTHENTICATION ================= */
-
-async function getSessionOrRedirect() {
-  if (!supabaseClient) {
-    setTableMessage(
-      "Supabase client is unavailable.",
-      "empty"
+    const db = createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
     );
 
-    return null;
-  }
 
-  try {
-    const result = await withTimeout(
-      supabaseClient.auth.getSession(),
-      "Checking login session"
-    );
+    /* =====================================================
+       2. GLOBAL STATE
+       ===================================================== */
 
-    const session = result?.data?.session;
+    let currentUser = null;
 
-    if (result.error || !session) {
-      window.location.href = "./index.html";
-      return null;
-    }
+    let currentProfile = null;
 
-    currentUser = session.user;
+    let teachers = [];
 
-    return session;
+    let institutions = [];
 
-  } catch (error) {
-    console.error("Session error:", error);
+    let selectedPhoto = null;
 
-    setTableMessage(
-      "Could not verify your login session. Please reload.",
-      "empty"
-    );
+    let previewObjectUrl = null;
 
-    return null;
-  }
-}
 
-/* ================= ROLE ACCESS CONTROL ================= */
+    /* =====================================================
+       3. HELPER FUNCTIONS
+       ===================================================== */
 
-async function checkAccess() {
-  const session = await getSessionOrRedirect();
+    const $ = id => document.getElementById(id);
 
-  if (!session || !currentUser) return false;
 
-  let result = await withTimeout(
-    supabaseClient
-      .from("profiles")
-      .select(`
-        id,
-        full_name,
-        email,
-        phone,
-        avatar_url,
-        role,
-        institution_id,
-        is_active
-      `)
-      .eq("id", currentUser.id)
-      .maybeSingle(),
-    "Loading administrator profile"
-  );
+    function escapeHTML(value) {
 
-  /*
-   * Fallback if profiles.email is unavailable.
-   */
-  if (
-    result.error &&
-    /email|column/i.test(result.error.message || "")
-  ) {
-    result = await withTimeout(
-      supabaseClient
-        .from("profiles")
-        .select(`
-          id,
-          full_name,
-          phone,
-          avatar_url,
-          role,
-          institution_id,
-          is_active
-        `)
-        .eq("id", currentUser.id)
-        .maybeSingle(),
-      "Loading administrator profile"
-    );
-  }
-
-  if (result.error || !result.data) {
-    console.error("Profile error:", result.error);
-
-    alert("Your administrator profile could not be loaded.");
-
-    window.location.href = "./dashboard.html";
-
-    return false;
-  }
-
-  currentProfile = result.data;
-
-  if (currentProfile.is_active !== true) {
-    alert("Your account is inactive.");
-
-    window.location.href = "./index.html";
-
-    return false;
-  }
-
-  const allowedRoles = [
-    "super_admin",
-    "school_admin"
-  ];
-
-  if (!allowedRoles.includes(currentProfile.role)) {
-    alert("Access denied. Administrator access is required.");
-
-    window.location.href = "./dashboard.html";
-
-    return false;
-  }
-
-  if (
-    isSchoolAdmin() &&
-    !currentProfile.institution_id
-  ) {
-    alert(
-      "Your School Admin account has no assigned institution. Contact Super Admin."
-    );
-
-    window.location.href = "./dashboard.html";
-
-    return false;
-  }
-
-  updatePageForRole();
-
-  return true;
-}
-
-/* ================= ROLE-BASED PAGE DISPLAY ================= */
-
-function updatePageForRole() {
-  const subtitle = document.querySelector(".brand small");
-
-  const superAdminLink =
-    document.querySelector('a[href="./super-admin.html"]');
-
-  if (isSchoolAdmin()) {
-    if (subtitle) {
-      subtitle.textContent =
-        "School Admin • Your Institution Teachers";
-    }
-
-    if (superAdminLink) {
-      superAdminLink.hidden = true;
-    }
-
-    const badge = $("roleBanner");
-
-    if (badge) {
-      badge.hidden = false;
-
-      badge.textContent =
-        "SCHOOL ADMIN • " +
-        (currentProfile.full_name || "Institution");
-    }
-  } else {
-    if (subtitle) {
-      subtitle.textContent =
-        "Super Admin • Teacher Management";
-    }
-
-    if (superAdminLink) {
-      superAdminLink.hidden = false;
-    }
-
-    const badge = $("roleBanner");
-
-    if (badge) badge.hidden = true;
-  }
-}
-
-/* ================= INSTITUTIONS ================= */
-
-async function loadInstitutions() {
-  const filter = $("institutionFilter");
-  const select = $("institutionId");
-
-  if (filter) {
-    filter.innerHTML = "";
-  }
-
-  if (select) {
-    select.innerHTML = "";
-  }
-
-  let query = supabaseClient
-    .from("institutions")
-    .select("id,name")
-    .order("name", { ascending: true });
-
-  if (isSchoolAdmin()) {
-    query = query.eq(
-      "id",
-      currentProfile.institution_id
-    );
-  }
-
-  const { data, error } = await withTimeout(
-    query,
-    "Loading institutions"
-  );
-
-  if (error) throw error;
-
-  institutions = data || [];
-
-  institutions.forEach(institution => {
-    if (filter) {
-      const option = document.createElement("option");
-
-      option.value = institution.id;
-      option.textContent = institution.name;
-
-      filter.appendChild(option);
-    }
-
-    if (select) {
-      const option = document.createElement("option");
-
-      option.value = institution.id;
-      option.textContent = institution.name;
-
-      select.appendChild(option);
-    }
-  });
-
-  if (isSchoolAdmin()) {
-    const ownId = currentProfile.institution_id;
-
-    if (filter) {
-      filter.value = ownId;
-      filter.disabled = true;
-    }
-
-    if (select) {
-      select.value = ownId;
-      select.disabled = true;
-    }
-  } else {
-    if (filter) filter.disabled = false;
-    if (select) select.disabled = false;
-  }
-
-  return institutions;
-}
-
-/* ================= LOAD TEACHERS ================= */
-
-async function loadTeachers() {
-  setTableMessage("Loading teachers...", "loading");
-
-  try {
-    let query = supabaseClient
-      .from("profiles")
-      .select(`
-        id,
-        full_name,
-        email,
-        phone,
-        avatar_url,
-        role,
-        institution_id,
-        is_active,
-        created_at,
-        updated_at
-      `)
-      .eq("role", "teacher");
-
-    /*
-     * Critical institution restriction.
-     */
-    if (isSchoolAdmin()) {
-      query = query.eq(
-        "institution_id",
-        currentProfile.institution_id
-      );
-    }
-
-    let result = await withTimeout(
-      query.order("full_name", {
-        ascending: true
-      }),
-      "Loading teachers"
-    );
-
-    /*
-     * Retry without email if column is unavailable.
-     */
-    if (
-      result.error &&
-      /email|column/i.test(result.error.message || "")
-    ) {
-      let fallbackQuery = supabaseClient
-        .from("profiles")
-        .select(`
-          id,
-          full_name,
-          phone,
-          avatar_url,
-          role,
-          institution_id,
-          is_active,
-          created_at,
-          updated_at
-        `)
-        .eq("role", "teacher");
-
-      if (isSchoolAdmin()) {
-        fallbackQuery = fallbackQuery.eq(
-          "institution_id",
-          currentProfile.institution_id
+        return String(value ?? "").replace(
+            /[&<>"']/g,
+            character => ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            })[character]
         );
-      }
 
-      result = await withTimeout(
-        fallbackQuery.order("full_name", {
-          ascending: true
-        }),
-        "Loading teachers"
-      );
     }
 
-    if (result.error) {
-      throw result.error;
+
+    function showMessage(text, type = "info") {
+
+        const box = $("messageBox");
+
+        box.className = type;
+
+        box.textContent = text;
+
+        box.style.display = "block";
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+
     }
 
-    teachers = (result.data || []).map(teacher => {
-      const institution = institutions.find(
-        item => item.id === teacher.institution_id
-      );
 
-      return {
-        ...teacher,
-        institution_name:
-          institution?.name || "Unknown Institution"
-      };
-    });
+    function clearMessage() {
 
-    renderTeachers();
+        const box = $("messageBox");
 
-    return true;
+        box.style.display = "none";
 
-  } catch (error) {
-    console.error("Teacher loading error:", error);
+        box.textContent = "";
 
-    setTableMessage(
-      `Failed to load teachers: ${error.message}`,
-      "empty"
-    );
+        box.className = "";
 
-    return false;
-  }
-}
-
-/* ================= RENDER TEACHERS ================= */
-
-function renderTeachers() {
-  const tbody = $("teachersTableBody");
-
-  if (!tbody) return;
-
-  const search = String(
-    $("searchInput")?.value || ""
-  ).toLowerCase().trim();
-
-  const institutionId =
-    $("institutionFilter")?.value || "";
-
-  const status =
-    $("statusFilter")?.value || "";
-
-  const filtered = teachers.filter(teacher => {
-    /*
-     * Extra client-side security restriction.
-     */
-    if (
-      isSchoolAdmin() &&
-      teacher.institution_id !== currentProfile.institution_id
-    ) {
-      return false;
     }
 
-    const haystack = [
-      teacher.full_name,
-      teacher.email,
-      teacher.phone,
-      teacher.id
-    ]
-      .map(value => String(value || "").toLowerCase())
-      .join(" ");
 
-    const matchesSearch =
-      !search || haystack.includes(search);
+    function setSaving(state) {
 
-    const matchesInstitution =
-      !institutionId ||
-      teacher.institution_id === institutionId;
+        const button = $("saveBtn");
 
-    const matchesStatus =
-      !status ||
-      (status === "active" && teacher.is_active === true) ||
-      (status === "inactive" && teacher.is_active === false);
+        button.disabled = state;
 
-    return (
-      matchesSearch &&
-      matchesInstitution &&
-      matchesStatus
-    );
-  });
+        button.textContent = state
+            ? "Please wait..."
+            : "Save Teacher";
 
-  if (!filtered.length) {
-    setTableMessage("No teachers found.", "empty");
-    return;
-  }
+    }
 
-  tbody.innerHTML = filtered.map((teacher, index) => {
-    const avatar =
-      normalizeUrl(teacher.avatar_url) ||
-      photoPlaceholder(teacher.full_name);
 
-    const statusClass =
-      teacher.is_active ? "active" : "inactive";
+    function getInstitutionName(institutionId) {
 
-    const statusText =
-      teacher.is_active ? "Active" : "Inactive";
+        const institution = institutions.find(
+            item => item.id === institutionId
+        );
 
-    const teacherId = escapeHtml(teacher.id);
+        return institution
+            ? institution.name
+            : "Unknown Institution";
 
-    const fallback =
-      escapeHtml(photoPlaceholder(teacher.full_name));
+    }
 
-    const deleteButton = isSuperAdmin()
-      ? `
-        <button
-          type="button"
-          class="action-btn delete"
-          onclick="deleteTeacher('${teacherId}')"
-        >Delete</button>
-      `
-      : "";
 
-    return `
-      <tr>
-        <td>${index + 1}</td>
+    function isTeacherActive(teacher) {
 
-        <td>
-          <div class="teacher-cell">
-            <img
-              class="teacher-thumb"
-              src="${escapeHtml(avatar)}"
-              alt="Teacher photo"
-              onerror="this.onerror=null;this.src='${fallback}'"
-            >
+        return (
+            teacher.profile &&
+            teacher.profile.is_active === true &&
+            String(teacher.status || "").toLowerCase() === "active"
+        );
 
-            <div>
-              <strong>
-                ${escapeHtml(teacher.full_name || "Unnamed Teacher")}
-              </strong>
+    }
 
-              <small>
-                ${escapeHtml(teacher.email || "No email")}
-              </small>
+
+    function releasePhotoPreview() {
+
+        if (previewObjectUrl) {
+
+            URL.revokeObjectURL(previewObjectUrl);
+
+            previewObjectUrl = null;
+
+        }
+
+    }
+
+
+    /* =====================================================
+       4. AUTHENTICATION AND ROLE ACCESS
+       ===================================================== */
+
+    async function checkAccess() {
+
+        const {
+            data: { user },
+            error
+        } = await db.auth.getUser();
+
+        if (error || !user) {
+
+            throw new Error(
+                "Please sign in first. Your login session may have expired."
+            );
+
+        }
+
+        currentUser = user;
+
+
+        const {
+            data: profile,
+            error: profileError
+        } = await db
+            .from("profiles")
+            .select(`
+                id,
+                full_name,
+                role,
+                institution_id,
+                is_active
+            `)
+            .eq("id", user.id)
+            .single();
+
+
+        if (profileError || !profile) {
+
+            throw new Error(
+                "Unable to load your user profile."
+            );
+
+        }
+
+
+        if (!profile.is_active) {
+
+            throw new Error(
+                "Your account is inactive."
+            );
+
+        }
+
+
+        if (
+            !["super_admin", "school_admin"]
+                .includes(profile.role)
+        ) {
+
+            throw new Error(
+                "Access denied. Only Super Admin or School Admin can manage teachers."
+            );
+
+        }
+
+
+        if (
+            profile.role === "school_admin" &&
+            !profile.institution_id
+        ) {
+
+            throw new Error(
+                "Your School Admin account has no institution assigned."
+            );
+
+        }
+
+
+        currentProfile = profile;
+
+
+        updatePageForRole();
+
+    }
+
+
+    /* =====================================================
+       5. ROLE-BASED PAGE CONFIGURATION
+       ===================================================== */
+
+    function updatePageForRole() {
+
+        const banner = $("roleBanner");
+
+        if (currentProfile.role === "school_admin") {
+
+            $("superAdminLink").style.display = "none";
+
+            $("institutionFilter").disabled = true;
+
+            banner.style.display = "block";
+
+            banner.textContent =
+                "School Admin access: You can manage teachers belonging to your assigned institution only.";
+
+        } else {
+
+            $("superAdminLink").style.display = "inline-block";
+
+            $("institutionFilter").disabled = false;
+
+            banner.style.display = "none";
+
+        }
+
+    }
+
+
+    /* =====================================================
+       6. LOAD INSTITUTIONS
+       ===================================================== */
+
+    async function loadInstitutions() {
+
+        let query = db
+            .from("institutions")
+            .select(`
+                id,
+                name,
+                institution_name,
+                code,
+                is_active
+            `)
+            .order("created_at", {
+                ascending: true
+            });
+
+
+        if (currentProfile.role === "school_admin") {
+
+            query = query.eq(
+                "id",
+                currentProfile.institution_id
+            );
+
+        }
+
+
+        const {
+            data,
+            error
+        } = await query;
+
+
+        if (error) {
+
+            throw error;
+
+        }
+
+
+        institutions = (data || []).map(item => ({
+
+            ...item,
+
+            name:
+                item.name ||
+                item.institution_name ||
+                item.code ||
+                "Institution"
+
+        }));
+
+
+        const options = institutions.map(item => `
+
+            <option value="${escapeHTML(item.id)}">
+
+                ${escapeHTML(item.name)}
+
+            </option>
+
+        `).join("");
+
+
+        $("institutionId").innerHTML = `
+
+            <option value="">Select Institution</option>
+
+            ${options}
+
+        `;
+
+
+        if (currentProfile.role === "super_admin") {
+
+            $("institutionFilter").innerHTML = `
+
+                <option value="">All Institutions</option>
+
+                ${options}
+
+            `;
+
+        } else {
+
+            $("institutionFilter").innerHTML = options;
+
+            $("institutionFilter").value =
+                currentProfile.institution_id;
+
+            $("institutionFilter").disabled = true;
+
+            $("institutionId").value =
+                currentProfile.institution_id;
+
+            $("institutionId").disabled = true;
+
+        }
+
+    }
+
+
+    /* =====================================================
+       7. LOAD TEACHERS AND PROFILES
+       ===================================================== */
+
+    async function loadTeachers() {
+
+        const tableBody = $("teachersTableBody");
+
+        tableBody.innerHTML = `
+
+            <tr>
+
+                <td colspan="7" class="loading">
+
+                    Loading teachers...
+
+                </td>
+
+            </tr>
+
+        `;
+
+
+        let teacherQuery = db
+            .from("teachers")
+            .select(`
+                id,
+                institution_id,
+                profile_id,
+                teacher_id,
+                full_name,
+                email,
+                phone,
+                gender,
+                qualification,
+                specialization,
+                employment_date,
+                status,
+                created_at,
+                updated_at
+            `)
+            .order("created_at", {
+                ascending: false
+            });
+
+
+        let profileQuery = db
+            .from("profiles")
+            .select(`
+                id,
+                institution_id,
+                full_name,
+                email,
+                phone,
+                avatar_url,
+                role,
+                is_active
+            `)
+            .eq("role", "teacher");
+
+
+        if (currentProfile.role === "school_admin") {
+
+            teacherQuery = teacherQuery.eq(
+                "institution_id",
+                currentProfile.institution_id
+            );
+
+            profileQuery = profileQuery.eq(
+                "institution_id",
+                currentProfile.institution_id
+            );
+
+        }
+
+
+        const [
+            teacherResult,
+            profileResult
+        ] = await Promise.all([
+
+            teacherQuery,
+
+            profileQuery
+
+        ]);
+
+
+        if (teacherResult.error) {
+
+            throw teacherResult.error;
+
+        }
+
+
+        if (profileResult.error) {
+
+            throw profileResult.error;
+
+        }
+
+
+        const profileMap = new Map(
+
+            (profileResult.data || []).map(profile => [
+
+                profile.id,
+
+                profile
+
+            ])
+
+        );
+
+
+        teachers = (teacherResult.data || []).map(teacher => ({
+
+            ...teacher,
+
+            profile:
+                profileMap.get(teacher.profile_id) || null
+
+        }));
+
+
+        renderTeachers();
+
+    }
+
+
+    /* =====================================================
+       8. RENDER TEACHER TABLE
+       ===================================================== */
+
+    function renderTeachers() {
+
+        const searchTerm =
+            $("searchInput").value.trim().toLowerCase();
+
+        const institutionFilter =
+            $("institutionFilter").value;
+
+        const statusFilter =
+            $("statusFilter").value;
+
+
+        const filteredTeachers = teachers.filter(teacher => {
+
+            const searchableText = [
+
+                teacher.full_name,
+
+                teacher.teacher_id,
+
+                teacher.email,
+
+                teacher.phone,
+
+                teacher.id,
+
+                teacher.profile?.email
+
+            ].join(" ").toLowerCase();
+
+
+            const matchesSearch =
+                !searchTerm ||
+                searchableText.includes(searchTerm);
+
+
+            const matchesInstitution =
+                !institutionFilter ||
+                teacher.institution_id === institutionFilter;
+
+
+            const active = isTeacherActive(teacher);
+
+
+            let matchesStatus = true;
+
+
+            if (statusFilter === "active") {
+
+                matchesStatus = active;
+
+            } else if (statusFilter === "inactive") {
+
+                matchesStatus =
+                    !!teacher.profile && !active;
+
+            } else if (statusFilter === "missing") {
+
+                matchesStatus = !teacher.profile;
+
+            }
+
+
+            return (
+                matchesSearch &&
+                matchesInstitution &&
+                matchesStatus
+            );
+
+        });
+
+
+        $("teacherCount").textContent =
+            `${filteredTeachers.length} teacher(s)`;
+
+
+        if (!filteredTeachers.length) {
+
+            $("teachersTableBody").innerHTML = `
+
+                <tr>
+
+                    <td colspan="7" class="empty">
+
+                        No teacher records found.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+            return;
+
+        }
+
+
+        $("teachersTableBody").innerHTML =
+
+            filteredTeachers.map((teacher, index) => {
+
+
+                const active =
+                    isTeacherActive(teacher);
+
+
+                const status = !teacher.profile
+                    ? "Profile Missing"
+                    : active
+                        ? "Active"
+                        : "Inactive";
+
+
+                const badgeClass = !teacher.profile
+                    ? "missing"
+                    : active
+                        ? "active"
+                        : "inactive";
+
+
+                const avatar = teacher.profile?.avatar_url;
+
+
+                const avatarHTML = avatar
+
+                    ? `
+
+                        <img
+                            class="avatar"
+                            src="${escapeHTML(avatar)}"
+                            alt="Teacher photo"
+                        >
+
+                    `
+
+                    : `
+
+                        <span class="avatar">
+
+                            ${escapeHTML(
+                                (teacher.full_name || "?")
+                                    .trim()
+                                    .charAt(0)
+                                    .toUpperCase()
+                            )}
+
+                        </span>
+
+                    `;
+
+
+                return `
+
+                    <tr>
+
+                        <td>${index + 1}</td>
+
+
+                        <td>
+
+                            <div class="person">
+
+                                ${avatarHTML}
+
+                                <div>
+
+                                    <strong>
+                                        ${escapeHTML(teacher.full_name)}
+                                    </strong>
+
+                                    <small>
+
+                                        ${escapeHTML(teacher.teacher_id)}
+
+                                        ·
+
+                                        ${escapeHTML(
+                                            teacher.profile?.email ||
+                                            teacher.email ||
+                                            "No account email"
+                                        )}
+
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+                            ${escapeHTML(teacher.phone || "")}
+                        </td>
+
+
+                        <td>
+                            ${escapeHTML(
+                                getInstitutionName(teacher.institution_id)
+                            )}
+                        </td>
+
+
+                        <td>
+                            ${escapeHTML(teacher.qualification || "")}
+                        </td>
+
+
+                        <td>
+
+                            <span class="badge ${badgeClass}">
+
+                                ${status}
+
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            <button
+                                class="btn btn-small btn-light"
+                                data-action="view"
+                                data-id="${escapeHTML(teacher.id)}"
+                            >
+                                View
+                            </button>
+
+
+                            <button
+                                class="btn btn-small btn-blue"
+                                data-action="edit"
+                                data-id="${escapeHTML(teacher.id)}"
+                            >
+                                Edit
+                            </button>
+
+
+                            ${teacher.profile ? `
+
+                                <button
+                                    class="btn btn-small ${active ? "btn-danger" : "btn-gold"}"
+                                    data-action="toggle"
+                                    data-id="${escapeHTML(teacher.id)}"
+                                    data-active="${active}"
+                                >
+
+                                    ${active ? "Deactivate" : "Activate"}
+
+                                </button>
+
+                            ` : ""}
+
+                        </td>
+
+                    </tr>
+
+                `;
+
+            }).join("");
+
+    }
+
+
+    /* =====================================================
+       9. OPEN CREATE TEACHER MODAL
+       ===================================================== */
+
+    function openCreateTeacher() {
+
+        clearMessage();
+
+        releasePhotoPreview();
+
+        selectedPhoto = null;
+
+        $("teacherForm").reset();
+
+        $("editId").value = "";
+
+
+        $("modalTitle").textContent =
+            "Add Teacher";
+
+
+        $("password").required = true;
+
+        $("password").disabled = false;
+
+
+        $("email").disabled = false;
+
+        $("teacherId").disabled = false;
+
+
+        $("passwordHint").textContent =
+            "(minimum 12 characters)";
+
+
+        if (currentProfile.role === "school_admin") {
+
+            $("institutionId").value =
+                currentProfile.institution_id;
+
+            $("institutionId").disabled = true;
+
+        } else {
+
+            $("institutionId").disabled = false;
+
+        }
+
+
+        $("photoPreview").src = DEFAULT_LOGO;
+
+        $("photoStatus").textContent = "";
+
+
+        $("teacherModal").classList.add("show");
+
+    }
+
+
+    /* =====================================================
+       10. CLOSE CREATE / EDIT MODAL
+       ===================================================== */
+
+    function closeTeacherModal() {
+
+        $("teacherModal").classList.remove("show");
+
+        releasePhotoPreview();
+
+        selectedPhoto = null;
+
+    }
+
+
+    /* =====================================================
+       11. FIND TEACHER
+       ===================================================== */
+
+    function findTeacher(recordId) {
+
+        return teachers.find(
+            teacher => teacher.id === recordId
+        );
+
+    }
+
+
+    /* =====================================================
+       12. OPEN EDIT TEACHER
+       ===================================================== */
+
+    function editTeacher(recordId) {
+
+        const teacher = findTeacher(recordId);
+
+
+        if (!teacher) {
+
+            showMessage(
+                "Teacher record not found.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        if (!teacher.profile) {
+
+            showMessage(
+                "This teacher has no matching login profile. Please investigate before editing.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        releasePhotoPreview();
+
+        selectedPhoto = null;
+
+
+        $("teacherForm").reset();
+
+        $("editId").value = teacher.id;
+
+
+        $("modalTitle").textContent =
+            "Edit Teacher";
+
+
+        $("fullName").value =
+            teacher.full_name || "";
+
+
+        $("email").value =
+            teacher.profile.email ||
+            teacher.email ||
+            "";
+
+
+        $("teacherId").value =
+            teacher.teacher_id || "";
+
+
+        $("phone").value =
+            teacher.phone || "";
+
+
+        $("gender").value =
+            teacher.gender || "";
+
+
+        $("qualification").value =
+            teacher.qualification || "";
+
+
+        $("specialization").value =
+            teacher.specialization || "";
+
+
+        $("employmentDate").value =
+            teacher.employment_date || "";
+
+
+        $("institutionId").value =
+            teacher.institution_id;
+
+
+        /*
+           Email and Teacher ID are locked during editing.
+           Changing email requires a separate Auth operation.
+        */
+
+        $("email").disabled = true;
+
+        $("teacherId").disabled = true;
+
+        $("password").disabled = true;
+
+        $("password").required = false;
+
+
+        $("passwordHint").textContent =
+            "(not editable here)";
+
+
+        $("institutionId").disabled = true;
+
+
+        $("photoPreview").src =
+            teacher.profile.avatar_url || DEFAULT_LOGO;
+
+
+        $("photoStatus").textContent =
+            "Choose a file only if you want to replace the current photo.";
+
+
+        $("teacherModal").classList.add("show");
+
+    }
+
+
+    /* =====================================================
+       13. VIEW TEACHER
+       ===================================================== */
+
+    function viewTeacher(recordId) {
+
+        const teacher = findTeacher(recordId);
+
+
+        if (!teacher) {
+
+            showMessage(
+                "Teacher record not found.",
+                "error"
+            );
+
+            return;
+
+        }
+
+
+        const profile = teacher.profile || {};
+
+
+        $("viewContent").innerHTML = `
+
+            <div class="grid">
+
+
+                <div>
+
+                    <b>Full Name</b>
+
+                    <p>${escapeHTML(teacher.full_name)}</p>
+
+                </div>
+
+
+                <div>
+
+                    <b>Teacher ID</b>
+
+                    <p>${escapeHTML(teacher.teacher_id)}</p>
+
+                </div>
+
+
+                <div>
+
+                    <b>Email</b>
+
+                    <p>
+                        ${escapeHTML(
+                            profile.email ||
+                            teacher.email ||
+                            "Not available"
+                        )}
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <b>Phone</b>
+
+                    <p>
+                        ${escapeHTML(
+                            teacher.phone || "Not available"
+                        )}
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <b>Institution</b>
+
+                    <p>
+                        ${escapeHTML(
+                            getInstitutionName(teacher.institution_id)
+                        )}
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <b>Gender</b>
+
+                    <p>
+                        ${escapeHTML(
+                            teacher.gender || "Not specified"
+                        )}
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <b>Qualification</b>
+
+                    <p>
+                        ${escapeHTML(
+                            teacher.qualification || "Not specified"
+                        )}
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <b>Specialization</b>
+
+                    <p>
+                        ${escapeHTML(
+                            teacher.specialization || "Not specified"
+                        )}
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <b>Employment Date</b>
+
+                    <p>
+                        ${escapeHTML(
+                            teacher.employment_date || "Not specified"
+                        )}
+                    </p>
+
+                </div>
+
+
+                <div>
+
+                    <b>Login Status</b>
+
+                    <p>
+                        ${
+                            !teacher.profile
+                                ? "Profile Missing"
+                                : isTeacherActive(teacher)
+                                    ? "Active"
+                                    : "Inactive"
+                        }
+                    </p>
+
+                </div>
+
+
             </div>
-          </div>
-        </td>
 
-        <td>${escapeHtml(teacher.phone || "—")}</td>
+        `;
 
-        <td>${escapeHtml(teacher.institution_name || "—")}</td>
 
-        <td>Teacher</td>
+        $("viewModal").classList.add("show");
 
-        <td>
-          <span class="status ${statusClass}">
-            ${statusText}
-          </span>
-        </td>
-
-        <td>
-          <div class="actions">
-
-            <button
-              type="button"
-              class="action-btn view"
-              onclick="viewTeacher('${teacherId}')"
-            >View</button>
-
-            <button
-              type="button"
-              class="action-btn edit"
-              onclick="editTeacher('${teacherId}')"
-            >Edit</button>
-
-            <button
-              type="button"
-              class="action-btn toggle"
-              onclick="toggleTeacher('${teacherId}')"
-            >${teacher.is_active ? "Disable" : "Activate"}</button>
-
-            ${deleteButton}
-
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-/* ================= EDIT TEACHER ================= */
-
-function editTeacher(id) {
-  const teacher = teachers.find(
-    item => item.id === id
-  );
-
-  if (!teacher) {
-    alert("Teacher not found.");
-    return;
-  }
-
-  if (!isOwnInstitution(teacher.institution_id)) {
-    alert("You cannot edit a teacher from another institution.");
-    return;
-  }
-
-  $("editId").value = teacher.id;
-
-  $("fullName").value = teacher.full_name || "";
-
-  $("email").value = teacher.email || "";
-  $("email").disabled = true;
-
-  $("teacherId").value = "";
-  $("teacherId").disabled = true;
-  $("teacherId").required = false;
-
-  $("password").value = "";
-  $("password").required = false;
-
-  $("phone").value = teacher.phone || "";
-
-  $("institutionId").value =
-    teacher.institution_id || "";
-
-  $("isActive").value =
-    teacher.is_active ? "true" : "false";
-
-  /*
-   * School Admin cannot change institution.
-   */
-  if (isSchoolAdmin()) {
-    $("institutionId").value =
-      currentProfile.institution_id;
-
-    $("institutionId").disabled = true;
-  }
-
-  clearPhotoSelection();
-
-  renderPhotoPreview(
-    teacher.avatar_url,
-    teacher.full_name
-  );
-
-  setPhotoStatus(
-    teacher.avatar_url
-      ? "Current photo"
-      : "No photo uploaded"
-  );
-
-  $("modalTitle").textContent = "Edit Teacher";
-  $("saveBtn").textContent = "Update Teacher";
-
-  $("teacherModal").classList.add("show");
-
-  $("teacherModal").setAttribute(
-    "aria-hidden",
-    "false"
-  );
-}
-
-/* ================= PHOTO SELECTION ================= */
-
-function handlePhotoSelect(event) {
-  const file = event.target.files?.[0];
-
-  if (!file) return;
-
-  if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
-    event.target.value = "";
-    selectedPhotoFile = null;
-
-    alert("Only JPG, PNG and WEBP images are allowed.");
-    return;
-  }
-
-  if (file.size > MAX_PHOTO_SIZE) {
-    event.target.value = "";
-    selectedPhotoFile = null;
-
-    alert("Maximum photo size is 2 MB.");
-    return;
-  }
-
-  selectedPhotoFile = file;
-
-  const previewUrl = URL.createObjectURL(file);
-
-  renderPhotoPreview(
-    previewUrl,
-    $("fullName")?.value || "Teacher"
-  );
-
-  setPhotoStatus(
-    `${file.name} • ${(file.size / 1024 / 1024).toFixed(2)} MB`
-  );
-}
-
-function fileExtension(file) {
-  const map = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp"
-  };
-
-  return map[file.type] || "jpg";
-}
-
-/* ================= UPLOAD PHOTO ================= */
-
-async function uploadTeacherPhoto(teacherId, file) {
-  if (!file) return null;
-
-  const ext = fileExtension(file);
-
-  const randomPart =
-    typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-  const path =
-    `${teacherId}/${Date.now()}-${randomPart}.${ext}`;
-
-  const { error } = await withTimeout(
-    supabaseClient.storage
-      .from(TEACHER_PHOTO_BUCKET)
-      .upload(path, file, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: file.type
-      }),
-    "Uploading teacher photo"
-  );
-
-  if (error) throw error;
-
-  const { data } = supabaseClient.storage
-    .from(TEACHER_PHOTO_BUCKET)
-    .getPublicUrl(path);
-
-  if (!data?.publicUrl) {
-    throw new Error("Could not generate photo URL.");
-  }
-
-  return {
-    path,
-    publicUrl: data.publicUrl
-  };
-}
-
-/* ================= DELETE OLD PHOTO ================= */
-
-function storagePathFromPublicUrl(url) {
-  if (!url) return null;
-
-  try {
-    const parsed = new URL(url);
-
-    const marker =
-      `/storage/v1/object/public/${TEACHER_PHOTO_BUCKET}/`;
-
-    const index = parsed.pathname.indexOf(marker);
-
-    if (index === -1) return null;
-
-    return decodeURIComponent(
-      parsed.pathname.slice(index + marker.length)
-    );
-  } catch (_) {
-    return null;
-  }
-}
-
-async function deleteOldTeacherPhoto(url) {
-  const path = storagePathFromPublicUrl(url);
-
-  if (!path) return;
-
-  const { error } = await withTimeout(
-    supabaseClient.storage
-      .from(TEACHER_PHOTO_BUCKET)
-      .remove([path]),
-    "Deleting old teacher photo"
-  );
-
-  if (error) {
-    console.warn("Old photo removal failed:", error.message);
-  }
-}
-
-/* ================= UPDATE TEACHER ================= */
-
-async function updateTeacherProfile(id, payload) {
-  const teacher = teachers.find(item => item.id === id);
-
-  if (!teacher) {
-    throw new Error("Teacher profile not found.");
-  }
-
-  if (!isOwnInstitution(teacher.institution_id)) {
-    throw new Error("You cannot manage another institution's teacher.");
-  }
-
-  /*
-   * Never trust the institution ID sent by the browser.
-   */
-  if (isSchoolAdmin()) {
-    payload = {
-      ...payload,
-      institution_id: currentProfile.institution_id
-    };
-  }
-
-  const { error } = await withTimeout(
-    supabaseClient
-      .from("profiles")
-      .update({
-        ...payload,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", id)
-      .eq("role", "teacher")
-      .eq("institution_id", teacher.institution_id),
-    "Updating teacher"
-  );
-
-  if (error) throw error;
-}
-
-/* ================= CREATE TEACHER ACCOUNT ================= */
-
-async function createTeacher(payload, accessToken) {
-  if (!supabaseClient) {
-    throw new Error("Supabase client is unavailable.");
-  }
-
-  if (isSchoolAdmin()) {
-    payload.institution_id =
-      currentProfile.institution_id;
-  }
-
-  const requiredFields = [
-    "full_name",
-    "email",
-    "institution_id",
-    "teacher_id",
-    "password"
-  ];
-
-  const missing = requiredFields.filter(field =>
-    !String(payload[field] ?? "").trim()
-  );
-
-  if (missing.length) {
-    throw new Error(
-      `Missing fields: ${missing.join(", ")}`
-    );
-  }
-
-  if (!isOwnInstitution(payload.institution_id)) {
-    throw new Error(
-      "You cannot create a teacher in another institution."
-    );
-  }
-
-  let token = accessToken;
-
-  if (!token) {
-    const { data, error } =
-      await supabaseClient.auth.getSession();
-
-    if (error) throw error;
-
-    token = data?.session?.access_token;
-  }
-
-  if (!token) {
-    throw new Error("Your login session has expired.");
-  }
-
-  const response = await withTimeout(
-    fetch(CREATE_TEACHER_FUNCTION_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    }),
-    "Creating teacher account"
-  );
-
-  let result;
-
-  try {
-    result = await response.json();
-  } catch (_) {
-    throw new Error(
-      `Unreadable server response. HTTP ${response.status}`
-    );
-  }
-
-  if (
-    !response.ok ||
-    result?.success !== true ||
-    result?.error
-  ) {
-    throw new Error(
-      [
-        result?.error || "Teacher creation failed.",
-        result?.details || "",
-        result?.database_details || "",
-        `HTTP ${response.status}`
-      ].filter(Boolean).join("\n")
-    );
-  }
-
-  return result;
-}
-
-/* ================= FIND CREATED PROFILE ================= */
-
-async function findTeacherProfileIdByEmail(email) {
-  const normalizedEmail =
-    String(email || "").trim().toLowerCase();
-
-  const { data, error } = await withTimeout(
-    supabaseClient
-      .from("profiles")
-      .select("id,email,role,institution_id")
-      .ilike("email", normalizedEmail)
-      .eq("role", "teacher")
-      .maybeSingle(),
-    "Finding teacher profile"
-  );
-
-  if (error) throw error;
-
-  if (
-    data &&
-    isSchoolAdmin() &&
-    data.institution_id !== currentProfile.institution_id
-  ) {
-    throw new Error("Created teacher belongs to another institution.");
-  }
-
-  return data?.id || null;
-}
-
-/* ================= SAVE TEACHER ================= */
-
-async function saveTeacher(event) {
-  event.preventDefault();
-
-  const saveBtn = $("saveBtn");
-
-  if (!saveBtn) return;
-
-  const editId = $("editId").value.trim();
-
-  const fullName = $("fullName").value.trim();
-
-  const email = $("email").value.trim().toLowerCase();
-
-  const teacherCode = $("teacherId").value.trim();
-
-  const phone = $("phone").value.trim();
-
-  const password = $("password").value;
-
-  let institutionId = $("institutionId").value;
-
-  const isActive = $("isActive").value === "true";
-
-  /*
-   * Server-side authority is still required.
-   * This also prevents accidental institution changes in the UI.
-   */
-  if (isSchoolAdmin()) {
-    institutionId = currentProfile.institution_id;
-  }
-
-  if (!fullName) {
-    alert("Please enter the teacher's full name.");
-    return;
-  }
-
-  if (!institutionId) {
-    alert("Please select an institution.");
-    return;
-  }
-
-  if (!isOwnInstitution(institutionId)) {
-    alert("You cannot select another institution.");
-    return;
-  }
-
-  if (!editId) {
-    if (!email || !teacherCode) {
-      alert("Email and Teacher ID are required.");
-      return;
     }
 
-    if (password.length < 12) {
-      alert("Password must contain at least 12 characters.");
-      return;
-    }
-  }
 
-  saveBtn.disabled = true;
+    /* =====================================================
+       14. PHOTO UPLOAD
+       ===================================================== */
 
-  saveBtn.textContent =
-    editId ? "Updating..." : "Creating Account...";
+    async function uploadTeacherPhoto(profileId) {
 
-  try {
-    /* -------- UPDATE EXISTING TEACHER -------- */
+        if (!selectedPhoto) {
 
-    if (editId) {
-      const teacher = teachers.find(
-        item => item.id === editId
-      );
+            return null;
 
-      if (!teacher) {
-        throw new Error("Teacher not found.");
-      }
+        }
 
-      if (!isOwnInstitution(teacher.institution_id)) {
-        throw new Error("You cannot edit this teacher.");
-      }
 
-      let uploadedPhoto = null;
+        if (selectedPhoto.size > 2 * 1024 * 1024) {
 
-      if (selectedPhotoFile) {
-        uploadedPhoto = await uploadTeacherPhoto(
-          editId,
-          selectedPhotoFile
-        );
-      }
+            throw new Error(
+                "Photo must be 2 MB or smaller."
+            );
 
-      await updateTeacherProfile(editId, {
-        full_name: fullName,
-        phone: phone || null,
-        institution_id: institutionId,
-        is_active: isActive,
+        }
 
-        ...(uploadedPhoto
-          ? { avatar_url: uploadedPhoto.publicUrl }
-          : {})
-      });
 
-      if (uploadedPhoto && teacher.avatar_url) {
-        await deleteOldTeacherPhoto(teacher.avatar_url);
-      }
+        const allowedTypes = [
 
-      alert("Teacher updated successfully.");
+            "image/jpeg",
 
-      closeTeacherModal();
+            "image/png",
 
-      await loadTeachers();
+            "image/webp"
 
-      return;
-    }
+        ];
 
-    /* -------- CREATE NEW TEACHER -------- */
 
-    const session = await getSessionOrRedirect();
+        if (!allowedTypes.includes(selectedPhoto.type)) {
 
-    if (!session?.access_token) {
-      throw new Error("Your login session has expired.");
-    }
+            throw new Error(
+                "Only JPG, PNG or WEBP photos are accepted."
+            );
 
-    await createTeacher({
-      full_name: fullName,
-      email,
-      password,
-      phone: phone || null,
-      institution_id: institutionId,
-      teacher_id: teacherCode,
-      is_active: isActive
-    }, session.access_token);
+        }
 
-    const profileId =
-      await findTeacherProfileIdByEmail(email);
 
-    if (!profileId) {
-      throw new Error(
-        "Account creation was requested, but the profile could not be found. Check Supabase before retrying to avoid duplicates."
-      );
-    }
+        let extension = "jpg";
 
-    if (selectedPhotoFile) {
-      const uploadedPhoto =
-        await uploadTeacherPhoto(profileId, selectedPhotoFile);
 
-      await supabaseClient
-        .from("profiles")
-        .update({
-          avatar_url: uploadedPhoto.publicUrl
-        })
-        .eq("id", profileId)
-        .eq("institution_id", institutionId);
+        if (selectedPhoto.type === "image/png") {
+
+            extension = "png";
+
+        } else if (selectedPhoto.type === "image/webp") {
+
+            extension = "webp";
+
+        }
+
+
+        const filePath =
+
+            `${profileId}/${Date.now()}.${extension}`;
+
+
+        const {
+            error
+        } = await db.storage
+            .from(PHOTO_BUCKET)
+            .upload(
+                filePath,
+                selectedPhoto,
+                {
+                    upsert: false,
+                    contentType: selectedPhoto.type
+                }
+            );
+
+
+        if (error) {
+
+            throw error;
+
+        }
+
+
+        const {
+            data
+        } = db.storage
+            .from(PHOTO_BUCKET)
+            .getPublicUrl(filePath);
+
+
+        return data.publicUrl;
+
     }
 
-    alert(
-      "Teacher account created successfully!\n\n" +
-      `Name: ${fullName}\n` +
-      `Email: ${email}\n` +
-      `Teacher ID: ${teacherCode}`
-    );
 
-    closeTeacherModal();
+    /* =====================================================
+       15. CREATE / UPDATE TEACHER
+       ===================================================== */
 
-    await loadTeachers();
+    async function saveTeacher(event) {
 
-  } catch (error) {
-    console.error("Save teacher error:", error);
+        event.preventDefault();
 
-    alert(
-      "Failed to save teacher:\n\n" +
-      (error.message || String(error))
-    );
+        clearMessage();
 
-  } finally {
-    saveBtn.disabled = false;
+        setSaving(true);
 
-    saveBtn.textContent =
-      $("editId")?.value
-        ? "Update Teacher"
-        : "Create Teacher Account";
-  }
-}
 
-/* ================= VIEW TEACHER ================= */
+        try {
 
-function viewTeacher(id) {
-  const teacher = teachers.find(
-    item => item.id === id
-  );
+            const recordId =
+                $("editId").value;
 
-  if (!teacher) {
-    alert("Teacher not found.");
-    return;
-  }
 
-  if (!isOwnInstitution(teacher.institution_id)) {
-    alert("You cannot view another institution's teacher.");
-    return;
-  }
+            const commonData = {
 
-  const avatar =
-    normalizeUrl(teacher.avatar_url) ||
-    photoPlaceholder(teacher.full_name);
+                full_name:
+                    $("fullName").value.trim(),
 
-  $("viewContent").innerHTML = `
-    <div class="profile-box">
+                phone:
+                    $("phone").value.trim() || null,
 
-      <img
-        class="avatar-large"
-        src="${escapeHtml(avatar)}"
-        alt="Teacher photo"
-      >
+                gender:
+                    $("gender").value || null,
 
-      <div class="profile-info">
+                qualification:
+                    $("qualification").value.trim() || null,
 
-        <div class="profile-name">
-          ${escapeHtml(teacher.full_name || "Unnamed Teacher")}
-        </div>
+                specialization:
+                    $("specialization").value.trim() || null,
 
-        <div class="detail">
-          <strong>Email:</strong>
-          ${escapeHtml(teacher.email || "Not provided")}
-        </div>
+                employment_date:
+                    $("employmentDate").value || null
 
-        <div class="detail">
-          <strong>Phone:</strong>
-          ${escapeHtml(teacher.phone || "Not provided")}
-        </div>
+            };
 
-        <div class="detail">
-          <strong>Institution:</strong>
-          ${escapeHtml(teacher.institution_name || "Unknown")}
-        </div>
 
-        <div class="detail">
-          <strong>Role:</strong> Teacher
-        </div>
+            if (!commonData.full_name) {
 
-        <div class="detail">
-          <strong>User ID:</strong>
-          ${escapeHtml(teacher.id)}
-        </div>
+                throw new Error(
+                    "Enter the teacher's full name."
+                );
 
-        <div class="detail">
-          <strong>Status:</strong>
-          ${teacher.is_active ? "Active" : "Inactive"}
-        </div>
+            }
 
-      </div>
-    </div>
-  `;
 
-  $("viewModal").classList.add("show");
+            /* =============================================
+               UPDATE EXISTING TEACHER
+               ============================================= */
 
-  $("viewModal").setAttribute(
-    "aria-hidden",
-    "false"
-  );
-}
+            if (recordId) {
 
-/* ================= ACTIVATE / DEACTIVATE ================= */
+                const teacher =
+                    findTeacher(recordId);
 
-async function toggleTeacher(id) {
-  const teacher = teachers.find(
-    item => item.id === id
-  );
 
-  if (!teacher) return;
+                if (!teacher || !teacher.profile) {
 
-  if (!isOwnInstitution(teacher.institution_id)) {
-    alert("You cannot manage another institution's teacher.");
-    return;
-  }
+                    throw new Error(
+                        "Teacher or login profile not found."
+                    );
 
-  const newStatus = !teacher.is_active;
+                }
 
-  const action = newStatus ? "activate" : "disable";
 
-  if (!confirm(`Are you sure you want to ${action} this teacher?`)) {
-    return;
-  }
+                const {
+                    error: teacherUpdateError
+                } = await db
+                    .from("teachers")
+                    .update(commonData)
+                    .eq("id", teacher.id);
 
-  try {
-    await updateTeacherProfile(id, {
-      is_active: newStatus
-    });
 
-    await loadTeachers();
+                if (teacherUpdateError) {
 
-    showMessage(
-      `Teacher ${action}d successfully.`
-    );
+                    throw teacherUpdateError;
 
-  } catch (error) {
-    console.error("Teacher status update failed:", error);
+                }
 
-    alert(
-      `Failed to ${action} teacher:\n\n${error.message}`
-    );
-  }
-}
 
-/* ================= DELETE TEACHER ================= */
+                let photoUrl = null;
 
-async function deleteTeacher(id) {
-  /*
-   * Hard delete is Super Admin only.
-   */
-  if (!isSuperAdmin()) {
-    alert("Only Super Admin can delete teacher accounts.");
-    return;
-  }
+                let photoError = null;
 
-  const teacher = teachers.find(
-    item => item.id === id
-  );
 
-  if (!teacher) return;
+                if (selectedPhoto) {
 
-  if (!confirm(
-    "Delete this teacher account?\n\n" +
-    `${teacher.full_name || ""}\n` +
-    `${teacher.email || ""}\n\n` +
-    "This action may permanently remove account data."
-  )) {
-    return;
-  }
+                    try {
 
-  try {
-    const session = await getSessionOrRedirect();
+                        photoUrl = await uploadTeacherPhoto(
+                            teacher.profile_id
+                        );
 
-    if (!session?.access_token) {
-      throw new Error("Your login session has expired.");
+                    } catch (error) {
+
+                        photoError = error;
+
+                    }
+
+                }
+
+
+                const profileUpdate = {
+
+                    full_name: commonData.full_name,
+
+                    phone: commonData.phone
+
+                };
+
+
+                if (photoUrl) {
+
+                    profileUpdate.avatar_url = photoUrl;
+
+                }
+
+
+                const {
+                    error: profileUpdateError
+                } = await db
+                    .from("profiles")
+                    .update(profileUpdate)
+                    .eq("id", teacher.profile_id);
+
+
+                if (profileUpdateError) {
+
+                    throw profileUpdateError;
+
+                }
+
+
+                closeTeacherModal();
+
+                await loadTeachers();
+
+
+                if (photoError) {
+
+                    showMessage(
+                        "Teacher details saved, but photo upload failed: " +
+                        photoError.message,
+                        "error"
+                    );
+
+                } else {
+
+                    showMessage(
+                        "Teacher details updated successfully.",
+                        "success"
+                    );
+
+                }
+
+
+                return;
+
+            }
+
+
+            /* =============================================
+               CREATE NEW TEACHER
+               ============================================= */
+
+            const email =
+                $("email").value.trim().toLowerCase();
+
+
+            const password =
+                $("password").value;
+
+
+            const institutionId =
+                $("institutionId").value;
+
+
+            const teacherId =
+                $("teacherId").value.trim();
+
+
+            if (password.length < 12) {
+
+                throw new Error(
+                    "Initial password must contain at least 12 characters."
+                );
+
+            }
+
+
+            if (!institutionId) {
+
+                throw new Error(
+                    "Select an institution."
+                );
+
+            }
+
+
+            if (!teacherId) {
+
+                throw new Error(
+                    "Enter the Teacher ID."
+                );
+
+            }
+
+
+            if (
+                currentProfile.role === "school_admin" &&
+                institutionId !== currentProfile.institution_id
+            ) {
+
+                throw new Error(
+                    "You can only create teachers in your own institution."
+                );
+
+            }
+
+
+            const payload = {
+
+                ...commonData,
+
+                email,
+
+                password,
+
+                institution_id: institutionId,
+
+                teacher_id: teacherId
+
+            };
+
+
+            const {
+                data: { session }
+            } = await db.auth.getSession();
+
+
+            if (!session?.access_token) {
+
+                throw new Error(
+                    "Your login session expired. Sign in again."
+                );
+
+            }
+
+
+            const response = await fetch(
+
+                `${SUPABASE_URL}/functions/v1/${CREATE_FUNCTION}`,
+
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type": "application/json",
+
+                        "Authorization":
+                            `Bearer ${session.access_token}`,
+
+                        "apikey": SUPABASE_KEY
+
+                    },
+
+                    body: JSON.stringify(payload)
+
+                }
+
+            );
+
+
+            const result =
+                await response.json().catch(() => ({}));
+
+
+            if (!response.ok || !result.success) {
+
+                throw new Error(
+                    result.error ||
+                    result.message ||
+                    `Create teacher failed (${response.status}).`
+                );
+
+            }
+
+
+            closeTeacherModal();
+
+            await loadTeachers();
+
+
+            /*
+               The Edge Function returns the actual profile_id.
+               We use that ID directly, not an email lookup.
+            */
+
+            if (
+                selectedPhoto &&
+                result.teacher?.profile_id
+            ) {
+
+                try {
+
+                    const photoUrl =
+                        await uploadTeacherPhoto(
+                            result.teacher.profile_id
+                        );
+
+
+                    const {
+                        error: photoSaveError
+                    } = await db
+                        .from("profiles")
+                        .update({
+                            avatar_url: photoUrl
+                        })
+                        .eq(
+                            "id",
+                            result.teacher.profile_id
+                        );
+
+
+                    if (photoSaveError) {
+
+                        throw photoSaveError;
+
+                    }
+
+
+                    await loadTeachers();
+
+
+                    showMessage(
+                        "Teacher account created and photo uploaded successfully.",
+                        "success"
+                    );
+
+                } catch (photoError) {
+
+                    showMessage(
+                        "Teacher account was created, but photo upload failed: " +
+                        photoError.message,
+                        "error"
+                    );
+
+                }
+
+            } else {
+
+                showMessage(
+                    "Teacher account created successfully.",
+                    "success"
+                );
+
+            }
+
+
+        } catch (error) {
+
+            console.error(
+                "Teacher save error:",
+                error
+            );
+
+
+            showMessage(
+                error.message ||
+                "An unexpected error occurred.",
+                "error"
+            );
+
+        } finally {
+
+            setSaving(false);
+
+        }
+
     }
 
-    const response = await withTimeout(
-      fetch(DELETE_TEACHER_FUNCTION_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-          "apikey": SUPABASE_KEY
-        },
-        body: JSON.stringify({
-          teacher_id: id,
-          id
-        })
-      }),
-      "Deleting teacher account"
-    );
 
-    let result = null;
+    /* =====================================================
+       16. ACTIVATE / DEACTIVATE TEACHER
+       ===================================================== */
 
-    try {
-      result = await response.json();
-    } catch (_) {}
-
-    if (
-      !response.ok ||
-      result?.success === false ||
-      result?.error
+    async function toggleTeacherStatus(
+        recordId,
+        currentlyActive
     ) {
-      throw new Error(
-        result?.details
-          ? `${result.error || "Delete failed"}: ${result.details}`
-          : result?.error ||
-            result?.message ||
-            `HTTP ${response.status}`
-      );
-    }
 
-    if (teacher.avatar_url) {
-      await deleteOldTeacherPhoto(teacher.avatar_url);
-    }
+        const teacher =
+            findTeacher(recordId);
 
-    alert("Teacher account deleted successfully.");
 
-    await loadTeachers();
+        if (!teacher) {
 
-  } catch (error) {
-    console.error("Delete teacher error:", error);
+            showMessage(
+                "Teacher record not found.",
+                "error"
+            );
 
-    alert(
-      "Failed to delete teacher:\n\n" +
-      error.message
-    );
-  }
-}
+            return;
 
-/* ================= EVENT LISTENERS ================= */
+        }
 
-function setupEvents() {
-  $("searchInput")?.addEventListener(
-    "input",
-    renderTeachers
-  );
 
-  $("institutionFilter")?.addEventListener(
-    "change",
-    renderTeachers
-  );
+        if (!teacher.profile) {
 
-  $("statusFilter")?.addEventListener(
-    "change",
-    renderTeachers
-  );
+            showMessage(
+                "Cannot change status: matching login profile is missing.",
+                "error"
+            );
 
-  $("teacherForm")?.addEventListener(
-    "submit",
-    saveTeacher
-  );
+            return;
 
-  $("photoFile")?.addEventListener(
-    "change",
-    handlePhotoSelect
-  );
+        }
 
-  $("fullName")?.addEventListener(
-    "input",
-    () => {
-      if (!selectedPhotoFile) {
-        renderPhotoPreview(
-          $("photoPreview")?.dataset?.currentUrl || "",
-          $("fullName")?.value || "Teacher"
+
+        const action =
+            currentlyActive ? "deactivate" : "activate";
+
+
+        const confirmation = confirm(
+
+            `Are you sure you want to ${action} ${teacher.full_name}?\n\n` +
+
+            (
+                currentlyActive
+                    ? "This will block the teacher's login."
+                    : "This will restore the teacher's login."
+            )
+
         );
-      }
+
+
+        if (!confirmation) {
+
+            return;
+
+        }
+
+
+        try {
+
+            const {
+                data: { session }
+            } = await db.auth.getSession();
+
+
+            if (!session?.access_token) {
+
+                throw new Error(
+                    "Your login session expired. Sign in again."
+                );
+
+            }
+
+
+            const response = await fetch(
+
+                `${SUPABASE_URL}/functions/v1/${STATUS_FUNCTION}`,
+
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type": "application/json",
+
+                        "Authorization":
+                            `Bearer ${session.access_token}`,
+
+                        "apikey": SUPABASE_KEY
+
+                    },
+
+                    body: JSON.stringify({
+
+                        teacher_record_id: teacher.id,
+
+                        is_active: !currentlyActive
+
+                    })
+
+                }
+
+            );
+
+
+            const result =
+                await response.json().catch(() => ({}));
+
+
+            if (!response.ok || !result.success) {
+
+                throw new Error(
+                    result.error ||
+                    `Status update failed (${response.status}).`
+                );
+
+            }
+
+
+            await loadTeachers();
+
+
+            showMessage(
+
+                result.message ||
+
+                `Teacher ${action}d successfully.`,
+
+                "success"
+
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "Teacher status error:",
+                error
+            );
+
+
+            showMessage(
+                error.message ||
+                "Unable to change teacher status.",
+                "error"
+            );
+
+        }
+
     }
-  );
 
-  $("teacherModal")?.addEventListener(
-    "click",
-    event => {
-      if (event.target.id === "teacherModal") {
-        closeTeacherModal();
-      }
-    }
-  );
 
-  $("viewModal")?.addEventListener(
-    "click",
-    event => {
-      if (event.target.id === "viewModal") {
-        closeViewModal();
-      }
-    }
-  );
-}
+    /* =====================================================
+       17. PHOTO PREVIEW
+       ===================================================== */
 
-/* ================= GLOBAL FUNCTIONS ================= */
+    function setupPhotoPreview() {
 
-window.openAddTeacher = openAddTeacher;
-window.closeTeacherModal = closeTeacherModal;
-window.closeViewModal = closeViewModal;
+        $("photoFile").addEventListener(
+            "change",
+            event => {
 
-window.editTeacher = editTeacher;
-window.viewTeacher = viewTeacher;
-window.toggleTeacher = toggleTeacher;
-window.deleteTeacher = deleteTeacher;
+                releasePhotoPreview();
 
-window.handlePhotoSelect = handlePhotoSelect;
-window.loadTeachers = loadTeachers;
+                selectedPhoto =
+                    event.target.files?.[0] || null;
 
-/* ================= PAGE INITIALIZATION ================= */
 
-window.addEventListener("DOMContentLoaded", async () => {
-  setupEvents();
+                if (!selectedPhoto) {
 
-  setTableMessage(
-    "Checking administrator access...",
-    "loading"
-  );
+                    return;
 
-  try {
-    if (!supabaseClient) {
-      setTableMessage(
-        "Supabase could not initialize. Check the CDN.",
-        "empty"
-      );
+                }
 
-      return;
+
+                previewObjectUrl =
+                    URL.createObjectURL(selectedPhoto);
+
+
+                $("photoPreview").src =
+                    previewObjectUrl;
+
+
+                $("photoStatus").textContent =
+                    selectedPhoto.name;
+
+            }
+        );
+
     }
 
-    const allowed = await checkAccess();
 
-    if (!allowed) return;
+    /* =====================================================
+       18. EVENT LISTENERS
+       ===================================================== */
 
-    /*
-     * Load institutions first.
-     * Teacher names then receive correct institution labels.
-     */
-    await loadInstitutions();
+    function setupEvents() {
 
-    await loadTeachers();
+        $("createTeacherAccountBtn")
+            .addEventListener(
+                "click",
+                openCreateTeacher
+            );
 
-  } catch (error) {
-    console.error("Teacher page initialization error:", error);
 
-    setTableMessage(
-      `Teacher page failed to load: ${error.message || error}`,
-      "empty"
+        $("closeTeacherModal")
+            .addEventListener(
+                "click",
+                closeTeacherModal
+            );
+
+
+        $("cancelTeacher")
+            .addEventListener(
+                "click",
+                closeTeacherModal
+            );
+
+
+        $("closeViewModal")
+            .addEventListener(
+                "click",
+                () => {
+
+                    $("viewModal").classList.remove("show");
+
+                }
+            );
+
+
+        $("teacherForm")
+            .addEventListener(
+                "submit",
+                saveTeacher
+            );
+
+
+        $("searchInput")
+            .addEventListener(
+                "input",
+                renderTeachers
+            );
+
+
+        $("institutionFilter")
+            .addEventListener(
+                "change",
+                renderTeachers
+            );
+
+
+        $("statusFilter")
+            .addEventListener(
+                "change",
+                renderTeachers
+            );
+
+
+        $("teachersTableBody")
+            .addEventListener(
+                "click",
+                event => {
+
+                    const button =
+                        event.target.closest(
+                            "button[data-action]"
+                        );
+
+
+                    if (!button) {
+
+                        return;
+
+                    }
+
+
+                    const recordId =
+                        button.dataset.id;
+
+
+                    const action =
+                        button.dataset.action;
+
+
+                    if (action === "view") {
+
+                        viewTeacher(recordId);
+
+                    }
+
+
+                    if (action === "edit") {
+
+                        editTeacher(recordId);
+
+                    }
+
+
+                    if (action === "toggle") {
+
+                        toggleTeacherStatus(
+
+                            recordId,
+
+                            button.dataset.active === "true"
+
+                        );
+
+                    }
+
+                }
+            );
+
+
+        setupPhotoPreview();
+
+    }
+
+
+    /* =====================================================
+       19. INITIALIZE SYSTEM
+       ===================================================== */
+
+    async function initializeTeacherManagement() {
+
+        setupEvents();
+
+
+        try {
+
+            await checkAccess();
+
+            await loadInstitutions();
+
+            await loadTeachers();
+
+
+            console.log(
+                "GAAWOW EMS Teacher Management V10.0 initialized."
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "Teacher Management Initialization Error:",
+                error
+            );
+
+
+            showMessage(
+
+                error.message ||
+
+                "Unable to initialize Teacher Management.",
+
+                "error"
+
+            );
+
+
+            $("teachersTableBody").innerHTML = `
+
+                <tr>
+
+                    <td colspan="7" class="empty">
+
+                        Teacher list unavailable.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+
+    }
+
+
+    /* =====================================================
+       20. START
+       ===================================================== */
+
+    document.addEventListener(
+
+        "DOMContentLoaded",
+
+        initializeTeacherManagement
+
     );
-  }
-}, { once: true });
+
+
+})();
