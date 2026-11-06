@@ -1,9 +1,11 @@
+
 "use strict";
 
 /* =========================================================
    GAAWOW ACADEMY EMS
-   Certificates Module
+   CERTIFICATES MODULE
    Complete certificates.js
+   Authentication Fix V909
    ========================================================= */
 
 const SUPABASE_URL =
@@ -16,6 +18,18 @@ const COLUMNS =
   "id,student_id,certificate_no,certificate_id,verify_code,issue_date,expiry_date,status,student_name_snapshot,certificate_type";
 
 let allCertificates = [];
+
+/* =========================================================
+   AUTHENTICATED SUPABASE CLIENT
+   ========================================================= */
+
+const certificatesSupabase =
+  window.supabase?.createClient
+    ? window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      )
+    : null;
 
 /* =========================================================
    HELPERS
@@ -70,7 +84,8 @@ function status(value) {
 
 function errorBox(message) {
   if ($("errorTitle"))
-    $("errorTitle").textContent = "Certificates connection error";
+    $("errorTitle").textContent =
+      "Certificates connection error";
 
   if ($("errorMessage"))
     $("errorMessage").textContent = message;
@@ -113,15 +128,16 @@ function stats(rows) {
 
 /* =========================================================
    LOAD CERTIFICATES FROM SUPABASE
+   AUTHENTICATED SESSION
    ========================================================= */
 
 async function getCertificates() {
 
-  const url =
-    SUPABASE_URL +
-    "/rest/v1/certificates?select=" +
-    encodeURIComponent(COLUMNS) +
-    "&order=issue_date.desc";
+  if (!certificatesSupabase) {
+    throw new Error(
+      "Supabase JS v2 lama helin. Hubi Supabase CDN ee certificates.html."
+    );
+  }
 
   const controller = new AbortController();
 
@@ -131,42 +147,55 @@ async function getCertificates() {
 
   try {
 
-    const response = await fetch(url, {
-      method: "GET",
+    // Get authenticated user session
+    const {
+      data: sessionData,
+      error: sessionError
+    } = await certificatesSupabase.auth.getSession();
 
-      headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization": "Bearer " + SUPABASE_KEY,
-        "Accept": "application/json"
-      },
-
-      cache: "no-store",
-      signal: controller.signal
-    });
-
-    const text = await response.text();
-
-    let data = null;
-
-    try {
-      data = JSON.parse(text);
-    } catch (_) {
-      data = null;
+    if (sessionError) {
+      throw new Error(
+        "Authentication error: " +
+        sessionError.message
+      );
     }
 
-    if (!response.ok) {
+    const session = sessionData?.session;
 
+    if (!session?.access_token) {
       throw new Error(
-        "HTTP " +
-        response.status +
-        ": " +
-        (
-          data?.message ||
-          data?.hint ||
-          data?.error ||
-          text ||
-          "Supabase request failed."
-        )
+        "Super Admin session lama helin. Fadlan dib u gal nidaamka."
+      );
+    }
+
+    // Confirm authenticated user
+    const {
+      data: userData,
+      error: userError
+    } = await certificatesSupabase.auth.getUser();
+
+    if (userError || !userData?.user) {
+      throw new Error(
+        "User authentication lama xaqiijin. Fadlan dib u gal."
+      );
+    }
+
+    // Load certificate records using authenticated client
+    const {
+      data,
+      error
+    } = await certificatesSupabase
+      .from("certificates")
+      .select(COLUMNS)
+      .order("issue_date", {
+        ascending: false
+      })
+      .abortSignal(controller.signal);
+
+    if (error) {
+      throw new Error(
+        "HTTP/database error: " +
+        error.message
       );
     }
 
@@ -191,6 +220,7 @@ async function getCertificates() {
   } finally {
 
     clearTimeout(timeout);
+
   }
 }
 
@@ -687,7 +717,6 @@ function openDocumentChoice(x) {
     ?.addEventListener("click", () => {
 
       closeDocumentChoice();
-
       openCertificate(x);
 
     });
@@ -698,7 +727,6 @@ function openDocumentChoice(x) {
     ?.addEventListener("click", () => {
 
       closeDocumentChoice();
-
       openAuthenticationLetter(x);
 
     });
@@ -758,11 +786,6 @@ function openCertificate(x) {
   const id =
     encodeURIComponent(x.id);
 
-  /*
-    Certificate iyo Diploma
-    waxay tagayaan certificate.html
-  */
-
   if (x.certificate_type === "diploma") {
 
     location.href =
@@ -793,14 +816,6 @@ function openAuthenticationLetter(x) {
     return;
   }
 
-  /*
-    Authentication Letter wuxuu ka soo qaadanayaa
-    isla record-ka public.certificates.
-
-    URL:
-    authentication-letter.html?regen=<certificate.id>
-  */
-
   const id =
     encodeURIComponent(x.id);
 
@@ -825,23 +840,13 @@ function verifyDocument(x) {
   }
 
   const code =
-    encodeURIComponent(
-      x.verify_code
-    );
+    encodeURIComponent(x.verify_code);
 
   const id =
     x.id
       ? "&id=" +
         encodeURIComponent(x.id)
       : "";
-
-  /*
-    Authentication Letter
-    wuxuu u tagayaa verify-auth.html.
-
-    Certificate/Diploma
-    wuxuu u tagayaa verify.html.
-  */
 
   if (
     x.certificate_type ===
