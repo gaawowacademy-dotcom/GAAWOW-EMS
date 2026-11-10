@@ -207,3 +207,238 @@ body{background:radial-gradient(circle at 15% 10%,#fff 0,#F0F4FA 45%,#E8EEF7 100
   .security-strip{min-height:4.5mm;margin-top:.7mm;padding:2px}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 }
+
+/* ============================================================
+   GAAWOW ACADEMY
+   AUTHENTICATION LETTER V2
+   FINAL LAYOUT PATCH: 20261110-8
+
+   Preserves approved navy / gold / white design.
+   A4 Landscape + Mobile responsive.
+   ============================================================ */
+
+/* Results section */
+.results-container {
+  width: 100%;
+  padding: 3mm 4mm;
+  min-width: 0;
+}
+
+.results-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #D4AF37 #EDF1F7;
+}
+
+.results-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 7.2px;
+}
+
+.results-table th,
+.results-table td {
+  padding: 5px 6px;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.results-table th {
+  background: #0B1E63;
+  color: #FFFFFF;
+  font-size: 7px;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: .25px;
+}
+
+.results-table td {
+  color: #28344A;
+  border-bottom: 1px solid #E1E6EF;
+  line-height: 1.35;
+}
+
+.results-table th:nth-child(1),
+.results-table td:nth-child(1) {
+  width: 29%;
+  text-align: left;
+}
+
+.results-table th:nth-child(2),
+.results-table td:nth-child(2) {
+  width: 11%;
+  text-align: center;
+}
+
+.results-table th:nth-child(3),
+.results-table td:nth-child(3) {
+  width: 12%;
+  text-align: center;
+}
+
+.results-table th:nth-child(4),
+.results-table td:nth-child(4) {
+  width: 14%;
+  text-align: center;
+}
+
+.results-table th:nth-child(5),
+.results-table td:nth-child(5) {
+  width: 10%;
+  text-align: center;
+}
+
+.results-table th:nth-child(6),
+.results-table td:nth-child(6) {
+  width: 24%;
+  text-align: left;
+}
+
+.results-table tbody tr:nth-child(even) td {
+  background: #F3F6FC;
+}
+
+.results-table .score,
+.results-table .grade {
+  font-weight: 850;
+  color: #0B1E63;
+}
+
+.results-table .grade {
+  color: #9B791B;
+}
+
+/* Keep the official document sections together */
+.document-section,
+.declaration-section,
+.signature-section {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Mobile preview */
+@media screen and (max-width: 800px) {
+  .page {
+    width: 100%;
+    min-height: auto;
+    margin: 10px auto;
+    padding: 9mm 6mm 7mm;
+    overflow: hidden;
+  }
+
+  .results-container {
+    padding: 3mm 2mm;
+  }
+
+  .results-table-wrapper {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  .results-table {
+    min-width: 620px;
+    font-size: 8px;
+  }
+
+  .results-table th,
+  .results-table td {
+    padding: 7px 8px;
+  }
+
+  .student-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .date-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .authentication-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .authentication-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .document-footer {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* A4 Landscape printing */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: 297mm !important;
+    height: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #FFFFFF !important;
+  }
+
+  .control-bar,
+  .state-screen {
+    display: none !important;
+  }
+
+  .page {
+    width: 297mm !important;
+    height: 210mm !important;
+    min-height: 210mm !important;
+    margin: 0 !important;
+    padding: 8mm 10mm 5mm !important;
+    overflow: hidden !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .results-container {
+    padding: 1.5mm 3mm !important;
+  }
+
+  .results-table-wrapper {
+    overflow: visible !important;
+  }
+
+  .results-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    font-size: 6.5px !important;
+  }
+
+  .results-table th,
+  .results-table td {
+    padding: 3px 5px !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .results-table th {
+    font-size: 6.3px !important;
+  }
+
+  .document-watermark img {
+    opacity: .045 !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
