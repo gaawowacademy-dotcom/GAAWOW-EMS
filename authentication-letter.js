@@ -2,14 +2,15 @@
 /* ============================================================
    GAAWOW ACADEMY EMS
    AUTHENTICATION LETTER
-   VERSION: 20261110-7
+   VERSION: 20261110-8
 
-   Compatible with:
-   authentication-letter.html
-   authentication-letter.css
+   Supports:
+   ?code=VERIFICATION_CODE
+   ?code=VERIFICATION_CODE&id=CERTIFICATE_UUID
+   ?regen=CERTIFICATE_UUID
 
    SECURITY:
-   Uses verify_authentication_letter RPC.
+   Uses Supabase RPC functions only.
    NEVER reads certificates table directly.
    ============================================================ */
 
@@ -23,15 +24,14 @@
   const SUPABASE_URL =
     "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-  // IMPORTANT:
-  // Copy your EXISTING Supabase publishable/anon key here.
-  // Do not use your service_role key.
-
   const SUPABASE_KEY =
     "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
   const RPC_NAME =
     "verify_authentication_letter";
+
+  const CODE_RPC_NAME =
+    "get_authentication_letter_code";
 
   let db = null;
   let verifiedRecord = null;
@@ -45,7 +45,6 @@
 
   function setText(id, value, fallback = "N/A") {
     const node = el(id);
-
     if (!node) return;
 
     const valid =
@@ -53,9 +52,7 @@
       value !== undefined &&
       String(value).trim() !== "";
 
-    node.textContent = valid
-      ? String(value)
-      : fallback;
+    node.textContent = valid ? String(value) : fallback;
   }
 
   function hide(id) {
@@ -129,7 +126,7 @@
   }
 
   // ==========================================================
-  // 5. READ VERIFICATION URL
+  // 5. READ URL PARAMETERS
   // ==========================================================
 
   function getVerificationParameters() {
@@ -149,6 +146,8 @@
       return "";
     };
 
+    const regen = firstValue("regen");
+
     return {
       code: firstValue(
         "code",
@@ -163,7 +162,9 @@
         "record_id",
         "certificate_id",
         "reference_no"
-      )
+      ),
+
+      regen: regen
     };
   }
 
@@ -172,7 +173,6 @@
   // ==========================================================
 
   function initializeSupabase() {
-
     if (!window.supabase) {
       throw new Error(
         "Supabase JavaScript library lama soo gelin. " +
@@ -185,8 +185,7 @@
       SUPABASE_KEY.includes("PASTE_YOUR")
     ) {
       throw new Error(
-        "Supabase publishable key lama gelin. " +
-        "Ku dar key-ga saxda ah ee mashruucaaga."
+        "Supabase publishable key lama gelin."
       );
     }
 
@@ -201,33 +200,79 @@
   }
 
   // ==========================================================
-  // 7. SECURE RPC VERIFICATION
+  // 7. GET CODE FOR REGEN UUID
+  // ==========================================================
+
+  async function getCodeFromRegen(client, certificateId) {
+    const { data, error } = await client.rpc(
+      CODE_RPC_NAME,
+      {
+        p_certificate_id: certificateId
+      }
+    );
+
+    if (error) {
+      console.error("Authentication code RPC:", error);
+
+      throw new Error(
+        "Verification code lagama heli karin: " +
+        error.message
+      );
+    }
+
+    if (
+      typeof data !== "string" ||
+      !data.trim()
+    ) {
+      throw new Error(
+        "Certificate UUID sax ah lama helin, " +
+        "ama certificate-ku ma aha mid valid ah."
+      );
+    }
+
+    return data.trim();
+  }
+
+  // ==========================================================
+  // 8. SECURE RPC VERIFICATION
   // ==========================================================
 
   async function getCertificate() {
+    const params = getVerificationParameters();
+    const client = initializeSupabase();
 
-    const params =
-      getVerificationParameters();
+    let verificationCode = params.code;
+    let recordId = params.id;
 
-    if (!params.code) {
+    // REGEN MODE:
+    // authentication-letter.html?regen=CERTIFICATE_UUID
+
+    if (params.regen) {
+      recordId = params.regen;
+
+      verificationCode = await getCodeFromRegen(
+        client,
+        params.regen
+      );
+    }
+
+    if (!verificationCode) {
       throw new Error(
         "Verification code kuma jiro link-ga. " +
         "Fadlan fur link-ga rasmiga ah ee xaqiijinta."
       );
     }
 
-    const client = initializeSupabase();
-
     const { data, error } = await client.rpc(
       RPC_NAME,
       {
-        p_code: params.code,
-        p_id: params.id || null
+        p_code: verificationCode,
+        p_id: recordId || null
       }
     );
 
     if (error) {
-      console.error("Supabase RPC:", error);
+      console.error("Supabase verification RPC:", error);
 
       throw new Error(
         "Supabase verification error: " +
@@ -246,17 +291,16 @@
   }
 
   // ==========================================================
-  // 8. STUDENT PHOTO
+  // 9. STUDENT PHOTO
   // ==========================================================
 
   function renderPhoto(record) {
-
     const photo = el("studentPhoto");
     const placeholder = el("photoPlaceholder");
 
-    const url = record.student_photo_url;
-
     if (!photo) return;
+
+    const url = record.student_photo_url;
 
     if (!url) {
       photo.removeAttribute("src");
@@ -289,65 +333,30 @@
   }
 
   // ==========================================================
-  // 9. STUDENT INFORMATION
+  // 10. STUDENT INFORMATION
   // ==========================================================
 
   function renderStudent(record) {
+    setText("studentName", record.student_name);
+    setText("courseName", record.course_name);
 
-    setText(
-      "studentName",
-      record.student_name
-    );
+    setDate("dateStarted", record.date_started);
+    setDate("dateCompleted", record.date_completed);
 
-    setText(
-      "courseName",
-      record.course_name
-    );
+    setDate("startDate", record.date_started);
+    setDate("completionDate", record.date_completed);
 
-    // Student ID is not currently displayed in the
-    // supplied HTML. Keep the record available.
-
-    setDate(
-      "dateStarted",
-      record.date_started
-    );
-
-    setDate(
-      "dateCompleted",
-      record.date_completed
-    );
-
-    // Academic period section uses different HTML IDs.
-
-    setDate(
-      "startDate",
-      record.date_started
-    );
-
-    setDate(
-      "completionDate",
-      record.date_completed
-    );
-
-    setDate(
-      "issueDate",
-      record.issue_date
-    );
-
-    setDate(
-      "expiryDate",
-      record.expiry_date
-    );
+    setDate("issueDate", record.issue_date);
+    setDate("expiryDate", record.expiry_date);
 
     renderPhoto(record);
   }
 
   // ==========================================================
-  // 10. DOCUMENT STATUS
+  // 11. DOCUMENT STATUS
   // ==========================================================
 
   function renderStatus(record) {
-
     const statusNode = el("status");
 
     const status = String(
@@ -388,24 +397,21 @@
 
     } else {
       statusNode.classList.add(
-        status === "expired"
-          ? "expired"
-          : "revoked"
+        status === "expired" ? "expired" : "revoked"
       );
     }
   }
 
   // ==========================================================
-  // 11. ACADEMIC RESULTS
+  // 12. ACADEMIC RESULTS
   // ==========================================================
 
   function getValue(item, keys) {
-
     for (const key of keys) {
-
       if (
         item[key] !== undefined &&
-        item[key] !== null
+        item[key] !== null &&
+        String(item[key]).trim() !== ""
       ) {
         return item[key];
       }
@@ -415,43 +421,30 @@
   }
 
   function renderResults(record) {
-
     const container = el("academicResults");
-
     if (!container) return;
 
     container.replaceChildren();
 
-    const results = Array.isArray(
-      record.academic_results
-    )
+    const results = Array.isArray(record.academic_results)
       ? record.academic_results
       : [];
 
     if (results.length === 0) {
-
-      const message =
-        document.createElement("div");
+      const message = document.createElement("div");
 
       message.className = "results-empty";
-
       message.textContent =
         "No published academic results available.";
 
       container.appendChild(message);
-
       return;
     }
 
-    const wrapper =
-      document.createElement("div");
+    const wrapper = document.createElement("div");
+    wrapper.className = "results-table-wrapper";
 
-    wrapper.className =
-      "results-table-wrapper";
-
-    const table =
-      document.createElement("table");
-
+    const table = document.createElement("table");
     table.className = "results-table";
 
     const columns = [
@@ -482,6 +475,13 @@
         ]
       },
       {
+        label: "PERCENTAGE",
+        keys: [
+          "percentage",
+          "score_percentage"
+        ]
+      },
+      {
         label: "GRADE",
         keys: [
           "grade",
@@ -489,8 +489,9 @@
         ]
       },
       {
-        label: "RESULT",
+        label: "REMARKS",
         keys: [
+          "remarks",
           "result",
           "status",
           "final_result"
@@ -498,47 +499,33 @@
       }
     ];
 
-    const thead =
-      document.createElement("thead");
-
-    const headerRow =
-      document.createElement("tr");
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
 
     columns.forEach((column) => {
-
-      const th =
-        document.createElement("th");
-
+      const th = document.createElement("th");
       th.textContent = column.label;
-
       headerRow.appendChild(th);
     });
 
     thead.appendChild(headerRow);
 
-    const tbody =
-      document.createElement("tbody");
+    const tbody = document.createElement("tbody");
 
     results.forEach((item) => {
-
-      const row =
-        document.createElement("tr");
+      const row = document.createElement("tr");
 
       columns.forEach((column, index) => {
-
-        const td =
-          document.createElement("td");
-
-        const value =
-          getValue(item, column.keys);
+        const td = document.createElement("td");
+        const value = getValue(item, column.keys);
 
         td.textContent = String(value);
 
-        if (index === 1 || index === 2) {
+        if (index === 1 || index === 2 || index === 3) {
           td.classList.add("score");
         }
 
-        if (index === 3) {
+        if (index === 4) {
           td.classList.add("grade");
         }
 
@@ -552,33 +539,19 @@
     table.appendChild(tbody);
 
     wrapper.appendChild(table);
-
     container.appendChild(wrapper);
   }
 
   // ==========================================================
-  // 12. VERIFICATION INFORMATION
+  // 13. VERIFICATION INFORMATION
   // ==========================================================
 
   function renderAuthentication(record) {
-
-    setText(
-      "referenceNo",
-      record.reference_no
-    );
-
-    setText(
-      "authenticationId",
-      record.authentication_id
-    );
-
-    setText(
-      "verificationCode",
-      record.verification_code
-    );
+    setText("referenceNo", record.reference_no);
+    setText("authenticationId", record.authentication_id);
+    setText("verificationCode", record.verification_code);
 
     const qrContainer = el("qrcode");
-
     if (!qrContainer) return;
 
     qrContainer.replaceChildren();
@@ -588,11 +561,7 @@
       window.location.href;
 
     if (!window.QRCode) {
-
-      console.warn(
-        "QRCode library is not loaded."
-      );
-
+      console.warn("QRCode library is not loaded.");
       return;
     }
 
@@ -602,19 +571,15 @@
       height: 120,
       colorDark: "#0B1E63",
       colorLight: "#FFFFFF",
-      correctLevel:
-        window.QRCode.CorrectLevel.M
+      correctLevel: window.QRCode.CorrectLevel.M
     });
   }
 
   // ==========================================================
-  // 13. COMPLETE DOCUMENT
+  // 14. COMPLETE DOCUMENT
   // ==========================================================
 
   function renderDocument(record) {
-
-    // Do not render an unverified or empty record.
-
     if (!record || !record.verification_code) {
       throw new Error(
         "Verification record is incomplete."
@@ -624,11 +589,8 @@
     verifiedRecord = record;
 
     renderStudent(record);
-
     renderStatus(record);
-
     renderResults(record);
-
     renderAuthentication(record);
 
     showDocument();
@@ -640,28 +602,22 @@
   }
 
   // ==========================================================
-  // 14. LOAD DOCUMENT
+  // 15. LOAD DOCUMENT
   // ==========================================================
 
   async function loadAuthenticationLetter() {
-
     if (loading) return;
 
     loading = true;
-
     verifiedRecord = null;
 
     showLoading();
 
     try {
-
-      const record =
-        await getCertificate();
-
+      const record = await getCertificate();
       renderDocument(record);
 
     } catch (error) {
-
       console.error(
         "GAAWOW Authentication Letter:",
         error
@@ -673,23 +629,19 @@
       );
 
     } finally {
-
       loading = false;
     }
   }
 
   // ==========================================================
-  // 15. PRINT / SAVE PDF
+  // 16. PRINT / SAVE PDF
   // ==========================================================
 
   function printDocument() {
-
     if (!verifiedRecord) {
-
       alert(
         "Please verify the authentication letter first."
       );
-
       return;
     }
 
@@ -697,19 +649,14 @@
   }
 
   // ==========================================================
-  // 16. EVENT LISTENERS
+  // 17. EVENT LISTENERS
   // ==========================================================
 
   function initializeEvents() {
-
-    const printButton =
-      el("printButton");
-
-    const retryButton =
-      el("retryButton");
+    const printButton = el("printButton");
+    const retryButton = el("retryButton");
 
     if (printButton) {
-
       printButton.addEventListener(
         "click",
         printDocument
@@ -717,7 +664,6 @@
     }
 
     if (retryButton) {
-
       retryButton.addEventListener(
         "click",
         loadAuthenticationLetter
@@ -726,22 +672,17 @@
   }
 
   // ==========================================================
-  // 17. APPLICATION START
+  // 18. APPLICATION START
   // ==========================================================
 
   function startApplication() {
-
-    // Hide the document until successful verification.
-
     hide("authenticationLetter");
 
     initializeEvents();
-
     loadAuthenticationLetter();
   }
 
   if (document.readyState === "loading") {
-
     document.addEventListener(
       "DOMContentLoaded",
       startApplication,
@@ -749,7 +690,6 @@
     );
 
   } else {
-
     startApplication();
   }
 
