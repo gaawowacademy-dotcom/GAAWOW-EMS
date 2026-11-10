@@ -1,10 +1,18 @@
+
 "use strict";
 
 /* =========================================================
    GAAWOW ACADEMY EMS
    AUTHENTICATION LETTER
-   COMPLETE FRONTEND VERSION
-   VERSION: 20261024-4
+   SECURE RPC VERSION
+   VERSION: 20261110-5
+
+   IMPORTANT:
+   - HTML unchanged
+   - CSS unchanged
+   - Official logo unchanged
+   - A4 LANDSCAPE preserved
+   - RPC verification required before display
    ========================================================= */
 
 /* ================= SUPABASE CONFIG ================= */
@@ -18,10 +26,16 @@ const SUPABASE_KEY =
 const CERTIFICATE_RECORD_ID =
   "c7366afd-5d9b-475b-af84-6c4a4c0dc8b9";
 
-const VERIFICATION_PAGE =
-  "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify-auth.html";
-
 const OFFICIAL_LOGO_PATH = "logo.png";
+
+const AUTH_VERSION = "20261110-5";
+
+/* ================= SECURITY STATE ================= */
+
+let authenticationVerified = false;
+let verifiedRPCData = null;
+let verifiedCertificate = null;
+let verificationURL = null;
 
 /* ================= HELPERS ================= */
 
@@ -44,13 +58,15 @@ function firstAvailable(...values) {
 }
 
 function safeText(value) {
-  return (
+  if (
     value === null ||
     value === undefined ||
     String(value).trim() === ""
-  )
-    ? "N/A"
-    : String(value);
+  ) {
+    return "N/A";
+  }
+
+  return String(value);
 }
 
 function escapeHTML(value) {
@@ -65,11 +81,6 @@ function escapeHTML(value) {
 function formatDate(value) {
   if (!value) return "N/A";
 
-  /*
-   * Parse YYYY-MM-DD as a local calendar date.
-   * This avoids displaying the previous day in
-   * some time zones.
-   */
   const dateString = String(value).trim();
 
   let date;
@@ -120,13 +131,47 @@ function calculateGrade(score) {
 }
 
 /* =========================================================
-   OFFICIAL BRANDING
+   SECURITY: HIDE DOCUMENT IMMEDIATELY
    ========================================================= */
+
+function lockDocument() {
+  authenticationVerified = false;
+  verifiedRPCData = null;
+  verifiedCertificate = null;
+  verificationURL = null;
+
+  const page = $("authenticationLetter");
+  const loading = $("loading");
+  const error = $("errorState");
+  const printButton = $("printButton");
+
+  if (page) {
+    page.hidden = true;
+    page.style.display = "none";
+    page.style.visibility = "hidden";
+  }
+
+  if (loading) {
+    loading.hidden = false;
+    loading.style.display = "block";
+  }
+
+  if (error) {
+    error.hidden = true;
+    error.style.display = "none";
+  }
+
+  if (printButton) {
+    printButton.disabled = true;
+  }
+}
+
+/* ================= OFFICIAL BRANDING ================= */
 
 function setupOfficialBranding() {
   const logoPath = OFFICIAL_LOGO_PATH;
 
-  /* 1. DOCUMENT WATERMARK */
+  /* WATERMARK */
 
   const watermark = document.querySelector(
     ".document-watermark"
@@ -163,16 +208,9 @@ function setupOfficialBranding() {
       opacity: "0.055",
       filter: "none"
     });
-
-    watermarkLogo.onerror = function () {
-      console.error(
-        "[AUTH LETTER] Watermark logo not found:",
-        logoPath
-      );
-    };
   }
 
-  /* 2. HEADER LOGO */
+  /* HEADER LOGO */
 
   const headerSeal = document.querySelector(".header-seal");
 
@@ -192,13 +230,6 @@ function setupOfficialBranding() {
       display: "block"
     });
 
-    logo.onerror = function () {
-      console.error(
-        "[AUTH LETTER] Header logo not found:",
-        logoPath
-      );
-    };
-
     headerSeal.appendChild(logo);
 
     headerSeal.setAttribute(
@@ -211,7 +242,7 @@ function setupOfficialBranding() {
     );
   }
 
-  /* 3. OFFICIAL STAMP */
+  /* OFFICIAL STAMP */
 
   const stamp = document.querySelector(".stamp-circle");
 
@@ -234,13 +265,6 @@ function setupOfficialBranding() {
       margin: "0 auto"
     });
 
-    logo.onerror = function () {
-      console.error(
-        "[AUTH LETTER] Stamp logo not found:",
-        logoPath
-      );
-    };
-
     const label = document.createElement("span");
 
     label.className = "official-stamp-label";
@@ -249,7 +273,7 @@ function setupOfficialBranding() {
     stamp.append(logo, label);
   }
 
-  /* 4. STUDENT PHOTO FALLBACK */
+  /* STUDENT PHOTO */
 
   const studentPhoto = $("studentPhoto");
   const photoPlaceholder = $("photoPlaceholder");
@@ -270,17 +294,6 @@ function setupOfficialBranding() {
         photoPlaceholder.style.display = "flex";
       }
     });
-
-    if (
-      studentPhoto.complete &&
-      studentPhoto.naturalWidth > 0
-    ) {
-      studentPhoto.style.display = "block";
-
-      if (photoPlaceholder) {
-        photoPlaceholder.style.display = "none";
-      }
-    }
   }
 
   console.log(
@@ -291,9 +304,16 @@ function setupOfficialBranding() {
 /* ================= PAGE STATE ================= */
 
 function showDocument() {
+  if (!authenticationVerified) {
+    throw new Error(
+      "Security blocked document display: RPC verification not completed."
+    );
+  }
+
   const loading = $("loading");
   const error = $("errorState");
   const page = $("authenticationLetter");
+  const printButton = $("printButton");
 
   if (loading) {
     loading.hidden = true;
@@ -312,6 +332,10 @@ function showDocument() {
     page.style.visibility = "visible";
     page.style.opacity = "1";
   }
+
+  if (printButton) {
+    printButton.disabled = false;
+  }
 }
 
 function showError(title, details = "") {
@@ -321,11 +345,17 @@ function showError(title, details = "") {
     details
   );
 
+  /* Always lock the document on failure. */
+
+  authenticationVerified = false;
+  verifiedRPCData = null;
+
   const loading = $("loading");
   const page = $("authenticationLetter");
   const error = $("errorState");
   const message = $("errorMessage");
   const detail = $("errorDetails");
+  const printButton = $("printButton");
 
   if (loading) {
     loading.hidden = true;
@@ -335,6 +365,11 @@ function showError(title, details = "") {
   if (page) {
     page.hidden = true;
     page.style.display = "none";
+    page.style.visibility = "hidden";
+  }
+
+  if (printButton) {
+    printButton.disabled = true;
   }
 
   if (message) {
@@ -375,13 +410,25 @@ function getSupabase() {
     typeof window.supabase.createClient !== "function"
   ) {
     throw new Error(
-      "Supabase JavaScript library lama soo load-gareyn."
+      "Supabase JavaScript library lama soo load-gareyn. Hubi internet-ka."
     );
   }
 
   return window.supabase.createClient(
     SUPABASE_URL,
-    SUPABASE_KEY
+    SUPABASE_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      },
+      global: {
+        headers: {
+          "X-Client-Info": "gaawow-auth-letter-" + AUTH_VERSION
+        }
+      }
+    }
   );
 }
 
@@ -393,71 +440,42 @@ async function loadCertificate(supabase, params) {
     params.record_id
   );
 
-  /* 1. RECORD UUID */
+  let query;
 
   if (explicitRecordId) {
-    const result = await supabase
+    query = supabase
       .from("certificates")
       .select("*")
-      .eq("id", explicitRecordId)
-      .limit(1)
-      .maybeSingle();
-
-    if (result.error) throw result.error;
-
-    if (result.data) {
-      return result.data;
-    }
-  }
-
-  /* 2. CERTIFICATE ID */
-
-  if (params.id) {
-    const result = await supabase
+      .eq("id", explicitRecordId);
+  } else if (params.id) {
+    query = supabase
       .from("certificates")
       .select("*")
-      .eq("certificate_id", params.id)
-      .limit(1)
-      .maybeSingle();
-
-    if (result.error) throw result.error;
-
-    if (result.data) {
-      return result.data;
-    }
-  }
-
-  /* 3. VERIFICATION CODE */
-
-  if (params.code) {
-    const result = await supabase
+      .eq("certificate_id", params.id);
+  } else if (params.code) {
+    query = supabase
       .from("certificates")
       .select("*")
-      .eq("verify_code", params.code)
-      .limit(1)
-      .maybeSingle();
-
-    if (result.error) throw result.error;
-
-    if (result.data) {
-      return result.data;
-    }
+      .eq("verify_code", params.code);
+  } else {
+    query = supabase
+      .from("certificates")
+      .select("*")
+      .eq("id", CERTIFICATE_RECORD_ID);
   }
 
-  /* 4. DEFAULT RECORD */
+  const result = await query.maybeSingle();
 
-  const result = await supabase
-    .from("certificates")
-    .select("*")
-    .eq("id", CERTIFICATE_RECORD_ID)
-    .limit(1)
-    .maybeSingle();
-
-  if (result.error) throw result.error;
+  if (result.error) {
+    throw new Error(
+      "Certificate record lama akhrin karin: " +
+      result.error.message
+    );
+  }
 
   if (!result.data) {
     throw new Error(
-      "Official Authentication Letter record lama helin."
+      "Authentication Letter record lama helin."
     );
   }
 
@@ -493,100 +511,343 @@ function isAuthenticationLetter(record) {
   );
 }
 
-/* ================= VERIFICATION URL ================= */
+/* ================= RPC VERIFICATION ================= */
 
-function buildVerificationURL(record) {
-  const verifyCode = String(
-    record?.verify_code || ""
-  ).trim();
+/*
+ * IMPORTANT:
+ *
+ * Your SQL test uses:
+ *
+ * verify_authentication_letter(
+ *   c.verify_code,
+ *   c.id::text
+ * )
+ *
+ * Therefore p_id MUST receive record.id.
+ * It must NOT receive record.certificate_id.
+ */
 
-  const certificateId = String(
-    record?.certificate_id || ""
-  ).trim();
-
-  if (!verifyCode || !certificateId) {
-    return null;
+async function verifyRPC(supabase, record) {
+  if (!record?.id || !record?.verify_code) {
+    throw new Error(
+      "Certificate UUID ama verification code ayaa maqan."
+    );
   }
 
-  return (
-    VERIFICATION_PAGE +
-    "?code=" +
-    encodeURIComponent(verifyCode) +
-    "&id=" +
-    encodeURIComponent(certificateId)
+  console.log(
+    "[AUTH LETTER] Starting official RPC verification."
   );
+
+  let result;
+
+  try {
+    result = await supabase.rpc(
+      "verify_authentication_letter",
+      {
+        p_code: record.verify_code,
+        p_id: String(record.id)
+      }
+    );
+  } catch (error) {
+    throw new Error(
+      "RPC connection failure: " +
+      (error?.message || String(error))
+    );
+  }
+
+  if (result.error) {
+    throw new Error(
+      "Supabase RPC verification failed: " +
+      result.error.message
+    );
+  }
+
+  const data = result.data;
+
+  let verifiedData = null;
+
+  if (Array.isArray(data)) {
+    if (data.length !== 1) {
+      throw new Error(
+        "RPC verification returned an unexpected number of records."
+      );
+    }
+
+    verifiedData = data[0];
+  } else if (
+    data &&
+    typeof data === "object"
+  ) {
+    verifiedData = data;
+  }
+
+  if (!verifiedData) {
+    throw new Error(
+      "RPC did not return a valid verification record."
+    );
+  }
+
+  return verifiedData;
+}
+
+/* ================= VALIDATE RPC RESULT ================= */
+
+function validateRPCResult(data, record) {
+  if (!data || !record) {
+    throw new Error(
+      "Verification data is missing."
+    );
+  }
+
+  /* 1. VERIFICATION CODE */
+
+  const rpcCode = String(
+    data.verification_code || ""
+  ).trim();
+
+  const recordCode = String(
+    record.verify_code || ""
+  ).trim();
+
+  if (!rpcCode || rpcCode !== recordCode) {
+    throw new Error(
+      "Verification code mismatch. Document rejected."
+    );
+  }
+
+  /* 2. AUTHENTICATION ID */
+
+  const rpcId = String(
+    data.authentication_id || ""
+  ).trim();
+
+  const recordId = String(
+    record.certificate_id || ""
+  ).trim();
+
+  if (!rpcId || rpcId !== recordId) {
+    throw new Error(
+      "Authentication ID mismatch. Document rejected."
+    );
+  }
+
+  /* 3. DOCUMENT STATUS */
+
+  const status = String(
+    data.status || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  if (status !== "valid") {
+    throw new Error(
+      "This Authentication Letter is not valid. Status: " +
+      safeText(data.status)
+    );
+  }
+
+  /* 4. REFERENCE NUMBER */
+
+  if (!data.reference_no) {
+    throw new Error(
+      "Official reference number missing from RPC."
+    );
+  }
+
+  /* 5. STUDENT IDENTITY */
+
+  if (!data.student_id || !data.student_name) {
+    throw new Error(
+      "Student identity information is incomplete."
+    );
+  }
+
+  /* 6. COURSE */
+
+  if (!data.course_name) {
+    throw new Error(
+      "Course information missing from RPC."
+    );
+  }
+
+  /* 7. VERIFICATION URL */
+
+  if (!data.verification_url) {
+    throw new Error(
+      "Official verification URL missing from RPC."
+    );
+  }
+
+  let parsedURL;
+
+  try {
+    parsedURL = new URL(data.verification_url);
+  } catch (error) {
+    throw new Error(
+      "RPC returned an invalid verification URL."
+    );
+  }
+
+  if (parsedURL.protocol !== "https:") {
+    throw new Error(
+      "Verification URL must use HTTPS."
+    );
+  }
+
+  const urlCode = parsedURL.searchParams.get("code");
+
+  if (urlCode !== rpcCode) {
+    throw new Error(
+      "QR verification URL does not match the verified code."
+    );
+  }
+
+  /* ALL CHECKS PASSED */
+
+  console.log(
+    "[AUTH LETTER] RPC VALIDATION PASSED.",
+    {
+      reference_no: data.reference_no,
+      authentication_id: rpcId,
+      student_id: data.student_id,
+      status: status,
+      verification_url: data.verification_url
+    }
+  );
+
+  return true;
+}
+
+/* ================= VERIFICATION URL ================= */
+
+function buildVerificationURL(record, rpcData) {
+  const url = String(
+    rpcData?.verification_url || ""
+  ).trim();
+
+  if (!url) return null;
+
+  try {
+    const parsed = new URL(url);
+
+    if (parsed.protocol !== "https:") {
+      return null;
+    }
+
+    if (
+      parsed.searchParams.get("code") !==
+      String(rpcData.verification_code)
+    ) {
+      return null;
+    }
+
+    return url;
+  } catch (error) {
+    return null;
+  }
 }
 
 /* ================= RENDER CERTIFICATE ================= */
 
-function renderCertificate(record) {
-  if ($("studentName")) {
-    $("studentName").textContent =
-      safeText(record.student_name_snapshot);
+function renderCertificate(record, rpcData) {
+  const fields = [
+    ["studentName", rpcData.student_name],
+    ["courseName", rpcData.course_name],
+    ["referenceNo", rpcData.reference_no],
+    ["authenticationId", rpcData.authentication_id],
+    ["verificationCode", rpcData.verification_code],
+    ["issueDate", rpcData.issue_date],
+    ["expiryDate", rpcData.expiry_date]
+  ];
+
+  for (const [id, value] of fields) {
+    const element = $(id);
+
+    if (element) {
+      if (id === "issueDate" || id === "expiryDate") {
+        element.textContent = formatDate(value);
+      } else {
+        element.textContent = safeText(value);
+      }
+    }
   }
 
-  if ($("courseName")) {
-    $("courseName").textContent =
-      safeText(record.course_name_snapshot);
-  }
-
-  if ($("referenceNo")) {
-    $("referenceNo").textContent =
-      safeText(record.certificate_no);
-  }
-
-  if ($("authenticationId")) {
-    $("authenticationId").textContent =
-      safeText(record.certificate_id);
-  }
-
-  if ($("verificationCode")) {
-    $("verificationCode").textContent =
-      safeText(record.verify_code);
-  }
-
-  if ($("issueDate")) {
-    $("issueDate").textContent =
-      formatDate(
-        record.issue_date || record.created_at
-      );
-  }
-
-  if ($("expiryDate")) {
-    $("expiryDate").textContent =
-      formatDate(record.expiry_date);
-  }
+  /* OFFICIAL DOCUMENT STATUS */
 
   if ($("status")) {
     $("status").textContent =
-      safeText(record.status).toUpperCase();
+      String(rpcData.status).toUpperCase();
   }
 
-  /*
-   * The real completion date is loaded from
-   * enrollments.end_date or classes.end_date.
-   * It is rendered after the student lookup.
-   */
+  /* START DATE */
+
+  if ($("dateStarted")) {
+    $("dateStarted").textContent =
+      formatDate(rpcData.date_started);
+  }
+
+  if ($("startDate")) {
+    $("startDate").textContent =
+      formatDate(rpcData.date_started);
+  }
+
+  /* COMPLETION DATE */
+
+  const completionDate = rpcData.date_completed;
+
+  const completionText = completionDate
+    ? formatDate(completionDate)
+    : "Not Completed";
 
   if ($("dateCompleted")) {
-    $("dateCompleted").textContent = "N/A";
+    $("dateCompleted").textContent = completionText;
   }
 
   if ($("completionDate")) {
-    $("completionDate").textContent = "N/A";
+    $("completionDate").textContent = completionText;
   }
 
-  renderQR(record);
+  /* STUDENT ID */
+
+  if ($("studentId")) {
+    $("studentId").textContent =
+      safeText(rpcData.student_id);
+  }
+
+  renderQR(rpcData);
+
+  console.log(
+    "[AUTH LETTER] Certificate rendered from verified RPC data."
+  );
+}
+
+/* ================= STUDENT PHOTO ================= */
+
+function setStudentPhoto(photoURL) {
+  const photo = $("studentPhoto");
+  const placeholder = $("photoPlaceholder");
+
+  if (!photo) return;
+
+  if (!photoURL) {
+    photo.removeAttribute("src");
+    photo.style.display = "none";
+
+    if (placeholder) {
+      placeholder.style.display = "flex";
+    }
+
+    return;
+  }
+
+  photo.src = photoURL;
+  photo.style.display = "block";
 }
 
 /* ================= LOAD STUDENT ================= */
 
 async function loadStudent(supabase, record) {
   if (!record?.student_id) {
-    console.warn(
-      "[AUTH LETTER] Certificate has no student_id."
-    );
-
     return null;
   }
 
@@ -596,12 +857,11 @@ async function loadStudent(supabase, record) {
       "id,full_name,student_id,admission_date,photo_url"
     )
     .eq("id", record.student_id)
-    .limit(1)
     .maybeSingle();
 
   if (result.error) {
     console.warn(
-      "[AUTH LETTER] Student query:",
+      "[AUTH LETTER] Student lookup unavailable:",
       result.error.message
     );
 
@@ -611,393 +871,101 @@ async function loadStudent(supabase, record) {
   return result.data || null;
 }
 
-/* ================= LOAD COURSE COMPLETION DATE ================= */
-
-/*
- * Priority:
- * 1. enrollments.end_date
- * 2. classes.end_date
- *
- * The function does not invent a date.
- */
-
-async function loadCompletionDate(
-  supabase,
-  record,
-  student
-) {
-  const studentId =
-    record?.student_id || student?.id;
-
-  if (!studentId) {
-    console.warn(
-      "[AUTH LETTER] Student ID missing; cannot load completion date."
-    );
-
-    return null;
-  }
-
-  try {
-    /* 1. LOAD ENROLLMENTS */
-
-    const enrollmentResult = await supabase
-      .from("enrollments")
-      .select("id,student_id,class_id,end_date")
-      .eq("student_id", studentId);
-
-    if (enrollmentResult.error) {
-      console.warn(
-        "[AUTH LETTER] Enrollment query failed:",
-        enrollmentResult.error.message
-      );
-    }
-
-    const enrollments = enrollmentResult.data || [];
-
-    /*
-     * Prefer an enrollment that has an end date.
-     * If there are multiple dated enrollments, this
-     * uses the latest end date.
-     */
-
-    const datedEnrollments = enrollments
-      .filter(enrollment => enrollment.end_date)
-      .sort((a, b) => {
-        return String(b.end_date).localeCompare(
-          String(a.end_date)
-        );
-      });
-
-    if (datedEnrollments.length > 0) {
-      const completionDate =
-        datedEnrollments[0].end_date;
-
-      console.log(
-        "[AUTH LETTER] Completion date source: enrollments.end_date",
-        completionDate
-      );
-
-      return completionDate;
-    }
-
-    /* 2. CHECK THE ENROLLED CLASSES */
-
-    const classIds = [
-      ...new Set(
-        enrollments
-          .map(enrollment => enrollment.class_id)
-          .filter(Boolean)
-      )
-    ];
-
-    /*
-     * If the certificate has a class_id, include it
-     * as a possible class reference.
-     */
-
-    if (record?.class_id) {
-      classIds.push(record.class_id);
-    }
-
-    const uniqueClassIds = [...new Set(classIds)];
-
-    const classEndDates = [];
-
-    for (const classId of uniqueClassIds) {
-      const classResult = await supabase
-        .from("classes")
-        .select("id,end_date")
-        .eq("id", classId)
-        .maybeSingle();
-
-      if (classResult.error) {
-        console.warn(
-          "[AUTH LETTER] Class query failed:",
-          classResult.error.message
-        );
-
-        continue;
-      }
-
-      if (classResult.data?.end_date) {
-        classEndDates.push(
-          classResult.data.end_date
-        );
-      }
-    }
-
-    if (classEndDates.length > 0) {
-      classEndDates.sort((a, b) => {
-        return String(b).localeCompare(String(a));
-      });
-
-      const completionDate = classEndDates[0];
-
-      console.log(
-        "[AUTH LETTER] Completion date source: classes.end_date",
-        completionDate
-      );
-
-      return completionDate;
-    }
-
-    console.warn(
-      "[AUTH LETTER] No end_date found for this student's enrollment or class."
-    );
-
-    return null;
-  } catch (error) {
-    console.error(
-      "[AUTH LETTER] Completion date lookup failed:",
-      error
-    );
-
-    return null;
-  }
-}
-
 /* ================= RENDER STUDENT ================= */
 
-function renderStudent(
-  student,
-  completionDate = null
-) {
-  if (!student) {
-    console.warn(
-      "[AUTH LETTER] Student record unavailable."
-    );
+function renderStudent(student, rpcData) {
+  const studentName = firstAvailable(
+    rpcData?.student_name,
+    student?.full_name
+  );
 
-    return;
-  }
+  const studentId = firstAvailable(
+    rpcData?.student_id,
+    student?.student_id
+  );
 
-  /* STUDENT NAME */
+  const startDate = firstAvailable(
+    rpcData?.date_started,
+    student?.admission_date
+  );
 
   if ($("studentName")) {
     $("studentName").textContent =
-      safeText(student.full_name);
+      safeText(studentName);
   }
-
-  /* STUDENT ID */
 
   if ($("studentId")) {
     $("studentId").textContent =
-      safeText(student.student_id);
+      safeText(studentId);
   }
-
-  /* ADMISSION / START DATE */
 
   if ($("dateStarted")) {
     $("dateStarted").textContent =
-      formatDate(student.admission_date);
+      formatDate(startDate);
   }
 
   if ($("startDate")) {
     $("startDate").textContent =
-      formatDate(student.admission_date);
+      formatDate(startDate);
   }
 
-  /* COURSE COMPLETION DATE */
+  /*
+   * RPC date_completed is authoritative.
+   * NULL means Not Completed.
+   * Never invent a completion date.
+   */
+
+  const completed = rpcData?.date_completed;
+
+  const completionText = completed
+    ? formatDate(completed)
+    : "Not Completed";
 
   if ($("dateCompleted")) {
     $("dateCompleted").textContent =
-      formatDate(completionDate);
+      completionText;
   }
 
   if ($("completionDate")) {
     $("completionDate").textContent =
-      formatDate(completionDate);
+      completionText;
   }
 
-  /* STUDENT PHOTO */
-
-  if ($("studentPhoto")) {
-    if (student.photo_url) {
-      $("studentPhoto").src = student.photo_url;
-      $("studentPhoto").style.display = "block";
-    } else {
-      $("studentPhoto").removeAttribute("src");
-      $("studentPhoto").style.display = "none";
-
-      if ($("photoPlaceholder")) {
-        $("photoPlaceholder").style.display = "flex";
-      }
-    }
-  }
-
-  console.log(
-    "[AUTH LETTER] STUDENT DATE CHECK:",
-    {
-      student_id: student.student_id || null,
-      admission_date:
-        student.admission_date || null,
-      completion_date: completionDate || null
-    }
+  setStudentPhoto(
+    firstAvailable(
+      rpcData?.student_photo_url,
+      student?.photo_url
+    )
   );
-}
-
-/* ================= RPC VERIFICATION ================= */
-
-async function verifyRPC(supabase, record) {
-  try {
-    const result = await supabase.rpc(
-      "verify_authentication_letter",
-      {
-        p_code: record.verify_code,
-        p_id: record.certificate_id
-      }
-    );
-
-    if (result.error) {
-      console.warn(
-        "[AUTH LETTER] RPC:",
-        result.error.message
-      );
-
-      return null;
-    }
-
-    if (Array.isArray(result.data)) {
-      return result.data[0] || null;
-    }
-
-    return result.data || null;
-  } catch (error) {
-    console.warn(
-      "[AUTH LETTER] RPC exception:",
-      error
-    );
-
-    return null;
-  }
-}
-
-/* ================= RENDER RPC DATA ================= */
-
-function renderRPC(data, record) {
-  if (!data) return;
-
-  const rpcCode = String(
-    data.verification_code || ""
-  ).trim();
-
-  const rpcId = String(
-    data.authentication_id || ""
-  ).trim();
-
-  const recordCode = String(
-    record?.verify_code || ""
-  ).trim();
-
-  const recordId = String(
-    record?.certificate_id || ""
-  ).trim();
-
-  if (
-    rpcCode &&
-    recordCode &&
-    rpcCode !== recordCode
-  ) {
-    console.warn(
-      "[AUTH LETTER] RPC code mismatch."
-    );
-
-    return;
-  }
-
-  if (
-    rpcId &&
-    recordId &&
-    rpcId !== recordId
-  ) {
-    console.warn(
-      "[AUTH LETTER] RPC authentication ID mismatch."
-    );
-
-    return;
-  }
-
-  const fields = [
-    ["referenceNo", "reference_no"],
-    ["authenticationId", "authentication_id"],
-    ["verificationCode", "verification_code"],
-    ["studentName", "student_name"],
-    ["courseName", "course_name"],
-    ["issueDate", "issue_date"],
-    ["expiryDate", "expiry_date"],
-    ["status", "status"]
-  ];
-
-  for (const [elementId, field] of fields) {
-    const element = $(elementId);
-
-    if (
-      element &&
-      data[field] !== null &&
-      data[field] !== undefined &&
-      data[field] !== ""
-    ) {
-      element.textContent =
-        ["issueDate", "expiryDate"].includes(elementId)
-          ? formatDate(data[field])
-          : (
-              elementId === "status"
-                ? String(data[field]).toUpperCase()
-                : String(data[field])
-            );
-    }
-  }
-
-  if (
-    $("studentPhoto") &&
-    data.student_photo_url
-  ) {
-    $("studentPhoto").src =
-      data.student_photo_url;
-
-    $("studentPhoto").style.display = "block";
-  }
-
-  renderQR(record);
 }
 
 /* ================= QR CODE ================= */
 
-function renderQR(record) {
+function renderQR(rpcData) {
   const container = $("qrcode");
 
   if (!container) {
     console.warn(
-      "[AUTH LETTER] QR container #qrcode lama helin."
+      "[AUTH LETTER] QR container not found."
     );
 
     return;
   }
 
-  container.innerHTML = "";
+  container.replaceChildren();
 
-  const verifyCode = String(
-    record?.verify_code || ""
-  ).trim();
+  const url = buildVerificationURL(
+    verifiedCertificate,
+    rpcData
+  );
 
-  const certificateId = String(
-    record?.certificate_id || ""
-  ).trim();
-
-  if (!verifyCode || !certificateId) {
+  if (!url) {
     container.textContent =
       "QR verification unavailable";
 
-    return;
-  }
-
-  const verificationURL =
-    buildVerificationURL(record);
-
-  if (!verificationURL) {
-    container.textContent =
-      "Verification URL unavailable";
-
-    return;
+    throw new Error(
+      "Verified QR URL is unavailable."
+    );
   }
 
   if (
@@ -1010,7 +978,7 @@ function renderQR(record) {
         : 2;
 
       new window.QRCode(container, {
-        text: verificationURL,
+        text: url,
         width: 145,
         height: 145,
         colorDark: "#0B1E63",
@@ -1027,17 +995,14 @@ function renderQR(record) {
     }
   }
 
-  /*
-   * Fallback QR image service.
-   * This requires an internet connection.
-   */
+  /* QR IMAGE FALLBACK */
 
   const image = document.createElement("img");
 
   image.src =
     "https://api.qrserver.com/v1/create-qr-code/" +
     "?size=180x180&data=" +
-    encodeURIComponent(verificationURL);
+    encodeURIComponent(url);
 
   image.alt =
     "GAAWOW Academy Authentication Verification QR";
@@ -1053,260 +1018,168 @@ function renderQR(record) {
   });
 
   image.onerror = function () {
-    container.textContent = "QR unavailable";
+    container.replaceChildren();
+
+    const message = document.createElement("span");
+
+    message.textContent = "QR unavailable";
+
+    container.appendChild(message);
   };
 
   container.appendChild(image);
 }
 
-/* ================= SUBJECT NAMES ================= */
-
-async function loadSubjectNames(supabase, rows) {
-  const subjectIds = [
-    ...new Set(
-      rows
-        .map(row => row.subject_id)
-        .filter(Boolean)
-    )
-  ];
-
-  if (!subjectIds.length) {
-    return {};
-  }
-
-  try {
-    const result = await supabase
-      .from("subjects")
-      .select("*")
-      .in("id", subjectIds);
-
-    if (result.error) {
-      console.warn(
-        "[AUTH LETTER] Subjects query:",
-        result.error.message
-      );
-
-      return {};
-    }
-
-    const map = {};
-
-    for (const subject of result.data || []) {
-      const name = firstAvailable(
-        subject.name,
-        subject.subject_name,
-        subject.title,
-        subject.subject,
-        subject.code
-      );
-
-      if (name) {
-        map[String(subject.id)] = name;
-      }
-    }
-
-    return map;
-  } catch (error) {
-    console.warn(
-      "[AUTH LETTER] Subject names exception:",
-      error
-    );
-
-    return {};
-  }
-}
-
 /* ================= ACADEMIC RESULTS ================= */
 
-async function loadResults(supabase, record) {
+function normalizeAcademicResult(row) {
+  const score = numericScore(
+    firstAvailable(
+      row.score,
+      row.marks,
+      row.total_score,
+      row.mark,
+      row.points,
+      row.percentage
+    )
+  );
+
+  const subject = firstAvailable(
+    row.subject_name,
+    row.subject,
+    row.name,
+    row.title
+  );
+
+  const grade = firstAvailable(
+    row.grade,
+    row.grade_name
+  ) || calculateGrade(score);
+
+  return {
+    subject: subject || "Subject",
+    score,
+    grade
+  };
+}
+
+/* ================= RENDER ACADEMIC RESULTS ================= */
+
+function renderAcademicResults(rpcData) {
   const container = $("academicResults");
 
-  if (!container || !record?.student_id) {
+  if (!container) return;
+
+  const rows = Array.isArray(rpcData?.academic_results)
+    ? rpcData.academic_results
+    : [];
+
+  const summary = rpcData?.summary || {};
+
+  if (!rows.length) {
+    container.innerHTML =
+      '<div class="no-results">No published academic results available.</div>';
+
     return;
   }
 
-  try {
-    const result = await supabase
-      .from("results")
-      .select("*")
-      .eq("student_id", record.student_id)
-      .eq("is_published", true);
+  const normalizedRows = rows.map(
+    normalizeAcademicResult
+  );
 
-    if (result.error) {
-      console.warn(
-        "[AUTH LETTER] Results:",
-        result.error.message
-      );
+  let total = 0;
+  let count = 0;
 
-      return;
+  for (const row of normalizedRows) {
+    if (row.score !== null) {
+      total += row.score;
+      count++;
     }
+  }
 
-    const rows = result.data || [];
+  const average = firstAvailable(
+    summary.average,
+    count > 0
+      ? (total / count).toFixed(2)
+      : null
+  );
 
-    if (!rows.length) {
-      container.innerHTML =
-        '<div class="no-results">No published academic results available.</div>';
+  const overallGrade = firstAvailable(
+    summary.overall_grade,
+    "N/A"
+  );
 
-      return;
-    }
+  const finalResult = firstAvailable(
+    summary.final_result,
+    "N/A"
+  );
 
-    const subjectMap = await loadSubjectNames(
-      supabase,
-      rows
-    );
+  let html = `
+    <div class="results-table-wrapper">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Subject</th>
+            <th>Score</th>
+            <th>Grade</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
 
-    const normalizedRows = rows.map(row => {
-      const score = numericScore(
-        firstAvailable(
-          row.score,
-          row.marks,
-          row.total_score,
-          row.mark,
-          row.points
-        )
-      );
-
-      let subjectName = firstAvailable(
-        row.subject_name,
-        row.subject,
-        row.name
-      );
-
-      if (
-        !subjectName &&
-        row.subject_id
-      ) {
-        subjectName =
-          subjectMap[String(row.subject_id)];
-      }
-
-      const grade =
-        firstAvailable(
-          row.grade,
-          row.grade_name
-        ) || calculateGrade(score);
-
-      return {
-        subject: subjectName || "Subject",
-        score,
-        grade,
-        raw: row
-      };
-    });
-
-    normalizedRows.sort((a, b) => {
-      const aOrder = Number(
-        a.raw?.subject_order ??
-        a.raw?.order_no ??
-        a.raw?.sort_order ??
-        9999
-      );
-
-      const bOrder = Number(
-        b.raw?.subject_order ??
-        b.raw?.order_no ??
-        b.raw?.sort_order ??
-        9999
-      );
-
-      return aOrder - bOrder;
-    });
-
-    const scoredRows = normalizedRows.filter(
-      row => row.score !== null
-    );
-
-    const total = scoredRows.reduce(
-      (sum, row) => sum + row.score,
-      0
-    );
-
-    const maxTotal =
-      scoredRows.length * 100;
-
-    const percentage = maxTotal > 0
-      ? (total / maxTotal) * 100
-      : null;
-
-    const overallGrade =
-      percentage !== null
-        ? calculateGrade(percentage)
-        : "N/A";
-
-    let html = `
-      <div class="results-table-wrapper">
-        <table class="results-table">
-          <thead>
-            <tr>
-              <th>Subject</th>
-              <th>Score</th>
-              <th>Grade</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-    for (const row of normalizedRows) {
-      html += `
-        <tr>
-          <td>${escapeHTML(row.subject)}</td>
-          <td>${
-            row.score === null
-              ? "N/A"
-              : escapeHTML(row.score)
-          }</td>
-          <td>${escapeHTML(row.grade)}</td>
-        </tr>
-      `;
-    }
-
+  for (const row of normalizedRows) {
     html += `
-      <tr class="results-total-row">
-        <td><strong>TOTAL</strong></td>
-        <td>
-          <strong>${escapeHTML(total)} / ${escapeHTML(maxTotal)}</strong>
-        </td>
-        <td><strong>${escapeHTML(overallGrade)}</strong></td>
+      <tr>
+        <td>${escapeHTML(row.subject)}</td>
+        <td>${
+          row.score === null
+            ? "N/A"
+            : escapeHTML(row.score)
+        }</td>
+        <td>${escapeHTML(row.grade)}</td>
       </tr>
     `;
-
-    if (percentage !== null) {
-      html += `
-        <tr class="results-percentage-row">
-          <td colspan="2">
-            <strong>OVERALL PERCENTAGE</strong>
-          </td>
-          <td>
-            <strong>${percentage.toFixed(1)}%</strong>
-          </td>
-        </tr>
-      `;
-    }
-
-    html += `
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    container.innerHTML = html;
-
-    console.log(
-      "[AUTH LETTER] Academic Results:",
-      {
-        subjects: normalizedRows.length,
-        total,
-        maxTotal,
-        percentage,
-        grade: overallGrade
-      }
-    );
-  } catch (error) {
-    console.warn(
-      "[AUTH LETTER] Academic results exception:",
-      error
-    );
   }
+
+  html += `
+        </tbody>
+      </table>
+    </div>
+
+    <div class="results-summary">
+      <p>
+        <strong>Published Subjects:</strong>
+        ${normalizedRows.length}
+      </p>
+
+      <p>
+        <strong>Average:</strong>
+        ${escapeHTML(average)}%
+      </p>
+
+      <p>
+        <strong>Overall Grade:</strong>
+        ${escapeHTML(overallGrade)}
+      </p>
+
+      <p>
+        <strong>Final Academic Result:</strong>
+        ${escapeHTML(finalResult)}
+      </p>
+    </div>
+  `;
+
+  container.innerHTML = html;
+
+  console.log(
+    "[AUTH LETTER] Academic results rendered:",
+    {
+      published_subjects: normalizedRows.length,
+      average,
+      overall_grade: overallGrade,
+      final_result: finalResult
+    }
+  );
 }
 
 /* ================= REMOVE LOCATION ================= */
@@ -1340,16 +1213,29 @@ function removeFounderLocation() {
 function setupPrint() {
   const button = $("printButton");
 
-  if (
-    !button ||
-    button.dataset.printReady === "true"
-  ) {
+  if (!button) return;
+
+  button.disabled = true;
+
+  if (button.dataset.printReady === "true") {
     return;
   }
 
   button.dataset.printReady = "true";
 
   button.addEventListener("click", function () {
+    if (
+      !authenticationVerified ||
+      !verifiedRPCData ||
+      !verifiedCertificate
+    ) {
+      console.error(
+        "[AUTH LETTER] Printing blocked: verification incomplete."
+      );
+
+      return;
+    }
+
     window.print();
   });
 }
@@ -1377,15 +1263,22 @@ function setupRetry() {
 
 async function start() {
   console.log(
-    "GAAWOW AUTHENTICATION LETTER 20261024-4"
+    "GAAWOW AUTHENTICATION LETTER " + AUTH_VERSION
   );
+
+  /* LOCK BEFORE ANY DATABASE OPERATION */
+
+  lockDocument();
 
   try {
     setupPrint();
     setupRetry();
     setupOfficialBranding();
 
+    /* 1. CONNECT TO SUPABASE */
+
     const supabase = getSupabase();
+
     const params = getParams();
 
     console.log(
@@ -1393,133 +1286,146 @@ async function start() {
       params
     );
 
-    /* 1. LOAD CERTIFICATE */
+    /* 2. LOAD CERTIFICATE */
 
     const record = await loadCertificate(
       supabase,
       params
     );
 
+    verifiedCertificate = record;
+
     console.log(
-      "[AUTH LETTER] SELECTED RECORD:",
+      "[AUTH LETTER] RECORD SELECTED:",
       {
         id: record.id,
         certificate_no: record.certificate_no,
         certificate_id: record.certificate_id,
-        verify_code: record.verify_code,
         certificate_type: record.certificate_type
       }
     );
 
-    /* 2. VALIDATE DOCUMENT TYPE */
+    /* 3. CHECK DOCUMENT TYPE */
 
     if (!isAuthenticationLetter(record)) {
       throw new Error(
-        "Record-kan ma aha Authentication Letter."
+        "This record is not an Authentication Letter."
       );
     }
 
-    /* 3. CHECK STATUS */
+    /* 4. RPC VERIFICATION */
 
-    if (
-      record.status &&
-      String(record.status).toLowerCase() !== "valid"
-    ) {
-      console.warn(
-        "[AUTH LETTER] Document status:",
-        record.status
-      );
-    }
-
-    /* 4. RENDER CERTIFICATE */
-
-    renderCertificate(record);
-
-    removeFounderLocation();
-
-    showDocument();
-
-    /* 5. LOAD STUDENT */
-
-    const student = await loadStudent(
+    const rpcData = await verifyRPC(
       supabase,
       record
     );
 
-    /* 6. LOAD REAL COMPLETION DATE */
+    /* 5. VALIDATE ALL RPC FIELDS */
 
-    const completionDate = await loadCompletionDate(
-      supabase,
+    validateRPCResult(
+      rpcData,
+      record
+    );
+
+    /* 6. SAVE VERIFIED DATA */
+
+    verifiedRPCData = rpcData;
+
+    verificationURL = buildVerificationURL(
       record,
-      student
+      rpcData
     );
 
-    /* 7. RENDER STUDENT AND DATES */
+    if (!verificationURL) {
+      throw new Error(
+        "Official QR verification URL could not be validated."
+      );
+    }
 
-    renderStudent(
-      student,
-      completionDate
-    );
+    authenticationVerified = true;
 
     console.log(
-      "[AUTH LETTER] DATE CHECK:",
+      "[AUTH LETTER] AUTHENTICATION SUCCESS",
       {
-        admission_date:
-          student?.admission_date || null,
-        completion_date:
-          completionDate || null
+        reference_no: rpcData.reference_no,
+        authentication_id: rpcData.authentication_id,
+        verification_code: rpcData.verification_code,
+        document_status: rpcData.status,
+        verification_url: verificationURL
       }
     );
 
-    /* 8. VERIFY AUTHENTICATION LETTER */
+    /* 7. LOAD STUDENT DETAILS */
 
-    const verified = await verifyRPC(
-      supabase,
-      record
-    );
+    let student = null;
 
-    renderRPC(
-      verified,
-      record
-    );
-
-    /*
-     * Render the completion date again after RPC.
-     * This ensures that the RPC rendering does not
-     * accidentally replace the course completion date.
-     */
-
-    if ($("dateCompleted")) {
-      $("dateCompleted").textContent =
-        formatDate(completionDate);
+    try {
+      student = await loadStudent(
+        supabase,
+        record
+      );
+    } catch (error) {
+      console.warn(
+        "[AUTH LETTER] Student lookup unavailable:",
+        error.message
+      );
     }
 
-    if ($("completionDate")) {
-      $("completionDate").textContent =
-        formatDate(completionDate);
-    }
+    /* 8. RENDER VERIFIED CERTIFICATE */
 
-    /* 9. LOAD ACADEMIC RESULTS */
-
-    await loadResults(
-      supabase,
-      record
+    renderCertificate(
+      record,
+      rpcData
     );
 
-    /* 10. FINALIZE DOCUMENT */
+    /* 9. RENDER STUDENT */
 
-    renderQR(record);
+    renderStudent(
+      student,
+      rpcData
+    );
+
+    /* 10. RENDER RPC ACADEMIC RESULTS */
+
+    renderAcademicResults(
+      rpcData
+    );
+
+    /* 11. REMOVE UNWANTED LOCATION */
 
     removeFounderLocation();
 
-    console.log(
-      "[AUTH LETTER] READY"
-    );
+    /* 12. FINAL SECURITY CHECK */
+
+    if (
+      !authenticationVerified ||
+      !verifiedRPCData ||
+      verifiedRPCData.status.toLowerCase() !== "valid"
+    ) {
+      throw new Error(
+        "Final verification check failed."
+      );
+    }
+
+    /* 13. SHOW DOCUMENT */
+
+    showDocument();
 
     console.log(
-      "[AUTH LETTER] FINAL VERIFICATION:",
-      buildVerificationURL(record)
+      "[AUTH LETTER] READY",
+      {
+        version: AUTH_VERSION,
+        verification: "PASS",
+        document_status: "VALID",
+        academic_result:
+          rpcData.summary?.final_result || "N/A",
+        completion_status:
+          rpcData.date_completed
+            ? "COMPLETED"
+            : "NOT COMPLETED"
+      }
     );
+
   } catch (error) {
     console.error(
       "[AUTH LETTER] FATAL ERROR:",
@@ -1528,7 +1434,8 @@ async function start() {
 
     showError(
       "Authentication Letter lama soo bandhigi karin.",
-      error?.message || String(error)
+      error?.message ||
+      "Verification failed. Please check your internet connection and try again."
     );
   }
 }
