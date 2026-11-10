@@ -28,7 +28,7 @@
   // Do not use your service_role key.
 
   const SUPABASE_KEY =
-    "PASTE_YOUR_EXISTING_SUPABASE_PUBLISHABLE_KEY_HERE";
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
   const RPC_NAME =
     "verify_authentication_letter";
