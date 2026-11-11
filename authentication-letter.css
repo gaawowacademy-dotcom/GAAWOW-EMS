@@ -1,6 +1,6 @@
 /* ============================================================
    GAAWOW ACADEMY EMS - AUTHENTICATION LETTER
-   VERSION 20261110-13  |  A4 LANDSCAPE (297mm x 210mm)
+   VERSION 20261110-14  |  A4 LANDSCAPE (297mm x 210mm)
    Complete stylesheet. Replace the whole old file with this one.
    Uses only the classes and IDs that exist in authentication-letter.html.
 
@@ -286,7 +286,7 @@ body { background: #E9EEF6; -webkit-font-smoothing: antialiased; }
       "stu   res"
       "per   res"
       "auth  decl"
-      "auth  sign"
+      "sign  sign"
       "foot  foot"
       "foot  foot"
       "strip strip";
@@ -459,8 +459,9 @@ body { background: #E9EEF6; -webkit-font-smoothing: antialiased; }
 .signature-box span { color: var(--ink); font-size: 8px; }
 
 @media screen and (min-width: 801px), print {
-  /* both boxes share the "sign" cell, to the right of the centre seal */
-  .signature-box { width: 57mm; }
-  .signature-box:first-child { justify-self: start; margin-left: 44mm; }
-  .signature-box + .signature-box { justify-self: end; margin-left: 0; }
+  /* Founder on the LEFT of the centre seal, Academic Head on the RIGHT.
+     Seal = 132.5mm to 164.5mm from the page edge (centred). */
+  .signature-box { grid-column: 1 / -1; grid-row: 6 / 8; align-self: end; width: 50mm; }
+  .signature-box:first-child { justify-self: start; margin-left: 71mm; }   /* starts at 80mm, ends 130mm */
+  .signature-box + .signature-box { justify-self: start; margin-left: 158mm; } /* starts at 167mm, ends 217mm */
 }
