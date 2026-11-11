@@ -1,6 +1,6 @@
 /* ============================================================
    GAAWOW ACADEMY EMS - AUTHENTICATION LETTER
-   VERSION 20261110-11  |  A4 LANDSCAPE (297mm x 210mm)
+   VERSION 20261110-13  |  A4 LANDSCAPE (297mm x 210mm)
    Complete stylesheet. Replace the whole old file with this one.
    Uses only the classes and IDs that exist in authentication-letter.html.
 
@@ -376,4 +376,91 @@ body { background: #E9EEF6; -webkit-font-smoothing: antialiased; }
   .document-watermark img { opacity: .05 !important; }
 
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+
+
+/* ============================================================
+   FINAL DESIGN LAYER - matches the latest landscape reference
+   (centred header, light grey band, flat form-style sections,
+   grey footer bar, 3D gold seal at bottom centre).
+   This layer comes last on purpose so it overrides earlier rules.
+   ============================================================ */
+.page { background: linear-gradient(180deg, #F4F7FB 0, #FFFFFF 40mm); }
+
+/* Header: logo on top, name and motto centred */
+.document-header {
+  display: flex; flex-direction: column; align-items: center; gap: 1mm;
+  margin: 0 -12px; padding: 3mm 5mm 2.5mm;
+  background: var(--gray); border-bottom: 1px solid var(--line); color: var(--navy); text-align: center;
+}
+.header-logo img { width: 14mm; height: 14mm; object-fit: contain; filter: none; }
+.header-main { text-align: center; }
+.academy-name { color: var(--navy); font-family: var(--sans); font-size: clamp(17px, 5.4vw, 22px); font-weight: 800; letter-spacing: 1.2px; line-height: 1.1; }
+.academy-motto { margin-top: 2px; color: var(--gold-dark); font-family: var(--sans); font-style: normal; font-weight: 600; font-size: clamp(8px, 2.6vw, 9.5px); letter-spacing: 1.8px; text-transform: uppercase; }
+.academy-location { display: none; }
+.header-seal { display: none !important; }
+
+/* Title */
+.gold-line { display: none; }
+.document-title { padding: 0; }
+.document-title h1 { font-family: var(--sans); font-size: clamp(15px, 4.6vw, 19px); font-weight: 800; letter-spacing: 1.6px; color: var(--navy); }
+.document-title h2 { margin-top: 2px; font-size: 8px; letter-spacing: 2px; color: var(--royal); }
+
+/* Sections: flat, form-like (no cards) */
+.document-section { border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
+.section-heading { padding: 0 0 2px; margin: 0 4mm; background: none; border: 0; border-bottom: 1px solid var(--gold); }
+.section-number, .section-heading p { display: none; }
+.section-heading h3 { font-size: 10px; letter-spacing: 1px; }
+
+.field-box { min-height: 8mm; padding: 2px 2px 3px; background: none; border: 0; border-bottom: 1px dashed #B5C0D6; border-radius: 0; }
+.field-box strong { font-size: 10.5px; }
+.photo-frame { border: 1px solid #6B7894; background: #E9EDF3; }
+.results-table-wrapper { border: 1px solid #7F8CAD; border-radius: 0; }
+.results-table td { border-bottom-color: #B9C3DB; border-right-color: #B9C3DB; }
+.qr-wrapper { border: 1px solid var(--navy); border-radius: 0; }
+.declaration-section { background: rgba(245, 247, 250, .85); border: 0; border-left: 2px solid var(--gold); border-radius: 0; }
+
+/* Footer: grey bar, muted text */
+.document-footer { margin: 0 -12px; padding: 2.5mm 12px; background: #E9EDF2; border-top: 0; }
+.footer-main { flex-direction: row; align-items: baseline; gap: 6px; }
+.footer-main strong { color: var(--muted); font-weight: 600; font-size: 8px; letter-spacing: .3px; }
+.footer-main span { color: var(--muted); font-family: var(--sans); font-style: normal; font-size: 8px; }
+.footer-main span::before { content: "|\00a0 "; }
+.footer-contact { color: var(--muted); }
+.security-strip { border-top: 0; }
+
+/* Luxury gold seal: bigger, polished, subtle golden glow */
+.stamp-circle.gaawow-official-stamp {
+  width: 30mm; height: 30mm;
+  filter: drop-shadow(0 0 2.5px rgba(255, 208, 80, .5)) drop-shadow(0 1.5px 2px rgba(92, 67, 7, .5));
+}
+
+@media screen and (min-width: 801px), print {
+  .document-header { margin: 0 -9mm; padding: 2.5mm 12mm 2.5mm; gap: 1mm; }
+  .header-logo img { width: 15mm; height: 15mm; }
+  .academy-name { font-size: 22px; letter-spacing: 1.4px; }
+  .academy-motto { font-size: 9.5px; }
+  .document-title h1 { font-size: 19px; }
+  .document-footer { margin: 0 -9mm; padding: 2mm 9mm; }
+  .official-stamp { width: 32mm; }
+  .stamp-circle.gaawow-official-stamp { width: 32mm; height: 32mm; }
+}
+
+
+/* ============================================================
+   SIGNATURES: two script-style signatures (Founder + Academic Head)
+   ============================================================ */
+.signature-space { display: flex; align-items: flex-end; justify-content: center; height: 10mm; }
+.signature-script {
+  font-family: "Great Vibes", "Allura", "Segoe Script", "Brush Script MT", cursive;
+  font-size: 20px; line-height: 1; color: var(--navy); white-space: nowrap;
+}
+.signature-box strong { font-size: 9px; letter-spacing: .5px; }
+.signature-box span { color: var(--ink); font-size: 8px; }
+
+@media screen and (min-width: 801px), print {
+  /* both boxes share the "sign" cell, to the right of the centre seal */
+  .signature-box { width: 57mm; }
+  .signature-box:first-child { justify-self: start; margin-left: 44mm; }
+  .signature-box + .signature-box { justify-self: end; margin-left: 0; }
 }
