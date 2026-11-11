@@ -692,4 +692,4 @@
     startApplication();
   }
 
-})();
+}
