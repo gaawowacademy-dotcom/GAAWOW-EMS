@@ -1,7 +1,8 @@
+
 /* ============================================================
    GAAWOW ACADEMY EMS
    AUTHENTICATION LETTER
-   VERSION: 20261110-8
+   VERSION: 20261111-1
 
    Supports:
    ?code=VERIFICATION_CODE
@@ -26,11 +27,8 @@
   const SUPABASE_KEY =
     "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-  const RPC_NAME =
-    "verify_authentication_letter";
-
-  const CODE_RPC_NAME =
-    "get_authentication_letter_code";
+  const RPC_NAME = "verify_authentication_letter";
+  const CODE_RPC_NAME = "get_authentication_letter_code";
 
   let db = null;
   let verifiedRecord = null;
@@ -145,8 +143,6 @@
       return "";
     };
 
-    const regen = firstValue("regen");
-
     return {
       code: firstValue(
         "code",
@@ -163,7 +159,7 @@
         "reference_no"
       ),
 
-      regen: regen
+      regen: firstValue("regen")
     };
   }
 
@@ -243,9 +239,7 @@
     let verificationCode = params.code;
     let recordId = params.id;
 
-    // REGEN MODE:
-    // authentication-letter.html?regen=CERTIFICATE_UUID
-
+    // REGEN MODE
     if (params.regen) {
       recordId = params.regen;
 
@@ -271,7 +265,10 @@
     );
 
     if (error) {
-      console.error("Supabase verification RPC:", error);
+      console.error(
+        "Supabase verification RPC:",
+        error
+      );
 
       throw new Error(
         "Supabase verification error: " +
@@ -520,7 +517,11 @@
 
         td.textContent = String(value);
 
-        if (index === 1 || index === 2 || index === 3) {
+        if (
+          index === 1 ||
+          index === 2 ||
+          index === 3
+        ) {
           td.classList.add("score");
         }
 
@@ -692,4 +693,4 @@
     startApplication();
   }
 
-}
+})(); // END APPLICATION
