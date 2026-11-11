@@ -1,696 +1,472 @@
-
 /* ============================================================
-   GAAWOW ACADEMY EMS
-   AUTHENTICATION LETTER
-   VERSION: 20261110-8
+   GAAWOW ACADEMY EMS - AUTHENTICATION LETTER
+   VERSION 20261110-15  |  A4 LANDSCAPE (297mm x 210mm)
+   Complete stylesheet. Replace the whole old file with this one.
+   Uses only the classes and IDs that exist in authentication-letter.html.
 
-   Supports:
-   ?code=VERIFICATION_CODE
-   ?code=VERIFICATION_CODE&id=CERTIFICATE_UUID
-   ?regen=CERTIFICATE_UUID
-
-   SECURITY:
-   Uses Supabase RPC functions only.
-   NEVER reads certificates table directly.
+   NOTE ON LAYOUT: the sections are placed on the landscape grid by their
+   position inside <main class="page"> (section 3 = Student, 4 = Period,
+   5 = Results, 6 = Authentication, 7 = Declaration, 8 = Signature).
+   If you ever add or remove a <section>, update the grid-area rules below.
    ============================================================ */
 
-(() => {
-  "use strict";
+:root {
+  --navy: #0B1E63;
+  --royal: #0B4DA2;
+  --gold: #D4AF37;
+  --gold-dark: #9B791B;
+  --white: #FFFFFF;
+  --gray: #F5F7FA;
+  --ink: #17233D;
+  --muted: #5E6B82;
+  --line: #D9E1EF;
+  --success: #137A48;
+  --danger: #B42318;
+  --warn: #B25E09;
+  --shadow: 0 24px 70px rgba(10, 30, 75, .16);
+  --serif: Georgia, "Times New Roman", serif;
+  --sans: Inter, Arial, Helvetica, sans-serif;
+}
 
-  // ==========================================================
-  // 1. SUPABASE CONFIGURATION
-  // ==========================================================
+* { box-sizing: border-box; }
 
-  const SUPABASE_URL =
-    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+html, body { margin: 0; min-height: 100%; font-family: var(--sans); color: var(--ink); }
+body { background: #E9EEF6; -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
 
-  const SUPABASE_KEY =
-    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+/* ---------- Screen control bar ---------- */
+.control-bar {
+  position: sticky; top: 0; z-index: 50; min-height: 60px;
+  padding: 10px clamp(14px, 3vw, 34px);
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  background: var(--navy); border-bottom: 2px solid var(--gold);
+}
+.control-brand { display: flex; align-items: center; gap: 11px; color: #fff; font-size: 13px; font-weight: 700; letter-spacing: .7px; }
+.control-brand img { width: 38px; height: 38px; object-fit: contain; border-radius: 50%; background: #fff; padding: 3px; }
+.print-button {
+  border: 1px solid var(--gold); border-radius: 999px; padding: 10px 20px;
+  background: var(--gold); color: var(--navy); font-weight: 800; font-size: 12px; cursor: pointer;
+}
+.print-button:hover { filter: brightness(1.06); }
+.button-icon { margin-right: 7px; }
 
-  const RPC_NAME =
-    "verify_authentication_letter";
+/* ---------- Loading and error ---------- */
+.state-screen { min-height: calc(100vh - 60px); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.loader-card, .error-card { width: min(470px, 100%); padding: 34px; border: 1px solid var(--line); border-radius: 10px; background: #fff; text-align: center; box-shadow: var(--shadow); }
+.loader-card h2, .error-card h2 { margin: 16px 0 8px; color: var(--navy); font-size: 20px; }
+.loader-card p, .error-card p { color: var(--muted); font-size: 13px; line-height: 1.65; }
+.loader-card small { color: var(--gold-dark); font-weight: 800; letter-spacing: 1px; }
+.spinner { width: 46px; height: 46px; margin: auto; border: 4px solid #E7ECF4; border-top-color: var(--gold); border-radius: 50%; animation: spin .85s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-icon { width: 52px; height: 52px; margin: auto; display: grid; place-items: center; border-radius: 50%; background: #FEE4E2; color: var(--danger); font-size: 27px; font-weight: 900; }
+#errorDetails { max-height: 170px; overflow: auto; text-align: left; white-space: pre-wrap; background: var(--gray); border: 1px solid var(--line); border-radius: 6px; padding: 12px; font-size: 11px; color: #475467; }
+.retry-button { margin-top: 14px; padding: 11px 20px; border: 0; border-radius: 6px; background: var(--navy); color: #fff; font-weight: 800; cursor: pointer; }
 
-  const CODE_RPC_NAME =
-    "get_authentication_letter_code";
+/* ============================================================
+   DOCUMENT SHEET - BASE (mobile first: single column)
+   ============================================================ */
+.page {
+  position: relative; isolation: isolate;
+  display: flex; flex-direction: column; gap: 10px;
+  width: 100%; margin: 0 auto; padding: 0 12px 0;
+  background: var(--white); overflow: hidden;
+}
+.page::before { display: none; }
+.page-border { display: none; }
 
-  let db = null;
-  let verifiedRecord = null;
-  let loading = false;
+.document-watermark { position: absolute; inset: 0; z-index: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; pointer-events: none; }
+.document-watermark img { width: 70%; max-width: 105mm; height: auto; aspect-ratio: 1; object-fit: contain; opacity: .05; }
 
-  // ==========================================================
-  // 2. HTML ELEMENTS
-  // ==========================================================
+.document-header, .document-title, .top-status, .document-section,
+.declaration-section, .signature-section, .document-footer, .security-strip { position: relative; z-index: 2; }
 
-  const el = (id) => document.getElementById(id);
+/* ---------- Header ---------- */
+.document-header {
+  display: grid; grid-template-columns: 22mm 1fr; align-items: center; gap: 4mm;
+  margin: 0 -12px; padding: 4mm 5mm;
+  background: var(--navy); border-bottom: 1mm solid var(--gold); color: #fff;
+}
+.document-header::after { display: none; }
+.header-logo { display: flex; align-items: center; justify-content: center; }
+.header-logo img { width: 20mm; height: 20mm; object-fit: contain; }
+.header-main { text-align: left; }
+.academy-name { color: #fff; font-family: var(--serif); font-size: clamp(18px, 6vw, 26px); font-weight: 700; letter-spacing: 1.6px; line-height: 1.1; }
+.academy-motto { margin-top: 3px; color: var(--gold); font-family: var(--serif); font-size: clamp(11px, 3.4vw, 14px); font-style: italic; letter-spacing: .5px; }
+.academy-location { display: none; } /* location is shown in the footer */
+.header-seal { display: none; }       /* legacy GA/OFFICIAL badge is replaced by the tagline on landscape */
 
-  function setText(id, value, fallback = "N/A") {
-    const node = el(id);
-    if (!node) return;
+/* ---------- Title ---------- */
+.document-title { text-align: center; padding: 1mm 0; }
+.gold-line { height: 1px; width: 34mm; margin: 0 auto 1mm; background: var(--gold); }
+.document-title .gold-line:last-child { margin: 1mm auto 0; }
+.document-title h1 { margin: 0; color: var(--navy); font-family: var(--serif); font-size: clamp(16px, 5vw, 22px); font-weight: 700; letter-spacing: 2px; }
+.document-title h2 { margin: 3px 0 0; color: var(--royal); font-size: 10px; font-weight: 700; letter-spacing: 1.6px; }
 
-    const valid =
-      value !== null &&
-      value !== undefined &&
-      String(value).trim() !== "";
+/* ---------- Status ---------- */
+.top-status { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.status-label { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: var(--muted); }
+.status-badge {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 26mm;
+  padding: 4px 14px; border: 1px solid var(--success); border-radius: 999px;
+  background: #EAF6EF; color: var(--success); font-size: 11px; font-weight: 800; letter-spacing: 1px;
+}
+.status-badge.pending { border-color: var(--warn); background: #FFF4E5; color: var(--warn); }
+.status-badge.expired, .status-badge.revoked, .status-badge.invalid { border-color: var(--danger); background: #FEF0EE; color: var(--danger); }
 
-    node.textContent = valid ? String(value) : fallback;
+/* ---------- Section cards ---------- */
+.document-section {
+  border: 1px solid var(--line); border-radius: 3px; background: rgba(255, 255, 255, .94);
+  overflow: hidden; break-inside: avoid; page-break-inside: avoid;
+}
+.section-heading {
+  display: flex; align-items: center; gap: 8px; padding: 5px 10px;
+  background: var(--gray); border-bottom: 1px solid var(--line); border-left: 3px solid var(--gold);
+}
+.section-number {
+  flex: 0 0 22px; width: 22px; height: 22px; display: grid; place-items: center;
+  border-radius: 3px; background: var(--navy); color: #fff; font-size: 9.5px; font-weight: 800;
+}
+.section-heading h3 { margin: 0; color: var(--navy); font-size: 10.5px; font-weight: 800; letter-spacing: .8px; }
+.section-heading p { margin: 1px 0 0; color: var(--muted); font-size: 7.5px; }
+
+/* ---------- Field boxes ---------- */
+.field-box {
+  min-height: 9.5mm; padding: 4px 9px;
+  display: flex; flex-direction: column; justify-content: center; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 3px; background: #fff;
+}
+.field-wide { grid-column: 1 / -1; }
+.field-label { display: block; margin-bottom: 2px; color: var(--muted); font-size: 7px; font-weight: 700; letter-spacing: .7px; }
+.field-box strong { color: var(--navy); font-size: 10.5px; font-weight: 800; line-height: 1.3; overflow-wrap: anywhere; }
+
+/* ---------- 01 Student ---------- */
+.student-layout { display: grid; grid-template-columns: 1fr; gap: 4mm; padding: 3mm 4mm; }
+.student-photo-wrapper { text-align: center; }
+.photo-frame {
+  width: 24mm; height: 30mm; margin: 0 auto; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; border: 1.5px solid var(--gold); background: var(--gray);
+}
+.photo-frame img { width: 100%; height: 100%; object-fit: cover; display: none; }
+.photo-placeholder { color: var(--navy); font-size: 20px; font-weight: 800; }
+.photo-caption { width: 24mm; margin: 0 auto; padding: 2px 0; background: var(--navy); color: #fff; font-size: 7.5px; font-weight: 800; letter-spacing: 1px; }
+.student-fields { display: grid; grid-template-columns: 1fr; gap: 5px; align-content: start; }
+
+/* ---------- 02 Dates ---------- */
+.date-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 3mm 4mm; }
+
+/* ---------- 03 Results (6 columns) ---------- */
+.results-container { width: 100%; min-width: 0; padding: 3mm 4mm; }
+.results-loading, .results-empty, .no-results { text-align: center; padding: 10px; color: var(--muted); font-size: 10px; }
+.results-empty, .no-results { border: 1px dashed var(--line); background: var(--gray); }
+.results-table-wrapper {
+  width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden;
+  -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--gold) #EDF1F7;
+  border: 1px solid var(--line); border-radius: 3px;
+}
+.results-table { width: 100%; min-width: 620px; table-layout: fixed; border-collapse: collapse; font-size: 11px; }
+.results-table th {
+  padding: 7px 8px; background: var(--navy); color: #fff; text-align: center;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .6px; border-right: 1px solid rgba(255, 255, 255, .15);
+}
+.results-table th:last-child { border-right: 0; }
+.results-table td {
+  padding: 6px 8px; vertical-align: middle; overflow-wrap: anywhere; line-height: 1.3;
+  color: #28344A; background: #fff; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line);
+}
+.results-table td:last-child { border-right: 0; }
+.results-table tbody tr:nth-child(even) td { background: var(--gray); }
+.results-table tbody tr:last-child td { border-bottom: 0; }
+.results-table th:nth-child(1), .results-table td:nth-child(1) { width: 26%; text-align: left; }
+.results-table th:nth-child(2), .results-table td:nth-child(2) { width: 11%; text-align: center; }
+.results-table th:nth-child(3), .results-table td:nth-child(3) { width: 13%; text-align: center; }
+.results-table th:nth-child(4), .results-table td:nth-child(4) { width: 15%; text-align: center; }
+.results-table th:nth-child(5), .results-table td:nth-child(5) { width: 10%; text-align: center; }
+.results-table th:nth-child(6), .results-table td:nth-child(6) { width: 25%; text-align: left; }
+.results-table th:nth-child(1), .results-table th:nth-child(6) { text-align: left; }
+.results-table .score { font-weight: 700; color: var(--navy); }
+.results-table .grade { font-weight: 800; color: var(--gold-dark); }
+.results-total-row td, .results-percentage-row td { background: #EAF0FA !important; color: var(--navy); font-weight: 800; }
+
+/* ---------- 04 Authentication ---------- */
+.authentication-layout { display: grid; grid-template-columns: 1fr; gap: 4mm; padding: 3mm 4mm; }
+.authentication-fields { display: grid; grid-template-columns: 1fr; gap: 5px; align-content: start; }
+.qr-wrapper {
+  min-height: 31mm; padding: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 1px solid var(--gold); border-radius: 3px; background: #fff;
+}
+.qrcode { width: 22mm; height: 22mm; display: flex; align-items: center; justify-content: center; }
+.qrcode img, .qrcode canvas { width: 22mm !important; height: 22mm !important; }
+.qr-label { margin-top: 3px; color: var(--navy); font-size: 8px; font-weight: 800; letter-spacing: .8px; }
+.qr-subtitle { margin-top: 1px; color: var(--muted); font-size: 6.5px; }
+
+/* ---------- Declaration ---------- */
+.declaration-section {
+  padding: 3mm 4mm; background: var(--gray); border: 1px solid var(--line);
+  border-left: 3px solid var(--gold); border-radius: 3px; break-inside: avoid; page-break-inside: avoid;
+}
+.declaration-title { margin-bottom: 3px; color: var(--navy); font-size: 9.5px; font-weight: 800; letter-spacing: .9px; }
+.declaration-section p { margin: 2px 0; color: #3A4660; font-size: 8.5px; line-height: 1.45; text-align: left; }
+
+/* ---------- Signature and stamp ---------- */
+.signature-section {
+  display: grid; grid-template-columns: 1fr; gap: 4mm; align-items: end; justify-items: center;
+  padding: 2mm 4mm; break-inside: avoid; page-break-inside: avoid;
+}
+.signature-box { width: 66mm; max-width: 100%; text-align: center; }
+.signature-space { height: 9mm; }
+.signature-line { height: 1px; margin-bottom: 4px; background: var(--navy); }
+.signature-box strong { display: block; color: var(--navy); font-size: 9.5px; }
+.signature-box span { display: block; margin-top: 2px; color: var(--muted); font-size: 7.5px; }
+.official-stamp { display: flex; justify-content: center; align-items: center; }
+.stamp-circle {
+  width: 22mm; height: 22mm; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 2px double var(--gold); border-radius: 50%; background: #FFFDF4; color: var(--navy);
+  text-align: center; transform: rotate(-4deg);
+}
+.stamp-circle strong { font-family: var(--serif); font-size: 15px; font-weight: 700; line-height: 1; }
+.stamp-circle span { font-size: 6px; font-weight: 800; letter-spacing: .9px; line-height: 1.25; }
+.stamp-circle small { margin-top: 1px; font-size: 5px; font-weight: 800; letter-spacing: 1px; color: var(--gold-dark); }
+.stamp-circle.gaawow-official-stamp { position: relative; isolation: isolate; }
+.official-stamp-logo { position: relative; z-index: 1; width: 57%; height: 57%; object-fit: contain; }
+.official-stamp-label { position: relative; z-index: 1; color: var(--gold-dark); font-family: var(--serif); font-size: 6px; font-weight: 800; letter-spacing: 1px; }
+
+/* ---- Premium gold institutional seal (inline SVG inside .stamp-circle.gaawow-official-stamp) ---- */
+.official-stamp { position: relative; z-index: 3; }
+.stamp-circle.gaawow-official-stamp {
+  display: block; width: 30mm; height: 30mm; padding: 0; border: 0; border-radius: 0;
+  background: none; transform: none; position: relative; isolation: isolate;
+  filter: drop-shadow(0 1.2px 1.6px rgba(92, 67, 7, .45));
+}
+.stamp-circle.gaawow-official-stamp svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* ---------- Footer ---------- */
+.document-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2.5mm 2mm;
+  border-top: 1px solid var(--navy); flex-direction: column; text-align: center;
+}
+.footer-main { display: flex; flex-direction: column; gap: 1px; }
+.footer-main strong { color: var(--navy); font-size: 9px; letter-spacing: .8px; }
+.footer-main span { color: var(--gold-dark); font-family: var(--serif); font-style: italic; font-size: 8.5px; }
+.footer-contact { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px 10px; color: var(--ink); font-size: 8px; font-weight: 600; }
+
+.security-strip {
+  margin: 0 -12px; padding: 5px 8px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 3px 8px;
+  background: var(--navy); border-top: 1mm solid var(--gold); color: #DCE4FA; font-size: 7px; font-weight: 700; letter-spacing: .9px;
+}
+.security-strip i { color: var(--gold); font-style: normal; }
+.security-strip::after { content: "Education Today\2026  A Better Tomorrow"; flex-basis: 100%; text-align: center; color: #fff; font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 9px; letter-spacing: .4px; }
+
+/* ---------- Hidden legacy fields (kept) ---------- */
+.founder-location, .g-founder-location, .scc-location, #founderLocation, #gFounderLocation,
+#g-founder-location, #sccLocation, #scc-location, [data-field="founder-location"],
+[data-field="g-founder-location"], [data-field="scc-location"] { display: none !important; }
+
+/* ============================================================
+   MOBILE: results table scrolls sideways (min-width on table)
+   ============================================================ */
+@media screen and (max-width: 800px) {
+  .control-bar { position: relative; flex-direction: column; align-items: stretch; padding: 10px; }
+  .control-brand { justify-content: center; }
+  .print-button { width: 100%; }
+  .field-wide { grid-column: auto; }
+  .qr-wrapper { width: 44mm; margin: 0 auto; }
+}
+
+/* ============================================================
+   A4 LANDSCAPE GRID (desktop screen + print)
+   ============================================================ */
+@media screen and (min-width: 801px), print {
+  .page {
+    display: grid; width: 297mm; min-height: 210mm; margin: 24px auto; padding: 0 9mm;
+    grid-template-columns: 112mm 1fr; column-gap: 5mm; row-gap: 3mm; align-content: stretch;
+    grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "head  head"
+      "title title"
+      "stu   res"
+      "per   res"
+      "auth  decl"
+      "sign  sign"
+      "foot  foot"
+      "foot  foot"
+      "strip strip";
+    box-shadow: var(--shadow);
+  }
+  .document-watermark img { width: 105mm; max-width: none; }
+
+  /* Header */
+  .document-header {
+    grid-area: head; margin: 0 -9mm; padding: 3mm 12mm;
+    grid-template-columns: 21mm 1fr auto; gap: 6mm;
+  }
+  .header-logo img { width: 18mm; height: 18mm; }
+  .academy-name { font-size: 26px; letter-spacing: 2.4px; }
+  .academy-motto { font-size: 13px; letter-spacing: .8px; }
+  .header-seal {
+    display: block; width: auto; height: auto; border: 0; background: none; box-shadow: none;
+    overflow: visible; text-align: right; font-size: 0; line-height: 0;
+  }
+  .header-seal * { display: none; }
+  .header-seal::before {
+    content: "Knowledge \2022  Skills \2022  Excellence";
+    font-family: var(--serif); font-style: italic; font-size: 13px; line-height: 1.3; color: #fff;
   }
 
-  function hide(id) {
-    const node = el(id);
-    if (node) node.hidden = true;
+  /* Title + status share one row */
+  .document-title { grid-area: title; padding: 0; }
+  .document-title h1 { font-size: 20px; }
+  .top-status { grid-area: title; justify-self: end; align-self: center; }
+
+  /* Sections placed by position inside <main> */
+  .page > section:nth-of-type(3) { grid-area: stu; }
+  .page > section:nth-of-type(4) { grid-area: per; }
+  .page > section:nth-of-type(5) { grid-area: res; }
+  .page > section:nth-of-type(6) { grid-area: auth; }
+  .page > section:nth-of-type(7) { grid-area: decl; }
+  /* section 8 (signature) uses display:contents below, so its two children are placed separately */
+
+  .student-layout { grid-template-columns: 27mm 1fr; padding: 3mm 4mm; }
+  .student-fields { grid-template-columns: 1fr 1fr; }
+  .field-wide { grid-column: 1 / -1; }
+  .date-grid { grid-template-columns: 1fr 1fr; }
+
+  .results-container { padding: 3mm 4mm; }
+  .results-table { min-width: 0; font-size: 9.5px; }
+  .results-table th { padding: 5px 6px; font-size: 8px; }
+  .results-table td { padding: 4px 6px; }
+  .results-table-wrapper { overflow: visible; }
+
+  .authentication-layout { grid-template-columns: 1fr 30mm; padding: 3mm 4mm; }
+  .qr-wrapper { width: auto; margin: 0; }
+
+  .signature-section { display: contents; }
+  .signature-box { grid-area: sign; justify-self: end; align-self: end; width: 70mm; position: relative; z-index: 2; }
+  /* Official seal: bottom centre of the sheet, above the footer line, clear of every text block */
+  .official-stamp { grid-column: 1 / -1; grid-row: 6 / 9; justify-self: center; align-self: end; width: 30mm; }
+
+  .document-footer { grid-area: foot; align-self: end; flex-direction: row; text-align: left; padding: 2mm 2mm; }
+  .footer-contact { justify-content: flex-end; flex-wrap: nowrap; white-space: nowrap; }
+  .security-strip { grid-area: strip; margin: 0 -9mm; flex-wrap: nowrap; padding: 4px 12mm; justify-content: center; }
+  .security-strip::after { flex-basis: auto; margin-left: 8px; font-size: 9px; }
+}
+
+/* Narrow laptops: scale the A4 sheet down so it never scrolls sideways */
+@media screen and (min-width: 801px) and (max-width: 1160px) { .page { zoom: .9; } }
+@media screen and (min-width: 801px) and (max-width: 1010px) { .page { zoom: .78; } }
+@media screen and (min-width: 801px) and (max-width: 900px)  { .page { zoom: .7; } }
+
+/* ============================================================
+   PRINT - A4 LANDSCAPE, ONE PAGE
+   ============================================================ */
+@media print {
+  @page { size: A4 landscape; margin: 0; }
+
+  html, body { width: 297mm !important; height: 210mm !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  .control-bar, .state-screen { display: none !important; }
+
+  .page {
+    width: 297mm !important; height: 210mm !important; min-height: 210mm !important;
+    margin: 0 !important; zoom: 1 !important; box-shadow: none !important; border-radius: 0 !important;
+    overflow: hidden !important; break-after: avoid; page-break-after: avoid;
   }
-
-  function show(id) {
-    const node = el(id);
-    if (node) node.hidden = false;
-  }
-
-  // ==========================================================
-  // 3. DATE FORMAT
-  // ==========================================================
-
-  function formatDate(value) {
-    if (!value) return "N/A";
-
-    const date = new Date(
-      String(value).substring(0, 10) + "T00:00:00"
-    );
-
-    if (Number.isNaN(date.getTime())) {
-      return String(value);
-    }
-
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric"
-    });
-  }
-
-  function setDate(id, value) {
-    setText(id, formatDate(value));
-  }
-
-  // ==========================================================
-  // 4. PAGE STATES
-  // ==========================================================
-
-  function showLoading() {
-    show("loading");
-    hide("errorState");
-    hide("authenticationLetter");
-  }
-
-  function hideLoading() {
-    hide("loading");
-  }
-
-  function showError(message, details = "") {
-    hideLoading();
-    hide("authenticationLetter");
-    show("errorState");
-
-    setText("errorMessage", message);
-
-    const detailNode = el("errorDetails");
-
-    if (detailNode) {
-      detailNode.textContent = details;
-    }
-  }
-
-  function showDocument() {
-    hideLoading();
-    hide("errorState");
-    show("authenticationLetter");
-  }
-
-  // ==========================================================
-  // 5. READ URL PARAMETERS
-  // ==========================================================
-
-  function getVerificationParameters() {
-    const params = new URLSearchParams(
-      window.location.search
-    );
-
-    const firstValue = (...names) => {
-      for (const name of names) {
-        const value = params.get(name);
-
-        if (value && value.trim()) {
-          return value.trim();
-        }
-      }
-
-      return "";
-    };
-
-    const regen = firstValue("regen");
-
-    return {
-      code: firstValue(
-        "code",
-        "verification_code",
-        "verify_code",
-        "vc"
-      ),
-
-      id: firstValue(
-        "id",
-        "authentication_id",
-        "record_id",
-        "certificate_id",
-        "reference_no"
-      ),
-
-      regen: regen
-    };
-  }
-
-  // ==========================================================
-  // 6. INITIALIZE SUPABASE
-  // ==========================================================
-
-  function initializeSupabase() {
-    if (!window.supabase) {
-      throw new Error(
-        "Supabase JavaScript library lama soo gelin. " +
-        "Hubi Supabase CDN ee HTML."
-      );
-    }
-
-    if (
-      !SUPABASE_KEY ||
-      SUPABASE_KEY.includes("PASTE_YOUR")
-    ) {
-      throw new Error(
-        "Supabase publishable key lama gelin."
-      );
-    }
-
-    if (!db) {
-      db = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY
-      );
-    }
-
-    return db;
-  }
-
-  // ==========================================================
-  // 7. GET CODE FOR REGEN UUID
-  // ==========================================================
-
-  async function getCodeFromRegen(client, certificateId) {
-    const { data, error } = await client.rpc(
-      CODE_RPC_NAME,
-      {
-        p_certificate_id: certificateId
-      }
-    );
-
-    if (error) {
-      console.error("Authentication code RPC:", error);
-
-      throw new Error(
-        "Verification code lagama heli karin: " +
-        error.message
-      );
-    }
-
-    if (
-      typeof data !== "string" ||
-      !data.trim()
-    ) {
-      throw new Error(
-        "Certificate UUID sax ah lama helin, " +
-        "ama certificate-ku ma aha mid valid ah."
-      );
-    }
-
-    return data.trim();
-  }
-
-  // ==========================================================
-  // 8. SECURE RPC VERIFICATION
-  // ==========================================================
-
-  async function getCertificate() {
-    const params = getVerificationParameters();
-    const client = initializeSupabase();
-
-    let verificationCode = params.code;
-    let recordId = params.id;
-
-    // REGEN MODE:
-    // authentication-letter.html?regen=CERTIFICATE_UUID
-
-    if (params.regen) {
-      recordId = params.regen;
-
-      verificationCode = await getCodeFromRegen(
-        client,
-        params.regen
-      );
-    }
-
-    if (!verificationCode) {
-      throw new Error(
-        "Verification code kuma jiro link-ga. " +
-        "Fadlan fur link-ga rasmiga ah ee xaqiijinta."
-      );
-    }
-
-    const { data, error } = await client.rpc(
-      RPC_NAME,
-      {
-        p_code: verificationCode,
-        p_id: recordId || null
-      }
-    );
-
-    if (error) {
-      console.error("Supabase verification RPC:", error);
-
-      throw new Error(
-        "Supabase verification error: " +
-        error.message
-      );
-    }
-
-    if (!Array.isArray(data) || data.length === 0) {
-      throw new Error(
-        "Shahaadada lama helin. " +
-        "Verification code ama Authentication ID waa khaldan yahay."
-      );
-    }
-
-    return data[0];
-  }
-
-  // ==========================================================
-  // 9. STUDENT PHOTO
-  // ==========================================================
-
-  function renderPhoto(record) {
-    const photo = el("studentPhoto");
-    const placeholder = el("photoPlaceholder");
-
-    if (!photo) return;
-
-    const url = record.student_photo_url;
-
-    if (!url) {
-      photo.removeAttribute("src");
-      photo.style.display = "none";
-
-      if (placeholder) {
-        placeholder.style.display = "grid";
-      }
-
-      return;
-    }
-
-    photo.onload = () => {
-      photo.style.display = "block";
-
-      if (placeholder) {
-        placeholder.style.display = "none";
-      }
-    };
-
-    photo.onerror = () => {
-      photo.style.display = "none";
-
-      if (placeholder) {
-        placeholder.style.display = "grid";
-      }
-    };
-
-    photo.src = url;
-  }
-
-  // ==========================================================
-  // 10. STUDENT INFORMATION
-  // ==========================================================
-
-  function renderStudent(record) {
-    setText("studentName", record.student_name);
-    setText("courseName", record.course_name);
-
-    setDate("dateStarted", record.date_started);
-    setDate("dateCompleted", record.date_completed);
-
-    setDate("startDate", record.date_started);
-    setDate("completionDate", record.date_completed);
-
-    setDate("issueDate", record.issue_date);
-    setDate("expiryDate", record.expiry_date);
-
-    renderPhoto(record);
-  }
-
-  // ==========================================================
-  // 11. DOCUMENT STATUS
-  // ==========================================================
-
-  function renderStatus(record) {
-    const statusNode = el("status");
-
-    const status = String(
-      record.status || "unknown"
-    ).trim().toLowerCase();
-
-    const labels = {
-      valid: "VALID",
-      graduated: "GRADUATED",
-      pending: "PENDING",
-      expired: "EXPIRED",
-      revoked: "REVOKED"
-    };
-
-    setText(
-      "status",
-      labels[status] || status.toUpperCase()
-    );
-
-    if (!statusNode) return;
-
-    statusNode.classList.remove(
-      "valid",
-      "invalid",
-      "pending",
-      "expired",
-      "revoked"
-    );
-
-    if (
-      status === "valid" ||
-      status === "graduated"
-    ) {
-      statusNode.classList.add("valid");
-
-    } else if (status === "pending") {
-      statusNode.classList.add("pending");
-
-    } else {
-      statusNode.classList.add(
-        status === "expired" ? "expired" : "revoked"
-      );
-    }
-  }
-
-  // ==========================================================
-  // 12. ACADEMIC RESULTS
-  // ==========================================================
-
-  function getValue(item, keys) {
-    for (const key of keys) {
-      if (
-        item[key] !== undefined &&
-        item[key] !== null &&
-        String(item[key]).trim() !== ""
-      ) {
-        return item[key];
-      }
-    }
-
-    return "—";
-  }
-
-  function renderResults(record) {
-    const container = el("academicResults");
-    if (!container) return;
-
-    container.replaceChildren();
-
-    const results = Array.isArray(record.academic_results)
-      ? record.academic_results
-      : [];
-
-    if (results.length === 0) {
-      const message = document.createElement("div");
-
-      message.className = "results-empty";
-      message.textContent =
-        "No published academic results available.";
-
-      container.appendChild(message);
-      return;
-    }
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "results-table-wrapper";
-
-    const table = document.createElement("table");
-    table.className = "results-table";
-
-    const columns = [
-      {
-        label: "SUBJECT",
-        keys: [
-          "subject_name",
-          "subject",
-          "course_name",
-          "name"
-        ]
-      },
-      {
-        label: "SCORE",
-        keys: [
-          "score",
-          "marks",
-          "total_score",
-          "obtained_marks"
-        ]
-      },
-      {
-        label: "MAX SCORE",
-        keys: [
-          "max_score",
-          "maximum_score",
-          "total_max_score"
-        ]
-      },
-      {
-        label: "PERCENTAGE",
-        keys: [
-          "percentage",
-          "score_percentage"
-        ]
-      },
-      {
-        label: "GRADE",
-        keys: [
-          "grade",
-          "overall_grade"
-        ]
-      },
-      {
-        label: "REMARKS",
-        keys: [
-          "remarks",
-          "result",
-          "status",
-          "final_result"
-        ]
-      }
-    ];
-
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
-
-    columns.forEach((column) => {
-      const th = document.createElement("th");
-      th.textContent = column.label;
-      headerRow.appendChild(th);
-    });
-
-    thead.appendChild(headerRow);
-
-    const tbody = document.createElement("tbody");
-
-    results.forEach((item) => {
-      const row = document.createElement("tr");
-
-      columns.forEach((column, index) => {
-        const td = document.createElement("td");
-        const value = getValue(item, column.keys);
-
-        td.textContent = String(value);
-
-        if (index === 1 || index === 2 || index === 3) {
-          td.classList.add("score");
-        }
-
-        if (index === 4) {
-          td.classList.add("grade");
-        }
-
-        row.appendChild(td);
-      });
-
-      tbody.appendChild(row);
-    });
-
-    table.appendChild(thead);
-    table.appendChild(tbody);
-
-    wrapper.appendChild(table);
-    container.appendChild(wrapper);
-  }
-
-  // ==========================================================
-  // 13. VERIFICATION INFORMATION
-  // ==========================================================
-
-  function renderAuthentication(record) {
-    setText("referenceNo", record.reference_no);
-    setText("authenticationId", record.authentication_id);
-    setText("verificationCode", record.verification_code);
-
-    const qrContainer = el("qrcode");
-    if (!qrContainer) return;
-
-    qrContainer.replaceChildren();
-
-    const verificationUrl =
-      record.verification_url ||
-      window.location.href;
-
-    if (!window.QRCode) {
-      console.warn("QRCode library is not loaded.");
-      return;
-    }
-
-    new window.QRCode(qrContainer, {
-      text: verificationUrl,
-      width: 120,
-      height: 120,
-      colorDark: "#0B1E63",
-      colorLight: "#FFFFFF",
-      correctLevel: window.QRCode.CorrectLevel.M
-    });
-  }
-
-  // ==========================================================
-  // 14. COMPLETE DOCUMENT
-  // ==========================================================
-
-  function renderDocument(record) {
-    if (!record || !record.verification_code) {
-      throw new Error(
-        "Verification record is incomplete."
-      );
-    }
-
-    verifiedRecord = record;
-
-    renderStudent(record);
-    renderStatus(record);
-    renderResults(record);
-    renderAuthentication(record);
-
-    showDocument();
-
-    console.log(
-      "GAAWOW EMS: Authentication Letter loaded.",
-      record.reference_no
-    );
-  }
-
-  // ==========================================================
-  // 15. LOAD DOCUMENT
-  // ==========================================================
-
-  async function loadAuthenticationLetter() {
-    if (loading) return;
-
-    loading = true;
-    verifiedRecord = null;
-
-    showLoading();
-
-    try {
-      const record = await getCertificate();
-      renderDocument(record);
-
-    } catch (error) {
-      console.error(
-        "GAAWOW Authentication Letter:",
-        error
-      );
-
-      showError(
-        "Certificate record lama akhrin karin",
-        error.message
-      );
-
-    } finally {
-      loading = false;
-    }
-  }
-
-  // ==========================================================
-  // 16. PRINT / SAVE PDF
-  // ==========================================================
-
-  function printDocument() {
-    if (!verifiedRecord) {
-      alert(
-        "Please verify the authentication letter first."
-      );
-      return;
-    }
-
-    window.print();
-  }
-
-  // ==========================================================
-  // 17. EVENT LISTENERS
-  // ==========================================================
-
-  function initializeEvents() {
-    const printButton = el("printButton");
-    const retryButton = el("retryButton");
-
-    if (printButton) {
-      printButton.addEventListener(
-        "click",
-        printDocument
-      );
-    }
-
-    if (retryButton) {
-      retryButton.addEventListener(
-        "click",
-        loadAuthenticationLetter
-      );
-    }
-  }
-
-  // ==========================================================
-  // 18. APPLICATION START
-  // ==========================================================
-
-  function startApplication() {
-    hide("authenticationLetter");
-
-    initializeEvents();
-    loadAuthenticationLetter();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener(
-      "DOMContentLoaded",
-      startApplication,
-      { once: true }
-    );
-
-  } else {
-    startApplication();
-  }
-
-})();
+  .document-section, .declaration-section, .signature-section { break-inside: avoid; page-break-inside: avoid; }
+  .results-table-wrapper { overflow: visible !important; }
+  .results-table { min-width: 0 !important; width: 100% !important; table-layout: fixed !important; }
+  .document-watermark { display: flex !important; }
+  .document-watermark img { opacity: .05 !important; }
+
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+
+
+/* ============================================================
+   FINAL DESIGN LAYER - matches the latest landscape reference
+   (centred header, light grey band, flat form-style sections,
+   grey footer bar, 3D gold seal at bottom centre).
+   This layer comes last on purpose so it overrides earlier rules.
+   ============================================================ */
+.page { background: linear-gradient(180deg, #F4F7FB 0, #FFFFFF 40mm); }
+
+/* Header: logo on top, name and motto centred */
+.document-header {
+  display: flex; flex-direction: column; align-items: center; gap: 1mm;
+  margin: 0 -12px; padding: 3mm 5mm 2.5mm;
+  background: var(--gray); border-bottom: 1px solid var(--line); color: var(--navy); text-align: center;
+}
+.header-logo img { width: 14mm; height: 14mm; object-fit: contain; filter: none; }
+.header-main { text-align: center; }
+.academy-name { color: var(--navy); font-family: var(--sans); font-size: clamp(17px, 5.4vw, 22px); font-weight: 800; letter-spacing: 1.2px; line-height: 1.1; }
+.academy-motto { margin-top: 2px; color: var(--gold-dark); font-family: var(--sans); font-style: normal; font-weight: 600; font-size: clamp(8px, 2.6vw, 9.5px); letter-spacing: 1.8px; text-transform: uppercase; }
+.academy-location { display: none; }
+.header-seal { display: none !important; }
+
+/* Title */
+.gold-line { display: none; }
+.document-title { padding: 0; }
+.document-title h1 { font-family: var(--sans); font-size: clamp(15px, 4.6vw, 19px); font-weight: 800; letter-spacing: 1.6px; color: var(--navy); }
+.document-title h2 { margin-top: 2px; font-size: 8px; letter-spacing: 2px; color: var(--royal); }
+
+/* Sections: flat, form-like (no cards) */
+.document-section { border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
+.section-heading { padding: 0 0 2px; margin: 0 4mm; background: none; border: 0; border-bottom: 1px solid var(--gold); }
+.section-number, .section-heading p { display: none; }
+.section-heading h3 { font-size: 10px; letter-spacing: 1px; }
+
+.field-box { min-height: 8mm; padding: 2px 2px 3px; background: none; border: 0; border-bottom: 1px dashed #B5C0D6; border-radius: 0; }
+.field-box strong { font-size: 10.5px; }
+.photo-frame { border: 1px solid #6B7894; background: #E9EDF3; }
+.results-table-wrapper { border: 1px solid #7F8CAD; border-radius: 0; }
+.results-table td { border-bottom-color: #B9C3DB; border-right-color: #B9C3DB; }
+.qr-wrapper { border: 1px solid var(--navy); border-radius: 0; }
+.declaration-section { background: rgba(245, 247, 250, .85); border: 0; border-left: 2px solid var(--gold); border-radius: 0; }
+
+/* Footer: grey bar, muted text */
+.document-footer { margin: 0 -12px; padding: 2.5mm 12px; background: #E9EDF2; border-top: 0; }
+.footer-main { flex-direction: row; align-items: baseline; gap: 6px; }
+.footer-main strong { color: var(--muted); font-weight: 600; font-size: 8px; letter-spacing: .3px; }
+.footer-main span { color: var(--muted); font-family: var(--sans); font-style: normal; font-size: 8px; }
+.footer-main span::before { content: "|\00a0 "; }
+.footer-contact { color: var(--muted); }
+.security-strip { border-top: 0; }
+
+/* Luxury gold seal: bigger, polished, subtle golden glow */
+.stamp-circle.gaawow-official-stamp {
+  width: 30mm; height: 30mm;
+  filter: drop-shadow(0 0 2.5px rgba(255, 208, 80, .5)) drop-shadow(0 1.5px 2px rgba(92, 67, 7, .5));
+}
+
+@media screen and (min-width: 801px), print {
+  .document-header { margin: 0 -9mm; padding: 2.5mm 12mm 2.5mm; gap: 1mm; }
+  .header-logo img { width: 15mm; height: 15mm; }
+  .academy-name { font-size: 22px; letter-spacing: 1.4px; }
+  .academy-motto { font-size: 9.5px; }
+  .document-title h1 { font-size: 19px; }
+  .document-footer { margin: 0 -9mm; padding: 2mm 9mm; }
+  .official-stamp { width: 32mm; }
+  .stamp-circle.gaawow-official-stamp { width: 32mm; height: 32mm; }
+}
+
+
+/* ============================================================
+   SIGNATURES: two script-style signatures (Founder + Academic Head)
+   ============================================================ */
+.signature-space { display: flex; align-items: flex-end; justify-content: center; height: 10mm; }
+.signature-script {
+  font-family: "Great Vibes", "Allura", "Segoe Script", "Brush Script MT", cursive;
+  font-size: 20px; line-height: 1; color: var(--navy); white-space: nowrap;
+}
+.signature-box strong { font-size: 9px; letter-spacing: .5px; }
+.signature-box span { color: var(--ink); font-size: 8px; }
+
+@media screen and (min-width: 801px), print {
+  /* Founder on the LEFT of the centre seal, Academic Head on the RIGHT.
+     Seal = 132.5mm to 164.5mm from the page edge (centred). */
+  .signature-box { grid-column: 1 / -1; grid-row: 6 / 8; align-self: end; width: 50mm; margin-bottom: 5mm; }
+  .signature-box:first-child { justify-self: start; margin-left: 51mm; }   /* starts at 60mm, ends 110mm (22mm clear of the seal) */
+  .signature-box + .signature-box { justify-self: start; margin-left: 178mm; } /* starts at 187mm, ends 237mm (22mm clear of the seal) */
+}
+
+/* Seal sits a little lower; signatures are lifted and spread so no line touches it */
+@media screen and (min-width: 801px), print {
+  .official-stamp { transform: translateY(2mm); }
+}
