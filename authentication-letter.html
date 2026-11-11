@@ -587,25 +587,110 @@
 
       <div class="official-stamp">
 
-        <div class="stamp-circle">
+  <div class="stamp-circle gaawow-official-stamp">
 
-          <strong>GA</strong>
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GAAWOW ACADEMY official seal - verified academic record">
+      <defs>
+        <radialGradient id="gsBody" cx="33%" cy="26%" r="90%">
+          <stop offset="0" stop-color="#FFF6C4"/>
+          <stop offset=".25" stop-color="#F0D064"/>
+          <stop offset=".55" stop-color="#CFA52E"/>
+          <stop offset=".85" stop-color="#9A7219"/>
+          <stop offset="1" stop-color="#7A5A12"/>
+        </radialGradient>
+        <linearGradient id="gsRim" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#FFF3B0"/>
+          <stop offset=".5" stop-color="#B8891F"/>
+          <stop offset="1" stop-color="#6E4F0F"/>
+        </linearGradient>
+        <linearGradient id="gsRimRev" x1="1" y1="1" x2="0" y2="0">
+          <stop offset="0" stop-color="#FFF3B0"/>
+          <stop offset=".5" stop-color="#B8891F"/>
+          <stop offset="1" stop-color="#6E4F0F"/>
+        </linearGradient>
+        <linearGradient id="gsBand" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#F8E598"/>
+          <stop offset=".5" stop-color="#DDB540"/>
+          <stop offset="1" stop-color="#B08420"/>
+        </linearGradient>
+        <radialGradient id="gsCenter" cx="40%" cy="32%" r="80%">
+          <stop offset="0" stop-color="#FFFEF6"/>
+          <stop offset="1" stop-color="#F1E2A6"/>
+        </radialGradient>
+        <linearGradient id="gsLeaf" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#F3D875"/>
+          <stop offset="1" stop-color="#A9801F"/>
+        </linearGradient>
+        <linearGradient id="gsShine" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FFFFFF" stop-opacity=".65"/>
+          <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+        </linearGradient>
+        <clipPath id="gsClip"><circle cx="100" cy="100" r="88"/></clipPath>
+        <path id="gsTop" d="M 30,100 A 70,70 0 0 1 170,100"/>
+        <path id="gsBottom" d="M 16,100 A 84,84 0 0 0 184,100"/>
+      </defs>
 
-          <span>
-            GAAWOW
-          </span>
+      <!-- coin body, bevelled double border, serrated edge -->
+      <circle cx="100" cy="100" r="99" fill="url(#gsBody)" stroke="#6E4F0F" stroke-width=".8"/>
+      <circle cx="100" cy="100" r="96.5" fill="none" stroke="#6E4F0F" stroke-width="2.6" stroke-dasharray="1.5 1.5" opacity=".5"/>
+      <circle cx="100" cy="100" r="92.5" fill="none" stroke="url(#gsRim)" stroke-width="3.4"/>
+      <circle cx="100" cy="100" r="89.5" fill="none" stroke="url(#gsRimRev)" stroke-width="1.6"/>
 
-          <span>
-            ACADEMY
-          </span>
+      <!-- lettering band (recessed) -->
+      <circle cx="100" cy="100" r="88" fill="url(#gsBand)"/>
+      <circle cx="100" cy="100" r="88" fill="none" stroke="#5C4307" stroke-opacity=".35" stroke-width="1.4"/>
+      <circle cx="100" cy="100" r="63.5" fill="none" stroke="#FFF3B0" stroke-width="1" stroke-opacity=".9"/>
+      <circle cx="100" cy="100" r="62" fill="none" stroke="#6E4F0F" stroke-width="1.2" stroke-opacity=".7"/>
+      <circle cx="100" cy="100" r="60" fill="none" stroke="#7A5A12" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 3.1" opacity=".75"/>
 
-          <small>
-            OFFICIAL
-          </small>
+      <!-- polished reflection -->
+      <g clip-path="url(#gsClip)">
+        <ellipse cx="68" cy="48" rx="74" ry="32" transform="rotate(-30 68 48)" fill="url(#gsShine)" opacity=".5"/>
+      </g>
+      <path d="M 26 66 A 80 80 0 0 1 84 22" fill="none" stroke="#FFFFFF" stroke-opacity=".6" stroke-width="2.4" stroke-linecap="round"/>
 
-        </div>
+      <!-- engraved / embossed lettering -->
+      <g font-family="Georgia, 'Times New Roman', serif" font-weight="700">
+        <text transform="translate(.7 .7)" fill="#FFF3B0" opacity=".9" font-size="14" letter-spacing="2.2" text-anchor="middle"><textPath href="#gsTop" startOffset="50%">GAAWOW ACADEMY</textPath></text>
+        <text fill="#4E3806" font-size="14" letter-spacing="2.2" text-anchor="middle"><textPath href="#gsTop" startOffset="50%">GAAWOW ACADEMY</textPath></text>
 
-      </div>
+        <text transform="translate(.5 .5)" fill="#FFF3B0" opacity=".9" font-size="6.6" letter-spacing="1" text-anchor="middle"><textPath href="#gsBottom" startOffset="50%">OFFICIAL SEAL &#8226; VERIFIED ACADEMIC RECORD</textPath></text>
+        <text fill="#4E3806" font-size="6.6" letter-spacing="1" text-anchor="middle"><textPath href="#gsBottom" startOffset="50%">OFFICIAL SEAL &#8226; VERIFIED ACADEMIC RECORD</textPath></text>
+
+        <text x="24" y="103" fill="#4E3806" font-size="10" text-anchor="middle">&#9733;</text>
+        <text x="176" y="103" fill="#4E3806" font-size="10" text-anchor="middle">&#9733;</text>
+      </g>
+
+      <!-- centre disk, laurel wreath, official logo (unchanged) -->
+      <circle cx="100" cy="100" r="58" fill="url(#gsCenter)" stroke="#A8801E" stroke-width="1.2"/>
+      <circle cx="100" cy="100" r="57" fill="none" stroke="#5C4307" stroke-opacity=".25" stroke-width="2"/>
+      <g>
+        <ellipse cx="74.0" cy="145.0" rx="2.6" ry="6.5" transform="rotate(95 74.0 145.0)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="63.2" cy="136.8" rx="2.6" ry="6.5" transform="rotate(110 63.2 136.8)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="55.0" cy="126.0" rx="2.6" ry="6.5" transform="rotate(125 55.0 126.0)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="49.8" cy="113.5" rx="2.6" ry="6.5" transform="rotate(140 49.8 113.5)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="48.0" cy="100.0" rx="2.6" ry="6.5" transform="rotate(155 48.0 100.0)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="49.8" cy="86.5" rx="2.6" ry="6.5" transform="rotate(170 49.8 86.5)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="55.0" cy="74.0" rx="2.6" ry="6.5" transform="rotate(185 55.0 74.0)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="63.2" cy="63.2" rx="2.6" ry="6.5" transform="rotate(200 63.2 63.2)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="74.0" cy="55.0" rx="2.6" ry="6.5" transform="rotate(215 74.0 55.0)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="126.0" cy="55.0" rx="2.6" ry="6.5" transform="rotate(-35 126.0 55.0)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="136.8" cy="63.2" rx="2.6" ry="6.5" transform="rotate(-20 136.8 63.2)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="145.0" cy="74.0" rx="2.6" ry="6.5" transform="rotate(-5 145.0 74.0)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="150.2" cy="86.5" rx="2.6" ry="6.5" transform="rotate(10 150.2 86.5)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="152.0" cy="100.0" rx="2.6" ry="6.5" transform="rotate(25 152.0 100.0)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="150.2" cy="113.5" rx="2.6" ry="6.5" transform="rotate(40 150.2 113.5)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="145.0" cy="126.0" rx="2.6" ry="6.5" transform="rotate(55 145.0 126.0)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="136.8" cy="136.8" rx="2.6" ry="6.5" transform="rotate(70 136.8 136.8)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+        <ellipse cx="126.0" cy="145.0" rx="2.6" ry="6.5" transform="rotate(85 126.0 145.0)" fill="url(#gsLeaf)" stroke="#7A5A12" stroke-width=".4"/>
+      </g>
+      <image href="logo.png" x="66" y="66" width="68" height="68" preserveAspectRatio="xMidYMid meet"/>
+    </svg>
+
+  </div>
+
+</div>
+
 
     </section>
 
