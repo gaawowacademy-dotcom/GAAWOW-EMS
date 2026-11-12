@@ -4,24 +4,22 @@
 /* =========================================================
    GAAWOW ACADEMY EMS
    CERTIFICATES MODULE
-   Complete certificates.js
-   Authentication Fix V909
+   Authentication Letter Integration V910
    ========================================================= */
 
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
 const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  "sb_publishable_2AvWfupkF1b_s0RjAi5g_RqLCs145";
 
 const COLUMNS =
   "id,student_id,certificate_no,certificate_id,verify_code,issue_date,expiry_date,status,student_name_snapshot,certificate_type";
 
-let allCertificates = [];
+const CREATE_AUTH_LETTER_RPC =
+  "admin_create_authentication_letter";
 
-/* =========================================================
-   AUTHENTICATED SUPABASE CLIENT
-   ========================================================= */
+let allCertificates = [];
 
 const certificatesSupabase =
   window.supabase?.createClient
@@ -65,10 +63,12 @@ function date(value) {
 }
 
 function typeName(type) {
-  if (type === "authentication_letter")
+  const value = String(type || "").toLowerCase();
+
+  if (value === "authentication_letter")
     return "Authentication Letter";
 
-  if (type === "diploma")
+  if (value === "diploma")
     return "Diploma";
 
   return "Certificate";
@@ -76,6 +76,12 @@ function typeName(type) {
 
 function status(value) {
   return String(value || "valid").toLowerCase();
+}
+
+function isAuthenticationLetter(x) {
+  return String(x?.certificate_type || "")
+    .trim()
+    .toLowerCase() === "authentication_letter";
 }
 
 /* =========================================================
@@ -127,8 +133,7 @@ function stats(rows) {
 }
 
 /* =========================================================
-   LOAD CERTIFICATES FROM SUPABASE
-   AUTHENTICATED SESSION
+   LOAD CERTIFICATES
    ========================================================= */
 
 async function getCertificates() {
@@ -147,7 +152,6 @@ async function getCertificates() {
 
   try {
 
-    // Get authenticated user session
     const {
       data: sessionData,
       error: sessionError
@@ -168,7 +172,6 @@ async function getCertificates() {
       );
     }
 
-    // Confirm authenticated user
     const {
       data: userData,
       error: userError
@@ -180,7 +183,6 @@ async function getCertificates() {
       );
     }
 
-    // Load certificate records using authenticated client
     const {
       data,
       error
@@ -194,8 +196,7 @@ async function getCertificates() {
 
     if (error) {
       throw new Error(
-        "HTTP/database error: " +
-        error.message
+        "Database error: " + error.message
       );
     }
 
@@ -218,9 +219,7 @@ async function getCertificates() {
     throw error;
 
   } finally {
-
     clearTimeout(timeout);
-
   }
 }
 
@@ -276,8 +275,7 @@ function render() {
 
   const body = $("certBody");
 
-  if (!body)
-    return;
+  if (!body) return;
 
   const rows = filtered();
 
@@ -379,20 +377,13 @@ function render() {
       </td>
     `;
 
-    /* VIEW */
-    tr.querySelector(".view").onclick = () => {
-      view(x);
-    };
+    tr.querySelector(".view").onclick = () => view(x);
 
-    /* OPEN */
-    tr.querySelector(".open").onclick = () => {
+    tr.querySelector(".open").onclick = () =>
       openDocumentChoice(x);
-    };
 
-    /* VERIFY */
-    tr.querySelector(".verify").onclick = () => {
+    tr.querySelector(".verify").onclick = () =>
       verifyDocument(x);
-    };
 
     body.appendChild(tr);
   });
@@ -404,66 +395,49 @@ function render() {
 
 function view(x) {
 
-  if (!$("modalBody"))
-    return;
+  if (!$("modalBody")) return;
 
   $("modalBody").innerHTML = `
     <div class="detail-grid">
 
       <div class="detail">
         <label>Student</label>
-        <div>
-          ${esc(x.student_name_snapshot)}
-        </div>
+        <div>${esc(x.student_name_snapshot)}</div>
       </div>
 
       <div class="detail">
         <label>Type</label>
-        <div>
-          ${esc(typeName(x.certificate_type))}
-        </div>
+        <div>${esc(typeName(x.certificate_type))}</div>
       </div>
 
       <div class="detail">
         <label>Certificate No.</label>
-        <div>
-          ${esc(x.certificate_no)}
-        </div>
+        <div>${esc(x.certificate_no)}</div>
       </div>
 
       <div class="detail">
         <label>Certificate ID</label>
-        <div>
-          ${esc(x.certificate_id)}
-        </div>
+        <div>${esc(x.certificate_id)}</div>
       </div>
 
       <div class="detail">
         <label>Verify Code</label>
-        <div>
-          ${esc(x.verify_code)}
-        </div>
+        <div>${esc(x.verify_code)}</div>
       </div>
 
       <div class="detail">
         <label>Student ID</label>
-        <div>
-          ${esc(x.student_id)}
-        </div>
+        <div>${esc(x.student_id)}</div>
       </div>
 
       <div class="detail">
         <label>Issue Date</label>
-        <div>
-          ${esc(date(x.issue_date))}
-        </div>
+        <div>${esc(date(x.issue_date))}</div>
       </div>
 
       <div class="detail">
         <label>Status</label>
-        <div>
-          ${esc(x.status || "valid")}
-        </div>
+        <div>${esc(x.status || "valid")}</div>
       </div>
 
     </div>
@@ -481,7 +455,7 @@ function view(x) {
 }
 
 /* =========================================================
-   OPEN CHOICE
+   OPEN DOCUMENT CHOICE
    ========================================================= */
 
 function openDocumentChoice(x) {
@@ -491,7 +465,7 @@ function openDocumentChoice(x) {
     return;
   }
 
-  if (x.certificate_type === "authentication_letter") {
+  if (isAuthenticationLetter(x)) {
     openAuthenticationLetter(x);
     return;
   }
@@ -500,8 +474,7 @@ function openDocumentChoice(x) {
     "gaawowOpenChoice"
   );
 
-  if (existing)
-    existing.remove();
+  if (existing) existing.remove();
 
   const modal = document.createElement("div");
 
@@ -519,13 +492,9 @@ function openDocumentChoice(x) {
           ×
         </button>
 
-        <div class="gaawow-choice-icon">
-          📄
-        </div>
+        <div class="gaawow-choice-icon">📄</div>
 
-        <h2>
-          Open Document
-        </h2>
+        <h2>Open Document</h2>
 
         <p>
           Dooro dokumentiga aad rabto inaad furto.
@@ -533,16 +502,11 @@ function openDocumentChoice(x) {
 
         <div class="gaawow-choice-student">
           <strong>
-            ${esc(
-              x.student_name_snapshot ||
-              "Student"
-            )}
+            ${esc(x.student_name_snapshot || "Student")}
           </strong>
 
           <span>
-            ${esc(
-              typeName(x.certificate_type)
-            )}
+            ${esc(typeName(x.certificate_type))}
           </span>
         </div>
 
@@ -553,13 +517,6 @@ function openDocumentChoice(x) {
             id="gaawowOpenCertificate"
             class="gaawow-choice-btn primary">
             📜 Open Certificate / Generate
-          </button>
-
-          <button
-            type="button"
-            id="gaawowOpenAuth"
-            class="gaawow-choice-btn secondary">
-            📄 Open Authentication Letter
           </button>
 
         </div>
@@ -578,7 +535,6 @@ function openDocumentChoice(x) {
 
   document.body.appendChild(modal);
 
-  /* Dynamic styling */
   if (!document.getElementById("gaawowChoiceStyles")) {
 
     const style = document.createElement("style");
@@ -590,7 +546,7 @@ function openDocumentChoice(x) {
         position: fixed;
         inset: 0;
         z-index: 99999;
-        background: rgba(0, 0, 0, .55);
+        background: rgba(0,0,0,.55);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -599,15 +555,15 @@ function openDocumentChoice(x) {
       }
 
       .gaawow-choice-box {
-        width: min(430px, 100%);
-        background: #ffffff;
+        width: min(430px,100%);
+        background: #fff;
         border-radius: 18px;
         padding: 28px;
         position: relative;
         box-sizing: border-box;
         box-shadow: 0 20px 60px rgba(0,0,0,.25);
         text-align: center;
-        font-family: Arial, sans-serif;
+        font-family: Arial,sans-serif;
       }
 
       .gaawow-choice-close {
@@ -680,12 +636,7 @@ function openDocumentChoice(x) {
 
       .gaawow-choice-btn.primary {
         background: #0B1E63;
-        color: #ffffff;
-      }
-
-      .gaawow-choice-btn.secondary {
-        background: #D4AF37;
-        color: #ffffff;
+        color: #fff;
       }
 
       .gaawow-choice-btn:hover {
@@ -701,7 +652,7 @@ function openDocumentChoice(x) {
         font-size: 14px;
       }
 
-      @media (max-width: 480px) {
+      @media(max-width:480px) {
         .gaawow-choice-box {
           padding: 23px 18px;
         }
@@ -711,27 +662,13 @@ function openDocumentChoice(x) {
     document.head.appendChild(style);
   }
 
-  /* Certificate / Generate */
   document
     .getElementById("gaawowOpenCertificate")
     ?.addEventListener("click", () => {
-
       closeDocumentChoice();
       openCertificate(x);
-
     });
 
-  /* Authentication Letter */
-  document
-    .getElementById("gaawowOpenAuth")
-    ?.addEventListener("click", () => {
-
-      closeDocumentChoice();
-      openAuthenticationLetter(x);
-
-    });
-
-  /* Close */
   document
     .getElementById("gaawowChoiceClose")
     ?.addEventListener("click", closeDocumentChoice);
@@ -743,7 +680,6 @@ function openDocumentChoice(x) {
   modal
     .querySelector(".gaawow-choice-overlay")
     ?.addEventListener("click", event => {
-
       if (
         event.target.classList.contains(
           "gaawow-choice-overlay"
@@ -751,7 +687,6 @@ function openDocumentChoice(x) {
       ) {
         closeDocumentChoice();
       }
-
     });
 }
 
@@ -760,110 +695,216 @@ function openDocumentChoice(x) {
    ========================================================= */
 
 function closeDocumentChoice() {
-
-  const modal =
-    document.getElementById(
-      "gaawowOpenChoice"
-    );
-
-  if (modal)
-    modal.remove();
+  const modal = document.getElementById("gaawowOpenChoice");
+  if (modal) modal.remove();
 }
 
 /* =========================================================
-   OPEN CERTIFICATE / GENERATE
+   OPEN CERTIFICATE
    ========================================================= */
 
 function openCertificate(x) {
 
   if (!x || !x.id) {
-    alert(
-      "Certificate record ID lama helin."
-    );
+    alert("Certificate record ID lama helin.");
     return;
   }
 
-  const id =
-    encodeURIComponent(x.id);
+  const id = encodeURIComponent(x.id);
 
-  if (x.certificate_type === "diploma") {
-
+  if (String(x.certificate_type).toLowerCase() === "diploma") {
     location.href =
-      "certificate.html?regen=" +
-      id +
-      "&type=diploma";
-
+      "certificate.html?regen=" + id + "&type=diploma";
     return;
   }
 
   location.href =
-    "certificate.html?regen=" +
-    id;
+    "certificate.html?regen=" + id;
 }
 
 /* =========================================================
-   OPEN AUTHENTICATION LETTER
+   AUTHENTICATION LETTER
+   CREATE OR REUSE THROUGH SECURE RPC
    ========================================================= */
 
-function openAuthenticationLetter(x) {
+async function openAuthenticationLetter(x) {
 
   if (!x || !x.id) {
-
-    alert(
-      "Authentication Letter record ID lama helin."
-    );
-
+    alert("Certificate record ID lama helin.");
     return;
   }
 
-  const id =
-    encodeURIComponent(x.id);
+  if (!isAuthenticationLetter(x)) {
+    alert(
+      "Record-kan ma aha Authentication Letter certificate."
+    );
+    return;
+  }
 
-  location.href =
-    "authentication-letter.html?regen=" +
-    id;
+  if (!x.verify_code) {
+    alert(
+      "Verification Code lama helin. Hubi certificate record-ka."
+    );
+    return;
+  }
+
+  if (!certificatesSupabase) {
+    alert("Supabase lama bilaabi karin. Hubi internet-ka.");
+    return;
+  }
+
+  const button = document.activeElement;
+  const oldText = button?.textContent;
+
+  try {
+
+    if (button && button.tagName === "BUTTON") {
+      button.disabled = true;
+      button.textContent = "Preparing official letter...";
+    }
+
+    const {
+      data: sessionData,
+      error: sessionError
+    } = await certificatesSupabase.auth.getSession();
+
+    if (sessionError) throw sessionError;
+
+    if (!sessionData?.session?.access_token) {
+      throw new Error(
+        "Fadlan marka hore Super Admin ahaan u gal GAAWOW EMS."
+      );
+    }
+
+    /*
+      The server-side RPC checks:
+      - authenticated user
+      - active Super Admin permission
+      - valid authentication-letter certificate
+      - existing letter reuse
+      - no duplicate letter creation
+    */
+
+    const {
+      data,
+      error
+    } = await certificatesSupabase.rpc(
+      CREATE_AUTH_LETTER_RPC,
+      {
+        p_certificate_id: x.id
+      }
+    );
+
+    if (error) {
+      console.error(
+        "Authentication Letter RPC error:",
+        error
+      );
+
+      throw new Error(
+        error.message ||
+        "Authentication Letter lama diyaarin karin."
+      );
+    }
+
+    const letter = Array.isArray(data)
+      ? data[0]
+      : data;
+
+    if (!letter || typeof letter !== "object") {
+      throw new Error(
+        "Database-ku ma soo celin xogta Authentication Letter."
+      );
+    }
+
+    const returnedCode = String(
+      letter.verification_code || ""
+    ).trim();
+
+    if (
+      returnedCode.toUpperCase() !==
+      String(x.verify_code).trim().toUpperCase()
+    ) {
+      throw new Error(
+        "Verification Code-ka warqadda iyo certificate-ka isma waafaqaan."
+      );
+    }
+
+    if (
+      letter.certificate_id &&
+      String(letter.certificate_id) !== String(x.id)
+    ) {
+      throw new Error(
+        "Certificate ID-ga la soo celiyey ma waafaqsana record-ka la doortay."
+      );
+    }
+
+    const params = new URLSearchParams({
+      code: returnedCode,
+      id: String(x.id)
+    });
+
+    const officialUrl =
+      "authentication-letter.html?" +
+      params.toString();
+
+    /*
+      Open only after successful server-side creation/reuse.
+    */
+
+    window.location.assign(officialUrl);
+
+  } catch (error) {
+
+    console.error(
+      "GAAWOW Authentication Letter:",
+      error
+    );
+
+    alert(
+      "Authentication Letter lama furi karin:\n\n" +
+      (error?.message || "Fadlan isku day mar kale.")
+    );
+
+  } finally {
+
+    if (button && button.tagName === "BUTTON") {
+      button.disabled = false;
+      if (oldText) button.textContent = oldText;
+    }
+
+  }
 }
 
 /* =========================================================
-   VERIFY
+   VERIFY DOCUMENT
    ========================================================= */
 
 function verifyDocument(x) {
 
   if (!x || !x.verify_code) {
-
-    alert(
-      "Verification code lama helin."
-    );
-
+    alert("Verification code lama helin.");
     return;
   }
 
-  const code =
-    encodeURIComponent(x.verify_code);
+  const params = new URLSearchParams({
+    code: String(x.verify_code).trim()
+  });
 
-  const id =
-    x.id
-      ? "&id=" +
-        encodeURIComponent(x.id)
-      : "";
+  if (x.id) {
+    params.set("id", String(x.id));
+  }
 
-  if (
-    x.certificate_type ===
-    "authentication_letter"
-  ) {
-
+  if (isAuthenticationLetter(x)) {
     location.href =
-      "verify-auth.html?code=" +
-      code +
-      id;
-
+      "authentication-letter.html?" +
+      params.toString();
     return;
   }
 
   location.href =
-    "verify.html?code=" +
-    code;
+    "verify.html?" +
+    params.toString();
 }
 
 /* =========================================================
@@ -871,9 +912,7 @@ function verifyDocument(x) {
    ========================================================= */
 
 function goGenerate() {
-
-  location.href =
-    "certificate.html";
+  location.href = "certificate.html";
 }
 
 /* =========================================================
@@ -899,13 +938,11 @@ function clearFilters() {
    ========================================================= */
 
 function hideModal() {
-
   if ($("modalBackdrop"))
     $("modalBackdrop").style.display = "none";
 }
 
 function closeModal(event) {
-
   if (
     $("modalBackdrop") &&
     event.target === $("modalBackdrop")
@@ -915,7 +952,7 @@ function closeModal(event) {
 }
 
 /* =========================================================
-   LOAD
+   LOAD CERTIFICATES
    ========================================================= */
 
 function loadCertificates() {
@@ -936,10 +973,9 @@ function loadCertificates() {
 
     .then(rows => {
 
-      allCertificates =
-        Array.isArray(rows)
-          ? rows
-          : [];
+      allCertificates = Array.isArray(rows)
+        ? rows
+        : [];
 
       stats(allCertificates);
 
@@ -965,15 +1001,11 @@ function loadCertificates() {
       stats([]);
 
       errorBox(
-        error?.message ||
-        String(error)
+        error?.message || String(error)
       );
 
       if ($("empty")) {
-
-        $("empty").style.display =
-          "block";
-
+        $("empty").style.display = "block";
         $("empty").textContent =
           "Database connection failed.";
       }
@@ -992,62 +1024,32 @@ function loadCertificates() {
    GLOBAL FUNCTIONS
    ========================================================= */
 
-window.loadCertificates =
-  loadCertificates;
-
-window.clearFilters =
-  clearFilters;
-
-window.goGenerate =
-  goGenerate;
-
-window.hideModal =
-  hideModal;
-
-window.closeModal =
-  closeModal;
-
-window.openDocumentChoice =
-  openDocumentChoice;
-
-window.openAuthenticationLetter =
-  openAuthenticationLetter;
-
-window.openCertificate =
-  openCertificate;
+window.loadCertificates = loadCertificates;
+window.clearFilters = clearFilters;
+window.goGenerate = goGenerate;
+window.hideModal = hideModal;
+window.closeModal = closeModal;
+window.openDocumentChoice = openDocumentChoice;
+window.openAuthenticationLetter = openAuthenticationLetter;
+window.openCertificate = openCertificate;
 
 /* =========================================================
    DOM READY
    ========================================================= */
 
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
+document.addEventListener("DOMContentLoaded", () => {
 
-    $("searchInput")
-      ?.addEventListener(
-        "input",
-        render
-      );
+  $("searchInput")?.addEventListener("input", render);
 
-    $("statusFilter")
-      ?.addEventListener(
-        "change",
-        render
-      );
+  $("statusFilter")?.addEventListener("change", render);
 
-    $("typeFilter")
-      ?.addEventListener(
-        "change",
-        render
-      );
+  $("typeFilter")?.addEventListener("change", render);
 
-    $("modalBackdrop")
-      ?.addEventListener(
-        "click",
-        closeModal
-      );
+  $("modalBackdrop")?.addEventListener(
+    "click",
+    closeModal
+  );
 
-    loadCertificates();
-  }
-);
+  loadCertificates();
+
+});
