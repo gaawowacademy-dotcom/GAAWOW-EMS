@@ -5,7 +5,7 @@
    GAAWOW ACADEMY EMS
    CERTIFICATES MODULE
    Complete certificates.js
-   Authentication Fix V909
+   Authentication Fix V910
    ========================================================= */
 
 const SUPABASE_URL =
@@ -147,7 +147,6 @@ async function getCertificates() {
 
   try {
 
-    // Get authenticated user session
     const {
       data: sessionData,
       error: sessionError
@@ -168,7 +167,6 @@ async function getCertificates() {
       );
     }
 
-    // Confirm authenticated user
     const {
       data: userData,
       error: userError
@@ -180,7 +178,6 @@ async function getCertificates() {
       );
     }
 
-    // Load certificate records using authenticated client
     const {
       data,
       error
@@ -379,17 +376,14 @@ function render() {
       </td>
     `;
 
-    /* VIEW */
     tr.querySelector(".view").onclick = () => {
       view(x);
     };
 
-    /* OPEN */
     tr.querySelector(".open").onclick = () => {
       openDocumentChoice(x);
     };
 
-    /* VERIFY */
     tr.querySelector(".verify").onclick = () => {
       verifyDocument(x);
     };
@@ -412,58 +406,42 @@ function view(x) {
 
       <div class="detail">
         <label>Student</label>
-        <div>
-          ${esc(x.student_name_snapshot)}
-        </div>
+        <div>${esc(x.student_name_snapshot)}</div>
       </div>
 
       <div class="detail">
         <label>Type</label>
-        <div>
-          ${esc(typeName(x.certificate_type))}
-        </div>
+        <div>${esc(typeName(x.certificate_type))}</div>
       </div>
 
       <div class="detail">
         <label>Certificate No.</label>
-        <div>
-          ${esc(x.certificate_no)}
-        </div>
+        <div>${esc(x.certificate_no)}</div>
       </div>
 
       <div class="detail">
         <label>Certificate ID</label>
-        <div>
-          ${esc(x.certificate_id)}
-        </div>
+        <div>${esc(x.certificate_id)}</div>
       </div>
 
       <div class="detail">
         <label>Verify Code</label>
-        <div>
-          ${esc(x.verify_code)}
-        </div>
+        <div>${esc(x.verify_code)}</div>
       </div>
 
       <div class="detail">
         <label>Student ID</label>
-        <div>
-          ${esc(x.student_id)}
-        </div>
+        <div>${esc(x.student_id)}</div>
       </div>
 
       <div class="detail">
         <label>Issue Date</label>
-        <div>
-          ${esc(date(x.issue_date))}
-        </div>
+        <div>${esc(date(x.issue_date))}</div>
       </div>
 
       <div class="detail">
         <label>Status</label>
-        <div>
-          ${esc(x.status || "valid")}
-        </div>
+        <div>${esc(x.status || "valid")}</div>
       </div>
 
     </div>
@@ -519,13 +497,9 @@ function openDocumentChoice(x) {
           ×
         </button>
 
-        <div class="gaawow-choice-icon">
-          📄
-        </div>
+        <div class="gaawow-choice-icon">📄</div>
 
-        <h2>
-          Open Document
-        </h2>
+        <h2>Open Document</h2>
 
         <p>
           Dooro dokumentiga aad rabto inaad furto.
@@ -533,16 +507,11 @@ function openDocumentChoice(x) {
 
         <div class="gaawow-choice-student">
           <strong>
-            ${esc(
-              x.student_name_snapshot ||
-              "Student"
-            )}
+            ${esc(x.student_name_snapshot || "Student")}
           </strong>
 
           <span>
-            ${esc(
-              typeName(x.certificate_type)
-            )}
+            ${esc(typeName(x.certificate_type))}
           </span>
         </div>
 
@@ -578,7 +547,6 @@ function openDocumentChoice(x) {
 
   document.body.appendChild(modal);
 
-  /* Dynamic styling */
   if (!document.getElementById("gaawowChoiceStyles")) {
 
     const style = document.createElement("style");
@@ -711,27 +679,20 @@ function openDocumentChoice(x) {
     document.head.appendChild(style);
   }
 
-  /* Certificate / Generate */
   document
     .getElementById("gaawowOpenCertificate")
     ?.addEventListener("click", () => {
-
       closeDocumentChoice();
       openCertificate(x);
-
     });
 
-  /* Authentication Letter */
   document
     .getElementById("gaawowOpenAuth")
     ?.addEventListener("click", () => {
-
       closeDocumentChoice();
       openAuthenticationLetter(x);
-
     });
 
-  /* Close */
   document
     .getElementById("gaawowChoiceClose")
     ?.addEventListener("click", closeDocumentChoice);
@@ -743,7 +704,6 @@ function openDocumentChoice(x) {
   modal
     .querySelector(".gaawow-choice-overlay")
     ?.addEventListener("click", event => {
-
       if (
         event.target.classList.contains(
           "gaawow-choice-overlay"
@@ -751,7 +711,6 @@ function openDocumentChoice(x) {
       ) {
         closeDocumentChoice();
       }
-
     });
 }
 
@@ -762,9 +721,7 @@ function openDocumentChoice(x) {
 function closeDocumentChoice() {
 
   const modal =
-    document.getElementById(
-      "gaawowOpenChoice"
-    );
+    document.getElementById("gaawowOpenChoice");
 
   if (modal)
     modal.remove();
@@ -777,17 +734,13 @@ function closeDocumentChoice() {
 function openCertificate(x) {
 
   if (!x || !x.id) {
-    alert(
-      "Certificate record ID lama helin."
-    );
+    alert("Certificate record ID lama helin.");
     return;
   }
 
-  const id =
-    encodeURIComponent(x.id);
+  const id = encodeURIComponent(x.id);
 
   if (x.certificate_type === "diploma") {
-
     location.href =
       "certificate.html?regen=" +
       id +
@@ -797,31 +750,38 @@ function openCertificate(x) {
   }
 
   location.href =
-    "certificate.html?regen=" +
-    id;
+    "certificate.html?regen=" + id;
 }
 
 /* =========================================================
    OPEN AUTHENTICATION LETTER
+   FIX V910: SEND CODE + ID
    ========================================================= */
 
 function openAuthenticationLetter(x) {
 
   if (!x || !x.id) {
-
     alert(
       "Authentication Letter record ID lama helin."
     );
-
     return;
   }
 
-  const id =
-    encodeURIComponent(x.id);
+  if (!x.verify_code) {
+    alert(
+      "Verification Code lama helin. Hubi record-ka database-ka."
+    );
+    return;
+  }
+
+  const params = new URLSearchParams({
+    code: String(x.verify_code).trim(),
+    id: String(x.id).trim()
+  });
 
   location.href =
-    "authentication-letter.html?regen=" +
-    id;
+    "authentication-letter.html?" +
+    params.toString();
 }
 
 /* =========================================================
@@ -831,28 +791,21 @@ function openAuthenticationLetter(x) {
 function verifyDocument(x) {
 
   if (!x || !x.verify_code) {
-
-    alert(
-      "Verification code lama helin."
-    );
-
+    alert("Verification code lama helin.");
     return;
   }
 
-  const code =
-    encodeURIComponent(x.verify_code);
+  const code = encodeURIComponent(x.verify_code);
 
   const id =
     x.id
-      ? "&id=" +
-        encodeURIComponent(x.id)
+      ? "&id=" + encodeURIComponent(x.id)
       : "";
 
   if (
     x.certificate_type ===
     "authentication_letter"
   ) {
-
     location.href =
       "verify-auth.html?code=" +
       code +
@@ -862,8 +815,7 @@ function verifyDocument(x) {
   }
 
   location.href =
-    "verify.html?code=" +
-    code;
+    "verify.html?code=" + code;
 }
 
 /* =========================================================
@@ -871,9 +823,7 @@ function verifyDocument(x) {
    ========================================================= */
 
 function goGenerate() {
-
-  location.href =
-    "certificate.html";
+  location.href = "certificate.html";
 }
 
 /* =========================================================
@@ -937,9 +887,7 @@ function loadCertificates() {
     .then(rows => {
 
       allCertificates =
-        Array.isArray(rows)
-          ? rows
-          : [];
+        Array.isArray(rows) ? rows : [];
 
       stats(allCertificates);
 
@@ -965,15 +913,11 @@ function loadCertificates() {
       stats([]);
 
       errorBox(
-        error?.message ||
-        String(error)
+        error?.message || String(error)
       );
 
       if ($("empty")) {
-
-        $("empty").style.display =
-          "block";
-
+        $("empty").style.display = "block";
         $("empty").textContent =
           "Database connection failed.";
       }
@@ -992,29 +936,14 @@ function loadCertificates() {
    GLOBAL FUNCTIONS
    ========================================================= */
 
-window.loadCertificates =
-  loadCertificates;
-
-window.clearFilters =
-  clearFilters;
-
-window.goGenerate =
-  goGenerate;
-
-window.hideModal =
-  hideModal;
-
-window.closeModal =
-  closeModal;
-
-window.openDocumentChoice =
-  openDocumentChoice;
-
-window.openAuthenticationLetter =
-  openAuthenticationLetter;
-
-window.openCertificate =
-  openCertificate;
+window.loadCertificates = loadCertificates;
+window.clearFilters = clearFilters;
+window.goGenerate = goGenerate;
+window.hideModal = hideModal;
+window.closeModal = closeModal;
+window.openDocumentChoice = openDocumentChoice;
+window.openAuthenticationLetter = openAuthenticationLetter;
+window.openCertificate = openCertificate;
 
 /* =========================================================
    DOM READY
@@ -1025,28 +954,16 @@ document.addEventListener(
   () => {
 
     $("searchInput")
-      ?.addEventListener(
-        "input",
-        render
-      );
+      ?.addEventListener("input", render);
 
     $("statusFilter")
-      ?.addEventListener(
-        "change",
-        render
-      );
+      ?.addEventListener("change", render);
 
     $("typeFilter")
-      ?.addEventListener(
-        "change",
-        render
-      );
+      ?.addEventListener("change", render);
 
     $("modalBackdrop")
-      ?.addEventListener(
-        "click",
-        closeModal
-      );
+      ?.addEventListener("click", closeModal);
 
     loadCertificates();
   }
