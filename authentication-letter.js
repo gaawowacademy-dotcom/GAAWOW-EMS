@@ -22,12 +22,12 @@
 
   function text(id, value, fallback = "—") {
     const el = $(id);
-    if (el) {
-      el.textContent =
-        value === null || value === undefined || value === ""
-          ? fallback
-          : String(value);
-    }
+    if (!el) return;
+
+    el.textContent =
+      value === null || value === undefined || value === ""
+        ? fallback
+        : String(value);
   }
 
   function formatDate(value, fallback = "—") {
@@ -68,9 +68,7 @@
         ? "—"
         : String(value);
 
-    if (className) {
-      cell.className = className;
-    }
+    if (className) cell.className = className;
 
     row.appendChild(cell);
   }
@@ -86,7 +84,7 @@
       cell.colSpan = 7;
       cell.className = "empty-row";
       cell.textContent =
-        "No published final assessment results are available.";
+        "No published final assessment results are available. Academic result is PENDING.";
 
       row.appendChild(cell);
       body.appendChild(row);
@@ -108,14 +106,16 @@
 
       const resultText =
         item.remarks ||
-        (String(grade).toUpperCase() === "F"
+        (String(grade).trim().toUpperCase() === "F"
           ? "FAIL"
           : "RECORDED");
 
+      const normalizedResult = String(resultText).toUpperCase();
+
       const resultClass =
-        String(resultText).toLowerCase().includes("fail")
+        normalizedResult.includes("FAIL")
           ? "result-fail"
-          : String(resultText).toLowerCase().includes("pass")
+          : normalizedResult.includes("PASS")
             ? "result-pass"
             : "";
 
@@ -131,55 +131,89 @@
     });
   }
 
-  function renderSummary(summary) {
+  function renderSummary(summary, results) {
+    const hasPublishedResults =
+      Array.isArray(results) && results.length > 0;
+
+    const panel = $("summaryPanel");
+    panel.hidden = false;
+
+    // No published final results: never display FAIL or zero scores.
+    if (!hasPublishedResults) {
+      text("summarySubjects", "0");
+      text("summaryScore", "N/A");
+      text("summaryAverage", "N/A");
+      text("summaryGrade", "N/A");
+      text("summaryFailed", "0");
+      text("summaryFinal", "PENDING");
+
+      $("summaryFinal").className = "result-pending";
+      return;
+    }
+
     const s =
       summary && typeof summary === "object"
         ? summary
         : {};
 
-    $("summaryPanel").hidden = false;
+    text("summarySubjects", s.subjects_count ?? results.length);
 
-    text("summarySubjects", s.subjects_count ?? 0);
+    const totalScore = s.total_score;
+    const totalMaxScore = s.total_max_score;
 
     text(
       "summaryScore",
-      `${s.total_score ?? 0} / ${s.total_max_score ?? 0}`
+      totalScore !== null &&
+      totalScore !== undefined &&
+      totalMaxScore !== null &&
+      totalMaxScore !== undefined
+        ? `${totalScore} / ${totalMaxScore}`
+        : "N/A"
     );
+
+    const average = s.average ?? s.percentage;
 
     text(
       "summaryAverage",
-      `${Number(s.average ?? s.percentage ?? 0).toFixed(2)}%`
+      average !== null && average !== undefined
+        ? `${Number(average).toFixed(2)}%`
+        : "N/A"
     );
 
     text("summaryGrade", s.overall_grade || "—");
     text("summaryFailed", s.failed_subjects ?? 0);
     text("summaryFinal", s.final_result || "—");
 
-    const final = $("summaryFinal").textContent.toUpperCase();
+    const final = $("summaryFinal").textContent.trim().toUpperCase();
 
     $("summaryFinal").className =
       final === "PASS"
         ? "result-pass"
         : final === "FAIL"
           ? "result-fail"
-          : "";
+          : final === "PENDING"
+            ? "result-pending"
+            : "";
   }
 
   function renderPhoto(urlValue) {
+    const img = $("studentPhoto");
+    const placeholder = $("photoPlaceholder");
     const url = safeHttpsUrl(urlValue);
+
+    img.hidden = true;
+    placeholder.hidden = false;
 
     if (!url) return;
 
-    const img = $("studentPhoto");
-
     img.onload = () => {
       img.hidden = false;
-      $("photoPlaceholder").hidden = true;
+      placeholder.hidden = true;
     };
 
     img.onerror = () => {
       img.hidden = true;
-      $("photoPlaceholder").hidden = false;
+      placeholder.hidden = false;
     };
 
     img.src = url;
@@ -187,31 +221,38 @@
 
   function renderQr(urlValue) {
     const url = safeHttpsUrl(urlValue);
+    const qr = $("qrcode");
+
+    qr.replaceChildren();
 
     if (!url) {
-      throw new Error(
-        "The official verification URL is missing or is not a secure HTTPS link."
-      );
+      $("verificationUrlText").textContent =
+        "Official verification link is unavailable.";
+      return;
     }
-
-    if (typeof QRCode === "undefined") {
-      throw new Error(
-        "The QR code library did not load. Check your internet connection and try again."
-      );
-    }
-
-    $("qrcode").replaceChildren();
-
-    new QRCode($("qrcode"), {
-      text: url,
-      width: 70,
-      height: 70,
-      colorDark: "#0B1E63",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.M
-    });
 
     $("verificationUrlText").textContent = url;
+
+    // QR failure must not prevent the official letter from displaying.
+    if (typeof QRCode === "undefined") {
+      const note = document.createElement("span");
+      note.textContent = "QR code unavailable. Use the verification link.";
+      qr.appendChild(note);
+      return;
+    }
+
+    try {
+      new QRCode(qr, {
+        text: url,
+        width: 70,
+        height: 70,
+        colorDark: "#0B1E63",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch (_) {
+      qr.textContent = "QR unavailable";
+    }
   }
 
   function renderStatus(status) {
@@ -235,7 +276,8 @@
 
     if (
       !record.verification_code ||
-      record.verification_code.toUpperCase() !== code.toUpperCase()
+      String(record.verification_code).toUpperCase() !==
+        code.toUpperCase()
     ) {
       throw new Error(
         "The returned verification code does not match the code in this link."
@@ -278,11 +320,16 @@
       formatDate(record.expiry_date, "No expiry stated")
     );
 
+    // Document status is independent of academic result.
     const status = renderStatus(record.status);
 
+    const results = Array.isArray(record.academic_results)
+      ? record.academic_results
+      : [];
+
     renderPhoto(record.student_photo_url);
-    renderResults(record.academic_results);
-    renderSummary(record.summary);
+    renderResults(results);
+    renderSummary(record.summary, results);
     renderQr(record.verification_url);
 
     $("loading").hidden = true;
@@ -297,6 +344,8 @@
     if (!printable) {
       $("printButton").textContent =
         "Printing unavailable: document is " + status;
+    } else {
+      $("printButton").textContent = "Print / Save as PDF";
     }
   }
 
@@ -371,10 +420,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    $("retryButton").addEventListener(
-      "click",
-      loadLetter
-    );
+    $("retryButton").addEventListener("click", loadLetter);
 
     $("printButton").addEventListener("click", () => {
       if (!$("printButton").disabled) {
