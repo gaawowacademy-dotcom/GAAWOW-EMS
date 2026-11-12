@@ -4,7 +4,8 @@
 /* =========================================================
    GAAWOW ACADEMY EMS
    CERTIFICATES MODULE
-   Authentication Letter Integration V910
+   Authentication Letter Integration V911
+   Authentication Session Fix
    ========================================================= */
 
 const SUPABASE_URL =
@@ -134,6 +135,7 @@ function stats(rows) {
 
 /* =========================================================
    LOAD CERTIFICATES
+   AUTHENTICATION SESSION FIX V911
    ========================================================= */
 
 async function getCertificates() {
@@ -148,40 +150,80 @@ async function getCertificates() {
 
   const timeout = setTimeout(() => {
     controller.abort();
-  }, 12000);
+  }, 15000);
 
   try {
 
-    const {
+    /*
+      STEP 1:
+      Retrieve the existing Supabase session.
+    */
+
+    let {
       data: sessionData,
       error: sessionError
     } = await certificatesSupabase.auth.getSession();
 
     if (sessionError) {
       throw new Error(
-        "Authentication error: " +
-        sessionError.message
+        "Session error: " + sessionError.message
       );
     }
 
-    const session = sessionData?.session;
+    let session = sessionData?.session;
+
+    /*
+      STEP 2:
+      If the session is missing, stop safely.
+    */
 
     if (!session?.access_token) {
       throw new Error(
-        "Super Admin session lama helin. Fadlan dib u gal nidaamka."
+        "Super Admin session lama helin. Fadlan GAAWOW EMS dib uga gal."
       );
     }
 
-    const {
-      data: userData,
-      error: userError
-    } = await certificatesSupabase.auth.getUser();
+    /*
+      STEP 3:
+      Refresh a session that is close to expiration.
+      This avoids relying on an expired access token.
+    */
 
-    if (userError || !userData?.user) {
-      throw new Error(
-        "User authentication lama xaqiijin. Fadlan dib u gal."
-      );
+    const expiresAt = Number(session.expires_at || 0);
+    const now = Math.floor(Date.now() / 1000);
+
+    if (expiresAt && expiresAt <= now + 60) {
+
+      const {
+        data: refreshData,
+        error: refreshError
+      } = await certificatesSupabase.auth.refreshSession();
+
+      if (refreshError) {
+        throw new Error(
+          "Session refresh failed: " +
+          refreshError.message +
+          ". Fadlan dib uga gal nidaamka."
+        );
+      }
+
+      session = refreshData?.session;
+
+      if (!session?.access_token) {
+        throw new Error(
+          "Session-ka lama cusboonaysiin. Fadlan dib uga gal GAAWOW EMS."
+        );
+      }
     }
+
+    /*
+      STEP 4:
+      Do not call auth.getUser() again here.
+
+      The existing authenticated session is used for the
+      database request. Supabase RLS remains responsible
+      for checking whether this user can read certificates.
+    */
 
     const {
       data,
@@ -212,7 +254,7 @@ async function getCertificates() {
 
     if (error.name === "AbortError") {
       throw new Error(
-        "Supabase timeout after 12 seconds."
+        "Supabase timeout after 15 seconds. Hubi internet-ka."
       );
     }
 
@@ -776,15 +818,6 @@ async function openAuthenticationLetter(x) {
       );
     }
 
-    /*
-      The server-side RPC checks:
-      - authenticated user
-      - active Super Admin permission
-      - valid authentication-letter certificate
-      - existing letter reuse
-      - no duplicate letter creation
-    */
-
     const {
       data,
       error
@@ -847,10 +880,6 @@ async function openAuthenticationLetter(x) {
     const officialUrl =
       "authentication-letter.html?" +
       params.toString();
-
-    /*
-      Open only after successful server-side creation/reuse.
-    */
 
     window.location.assign(officialUrl);
 
