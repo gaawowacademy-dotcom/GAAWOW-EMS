@@ -1,908 +1,294 @@
-
-/* ============================================================
-   GAAWOW ACADEMY EMS
-   OFFICIAL AUTHENTICATION LETTER
-   VERSION: 20261111-1
-   A4 LANDSCAPE | OFFICIAL NAVY & GOLD DESIGN
-   ============================================================ */
-
-/* ============================================================
-   1. ROOT VARIABLES
-   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
 
 :root {
-  --ga-navy: #0B1E63;
-  --ga-blue: #0B4DA2;
-  --ga-gold: #D4AF37;
-  --ga-gold-light: #F4E4A8;
-  --ga-white: #FFFFFF;
-  --ga-bg: #F5F7FA;
-  --ga-text: #17233D;
-  --ga-muted: #64748B;
-  --ga-border: #D9E0EB;
-  --ga-green: #167044;
-  --ga-red: #B42318;
-  --ga-shadow: 0 8px 28px rgba(11, 30, 99, 0.10);
+  --navy: #0B1E63;
+  --blue: #0B4DA2;
+  --gold: #D4AF37;
+  --ink: #17233d;
+  --muted: #65718a;
+  --line: #dce3ef;
+  --paper: #ffffff;
+  --soft: #f4f7fc;
 }
-
-/* ============================================================
-   2. GLOBAL
-   ============================================================ */
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
 body {
-  margin: 0;
+  background: #e9edf4;
+  color: var(--ink);
+  font-family: Inter, Arial, sans-serif;
   padding: 24px;
-  background: #E9EDF4;
-  color: var(--ga-text);
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 12px;
-  line-height: 1.45;
 }
+[hidden] { display: none !important; }
 
-button {
-  font: inherit;
-}
-
-/* ============================================================
-   3. LOADING SCREEN
-   ============================================================ */
-
-#loading {
-  max-width: 600px;
-  margin: 80px auto;
-  padding: 35px 25px;
-  text-align: center;
-  background: var(--ga-white);
-  border: 1px solid var(--ga-border);
-  border-top: 5px solid var(--ga-gold);
-  border-radius: 12px;
-  box-shadow: var(--ga-shadow);
-  color: var(--ga-navy);
-  font-size: 15px;
-  font-weight: 700;
-}
-
-#loading::before {
-  content: "";
-  display: block;
-  width: 36px;
-  height: 36px;
-  margin: 0 auto 16px;
-  border: 4px solid #E5EAF3;
-  border-top-color: var(--ga-gold);
-  border-radius: 50%;
-  animation: ga-spin 0.9s linear infinite;
-}
-
-@keyframes ga-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* ============================================================
-   4. ERROR SCREEN
-   ============================================================ */
-
-#errorState {
-  max-width: 650px;
-  margin: 50px auto;
-  padding: 28px;
-  background: var(--ga-white);
-  border: 1px solid #F2C5C2;
-  border-left: 5px solid var(--ga-red);
-  border-radius: 10px;
-  box-shadow: var(--ga-shadow);
-}
-
-#errorMessage {
-  color: var(--ga-red);
-  font-size: 17px;
-  font-weight: 800;
-}
-
-#errorDetails {
-  margin-top: 12px;
-  color: var(--ga-muted);
-  overflow-wrap: anywhere;
-}
-
-/* ============================================================
-   5. DOCUMENT CONTAINER
-   ============================================================ */
-
-#authenticationLetter {
-  position: relative;
+.document {
   width: 297mm;
   min-height: 210mm;
   margin: 0 auto;
-  padding: 8mm 10mm 6mm;
-  overflow: hidden;
-  background: var(--ga-white);
-  border: 1px solid #D9DFE9;
-  box-shadow: var(--ga-shadow);
-  isolation: isolate;
-}
-
-#authenticationLetter[hidden],
-#loading[hidden],
-#errorState[hidden] {
-  display: none !important;
-}
-
-/* ============================================================
-   6. OFFICIAL HEADER
-   ============================================================ */
-
-.document-header {
+  padding: 10mm 12mm 7mm;
+  background: var(--paper);
+  box-shadow: 0 14px 48px rgba(11,30,99,.16);
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 28mm;
-  padding: 3mm 5mm;
-  background: var(--ga-bg);
-  border-bottom: 3px solid var(--ga-navy);
-  border-top: 3px solid var(--ga-gold);
-  text-align: center;
-}
-
-.header-logo,
-.document-header img {
-  max-width: 25mm;
-  max-height: 23mm;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-}
-
-.header-content {
-  flex: 1;
-  padding: 0 5mm;
-  text-align: center;
-}
-
-.header-content h1,
-.document-header h1 {
-  margin: 0;
-  color: var(--ga-navy);
-  font-size: 25px;
-  font-weight: 900;
-  letter-spacing: 2px;
-}
-
-.header-content p,
-.document-header p {
-  margin: 3px 0;
-  color: var(--ga-blue);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.header-motto {
-  color: var(--ga-gold) !important;
-  font-size: 12px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.5px;
-}
-
-.header-seal {
-  max-width: 23mm;
-  max-height: 23mm;
-  object-fit: contain;
-}
-
-/* ============================================================
-   7. DOCUMENT TITLE
-   ============================================================ */
-
-.document-title {
-  margin: 4mm 0 2mm;
-  text-align: center;
-}
-
-.document-title h2 {
-  margin: 0;
-  color: var(--ga-navy);
-  font-size: 19px;
-  font-weight: 900;
-  letter-spacing: 1.6px;
-}
-
-.document-title p {
-  margin: 2px 0;
-  color: var(--ga-muted);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-}
-
-/* ============================================================
-   8. STATUS
-   ============================================================ */
-
-#status {
-  display: inline-block;
-  min-width: 65px;
-  margin: 2mm auto;
-  padding: 4px 13px;
-  border: 1px solid currentColor;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 1px;
-}
-
-#status.valid {
-  color: var(--ga-green);
-  background: #E9F7EF;
-}
-
-#status.pending {
-  color: #946200;
-  background: #FFF7DF;
-}
-
-#status.expired,
-#status.revoked,
-#status.invalid {
-  color: var(--ga-red);
-  background: #FDECEC;
-}
-
-/* ============================================================
-   9. SECTION HEADINGS
-   ============================================================ */
-
-.section-heading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 3mm 0 2mm;
-  padding: 5px 9px;
-  color: var(--ga-white);
-  background: var(--ga-navy);
-  border-left: 4px solid var(--ga-gold);
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.7px;
-}
-
-.section-number {
-  color: var(--ga-gold);
-  font-weight: 900;
-}
-
-/* ============================================================
-   10. STUDENT INFORMATION
-   ============================================================ */
-
-.student-layout {
-  display: grid;
-  grid-template-columns: 31mm 1fr;
-  gap: 5mm;
-  align-items: stretch;
-  margin-bottom: 2mm;
-}
-
-.student-photo-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.photo-frame {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 29mm;
-  height: 34mm;
   overflow: hidden;
-  background: var(--ga-bg);
-  border: 2px solid var(--ga-gold);
-  border-radius: 5px;
 }
-
-#studentPhoto {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.document-header {
+  display: grid;
+  grid-template-columns: 82px 1fr 170px;
+  align-items: center;
+  gap: 18px;
+  min-height: 82px;
 }
-
-#photoPlaceholder {
+.brand-mark {
+  width: 76px;
+  height: 76px;
   display: grid;
   place-items: center;
-  width: 100%;
-  height: 100%;
-  color: var(--ga-muted);
-  font-size: 9px;
-  font-weight: 700;
-  text-align: center;
 }
-
-.student-fields {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 2mm;
-}
-
-.field-box {
-  min-height: 12mm;
-  padding: 5px 8px;
-  background: #FAFBFD;
-  border: 1px solid var(--ga-border);
-  border-radius: 3px;
-}
-
-.field-box label,
-.field-label {
-  display: block;
-  margin-bottom: 2px;
-  color: var(--ga-muted);
+.brand-mark img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.brand-copy { text-align: center; }
+.eyebrow {
+  margin: 0 0 3px;
+  color: var(--gold);
   font-size: 8px;
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2.1px;
 }
-
-.field-box strong,
-.field-value {
-  display: block;
-  color: var(--ga-navy);
-  font-size: 10px;
-  font-weight: 800;
-  overflow-wrap: anywhere;
+.brand-copy h1 {
+  margin: 0;
+  color: var(--navy);
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 25px;
+  letter-spacing: 1.2px;
+  line-height: 1.12;
 }
-
-.field-wide {
-  grid-column: span 2;
-}
-
-/* ============================================================
-   11. ACADEMIC PERIOD
-   ============================================================ */
-
-.date-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 3mm;
-  margin-bottom: 2mm;
-}
-
-.date-grid .field-box {
-  min-height: 11mm;
-  border-left: 3px solid var(--ga-gold);
-}
-
-/* ============================================================
-   12. ACADEMIC RESULTS TABLE
-   ============================================================ */
-
-.results-section {
-  margin-top: 2mm;
-}
-
-#academicResults {
-  width: 100%;
-}
-
-.results-table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.results-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;
+.motto {
+  margin: 4px 0 5px;
+  color: var(--blue);
   font-size: 9px;
-}
-
-.results-table thead {
-  color: var(--ga-white);
-  background: var(--ga-navy);
-}
-
-.results-table th {
-  padding: 7px 6px;
-  border: 1px solid #263B79;
-  color: var(--ga-white);
-  font-size: 8px;
-  font-weight: 900;
-  letter-spacing: 0.4px;
-  text-align: center;
-}
-
-.results-table td {
-  padding: 6px;
-  border: 1px solid var(--ga-border);
-  color: var(--ga-text);
-  text-align: center;
-  font-weight: 600;
-}
-
-.results-table tbody tr:nth-child(even) {
-  background: #F5F7FB;
-}
-
-.results-table tbody tr:nth-child(odd) {
-  background: var(--ga-white);
-}
-
-.results-table td:first-child {
-  color: var(--ga-navy);
-  text-align: left;
   font-weight: 800;
+  letter-spacing: 1.6px;
 }
-
-.results-table td.score {
-  color: var(--ga-blue);
+.document-name {
+  display: inline-block;
+  margin: 0;
+  padding: 4px 12px;
+  background: var(--navy);
+  color: white;
+  font-size: 9px;
   font-weight: 800;
+  letter-spacing: 1.15px;
 }
-
-.results-table td.grade {
-  color: var(--ga-navy);
-  font-weight: 900;
-}
-
-.results-empty {
-  padding: 12px;
-  color: var(--ga-muted);
-  background: var(--ga-bg);
-  border: 1px dashed var(--ga-border);
-  text-align: center;
-  font-size: 10px;
-}
-
-/* ============================================================
-   13. AUTHENTICATION INFORMATION
-   ============================================================ */
-
-.authentication-layout {
-  display: grid;
-  grid-template-columns: 1fr 32mm;
-  gap: 5mm;
-  align-items: center;
-  margin-top: 2mm;
-}
-
-.authentication-fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2mm;
-}
-
-.authentication-fields .field-box {
-  min-height: 12mm;
-}
-
-#referenceNo,
-#authenticationId,
-#verificationCode {
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.qr-wrapper {
+.header-meta {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-end;
   gap: 3px;
-  padding: 3px;
-  background: var(--ga-white);
-  border: 1px solid var(--ga-gold);
-  border-radius: 4px;
-}
-
-#qrcode {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 120px;
-  min-height: 120px;
-}
-
-#qrcode img,
-#qrcode canvas {
-  display: block;
-  max-width: 120px;
-  max-height: 120px;
-}
-
-.qr-wrapper p {
-  margin: 0;
-  color: var(--ga-navy);
-  font-size: 8px;
-  font-weight: 800;
-  text-align: center;
-}
-
-/* ============================================================
-   14. DECLARATION
-   ============================================================ */
-
-.declaration {
-  margin: 3mm 0;
-  padding: 7px 10px;
-  background: #FAFBFD;
-  border-left: 3px solid var(--ga-gold);
-  color: var(--ga-text);
   font-size: 9px;
-  text-align: justify;
+  color: var(--navy);
+  overflow-wrap: anywhere;
 }
-
-.declaration strong {
-  color: var(--ga-navy);
+.meta-label { color: var(--muted); font-size: 7px; font-weight: 800; letter-spacing: 1px; }
+.status-pill {
+  padding: 4px 9px;
+  margin-bottom: 5px;
+  border-radius: 20px;
+  background: #e8f5ed;
+  color: #176b39;
+  text-transform: uppercase;
+  font-size: 8px;
 }
+.status-pill.status-expired, .status-pill.status-revoked, .status-pill.status-invalid {
+  color: #a32020; background: #fdeaea;
+}
+.status-pill.status-pending { color: #855900; background: #fff3d6; }
+.gold-rule { height: 3px; margin: 8px 0 12px; background: linear-gradient(90deg, var(--navy), var(--blue) 65%, var(--gold)); }
 
-/* ============================================================
-   15. SIGNATURES
-   ============================================================ */
-
-.signature-section {
+.identity-section {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  align-items: end;
-  gap: 5mm;
-  margin-top: 3mm;
+  grid-template-columns: 112px 1fr;
+  gap: 17px;
+  padding: 0 0 11px;
+  border-bottom: 1px solid var(--line);
 }
-
-.signature-box {
-  position: relative;
-  min-height: 22mm;
-  text-align: center;
+.student-photo-wrap {
+  width: 105px;
+  height: 122px;
+  border: 1px solid #cbd5e5;
+  background: var(--soft);
+  padding: 4px;
 }
-
-.signature-space {
-  height: 12mm;
+#studentPhoto { width: 100%; height: 100%; object-fit: cover; }
+.photo-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 7px; color: #8995aa; text-align: center; font-size: 8px; font-weight: 700; letter-spacing: .8px;
 }
-
-.signature-script {
-  color: var(--ga-navy);
-  font-family: cursive;
-  font-size: 17px;
-  font-style: italic;
+.photo-icon { font-size: 30px; color: #b3bfd0; }
+.section-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.section-heading h2 {
+  margin: 0; color: var(--navy); font-size: 10px; font-weight: 800; letter-spacing: 1.1px;
 }
-
-.signature-line {
-  width: 85%;
-  margin: 2px auto 4px;
-  border-top: 1px solid var(--ga-navy);
+.section-number {
+  display: inline-grid; place-items: center; width: 21px; height: 21px;
+  background: var(--navy); color: var(--gold); font-size: 8px; font-weight: 800;
 }
-
-.signature-box strong {
-  display: block;
-  color: var(--ga-navy);
-  font-size: 9px;
-  font-weight: 900;
+.student-name {
+  margin: 0 0 8px; color: #111d3a; font-family: "Playfair Display", Georgia, serif;
+  font-size: 20px; line-height: 1.15;
 }
-
-.signature-box small {
-  display: block;
-  color: var(--ga-muted);
-  font-size: 8px;
+.details-grid, .verification-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 15px;
 }
+.detail { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.detail span { color: var(--muted); font-size: 7px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; }
+.detail strong { color: #1d2b49; font-size: 9px; font-weight: 700; overflow-wrap: anywhere; }
 
-/* ============================================================
-   16. OFFICIAL STAMP
-   ============================================================ */
-
-.official-stamp {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.results-section { padding: 11px 0 9px; border-bottom: 1px solid var(--line); }
+.results-section .section-heading { margin-bottom: 7px; }
+.section-note { margin-left: auto; color: var(--muted); font-size: 7px; font-style: italic; }
+.table-wrap { width: 100%; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+thead { background: var(--navy); color: white; }
+th { padding: 6px 5px; font-size: 7px; letter-spacing: .45px; text-align: left; }
+td { padding: 6px 5px; border-bottom: 1px solid #e6ebf3; color: #273653; font-size: 8px; overflow-wrap: anywhere; }
+tbody tr:nth-child(even) { background: #f7f9fd; }
+th:first-child, td:first-child { width: 5%; text-align: center; }
+th:nth-child(2) { width: 29%; }
+th:nth-child(3) { width: 17%; }
+th:nth-child(4), th:nth-child(5), th:nth-child(6), th:nth-child(7) { width: 12.25%; }
+.empty-row { text-align: center; color: var(--muted); padding: 12px; }
+.result-pass { color: #176b39; font-weight: 800; }
+.result-fail { color: #a32020; font-weight: 800; }
+.summary-panel {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 7px;
 }
-
-.stamp-circle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 23mm;
-  height: 23mm;
-  border: 2px solid var(--ga-gold);
-  border-radius: 50%;
+.summary-panel > div {
+  display: flex; flex-direction: column; gap: 3px; padding: 6px 8px;
+  border: 1px solid var(--line); background: var(--soft);
 }
+.summary-panel span { color: var(--muted); font-size: 7px; font-weight: 700; text-transform: uppercase; }
+.summary-panel strong { color: var(--navy); font-size: 11px; }
+.summary-panel .final-result { border-color: #d9c27c; background: #fffaf0; }
 
-.gaawow-official-stamp {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.verification-section {
+  display: grid; grid-template-columns: 1fr 112px; gap: 18px;
+  padding: 10px 0 8px; align-items: center;
 }
-
-/* ============================================================
-   17. WATERMARK
-   ============================================================ */
-
-#authenticationLetter::before {
-  content: "GAAWOW ACADEMY";
-  position: absolute;
-  top: 48%;
-  left: 50%;
-  z-index: -1;
-  color: rgba(11, 30, 99, 0.035);
-  font-size: 46px;
-  font-weight: 900;
-  letter-spacing: 5px;
-  white-space: nowrap;
-  transform: translate(-50%, -50%) rotate(-28deg);
-  pointer-events: none;
+.verification-copy > p { margin: 0 0 7px; max-width: 720px; color: #58657d; font-size: 8px; line-height: 1.45; }
+.verification-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px 12px; }
+.verify-url { margin-top: 7px !important; color: var(--blue) !important; font-size: 7px !important; overflow-wrap: anywhere; }
+.qr-panel {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; color: var(--navy); font-size: 7px; letter-spacing: .6px; text-align: center;
 }
-
-/* ============================================================
-   18. FOOTER - SAME COLOR AS HEADER
-   ============================================================ */
-
-.document-footer,
-.footer-main,
-.footer-contact {
-  background: var(--ga-bg) !important;
-  color: var(--ga-navy) !important;
-}
+#qrcode { width: 78px; height: 78px; padding: 4px; border: 1px solid var(--line); background: white; }
+#qrcode img, #qrcode canvas { width: 70px !important; height: 70px !important; }
+.qr-panel span { color: var(--muted); font-size: 6px; letter-spacing: 0; }
 
 .document-footer {
-  margin-top: 4mm;
-  padding: 7px 10px;
-  border-top: 3px solid var(--ga-navy);
-  border-bottom: 2px solid var(--ga-gold);
-  text-align: center;
+  display: grid; grid-template-columns: 1fr 110px 1fr; gap: 22px;
+  align-items: end; padding: 2px 24px 7px;
+}
+.signature-block { text-align: center; min-width: 0; }
+.signature-space { height: 26px; }
+.signature-line { height: 1px; background: #7c879b; margin-bottom: 5px; }
+.signature-block strong { display: block; color: var(--navy); font-family: "Playfair Display", Georgia, serif; font-size: 9px; }
+.signature-block span { display: block; margin-top: 2px; color: var(--muted); font-size: 7px; font-weight: 800; letter-spacing: .7px; }
+.official-seal {
+  width: 88px; height: 88px; margin: 0 auto 1px; padding: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 25%, #fff4bd 0, #e8c95e 28%, #b78b1d 65%, #f8e7a0 100%);
+  box-shadow: 0 2px 6px rgba(103,75,9,.22), inset 0 0 0 1px #fff3bd;
+}
+.seal-ring {
+  width: 100%; height: 100%; border: 2px solid #8b6818; border-radius: 50%;
+  padding: 4px; display: grid; place-items: center;
+}
+.seal-inner {
+  width: 100%; height: 100%; border: 1px solid rgba(98,70,12,.7); border-radius: 50%;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  color: #62490f; text-align: center; line-height: 1.05;
+}
+.seal-inner img { width: 24px; height: 24px; object-fit: contain; margin-bottom: 2px; }
+.seal-inner strong { font-size: 9px; letter-spacing: .7px; }
+.seal-inner span { font-size: 5px; font-weight: 800; letter-spacing: .8px; }
+.seal-inner small { margin-top: 2px; font-size: 6px; font-weight: 800; letter-spacing: 1.1px; }
+.document-bottom {
+  display: flex; justify-content: space-between; gap: 10px; padding-top: 5px;
+  border-top: 1px solid var(--line); color: #65718a; font-size: 6.5px;
+}
+.action-bar { display: flex; justify-content: center; padding-top: 14px; }
+.primary-button {
+  border: 0; border-radius: 6px; padding: 11px 20px; background: var(--navy);
+  color: white; font: 700 13px Inter, sans-serif; cursor: pointer;
+}
+.primary-button:disabled { opacity: .45; cursor: not-allowed; }
+
+.state-screen {
+  max-width: 480px; margin: 12vh auto; padding: 32px; background: white;
+  border-radius: 14px; text-align: center; box-shadow: 0 10px 35px rgba(11,30,99,.1);
+}
+.state-screen h2 { color: var(--navy); font-size: 20px; }
+.state-screen p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+.muted { font-size: 12px !important; }
+.loader {
+  width: 36px; height: 36px; margin: 0 auto 14px; border: 4px solid #e2e8f2;
+  border-top-color: var(--gold); border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-mark {
+  width: 42px; height: 42px; margin: auto; display: grid; place-items: center;
+  border-radius: 50%; background: #fdeaea; color: #a32020; font-size: 24px; font-weight: 800;
 }
 
-.footer-main {
-  font-size: 9px;
-  font-weight: 800;
+@media (max-width: 850px) {
+  body { padding: 0; background: white; }
+  .document { width: 100%; min-height: 100vh; padding: 18px 14px; box-shadow: none; }
+  .document-header { grid-template-columns: 58px 1fr; gap: 10px; }
+  .brand-mark { width: 54px; height: 54px; }
+  .brand-copy h1 { font-size: 18px; }
+  .eyebrow { font-size: 6px; }
+  .motto { font-size: 7px; letter-spacing: .7px; }
+  .document-name { font-size: 7px; padding: 4px 6px; }
+  .header-meta { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; gap: 6px; }
+  .header-meta .meta-label { font-size: 6px; }
+  .status-pill { margin: 0; }
+  .identity-section { grid-template-columns: 82px 1fr; gap: 10px; }
+  .student-photo-wrap { width: 78px; height: 96px; }
+  .student-name { font-size: 17px; }
+  .details-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .detail strong { font-size: 8px; }
+  .section-note { display: none; }
+  .summary-panel { grid-template-columns: repeat(3, 1fr); }
+  .verification-section { grid-template-columns: 1fr 88px; gap: 8px; }
+  .verification-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .document-footer { grid-template-columns: 1fr 78px 1fr; gap: 8px; padding: 8px 0; }
+  .official-seal { width: 72px; height: 72px; }
+  .signature-block strong { font-size: 7px; }
+  .signature-block span { font-size: 6px; }
+  .document-bottom { flex-wrap: wrap; font-size: 6px; }
 }
-
-.footer-contact {
-  margin-top: 3px;
-  font-size: 8px;
-  font-weight: 600;
+@media (max-width: 520px) {
+  .table-wrap { margin-right: -2px; }
+  table { min-width: 690px; }
+  .verification-section { grid-template-columns: 1fr; }
+  .qr-panel { flex-direction: row; justify-content: flex-start; text-align: left; }
+  #qrcode { flex: 0 0 78px; }
+  .document-footer { grid-template-columns: 1fr 1fr; }
+  .official-seal { grid-column: 1 / -1; grid-row: 1; }
+  .signature-block { grid-row: 2; }
 }
-
-.footer-main strong,
-.footer-contact strong {
-  color: var(--ga-navy) !important;
-}
-
-/* ============================================================
-   19. SECURITY STRIP
-   ============================================================ */
-
-.security-strip {
-  padding: 5px 8px;
-  color: var(--ga-white) !important;
-  background: var(--ga-navy) !important;
-  border-top: 2px solid var(--ga-gold);
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  text-align: center;
-}
-
-/* ============================================================
-   20. ACTION BUTTONS
-   ============================================================ */
-
-#printButton,
-#retryButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
-  margin: 12px 5px;
-  padding: 9px 22px;
-  color: var(--ga-white);
-  background: var(--ga-navy);
-  border: 1px solid var(--ga-navy);
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-#printButton:hover,
-#retryButton:hover {
-  color: var(--ga-navy);
-  background: var(--ga-gold);
-  border-color: var(--ga-gold);
-}
-
-#printButton:focus-visible,
-#retryButton:focus-visible {
-  outline: 3px solid var(--ga-gold);
-  outline-offset: 3px;
-}
-
-/* ============================================================
-   21. MOBILE RESPONSIVE
-   ============================================================ */
-
-@media screen and (max-width: 800px) {
-  body {
-    padding: 8px;
-  }
-
-  #authenticationLetter {
-    width: 100%;
-    min-height: auto;
-    padding: 12px;
-  }
-
-  .document-header {
-    min-height: 90px;
-    padding: 8px;
-  }
-
-  .header-logo,
-  .document-header img {
-    max-width: 55px;
-    max-height: 55px;
-  }
-
-  .header-content h1,
-  .document-header h1 {
-    font-size: 17px;
-    letter-spacing: 1px;
-  }
-
-  .header-content p,
-  .document-header p {
-    font-size: 9px;
-  }
-
-  .header-seal {
-    max-width: 50px;
-    max-height: 50px;
-  }
-
-  .document-title h2 {
-    font-size: 16px;
-  }
-
-  .student-layout {
-    grid-template-columns: 90px 1fr;
-    gap: 8px;
-  }
-
-  .photo-frame {
-    width: 85px;
-    height: 105px;
-  }
-
-  .student-fields {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .field-wide {
-    grid-column: span 2;
-  }
-
-  .date-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .authentication-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .authentication-fields {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .signature-section {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .official-stamp {
-    grid-column: span 2;
-    grid-row: 1;
-  }
-
-  .results-table {
-    min-width: 620px;
-  }
-
-  .document-footer {
-    margin-top: 12px;
-  }
-}
-
-/* ============================================================
-   22. PRINT / SAVE PDF - A4 LANDSCAPE
-   ============================================================ */
-
-@page {
-  size: A4 landscape;
-  margin: 5mm;
-}
-
+@page { size: A4 landscape; margin: 0; }
 @media print {
-  html,
-  body {
-    width: 287mm;
-    min-height: 200mm;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: var(--ga-white) !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  html, body { width: 297mm; height: 210mm; margin: 0; padding: 0; background: white; }
+  .document {
+    width: 297mm; height: 210mm; min-height: 210mm; margin: 0; padding: 8mm 11mm 5mm;
+    box-shadow: none; overflow: hidden;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-
-  #loading,
-  #errorState,
-  #printButton,
-  #retryButton {
-    display: none !important;
-  }
-
-  #authenticationLetter {
-    display: block !important;
-    width: 287mm;
-    min-height: 200mm;
-    margin: 0 auto !important;
-    padding: 5mm 7mm 4mm;
-    overflow: visible;
-    border: none;
-    box-shadow: none;
-    background: var(--ga-white) !important;
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  .document-header,
-  .document-footer,
-  .footer-main,
-  .footer-contact,
-  .security-strip,
-  .section-heading,
-  .results-table thead {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .results-table-wrapper {
-    overflow: visible !important;
-  }
-
-  .results-table {
-    width: 100%;
-    min-width: 0;
-    font-size: 8px;
-  }
-
-  .results-table th,
-  .results-table td {
-    padding: 4px;
-  }
-
-  .student-layout,
-  .authentication-layout,
-  .signature-section,
-  .declaration,
-  .document-footer {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  #qrcode img,
-  #qrcode canvas {
-    width: 100px !important;
-    height: 100px !important;
-  }
-
-  a {
-    color: inherit !important;
-    text-decoration: none !important;
-  }
+  .no-print { display: none !important; }
+  .document-header { min-height: 72px; }
+  .identity-section { padding-bottom: 8px; }
+  .student-photo-wrap { height: 108px; }
+  .results-section { padding: 8px 0 7px; }
+  .verification-section { padding: 7px 0 5px; }
+  .document-footer { padding-bottom: 5px; }
 }
