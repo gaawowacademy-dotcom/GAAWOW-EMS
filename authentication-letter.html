@@ -1,207 +1,104 @@
-
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0B1E63">
-
   <meta name="description" content="Official GAAWOW Academy Student Authentication Letter and Academic Verification.">
-
   <title>GAAWOW ACADEMY | Authentication Letter</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="authentication-letter.css?v=20261112-2">
+  <link rel="stylesheet" href="authentication-letter.css?v=20261112-3">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-  <script defer src="authentication-letter.js?v=20261112-2"></script>
+  <script defer src="authentication-letter.js?v=20261112-3"></script>
 </head>
-
 <body>
 
-  <!-- LOADING SCREEN -->
+  <!-- LOADING -->
   <div id="loading" class="state-screen" role="status">
     <div class="loader"></div>
     <h2>Loading Authentication Record</h2>
     <p>Please wait while the official record is verified.</p>
   </div>
 
-  <!-- ERROR SCREEN -->
+  <!-- ERROR -->
   <main id="errorState" class="state-screen" hidden>
     <div class="error-mark">!</div>
-
     <h2>Authentication Letter Unavailable</h2>
-
-    <p id="errorMessage">
-      The verification record could not be loaded.
-    </p>
-
+    <p id="errorMessage">The verification record could not be loaded.</p>
     <p id="errorDetails" class="muted"></p>
-
-    <button
-      id="retryButton"
-      class="primary-button"
-      type="button">
-      Try Again
-    </button>
+    <button id="retryButton" class="primary-button" type="button">Try Again</button>
   </main>
 
-  <!-- OFFICIAL AUTHENTICATION LETTER -->
+  <!-- LETTER -->
   <main id="authenticationLetter" class="document" hidden>
 
-    <!-- HEADER -->
     <header class="document-header">
-
       <div class="brand-mark">
-        <img
-          src="logo.png"
-          alt="GAAWOW Academy Logo"
-          onerror="this.style.display='none'">
+        <img src="logo.png" alt="GAAWOW Academy Logo" onerror="this.style.display='none'">
       </div>
 
       <div class="brand-copy">
-
-        <p class="eyebrow">
-          OFFICIAL ACADEMIC DOCUMENT
-        </p>
-
+        <p class="eyebrow">OFFICIAL ACADEMIC DOCUMENT</p>
         <h1>GAAWOW ACADEMY</h1>
-
-        <p class="motto">
-          ILAYSKA AQOONTA IYO XIRFADDA
-        </p>
-
-        <p class="document-name">
-          STUDENT AUTHENTICATION LETTER
-        </p>
-
+        <p class="motto">ILAYSKA AQOONTA IYO XIRFADDA</p>
+        <p class="document-name">STUDENT AUTHENTICATION LETTER</p>
       </div>
 
       <div class="header-meta">
-
-        <span class="meta-label">
-          DOCUMENT STATUS
-        </span>
-
-        <strong id="status" class="status-pill">
-          Checking
-        </strong>
-
-        <span class="meta-label">
-          REFERENCE NO.
-        </span>
-
+        <span class="meta-label">DOCUMENT STATUS</span>
+        <strong id="status" class="status-pill">Checking</strong>
+        <span class="meta-label">REFERENCE NO.</span>
         <strong id="referenceNo">—</strong>
-
       </div>
-
     </header>
 
     <div class="gold-rule"></div>
 
-    <!-- STUDENT INFORMATION -->
+    <p id="certifyText" class="certify"></p>
+
     <section class="identity-section">
-
       <div class="student-photo-wrap">
-
-        <img
-          id="studentPhoto"
-          alt="Student Photograph"
-          hidden>
-
-        <div
-          id="photoPlaceholder"
-          class="photo-placeholder">
-
+        <img id="studentPhoto" alt="Student Photograph" hidden>
+        <div id="photoPlaceholder" class="photo-placeholder">
           <span class="photo-icon">▧</span>
-
-          <span>
-            STUDENT<br>
-            PHOTOGRAPH
-          </span>
-
+          <span>STUDENT<br>PHOTOGRAPH</span>
         </div>
-
       </div>
 
       <div class="student-details">
-
         <div class="section-heading">
-
           <span class="section-number">01</span>
-
           <h2>STUDENT INFORMATION</h2>
-
         </div>
 
-        <h3 id="studentName" class="student-name">
-          —
-        </h3>
+        <h3 id="studentName" class="student-name">—</h3>
 
         <div class="details-grid">
-
-          <div class="detail">
-            <span>Student ID</span>
-            <strong id="studentId">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Programme / Course</span>
-            <strong id="courseName">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Institution</span>
-            <strong id="institutionName">GAAWOW ACADEMY</strong>
-          </div>
-
-          <div class="detail">
-            <span>Admission Date</span>
-            <strong id="admissionDate">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Study Started</span>
-            <strong id="dateStarted">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Completion Date</span>
-            <strong id="dateCompleted">Not Completed</strong>
-          </div>
-
+          <div class="detail"><span>Student ID</span><strong id="studentId">—</strong></div>
+          <div class="detail"><span>Programme / Course</span><strong id="courseName">—</strong></div>
+          <div class="detail"><span>Institution</span><strong id="institutionName">GAAWOW ACADEMY</strong></div>
+          <div class="detail"><span>Admission Date</span><strong id="admissionDate">—</strong></div>
+          <div class="detail"><span>Study Started</span><strong id="dateStarted">—</strong></div>
+          <div class="detail"><span>Completion Date</span><strong id="dateCompleted">Not Completed</strong></div>
         </div>
-
       </div>
-
     </section>
 
-    <!-- ACADEMIC RESULTS -->
     <section class="results-section">
-
       <div class="section-heading">
-
         <span class="section-number">02</span>
-
         <h2>ACADEMIC RESULTS</h2>
-
-        <span class="section-note">
-          Published Final Assessments
-        </span>
-
+        <span class="section-note">Published Final Assessments</span>
       </div>
 
       <div class="table-wrap">
-
         <table>
-
           <thead>
             <tr>
               <th>NO.</th>
@@ -213,218 +110,93 @@
               <th>RESULT</th>
             </tr>
           </thead>
-
           <tbody id="academicResults">
-
-            <tr>
-              <td colspan="7" class="empty-row">
-                Loading published academic results…
-              </td>
-            </tr>
-
+            <tr><td colspan="7" class="empty-row">Loading published academic results…</td></tr>
           </tbody>
-
         </table>
-
       </div>
 
-      <!-- ACADEMIC SUMMARY -->
       <div id="summaryPanel" class="summary-panel" hidden>
-
-        <div>
-          <span>Subjects</span>
-          <strong id="summarySubjects">—</strong>
-        </div>
-
-        <div>
-          <span>Total Score</span>
-          <strong id="summaryScore">—</strong>
-        </div>
-
-        <div>
-          <span>Average</span>
-          <strong id="summaryAverage">—</strong>
-        </div>
-
-        <div>
-          <span>Overall Grade</span>
-          <strong id="summaryGrade">—</strong>
-        </div>
-
-        <div>
-          <span>Failed Subjects</span>
-          <strong id="summaryFailed">—</strong>
-        </div>
-
-        <div class="final-result">
-          <span>Final Result</span>
-          <strong id="summaryFinal">—</strong>
-        </div>
-
+        <div><span>Subjects</span><strong id="summarySubjects">—</strong></div>
+        <div><span>Total Score</span><strong id="summaryScore">—</strong></div>
+        <div><span>Average</span><strong id="summaryAverage">—</strong></div>
+        <div><span>Overall Grade</span><strong id="summaryGrade">—</strong></div>
+        <div><span>Failed Subjects</span><strong id="summaryFailed">—</strong></div>
+        <div class="final-result"><span>Final Result</span><strong id="summaryFinal">—</strong></div>
       </div>
 
       <p id="academicPendingNote" class="academic-pending-note" hidden>
         Academic results are pending publication by GAAWOW ACADEMY.
       </p>
-
     </section>
 
-    <!-- VERIFICATION -->
     <section class="verification-section">
-
       <div class="verification-copy">
-
         <div class="section-heading">
-
           <span class="section-number">03</span>
-
-          <h2>AUTHENTICATION & VERIFICATION</h2>
-
+          <h2>AUTHENTICATION &amp; VERIFICATION</h2>
         </div>
 
         <p>
-          This document is issued by GAAWOW ACADEMY.
-          Its authenticity can be checked through the official
-          online verification service using the details below.
+          This document is issued by GAAWOW ACADEMY. Its authenticity can be checked
+          through the official online verification service using the details below.
         </p>
 
         <div class="verification-grid">
-
-          <div class="detail">
-            <span>Authentication ID</span>
-            <strong id="authenticationId">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Verification Code</span>
-            <strong id="verificationCode">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Issue Date</span>
-            <strong id="issueDate">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Expiry Date</span>
-            <strong id="expiryDate">No expiry stated</strong>
-          </div>
-
+          <div class="detail"><span>Authentication ID</span><strong id="authenticationId">—</strong></div>
+          <div class="detail"><span>Verification Code</span><strong id="verificationCode">—</strong></div>
+          <div class="detail"><span>Issue Date</span><strong id="issueDate">—</strong></div>
+          <div class="detail"><span>Expiry Date</span><strong id="expiryDate">No expiry stated</strong></div>
         </div>
 
-        <p
-          class="verify-url"
-          id="verificationUrlText">
-          Official online verification
-        </p>
-
+        <p class="verify-url" id="verificationUrlText">Official online verification</p>
       </div>
 
       <div class="qr-panel">
-
-        <div
-          id="qrcode"
-          aria-label="QR code for online verification">
-        </div>
-
+        <div id="qrcode" aria-label="QR code for online verification"></div>
         <strong>SCAN TO VERIFY</strong>
-
         <span>Use your phone camera</span>
-
       </div>
-
     </section>
 
-    <!-- SIGNATURES AND OFFICIAL SEAL -->
     <footer class="document-footer">
-
       <div class="signature-block">
-
         <div class="signature-space"></div>
-
         <div class="signature-line"></div>
-
-        <strong>
-          Dr. Osmaan Mohamed Ibraahin
-        </strong>
-
-        <span>
-          G-FOUNDER &amp; DIRECTOR
-        </span>
-
+        <strong>Dr. Osmaan Mohamed Ibraahin</strong>
+        <span>G-FOUNDER &amp; DIRECTOR</span>
       </div>
 
-      <div
-        class="official-seal"
-        aria-label="Official GAAWOW Academy Seal">
-
+      <div class="official-seal" aria-label="Official GAAWOW Academy Seal">
         <div class="seal-ring">
-
           <div class="seal-inner">
-
-            <img
-              src="logo.png"
-              alt=""
-              onerror="this.style.display='none'">
-
+            <img src="logo.png" alt="" onerror="this.style.display='none'">
             <strong>GAAWOW</strong>
-
             <span>OFFICIAL SEAL</span>
-
             <small>ACADEMY</small>
-
           </div>
-
         </div>
-
       </div>
 
       <div class="signature-block">
-
         <div class="signature-space"></div>
-
         <div class="signature-line"></div>
-
-        <strong>
-          Eng. Moscab Osmaan Mohamed
-        </strong>
-
-        <span>
-          ACADEMIC HEAD
-        </span>
-
+        <strong>Eng. Moscab Osmaan Mohamed</strong>
+        <span>ACADEMIC HEAD</span>
       </div>
-
     </footer>
 
-    <!-- BOTTOM FOOTER -->
     <div class="document-bottom">
-
-      <span>
-        Burhakaba, Bay, Somalia
-      </span>
-
-      <span>
-        +252 615 228 824&nbsp; | &nbsp;+252 625 228 824
-      </span>
-
-      <span>
-        GAAWOW ACADEMY • ILAYSKA AQOONTA IYO XIRFADDA
-      </span>
-
+      <span>Burhakaba, Bay, Somalia</span>
+      <span>+252 615 228 824&nbsp; | &nbsp;+252 625 228 824</span>
+      <span id="verifiedAt"></span>
+      <span>GAAWOW ACADEMY • ILAYSKA AQOONTA IYO XIRFADDA</span>
     </div>
 
-    <!-- PRINT BUTTON -->
     <div class="action-bar no-print">
-
-      <button
-        id="printButton"
-        class="primary-button"
-        type="button"
-        disabled>
+      <button id="printButton" class="primary-button" type="button" disabled>
         Print / Save as PDF
       </button>
-
     </div>
 
   </main>
