@@ -1,28 +1,781 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B1E63">
-<title>GAAWOW EMS | Financial Management</title>
-<style>
-:root{--navy:#0B1E63;--blue:#0B4DA2;--gold:#D4AF37;--bg:#F4F7FB;--line:#E2E8F0;--text:#172554;--muted:#64748B;--green:#15803D;--amber:#B45309;--red:#B91C1C}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}button,input,select{font:inherit}button{border:0;border-radius:10px;padding:11px 15px;font-weight:750;cursor:pointer;transition:.18s}button:hover{transform:translateY(-1px);filter:brightness(.98)}button:disabled{opacity:.55;cursor:wait;transform:none}.primary{background:var(--gold);color:#172554}.secondary{background:#E9EEF8;color:var(--navy)}.topbar{background:linear-gradient(115deg,#071449,var(--navy) 55%,var(--blue));color:#fff;border-bottom:4px solid var(--gold);padding:20px 22px}.head,.container{max-width:1450px;margin:auto}.head{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:15px}.logo{width:66px;height:66px;object-fit:contain;background:#fff;border-radius:13px;padding:5px;box-shadow:0 4px 16px #0002}.brand h1{font-size:21px;margin:0;letter-spacing:.2px}.brand p{margin:5px 0 0;color:#dbeafe;font-size:12px;letter-spacing:.5px}.brand .subtitle{margin-top:7px;color:#fff;font-size:12px;opacity:.9}.head-actions{display:flex;gap:9px;flex-wrap:wrap}.container{padding:22px 16px 34px}.page-intro{display:flex;justify-content:space-between;align-items:end;gap:15px;flex-wrap:wrap;margin-bottom:18px}.eyebrow{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.4px;color:var(--blue)}h2{margin:5px 0 0;font-size:24px;color:var(--navy)}.intro-note{color:var(--muted);font-size:13px;margin-top:7px;max-width:750px;line-height:1.55}.notice,.panel,.stat{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 5px 18px #0b1e6308}.notice{padding:13px 16px;background:#fff9e8;border-color:#f3df9b;color:#765a09;line-height:1.5;margin-bottom:17px}.notice strong{color:#614600}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:18px}.stat{padding:17px;position:relative;overflow:hidden}.stat:after{content:"";position:absolute;right:-17px;top:-23px;width:76px;height:76px;border-radius:50%;background:#0B4DA20b}.stat .label{color:var(--muted);font-size:12px;font-weight:650}.stat .value{font-size:25px;font-weight:850;color:var(--navy);margin-top:10px;overflow-wrap:anywhere}.stat .hint{font-size:11px;color:var(--muted);margin-top:7px}.stat.gold{border-top:3px solid var(--gold)}.stat.blue{border-top:3px solid var(--blue)}.stat.green{border-top:3px solid #22a06b}.stat.amber{border-top:3px solid #e7a928}.toolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:14px 0}.field{flex:1;min-width:190px}label{display:block;font-size:11px;font-weight:800;color:#475569;margin:0 0 6px;text-transform:uppercase;letter-spacing:.4px}input,select{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:11px 12px;background:#fff;color:var(--text);outline:none}input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #0b4da218}.panel{padding:18px;margin-bottom:16px}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.panel h3{font-size:17px;color:var(--navy);margin:0}.panel-sub{font-size:12px;color:var(--muted);margin-top:5px}.tabs{display:flex;gap:7px;padding:6px;background:#e9eef8;border-radius:13px;width:max-content;max-width:100%;margin:0 0 16px}.tabs button{background:transparent;color:#52627e}.tabs button.active{background:var(--navy);color:white;box-shadow:0 3px 8px #0b1e6325}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px}table{width:100%;border-collapse:collapse;min-width:800px}th,td{text-align:left;padding:13px 12px;border-bottom:1px solid var(--line);font-size:12px;vertical-align:middle}th{background:#f8fafc;color:#64748b;text-transform:uppercase;font-size:10px;letter-spacing:.65px;white-space:nowrap}tbody tr:hover{background:#f8fbff}tbody tr:last-child td{border-bottom:0}.badge{display:inline-flex;align-items:center;padding:5px 9px;border-radius:30px;background:#e8eef8;color:#334155;font-size:10px;font-weight:800;text-transform:capitalize;white-space:nowrap}.badge.successful,.badge.paid{background:#dcfce7;color:#166534}.badge.partial,.badge.pending{background:#fef3c7;color:#92400e}.badge.failed,.badge.overdue{background:#fee2e2;color:#991b1b}.hidden{display:none!important}.message{display:none;padding:12px 14px;border-radius:11px;margin-bottom:14px;line-height:1.5}.message.show{display:block}.ok{background:#dcfce7;color:#166534}.err{background:#fee2e2;color:#991b1b}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.wide{grid-column:span 2}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.muted{color:var(--muted);font-size:11px;line-height:1.5}.empty{text-align:center;padding:28px;color:var(--muted)}.section-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:15px 0}.mini-stat{padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:#fbfdff}.mini-stat span{display:block;font-size:11px;color:var(--muted);font-weight:700}.mini-stat b{display:block;margin-top:7px;font-size:18px;color:var(--navy);overflow-wrap:anywhere}.form-divider{grid-column:1/-1;border-top:1px solid var(--line);margin:4px 0}.footer{padding:10px 4px 0;color:var(--muted);font-size:11px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.security-note{display:flex;align-items:flex-start;gap:9px}.security-note .shield{font-size:18px}
-@media(max-width:900px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.section-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wide{grid-column:span 2}}
-@media(max-width:560px){.topbar{padding:15px}.logo{width:52px;height:52px}.brand{gap:10px}.brand h1{font-size:17px}.brand p{font-size:10px}.container{padding:15px 10px 25px}.page-intro h2{font-size:21px}.stats{gap:8px}.stat{padding:12px}.stat .value{font-size:19px}.stat .label{font-size:11px}.panel{padding:12px}.grid{grid-template-columns:1fr}.wide{grid-column:span 1}.section-stats{gap:7px}.mini-stat{padding:10px}.mini-stat b{font-size:16px}.tabs{width:100%}.tabs button{flex:1;padding:10px 8px;font-size:12px}.head-actions button{padding:9px 11px}}
-@media print{.topbar,.toolbar,.tabs,.head-actions,.notice,.actions,button{display:none!important}body{background:white}.container{max-width:none;padding:0}.panel,.stat{box-shadow:none}}
-</style></head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GAAWOW EMS - Financial Management</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --navy: #0B1E63;
+      --blue: #0B4DA2;
+      --gold: #D4AF37;
+      --white: #F5F7FA;
+      --text: #17233d;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --green: #16834a;
+      --red: #c62828;
+      --orange: #c47b12;
+      --shadow: 0 8px 25px rgba(11,30,99,.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #f4f6fb;
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .topbar {
+      background: linear-gradient(110deg,var(--navy),var(--blue));
+      color: white;
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 55px;
+      height: 55px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .brand h1 {
+      font-size: 19px;
+      margin: 0 0 4px;
+    }
+
+    .brand p {
+      margin: 0;
+      font-size: 12px;
+      color: #e4eaf7;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    button, .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .btn-gold {
+      background: var(--gold);
+      color: var(--navy);
+    }
+
+    .btn-light {
+      background: white;
+      color: var(--navy);
+    }
+
+    .btn-blue {
+      background: var(--blue);
+      color: white;
+    }
+
+    .btn-green {
+      background: var(--green);
+      color: white;
+    }
+
+    .btn-red {
+      background: var(--red);
+      color: white;
+    }
+
+    .btn-small {
+      padding: 7px 10px;
+      font-size: 12px;
+      margin: 2px;
+    }
+
+    .container {
+      max-width: 1450px;
+      margin: 22px auto;
+      padding: 0 16px 35px;
+    }
+
+    .page-heading {
+      margin-bottom: 18px;
+    }
+
+    .page-heading h2 {
+      color: var(--navy);
+      margin: 0 0 6px;
+      font-size: 23px;
+    }
+
+    .page-heading p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4,minmax(0,1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 17px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--gold);
+    }
+
+    .stat-card span {
+      color: var(--muted);
+      font-size: 12px;
+      display: block;
+      margin-bottom: 9px;
+    }
+
+    .stat-card strong {
+      font-size: 23px;
+      color: var(--navy);
+    }
+
+    .panel {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+
+    .panel-heading h3 {
+      margin: 0;
+      color: var(--navy);
+      font-size: 17px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 18px;
+    }
+
+    .tab {
+      background: transparent;
+      color: var(--muted);
+      border-radius: 8px 8px 0 0;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab.active {
+      color: var(--navy);
+      border-bottom-color: var(--gold);
+      background: #f7f8fc;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3,minmax(0,1fr));
+      gap: 13px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .field.full { grid-column: 1/-1; }
+
+    label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid #d6deeb;
+      border-radius: 8px;
+      padding: 11px;
+      font-size: 13px;
+      color: var(--text);
+      background: white;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(11,77,162,.08);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .form-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin: 5px 0 14px;
+      line-height: 1.5;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 850px;
+      font-size: 12px;
+    }
+
+    th {
+      background: #eef2fa;
+      color: var(--navy);
+      text-align: left;
+      padding: 12px 10px;
+      white-space: nowrap;
+    }
+
+    td {
+      border-bottom: 1px solid var(--border);
+      padding: 11px 10px;
+      vertical-align: middle;
+    }
+
+    tr:hover td { background: #fafbfe; }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: capitalize;
+    }
+
+    .status.pending { background: #fff2d8; color: #9a6100; }
+    .status.successful { background: #dcf5e6; color: #126b39; }
+    .status.failed { background: #ffe1e1; color: #a51d1d; }
+    .status.cancelled { background: #e9edf3; color: #475569; }
+    .status.refunded { background: #eee5ff; color: #6941a5; }
+    .status.partial { background: #e0efff; color: #1456a0; }
+    .status.paid { background: #dcf5e6; color: #126b39; }
+    .status.unpaid { background: #fff2d8; color: #9a6100; }
+    .status.overdue { background: #ffe1e1; color: #a51d1d; }
+
+    .toolbar {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      align-items: end;
+    }
+
+    .toolbar .field {
+      min-width: 180px;
+      flex: 1;
+    }
+
+    .empty {
+      padding: 25px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .hidden { display: none !important; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(4,13,39,.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      overflow-y: auto;
+    }
+
+    .modal.show { display: flex; }
+
+    .modal-box {
+      width: 100%;
+      max-width: 650px;
+      background: white;
+      border-radius: 13px;
+      padding: 20px;
+      box-shadow: 0 20px 55px rgba(0,0,0,.2);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: var(--navy);
+    }
+
+    .close-btn {
+      background: #eef2fa;
+      color: var(--navy);
+      padding: 7px 11px;
+    }
+
+    .alert {
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      display: none;
+      line-height: 1.5;
+    }
+
+    .alert.show { display: block; }
+    .alert.error { background: #ffe7e7; color: #9d1c1c; }
+    .alert.success { background: #e0f5e8; color: #176b3a; }
+    .alert.info { background: #e7f0ff; color: #174b8a; }
+
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      padding: 18px;
+    }
+
+    @media(max-width:900px) {
+      .stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .form-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    }
+
+    @media(max-width:600px) {
+      .topbar { padding: 13px; }
+      .brand img { width: 45px; height: 45px; }
+      .brand h1 { font-size: 15px; }
+      .container { padding: 0 10px 25px; }
+      .stats { gap: 9px; }
+      .stat-card { padding: 13px; }
+      .stat-card strong { font-size: 19px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .panel { padding: 13px; }
+      .page-heading h2 { font-size: 20px; }
+    }
+
+    @media print {
+      .topbar, .no-print, .footer { display: none !important; }
+      body { background: white; }
+      .container { margin: 0; max-width: none; }
+      .panel { box-shadow: none; border: 1px solid #ddd; }
+    }
+  </style>
+</head>
+
 <body>
-<header class="topbar"><div class="head"><div class="brand"><img class="logo" src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy logo"><div><h1>GAAWOW EMS</h1><p>ILAYSKA AQOONTA IYO XIRFADDA · BURHAKABA, BAY, SOMALIA</p><div class="subtitle">Enterprise Financial Management</div></div></div><div class="head-actions"><button class="secondary" id="refresh">↻ Refresh data</button><button class="secondary" id="logout">Sign out</button></div></div></header>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy Logo">
+    <div>
+      <h1>GAAWOW ACADEMY</h1>
+      <p>Education Management & Verification System</p>
+    </div>
+  </div>
+
+  <div class="top-actions no-print">
+    <button class="btn-light" id="backDashboard">Dashboard</button>
+    <button class="btn-gold" id="logout">Logout</button>
+  </div>
+</header>
+
 <main class="container">
-<div class="page-intro"><div><div class="eyebrow">Finance & administration</div><h2>Financial Overview</h2><div class="intro-note">Manage student billing, confirmed collections, outstanding balances, payment reviews, and official receipts in one secure workspace.</div></div></div>
-<div id="msg" class="message" role="status" aria-live="polite"></div>
-<div class="notice"><div class="security-note"><span class="shield">🔐</span><div><strong>Payment safety & reconciliation</strong><br>Only mark a transaction successful after independently confirming receipt. Pending or failed transactions are not counted as collected funds. Invoice balances depend on the existing database reconciliation logic.</div></div></div>
-<div class="toolbar"><div class="field"><label for="filterInst">Institution</label><select id="filterInst"></select></div><div class="field"><label for="search">Search records</label><input id="search" placeholder="Student, invoice, payment or receipt reference"></div><button class="primary" id="addInv">＋ Create invoice</button><button class="secondary" id="addPay">＋ Record payment</button></div>
-<div class="stats"><div class="stat gold"><div class="label">Total invoices</div><div class="value" id="count">0</div><div class="hint">Invoice records in the selected view</div></div><div class="stat blue"><div class="label">Total invoiced</div><div class="value" id="billed">$0.00</div><div class="hint">Charges excluding cancelled invoices</div></div><div class="stat green"><div class="label">Successful payments received</div><div class="value" id="collected">$0.00</div><div class="hint">Confirmed successful transactions</div></div><div class="stat amber"><div class="label">Remaining balance</div><div class="value" id="outstanding">$0.00</div><div class="hint">Outstanding amount across active invoices</div></div><div class="stat"><div class="label">Pending payments</div><div class="value" id="pendingTotal">$0.00</div><div class="hint">Awaiting verification</div></div><div class="stat"><div class="label">Failed payments</div><div class="value" id="failedTotal">$0.00</div><div class="hint">Not included in collections</div></div><div class="stat"><div class="label">Cancelled / refunded</div><div class="value" id="cancelledTotal">$0.00</div><div class="hint">Kept separate from successful receipts</div></div><div class="stat"><div class="label">Successful payment count</div><div class="value" id="successfulCount">0</div><div class="hint">Verified payment records</div></div></div>
-<div class="tabs" role="tablist"><button class="active" data-tab="invPanel" role="tab" aria-selected="true">Invoices</button><button data-tab="payPanel" role="tab" aria-selected="false">Payments & receipts</button></div>
-<section class="panel" id="invPanel"><div class="panel-head"><div><h3>Invoice Management</h3><div class="panel-sub">Track billing, paid amounts and student balances.</div></div><button class="primary" id="addInvPanel">＋ Create invoice</button></div><div class="section-stats"><div class="mini-stat"><span>Total invoiced</span><b id="invTotal">$0.00</b></div><div class="mini-stat"><span>Total paid</span><b id="invPaid">$0.00</b></div><div class="mini-stat"><span>Remaining balance</span><b id="invBalance">$0.00</b></div><div class="mini-stat"><span>Unpaid invoices</span><b id="invUnpaid">0</b></div></div><div class="tablewrap"><table><thead><tr><th>Invoice</th><th>Student</th><th>Description</th><th>Total amount</th><th>Paid</th><th>Balance</th><th>Status</th><th>Due date</th><th>Action</th></tr></thead><tbody id="invRows"><tr><td colspan="9" class="empty">Loading invoices…</td></tr></tbody></table></div></section>
-<section class="panel hidden" id="payPanel"><div class="panel-head"><div><h3>Payments & Receipts</h3><div class="panel-sub">Review transaction status and print official receipts.</div></div><button class="primary" id="addPayInPanel">＋ Record payment</button></div><div class="section-stats"><div class="mini-stat"><span>Total received</span><b id="payReceived">$0.00</b></div><div class="mini-stat"><span>Pending payments</span><b id="payPending">$0.00</b></div><div class="mini-stat"><span>Failed payments</span><b id="payFailed">$0.00</b></div><div class="mini-stat"><span>Successful receipts issued</span><b id="payReceipts">0</b></div></div><div class="toolbar"><div class="field"><label for="paymentStatusFilter">Payment status</label><select id="paymentStatusFilter"><option value="all">All statuses</option><option value="pending">Pending</option><option value="successful">Successful</option><option value="failed">Failed</option><option value="cancelled">Cancelled</option><option value="refunded">Refunded</option></select></div><div class="field"><label for="paymentMethodFilter">Payment method</label><select id="paymentMethodFilter"><option value="all">All methods</option><option value="cash">Cash</option><option value="mobile_money">Mobile money</option><option value="bank_transfer">Bank transfer</option><option value="card">Card</option><option value="other">Other</option></select></div></div><div class="tablewrap"><table><thead><tr><th>Payment reference</th><th>Receipt</th><th>Student</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody id="payRows"><tr><td colspan="8" class="empty">Loading payments…</td></tr></tbody></table></div></section>
-<section class="panel hidden" id="invForm"><div class="panel-head"><div><h3>Create Invoice</h3><div class="panel-sub">Create a charge for a student at the selected institution.</div></div></div><div class="grid"><div><label for="invInst">Institution *</label><select id="invInst"></select></div><div><label for="invStudent">Student *</label><select id="invStudent"></select></div><div class="wide"><label for="description">Description *</label><input id="description" placeholder="Tuition fee"></div><div><label for="amount">Amount (USD) *</label><input id="amount" type="number" min="0.01" step="0.01" placeholder="0.00"></div><div><label for="due">Due date</label><input id="due" type="date"></div></div><div class="actions"><button class="primary" id="saveInv">Save invoice</button><button class="secondary cancel">Cancel</button></div></section>
-<section class="panel hidden" id="payForm"><div class="panel-head"><div><h3>Record Payment</h3><div class="panel-sub">Record the transaction and set its status according to verification.</div></div></div><div class="grid"><div><label for="payInst">Institution *</label><select id="payInst"></select></div><div><label for="payStudent">Student *</label><select id="payStudent"></select></div><div class="wide"><label for="payInvoice">Invoice (optional)</label><select id="payInvoice"></select></div><div><label for="payAmount">Amount (USD) *</label><input id="payAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></div><div><label for="method">Payment method *</label><select id="method"><option value="mobile_money">Mobile money</option><option value="cash">Cash</option><option value="bank_transfer">Bank transfer</option><option value="card">Card</option><option value="other">Other</option></select></div><div><label for="provider">Provider / Wallet / Bank</label><select id="provider"><option value="">Choose provider</option><option>EVC Plus</option><option>eDahab</option><option>Jeeb</option><option>Bank</option><option>Cash desk</option><option>Other</option></select></div><div><label for="payStatus">Payment status *</label><select id="payStatus"><option value="pending">Pending</option><option value="successful">Successful (verified only)</option><option value="failed">Failed</option><option value="cancelled">Cancelled</option><option value="refunded">Refunded</option></select></div><div><label for="phone">Payer phone / sender account</label><input id="phone" type="tel" placeholder="Optional"></div><div><label for="receiver">Receiver account (optional)</label><input id="receiver" type="text" placeholder="Business wallet / account"></div><div class="wide"><label for="txref">Transaction reference / provider ID</label><input id="txref" placeholder="Provider transaction reference"></div></div><div class="actions"><button class="primary" id="savePay">Save payment</button><button class="secondary cancel">Cancel</button></div></section>
-<section class="panel hidden" id="reviewForm"><div class="panel-head"><div><h3 id="reviewTitle">Review Payment</h3><div class="panel-sub">Record a payment review decision and audit note.</div></div></div><div id="reviewSummary" class="notice"></div><div class="grid"><div><label for="reviewStatus">Decision / Status *</label><select id="reviewStatus"><option value="pending">Pending</option><option value="successful">Completed / Successful</option><option value="failed">Failed</option><option value="cancelled">Cancelled</option><option value="refunded">Refunded</option></select></div><div class="wide"><label for="reviewNote">Review note</label><input id="reviewNote" maxlength="500" placeholder="Reason for decision / verification note"></div></div><div class="actions"><button class="primary" id="saveReview">Save review</button><button class="secondary cancel">Cancel</button></div><p class="muted">Selecting Completed / Successful requires independent confirmation that the money was received.</p></section>
-<footer class="footer"><span>GAAWOW Academy · Financial Management</span><span>Authorized access only · Keep financial records confidential</span></footer>
-</main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="financial.js?v=3"></script></body></html>
+
+  <div class="page-heading">
+    <h2>Financial Management</h2>
+    <p>Manage invoices, payments, payment reviews and official receipts.</p>
+  </div>
+
+  <div id="alertBox" class="alert"></div>
+
+  <section class="stats">
+    <div class="stat-card">
+      <span>Total Invoices</span>
+      <strong id="statInvoices">0</strong>
+    </div>
+    <div class="stat-card">
+      <span>Total Payments Received</span>
+      <strong id="statReceived">$0.00</strong>
+    </div>
+    <div class="stat-card">
+      <span>Pending Payments</span>
+      <strong id="statPending">0</strong>
+    </div>
+    <div class="stat-card">
+      <span>Outstanding Balance</span>
+      <strong id="statBalance">$0.00</strong>
+    </div>
+  </section>
+
+  <section class="panel">
+
+    <div class="tabs no-print">
+      <button class="tab active" data-tab="invPanel">Invoices</button>
+      <button class="tab" data-tab="payPanel">Payments</button>
+    </div>
+
+    <!-- INVOICES -->
+    <div id="invPanel" class="tab-content active">
+
+      <div class="panel-heading">
+        <h3>Invoice Management</h3>
+        <button class="btn-gold" id="newInvoiceBtn">+ Create Invoice</button>
+      </div>
+
+      <div class="toolbar no-print">
+        <div class="field">
+          <label>Institution</label>
+          <select id="filterInst">
+            <option value="">All Institutions</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Search Invoice / Student</label>
+          <input id="invoiceSearch" placeholder="Search...">
+        </div>
+        <button class="btn-blue" id="refreshInvoices">Refresh</button>
+      </div>
+
+      <div id="invoiceFormWrap" class="panel hidden">
+        <div class="panel-heading">
+          <h3>Create New Invoice</h3>
+          <button class="close-btn" id="closeInvoiceForm">Close</button>
+        </div>
+
+        <form id="invoiceForm">
+          <div class="form-grid">
+            <div class="field">
+              <label>Institution *</label>
+              <select id="invInst" required></select>
+            </div>
+
+            <div class="field">
+              <label>Student *</label>
+              <select id="invStudent" required>
+                <option value="">Select student</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Invoice Amount *</label>
+              <input id="invAmount" type="number" min="0.01" step="0.01" required>
+            </div>
+
+            <div class="field">
+              <label>Due Date</label>
+              <input id="invDueDate" type="date">
+            </div>
+
+            <div class="field full">
+              <label>Description *</label>
+              <textarea id="invDescription" required placeholder="Enter invoice description"></textarea>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-gold" id="saveInvoiceBtn">Save Invoice</button>
+            <button type="button" class="btn-light" id="cancelInvoiceBtn">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Student</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Paid</th>
+              <th>Balance</th>
+              <th>Due Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="invoiceTable">
+            <tr><td colspan="9" class="empty">Loading invoices...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div id="payPanel" class="tab-content">
+
+      <div class="panel-heading">
+        <h3>Payment Management</h3>
+        <button class="btn-gold" id="newPaymentBtn">+ Record Payment</button>
+      </div>
+
+      <div class="toolbar no-print">
+        <div class="field">
+          <label>Institution</label>
+          <select id="payInst">
+            <option value="">All Institutions</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Search Payment / Student</label>
+          <input id="paymentSearch" placeholder="Search...">
+        </div>
+        <div class="field">
+          <label>Payment Status</label>
+          <select id="paymentStatusFilter">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="successful">Successful</option>
+            <option value="failed">Failed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="refunded">Refunded</option>
+          </select>
+        </div>
+        <button class="btn-blue" id="refreshPayments">Refresh</button>
+      </div>
+
+      <div id="paymentFormWrap" class="panel hidden">
+        <div class="panel-heading">
+          <h3>Record New Payment</h3>
+          <button class="close-btn" id="closePaymentForm">Close</button>
+        </div>
+
+        <p class="form-note">
+          Record the transaction for review. All new payments are saved as pending.
+          An official receipt is issued only after approval.
+        </p>
+
+        <form id="paymentForm">
+          <div class="form-grid">
+
+            <div class="field">
+              <label>Institution *</label>
+              <select id="payFormInst" required></select>
+            </div>
+
+            <div class="field">
+              <label>Student *</label>
+              <select id="payStudent" required>
+                <option value="">Select student</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Invoice</label>
+              <select id="payInvoice">
+                <option value="">Select invoice</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Amount *</label>
+              <input id="payAmount" type="number" min="0.01" step="0.01" required>
+            </div>
+
+            <div class="field">
+              <label>Currency</label>
+              <select id="payCurrency">
+                <option value="USD">USD</option>
+                <option value="SOS">SOS</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Payment Method *</label>
+              <select id="payMethod" required>
+                <option value="">Select method</option>
+                <option value="Cash">Cash</option>
+                <option value="EVC Plus">EVC Plus</option>
+                <option value="Zaad">Zaad</option>
+                <option value="Sahal">Sahal</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Transaction Reference</label>
+              <input id="payReference" placeholder="Transaction ID / Reference">
+            </div>
+
+            <div class="field">
+              <label>Payer Phone</label>
+              <input id="payerPhone" type="tel" placeholder="Phone number">
+            </div>
+
+            <div class="field">
+              <label>Payment Date</label>
+              <input id="payDate" type="date">
+            </div>
+
+            <div class="field">
+              <label>Provider / Source</label>
+              <input id="payProvider" placeholder="EVC, ZAAD, Bank, Cash...">
+            </div>
+
+            <div class="field">
+              <label>Sender Account</label>
+              <input id="senderAccount" placeholder="Sender account">
+            </div>
+
+            <div class="field">
+              <label>Receiver Account</label>
+              <input id="receiverAccount" placeholder="Receiver account">
+            </div>
+
+            <div class="field full">
+              <label>Notes</label>
+              <textarea id="payNotes" placeholder="Additional payment details"></textarea>
+            </div>
+
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-gold" id="savePaymentBtn">Save Pending Payment</button>
+            <button type="button" class="btn-light" id="cancelPaymentBtn">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Payment Reference</th>
+              <th>Student</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Transaction Ref.</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Receipt / Actions</th>
+            </tr>
+          </thead>
+          <tbody id="paymentTable">
+            <tr><td colspan="8" class="empty">Loading payments...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="footer">
+    GAAWOW ACADEMY | ILAYSKA AQOONTA IYO XIRFADDA
+    <br>
+    GAAWOW EMS Financial Management System
+  </div>
+
+</main>
+
+<!-- PAYMENT REVIEW MODAL -->
+<div class="modal" id="reviewModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Review Payment</h3>
+      <button class="close-btn" id="closeReviewModal">Close</button>
+    </div>
+
+    <div id="reviewPaymentInfo" class="form-note"></div>
+
+    <form id="reviewForm">
+      <div class="form-grid">
+
+        <div class="field full">
+          <label>Review Decision *</label>
+          <select id="reviewStatus" required>
+            <option value="">Choose decision</option>
+            <option value="successful">Approve Payment</option>
+            <option value="failed">Reject Payment</option>
+            <option value="cancelled">Cancel Payment</option>
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>Review Note</label>
+          <textarea id="reviewNote" placeholder="Enter reason or review note"></textarea>
+        </div>
+
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-green" id="saveReviewBtn">Submit Review</button>
+        <button type="button" class="btn-light" id="cancelReviewBtn">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="financial.js?v=4"></script>
+</body>
+</html>
