@@ -30,7 +30,7 @@
       "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
     const SUPABASE_PUBLISHABLE_KEY =
-      "sb_publishable_2AvWfupkF1b_s0RjAi5g_RqLCs145";
+      "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
     const ACCOUNT_FUNCTION_URL =
       `${SUPABASE_URL}/functions/v1/create-student-account`;
@@ -47,13 +47,12 @@
       }
     );
 
-    // Check the API key against this Supabase project.
+    // Validate the Publishable Key using the apikey header only.
     async function verifySupabaseKey() {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
         method: "GET",
         headers: {
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+          apikey: SUPABASE_PUBLISHABLE_KEY.trim()
         }
       });
 
