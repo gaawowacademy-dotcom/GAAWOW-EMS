@@ -7,29 +7,110 @@
 <meta name="theme-color" content="#0B1E63">
 <link rel="manifest" href="./manifest.json">
 <title>GAAWOW EMS — Students</title>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,Helvetica,sans-serif;background:#f5f7fa;color:#1f2937}
 button,input,select,textarea{font:inherit}
 .header{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:50;box-shadow:0 4px 15px rgba(0,0,0,.15)}
-.brand{display:flex;align-items:center;gap:12px}.brand img{width:48px;height:48px;object-fit:contain;background:#fff;border-radius:11px;padding:4px}.brand h1{font-size:19px}.brand p{font-size:11px;color:#E8A317;margin-top:3px}.badge{background:#D4AF37;color:#0B1E63;padding:7px 12px;border-radius:20px;font-size:11px;font-weight:800}
-.container{max-width:1450px;margin:auto;padding:22px 18px 50px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}.topbar h2{color:#0B1E63;font-size:24px}.topbar p{color:#6b7280;font-size:13px;margin-top:4px}.toolbar{display:flex;gap:9px;flex-wrap:wrap}
-.btn{border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:700}.btn-primary{background:#0B4DA2;color:#fff}.btn-secondary{background:#fff;color:#0B1E63;border:1px solid #dbe2ea}.btn-danger{background:#dc2626;color:#fff}.btn:disabled{opacity:.55;cursor:not-allowed}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}.stat{background:#fff;border-radius:14px;padding:17px;box-shadow:0 5px 18px rgba(0,0,0,.06);border-top:4px solid #0B4DA2}.stat:nth-child(2){border-top-color:#16A34A}.stat:nth-child(3){border-top-color:#D4AF37}.stat:nth-child(4){border-top-color:#7C3AED}.stat span{display:block;color:#6b7280;font-size:12px;margin-bottom:5px}.stat strong{font-size:25px;color:#0B1E63}
-.panel{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:0 5px 18px rgba(0,0,0,.05)}.panel h3{color:#0B1E63;margin-bottom:15px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:12px;font-weight:700;color:#374151}.field input,.field select,.field textarea{width:100%;border:1px solid #d1d5db;border-radius:9px;padding:10px 11px;background:#fff;outline:none}.field input:focus,.field select:focus,.field textarea:focus{border-color:#0B4DA2;box-shadow:0 0 0 3px rgba(11,77,162,.1)}.field textarea{min-height:82px;resize:vertical}.span-2{grid-column:span 2}.span-4{grid-column:1/-1}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{width:48px;height:48px;object-fit:contain;background:#fff;border-radius:11px;padding:4px}
+.brand h1{font-size:19px}
+.brand p{font-size:11px;color:#E8A317;margin-top:3px}
+.badge{background:#D4AF37;color:#0B1E63;padding:7px 12px;border-radius:20px;font-size:11px;font-weight:800}
+.container{max-width:1450px;margin:auto;padding:22px 18px 50px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}
+.topbar h2{color:#0B1E63;font-size:24px}
+.topbar p{color:#6b7280;font-size:13px;margin-top:4px}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap}
+.btn{border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:700}
+.btn-primary{background:#0B4DA2;color:#fff}
+.btn-secondary{background:#fff;color:#0B1E63;border:1px solid #dbe2ea}
+.btn-danger{background:#dc2626;color:#fff}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.stat{background:#fff;border-radius:14px;padding:17px;box-shadow:0 5px 18px rgba(0,0,0,.06);border-top:4px solid #0B4DA2}
+.stat:nth-child(2){border-top-color:#16A34A}
+.stat:nth-child(3){border-top-color:#D4AF37}
+.stat:nth-child(4){border-top-color:#7C3AED}
+.stat span{display:block;color:#6b7280;font-size:12px;margin-bottom:5px}
+.stat strong{font-size:25px;color:#0B1E63}
+.panel{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:0 5px 18px rgba(0,0,0,.05)}
+.panel h3{color:#0B1E63;margin-bottom:15px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;font-weight:700;color:#374151}
+.field input,.field select,.field textarea{width:100%;border:1px solid #d1d5db;border-radius:9px;padding:10px 11px;background:#fff;outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#0B4DA2;box-shadow:0 0 0 3px rgba(11,77,162,.1)}
+.field textarea{min-height:82px;resize:vertical}
+.span-2{grid-column:span 2}
+.span-4{grid-column:1/-1}
 .field-hint{font-size:11px;color:#64748b;line-height:1.5}
-.photo-box{display:flex;gap:14px;align-items:center}.photo-preview{width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #e5e7eb;background:#eef2f7;display:none}.photo-placeholder{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#eef2f7;color:#6b7280;font-size:32px}
-.form-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:16px}.account-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.status{display:inline-flex;align-items:center;border-radius:20px;padding:5px 9px;font-size:11px;font-weight:800}.status-active{background:#dcfce7;color:#166534}.status-inactive{background:#fee2e2;color:#991b1b}
-.progress{display:none;margin-top:13px}.progress-bar{height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden}.progress-bar-inner{height:100%;width:0;background:#0B4DA2;transition:width .2s}.progress-text{font-size:11px;color:#6b7280;margin-top:5px}
-.message{display:none;padding:12px 14px;border-radius:10px;margin-bottom:15px;white-space:pre-wrap;font-size:13px}.message.success{display:block;background:#dcfce7;color:#166534}.message.error{display:block;background:#fee2e2;color:#991b1b}.message.warning{display:block;background:#fef3c7;color:#92400e}
-.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.filters input,.filters select{border:1px solid #d1d5db;border-radius:9px;padding:10px 11px;background:#fff}.students-table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.students-table{width:100%;min-width:1100px;border-collapse:collapse}.students-table th,.students-table td{padding:11px 9px;border-bottom:1px solid #edf0f4;text-align:left;font-size:12px;vertical-align:middle;white-space:nowrap}.students-table th{background:#f8fafc;color:#475569;font-size:11px;text-transform:uppercase}.student-photo{width:42px;height:42px;border-radius:50%;object-fit:cover}.initials{width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#e8eef8;color:#0B1E63;font-weight:800}.actions{display:flex;flex-wrap:wrap;gap:6px;min-width:255px}.btn-small{border:0;border-radius:7px;padding:7px 9px;cursor:pointer;font-size:11px;font-weight:700}.action-view{background:#e0ecff;color:#0B4DA2}.action-edit{background:#f3e8ff;color:#6d28d9}.action-create-account{background:#dcfce7;color:#166534}.action-reset-password{background:#fef3c7;color:#92400e}.action-delete{background:#fee2e2;color:#991b1b}.empty{text-align:center!important;color:#6b7280;padding:28px!important}
-.modal{position:fixed;inset:0;background:rgba(2,6,23,.62);display:none;align-items:center;justify-content:center;padding:18px;z-index:100}.modal.show{display:flex}.modal-card{background:#fff;border-radius:16px;width:min(760px,100%);max-height:90vh;overflow:auto;padding:22px;position:relative}.modal-close{position:absolute;right:12px;top:10px;border:0;background:transparent;font-size:28px;cursor:pointer;color:#64748b}.profile-top{display:flex;gap:16px;align-items:center;margin-bottom:18px}.profile-photo{width:90px;height:90px;border-radius:50%;object-fit:cover}.profile-name{font-size:21px;font-weight:800;color:#0B1E63}.profile-id{font-size:13px;color:#64748b;margin-top:4px}.profile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.profile-item{background:#f8fafc;border-radius:10px;padding:12px}.profile-item strong{display:block;color:#64748b;font-size:10px;text-transform:uppercase;margin-bottom:4px}.profile-item span{font-size:13px}.footer{text-align:center;color:#64748b;font-size:11px;padding:15px}
+.photo-box{display:flex;gap:14px;align-items:center}
+.photo-preview{width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #e5e7eb;background:#eef2f7;display:none}
+.photo-placeholder{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#eef2f7;color:#6b7280;font-size:32px}
+.form-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:16px}
+.account-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status{display:inline-flex;align-items:center;border-radius:20px;padding:5px 9px;font-size:11px;font-weight:800}
+.status-active{background:#dcfce7;color:#166534}
+.status-inactive{background:#fee2e2;color:#991b1b}
+.progress{display:none;margin-top:13px}
+.progress-bar{height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden}
+.progress-bar-inner{height:100%;width:0;background:#0B4DA2;transition:width .2s}
+.progress-text{font-size:11px;color:#6b7280;margin-top:5px}
+.message{display:none;padding:12px 14px;border-radius:10px;margin-bottom:15px;white-space:pre-wrap;font-size:13px}
+.message.success{display:block;background:#dcfce7;color:#166534}
+.message.error{display:block;background:#fee2e2;color:#991b1b}
+.message.warning{display:block;background:#fef3c7;color:#92400e}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.filters input,.filters select{border:1px solid #d1d5db;border-radius:9px;padding:10px 11px;background:#fff}
+.students-table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.students-table{width:100%;min-width:1100px;border-collapse:collapse}
+.students-table th,.students-table td{padding:11px 9px;border-bottom:1px solid #edf0f4;text-align:left;font-size:12px;vertical-align:middle;white-space:nowrap}
+.students-table th{background:#f8fafc;color:#475569;font-size:11px;text-transform:uppercase}
+.student-photo{width:42px;height:42px;border-radius:50%;object-fit:cover}
+.initials{width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#e8eef8;color:#0B1E63;font-weight:800}
+.actions{display:flex;flex-wrap:wrap;gap:6px;min-width:255px}
+.btn-small{border:0;border-radius:7px;padding:7px 9px;cursor:pointer;font-size:11px;font-weight:700}
+.action-view{background:#e0ecff;color:#0B4DA2}
+.action-edit{background:#f3e8ff;color:#6d28d9}
+.action-create-account{background:#dcfce7;color:#166534}
+.action-reset-password{background:#fef3c7;color:#92400e}
+.action-delete{background:#fee2e2;color:#991b1b}
+.empty{text-align:center!important;color:#6b7280;padding:28px!important}
+.modal{position:fixed;inset:0;background:rgba(2,6,23,.62);display:none;align-items:center;justify-content:center;padding:18px;z-index:100}
+.modal.show{display:flex}
+.modal-card{background:#fff;border-radius:16px;width:min(760px,100%);max-height:90vh;overflow:auto;padding:22px;position:relative}
+.modal-close{position:absolute;right:12px;top:10px;border:0;background:transparent;font-size:28px;cursor:pointer;color:#64748b}
+.profile-top{display:flex;gap:16px;align-items:center;margin-bottom:18px}
+.profile-photo{width:90px;height:90px;border-radius:50%;object-fit:cover}
+.profile-name{font-size:21px;font-weight:800;color:#0B1E63}
+.profile-id{font-size:13px;color:#64748b;margin-top:4px}
+.profile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.profile-item{background:#f8fafc;border-radius:10px;padding:12px}
+.profile-item strong{display:block;color:#64748b;font-size:10px;text-transform:uppercase;margin-bottom:4px}
+.profile-item span{font-size:13px}
+.footer{text-align:center;color:#64748b;font-size:11px;padding:15px}
 @media(max-width:950px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.span-4{grid-column:1/-1}}
-@media(max-width:600px){.header{padding:12px 14px}.brand img{width:42px;height:42px}.brand h1{font-size:16px}.badge{font-size:9px}.container{padding:16px 12px 35px}.topbar{align-items:flex-start;flex-direction:column}.stats{grid-template-columns:1fr 1fr;gap:9px}.stat{padding:13px}.stat strong{font-size:21px}.grid{grid-template-columns:1fr}.span-2,.span-4{grid-column:auto}.panel{padding:15px}.profile-grid{grid-template-columns:1fr}}
+@media(max-width:600px){
+.header{padding:12px 14px}
+.brand img{width:42px;height:42px}
+.brand h1{font-size:16px}
+.badge{font-size:9px}
+.container{padding:16px 12px 35px}
+.topbar{align-items:flex-start;flex-direction:column}
+.stats{grid-template-columns:1fr 1fr;gap:9px}
+.stat{padding:13px}
+.stat strong{font-size:21px}
+.grid{grid-template-columns:1fr}
+.span-2,.span-4{grid-column:auto}
+.panel{padding:15px}
+.profile-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
-<body>
 
+<body>
 <header class="header">
   <div class="brand">
     <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy Logo">
@@ -170,7 +251,6 @@ button,input,select,textarea{font:inherit}
 
   <section class="panel">
     <h3>Students List</h3>
-
     <div class="filters">
       <input id="searchInput" type="search" placeholder="Search name, ID, phone, email...">
       <select id="statusFilter">
@@ -187,16 +267,9 @@ button,input,select,textarea{font:inherit}
       <table class="students-table">
         <thead>
           <tr>
-            <th>Photo</th>
-            <th>Student ID</th>
-            <th>Name</th>
-            <th>Gender</th>
-            <th>Phone</th>
-            <th>Email</th>
-            <th>Status</th>
-            <th>Admission</th>
-            <th>Account</th>
-            <th>Actions</th>
+            <th>Photo</th><th>Student ID</th><th>Name</th><th>Gender</th>
+            <th>Phone</th><th>Email</th><th>Status</th><th>Admission</th>
+            <th>Account</th><th>Actions</th>
           </tr>
         </thead>
         <tbody id="studentsTableBody">
@@ -217,24 +290,19 @@ button,input,select,textarea{font:inherit}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="students.js"></script>
+<script src="./students.js?v=8"></script>
 
 <script>
-(function () {
+(function(){
   "use strict";
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", function () {
+  if("serviceWorker" in navigator){
+    window.addEventListener("load",function(){
       navigator.serviceWorker.register("./service-worker.js")
-        .then(function (registration) {
-          console.log("GAAWOW EMS Student Portal PWA registered:", registration.scope);
-        })
-        .catch(function (error) {
-          console.error("GAAWOW EMS PWA registration failed:", error);
-        });
+        .then(reg=>console.log("GAAWOW EMS PWA registered:",reg.scope))
+        .catch(err=>console.error("PWA registration failed:",err));
     });
   }
 })();
 </script>
-
 </body>
 </html>
