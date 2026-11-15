@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,10 +30,7 @@
 
     body {
       min-height: 100vh;
-      font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
 
       background:
         linear-gradient(
@@ -47,7 +45,6 @@
       justify-content: center;
 
       padding: 20px;
-
       color: #1F2937;
     }
 
@@ -56,15 +53,11 @@
       max-width: 440px;
     }
 
-    /* ======================================================
-       LOGIN CARD
-    ====================================================== */
+    /* LOGIN CARD */
 
     .login-card {
       background: #ffffff;
-
       border-radius: 26px;
-
       padding: 35px 30px 30px;
 
       box-shadow:
@@ -74,9 +67,7 @@
         rgba(255, 255, 255, .35);
     }
 
-    /* ======================================================
-       BRAND
-    ====================================================== */
+    /* BRAND */
 
     .brand {
       text-align: center;
@@ -88,13 +79,9 @@
       height: 82px;
 
       object-fit: contain;
-
       background: #fff;
-
       border-radius: 20px;
-
       padding: 7px;
-
       margin-bottom: 15px;
 
       box-shadow:
@@ -105,68 +92,47 @@
 
     .brand h1 {
       color: #0B1E63;
-
       font-size: 25px;
-
       font-weight: 900;
-
       letter-spacing: .2px;
-
       margin-bottom: 5px;
     }
 
     .brand p {
       color: #64748B;
-
       font-size: 12px;
-
       line-height: 1.5;
     }
 
-    /* ======================================================
-       SECURITY BADGE
-    ====================================================== */
+    /* SECURITY BADGE */
 
     .secure-badge {
       display: flex;
-
       align-items: center;
       justify-content: center;
-
       gap: 7px;
 
       background: #ECFDF5;
-
       color: #15803D;
-
       border: 1px solid #BBF7D0;
-
       border-radius: 999px;
 
       padding: 8px 12px;
-
       width: fit-content;
-
-      margin:
-        0 auto 24px;
+      margin: 0 auto 24px;
 
       font-size: 11px;
-
       font-weight: 800;
     }
 
     .secure-dot {
       width: 7px;
       height: 7px;
-
       border-radius: 50%;
-
       background: #16A34A;
     }
 
-    /* ======================================================
-       FORM
-    ====================================================== */
+    /* FORM */
 
     .form-group {
       margin-bottom: 18px;
@@ -174,13 +140,9 @@
 
     label {
       display: block;
-
       color: #0B1E63;
-
       font-size: 13px;
-
       font-weight: 800;
-
       margin-bottom: 8px;
     }
 
@@ -190,21 +152,16 @@
 
     input {
       width: 100%;
-
       height: 50px;
 
       border: 1px solid #D1D5DB;
-
       border-radius: 12px;
 
       background: #F8FAFC;
-
       color: #111827;
 
       font-size: 14px;
-
       padding: 0 14px;
-
       outline: none;
 
       transition:
@@ -215,19 +172,17 @@
 
     input:focus {
       border-color: #0B4DA2;
-
       background: #fff;
 
       box-shadow:
-        0 0 0 3px
-        rgba(11, 77, 162, .10);
+        0 0 0 3px rgba(11, 77, 162, .10);
     }
 
     input::placeholder {
       color: #94A3B8;
     }
 
-    /* Password input */
+    /* PASSWORD */
 
     #password {
       padding-right: 75px;
@@ -235,26 +190,17 @@
 
     .password-toggle {
       position: absolute;
-
       right: 10px;
-
       top: 50%;
-
-      transform:
-        translateY(-50%);
+      transform: translateY(-50%);
 
       border: 0;
-
       background: transparent;
-
       color: #0B4DA2;
 
       font-size: 11px;
-
       font-weight: 800;
-
       cursor: pointer;
-
       padding: 7px;
     }
 
@@ -262,17 +208,13 @@
       color: #0B1E63;
     }
 
-    /* ======================================================
-       LOGIN BUTTON
-    ====================================================== */
+    /* LOGIN BUTTON */
 
     .login-btn {
       width: 100%;
-
       height: 52px;
 
       border: 0;
-
       border-radius: 13px;
 
       background:
@@ -283,13 +225,9 @@
         );
 
       color: #ffffff;
-
       font-size: 14px;
-
       font-weight: 900;
-
       cursor: pointer;
-
       margin-top: 5px;
 
       transition:
@@ -298,16 +236,14 @@
         opacity .2s;
 
       box-shadow:
-        0 8px 20px
-        rgba(11, 30, 99, .20);
+        0 8px 20px rgba(11, 30, 99, .20);
     }
 
     .login-btn:hover {
       transform: translateY(-1px);
 
       box-shadow:
-        0 12px 25px
-        rgba(11, 30, 99, .28);
+        0 12px 25px rgba(11, 30, 99, .28);
     }
 
     .login-btn:active {
@@ -316,103 +252,70 @@
 
     .login-btn:disabled {
       cursor: not-allowed;
-
       opacity: .65;
-
       transform: none;
-
       box-shadow: none;
     }
 
-    /* ======================================================
-       MESSAGE
-    ====================================================== */
+    /* MESSAGE */
 
     .login-message {
       display: none;
-
       margin-top: 16px;
-
       padding: 12px 14px;
 
       border-radius: 11px;
-
       font-size: 12px;
-
       line-height: 1.5;
-
       font-weight: 700;
-
       text-align: center;
     }
 
     .login-message.error {
       display: block;
-
       background: #FEF2F2;
-
       border: 1px solid #FECACA;
-
       color: #991B1B;
     }
 
     .login-message.success {
       display: block;
-
       background: #ECFDF5;
-
       border: 1px solid #BBF7D0;
-
       color: #166534;
     }
 
-    /* ======================================================
-       INFO
-    ====================================================== */
+    /* INFORMATION */
 
     .login-info {
       margin-top: 20px;
-
       padding: 14px;
 
       border-radius: 12px;
-
       background: #F8FAFC;
-
       border: 1px solid #E5E7EB;
     }
 
     .login-info-title {
       color: #0B1E63;
-
       font-size: 12px;
-
       font-weight: 900;
-
       margin-bottom: 7px;
     }
 
     .login-info p {
       color: #64748B;
-
       font-size: 11px;
-
       line-height: 1.6;
     }
 
-    /* ======================================================
-       FOOTER
-    ====================================================== */
+    /* FOOTER */
 
     .footer {
       text-align: center;
-
       color: rgba(255,255,255,.78);
-
       font-size: 10px;
-
       margin-top: 18px;
-
       line-height: 1.6;
     }
 
@@ -420,20 +323,15 @@
       color: #D4AF37;
     }
 
-    /* ======================================================
-       MOBILE
-    ====================================================== */
+    /* MOBILE */
 
     @media (max-width: 480px) {
-
       body {
         padding: 14px;
       }
 
       .login-card {
-        padding:
-          28px 20px 23px;
-
+        padding: 28px 20px 23px;
         border-radius: 22px;
       }
 
@@ -467,9 +365,7 @@
 
     <main class="login-card">
 
-      <!-- ==================================================
-           BRAND
-      =================================================== -->
+      <!-- BRAND -->
 
       <div class="brand">
 
@@ -479,9 +375,7 @@
           alt="GAAWOW Academy Logo"
         >
 
-        <h1>
-          GAAWOW EMS
-        </h1>
+        <h1>GAAWOW EMS</h1>
 
         <p>
           Education Management &amp;
@@ -490,10 +384,7 @@
 
       </div>
 
-
-      <!-- ==================================================
-           SECURITY
-      =================================================== -->
+      <!-- SECURITY -->
 
       <div class="secure-badge">
 
@@ -503,10 +394,7 @@
 
       </div>
 
-
-      <!-- ==================================================
-           LOGIN FORM
-      =================================================== -->
+      <!-- LOGIN FORM -->
 
       <form
         id="loginForm"
@@ -535,7 +423,6 @@
           </div>
 
         </div>
-
 
         <!-- PASSWORD -->
 
@@ -569,8 +456,7 @@
 
         </div>
 
-
-        <!-- LOGIN -->
+        <!-- LOGIN BUTTON -->
 
         <button
           type="submit"
@@ -580,21 +466,18 @@
           🔐 Sign In
         </button>
 
-
         <!-- MESSAGE -->
 
         <div
           id="loginMessage"
           class="login-message"
           role="alert"
+          aria-live="polite"
         ></div>
 
       </form>
 
-
-      <!-- ==================================================
-           INFORMATION
-      =================================================== -->
+      <!-- INFORMATION -->
 
       <div class="login-info">
 
@@ -605,19 +488,17 @@
         <p>
           Your account access is controlled by
           your assigned system role. Students,
-          teachers, parents, school administrators
-          and super administrators are automatically
-          redirected to their authorized dashboard.
+          teachers, parents, school administrators,
+          finance managers and super administrators
+          are automatically redirected to their
+          authorized portal.
         </p>
 
       </div>
 
     </main>
 
-
-    <!-- ====================================================
-         FOOTER
-    ===================================================== -->
+    <!-- FOOTER -->
 
     <div class="footer">
 
@@ -635,134 +516,49 @@
 
   </div>
 
-
-  <!-- ======================================================
-       SUPABASE
-  ======================================================= -->
+  <!-- SUPABASE LIBRARY: LOAD ONCE -->
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- LOGIN LOGIC: LOAD ONCE -->
 
-  <!-- ======================================================
-       LOGIN JS
-  ======================================================= -->
+  <script src="./login.js?v=20261115"></script>
 
-  <script src="./login.js?v=20261005"></script>
-
-
-  <!-- ======================================================
-       PASSWORD TOGGLE
-  ======================================================= -->
+  <!-- PASSWORD VISIBILITY -->
 
   <script>
+    document.addEventListener("DOMContentLoaded", function () {
 
-    const togglePassword =
-      document.getElementById(
-        "togglePassword"
-      );
+      const togglePassword =
+        document.getElementById("togglePassword");
 
-    const passwordInput =
-      document.getElementById(
-        "password"
-      );
+      const passwordInput =
+        document.getElementById("password");
 
-    if (
-      togglePassword &&
-      passwordInput
-    ) {
+      if (togglePassword && passwordInput) {
 
-      togglePassword.addEventListener(
-        "click",
-        function () {
+        togglePassword.addEventListener("click", function () {
 
-          const isPassword =
+          const show =
             passwordInput.type === "password";
 
           passwordInput.type =
-            isPassword
-              ? "text"
-              : "password";
+            show ? "text" : "password";
 
           togglePassword.textContent =
-            isPassword
-              ? "Hide"
-              : "Show";
+            show ? "Hide" : "Show";
 
           togglePassword.setAttribute(
             "aria-label",
-            isPassword
-              ? "Hide password"
-              : "Show password"
+            show ? "Hide password" : "Show password"
           );
 
-        }
-      );
+        });
 
-    }
+      }
 
-    /*
-     * login.js already handles the actual
-     * form submission through loginBtn.
-     *
-     * Prevent normal browser form submission.
-     */
-
-    const loginForm =
-      document.getElementById(
-        "loginForm"
-      );
-
-    if (loginForm) {
-
-      loginForm.addEventListener(
-        "submit",
-        function (event) {
-
-          event.preventDefault();
-
-          const loginButton =
-            document.getElementById(
-              "loginBtn"
-            );
-
-          if (loginButton) {
-            loginButton.click();
-          }
-
-        }
-      );
-
-    }
-
-<!-- SUPABASE LIBRARY -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- SUPABASE LIBRARY: LOAD ONCE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<!-- LOGIN LOGIC: LOAD ONCE -->
-<script src="./login.js?v=20261026"></script>
-
-<!-- PASSWORD VISIBILITY -->
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const togglePassword = document.getElementById("togglePassword");
-  const passwordInput = document.getElementById("password");
-
-  if (togglePassword && passwordInput) {
-    togglePassword.addEventListener("click", function () {
-      const show = passwordInput.type === "password";
-
-      passwordInput.type = show ? "text" : "password";
-      togglePassword.textContent = show ? "Hide" : "Show";
-
-      togglePassword.setAttribute(
-        "aria-label",
-        show ? "Hide password" : "Show password"
-      );
     });
-  }
-});
-</script>
+  </script>
 
 </body>
 </html>
