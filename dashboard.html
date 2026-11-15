@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +7,6 @@
 <meta name="theme-color" content="#0B1E63">
 <meta name="description" content="GAAWOW EMS Super Admin Dashboard">
 
-<!-- PWA MANIFEST -->
 <link rel="manifest" href="./manifest.json">
 
 <title>GAAWOW EMS — Super Admin</title>
@@ -394,6 +394,21 @@ background:linear-gradient(145deg,#fff,#F5F3FF)
 background:linear-gradient(135deg,#EDE9FE,#F5F3FF)
 }
 
+/* FINANCE MANAGER MANAGEMENT CARD */
+.finance-manager-card{
+border-top:4px solid #D4AF37;
+background:linear-gradient(145deg,#fff,#FFF9E8)
+}
+
+.finance-manager-card .menu-icon{
+background:linear-gradient(135deg,#FFF1B8,#FFF9E8)
+}
+
+.finance-manager-card:hover{
+border-color:#D4AF37;
+box-shadow:0 14px 30px rgba(11,30,99,.13)
+}
+
 /* FOOTER */
 footer{
 margin-top:45px;
@@ -622,7 +637,7 @@ align-items:stretch
 <!-- SYSTEM MANAGEMENT -->
 <div class="section-header">
   <h3>System Management</h3>
-  <span class="module-count">25 Core EMS Modules</span>
+  <span class="module-count">26 Core EMS Modules</span>
 </div>
 
 <section class="menu-grid">
@@ -767,35 +782,51 @@ align-items:stretch
     <p>Manage invoices, payments, receipts, student balances and financial records in one integrated portal.</p>
   </div>
 
-  <!-- 21. MOBILE MONEY -->
+  <!-- 21. FINANCE MANAGER MANAGEMENT -->
+  <div class="menu-card finance-manager-card"
+       onclick="openPage('finance-managers.html')">
+
+    <div class="menu-icon">👨‍💼💰</div>
+
+    <h4>Finance Manager Management</h4>
+
+    <p>
+      Create Finance Manager accounts, assign institutions,
+      activate or deactivate accounts and manage financial
+      administrative access.
+    </p>
+
+  </div>
+
+  <!-- 22. MOBILE MONEY -->
   <div class="menu-card" onclick="openPage('mobile-money.html')">
     <div class="menu-icon">📱</div>
     <h4>Mobile Money</h4>
     <p>Manage mobile money transactions.</p>
   </div>
 
-  <!-- 22. REPORTS -->
+  <!-- 23. REPORTS -->
   <div class="menu-card" onclick="openPage('reports.html')">
     <div class="menu-icon">📈</div>
     <h4>Reports</h4>
     <p>View system and academic reports.</p>
   </div>
 
-  <!-- 23. ATTENDANCE -->
+  <!-- 24. ATTENDANCE -->
   <div class="menu-card attendance-card" onclick="openPage('attendance.html')">
     <div class="menu-icon">📋</div>
     <h4>Attendance</h4>
     <p>Record and manage student attendance, absences, lateness and excused sessions.</p>
   </div>
 
-  <!-- 24. SETTINGS -->
+  <!-- 25. SETTINGS -->
   <div class="menu-card settings-card" onclick="openPage('settings.html')">
     <div class="menu-icon">⚙️</div>
     <h4>Settings</h4>
     <p>Manage system preferences and administrative settings.</p>
   </div>
 
-  <!-- 25. NOTIFICATIONS -->
+  <!-- 26. NOTIFICATIONS -->
   <div class="menu-card notifications-card" onclick="openPage('notifications.html')">
     <div class="menu-icon">🔔</div>
     <h4>Notifications</h4>
