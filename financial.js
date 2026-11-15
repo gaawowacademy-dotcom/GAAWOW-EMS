@@ -3,7 +3,7 @@
 
 (() => {
   const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjAi5g_RqLCs145";
+  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
   if (!window.supabase) {
     console.error("Supabase library is not loaded.");
@@ -75,11 +75,6 @@
   function setValue(id, value) {
     const el = $(id);
     if (el) el.value = value;
-  }
-
-  function setDisabled(id, disabled) {
-    const el = $(id);
-    if (el) el.disabled = disabled;
   }
 
   function msg(message, kind = "success") {
@@ -186,7 +181,8 @@
     return (
       isInstitutionUser() &&
       !!S.profile.institution_id &&
-      id === S.profile.institution_id
+      String(id).toLowerCase() ===
+        String(S.profile.institution_id).toLowerCase()
     );
   }
 
@@ -213,7 +209,7 @@
 
     if (error) throw error;
 
-    if (!data.session) {
+    if (!data?.session?.user) {
       msg(
         "Fadlan marka hore ka gal GAAWOW EMS login-kaaga.",
         "err"
@@ -234,13 +230,40 @@
       .eq("id", S.user.id)
       .maybeSingle();
 
-    if (r.error) throw r.error;
+    if (r.error) {
+      console.error("PROFILE QUERY ERROR:", r.error);
+      throw r.error;
+    }
 
-    S.profile = r.data;
-
-    if (!S.profile) {
+    if (!r.data) {
       msg(
         "Profile-ka akoonka lama helin. La xiriir Super Admin.",
+        "err"
+      );
+      return false;
+    }
+
+    // Normalize role before checking permissions.
+    S.profile = {
+      ...r.data,
+      role: String(r.data.role || "")
+        .trim()
+        .toLowerCase()
+    };
+
+    // Safe diagnostic information.
+    console.log("GAAWOW FINANCE AUTH CHECK:", {
+      authUserId: S.user.id,
+      profileId: S.profile.id,
+      role: S.profile.role,
+      isActive: S.profile.is_active,
+      institutionId: S.profile.institution_id,
+      idsMatch: S.user.id === S.profile.id
+    });
+
+    if (S.user.id !== S.profile.id) {
+      msg(
+        "Auth ID iyo Profile ID isma waafaqaan. La xiriir Super Admin.",
         "err"
       );
       return false;
@@ -268,10 +291,14 @@
     ];
 
     if (!allowed.includes(role())) {
+      console.error("UNRECOGNIZED PROFILE ROLE:", S.profile.role);
+
       msg(
-        "Doorka akoonka lama aqoonsan. La xiriir Super Admin.",
+        "Doorka akoonka lama aqoonsan: " +
+        (S.profile.role || "Role missing"),
         "err"
       );
+
       return false;
     }
 
@@ -1728,15 +1755,14 @@
 
       events();
 
-      // Hide Super Admin dashboard navigation
-      // for Finance Manager accounts.
+      // Finance Manager does not need dashboard navigation.
       if (isFinanceManager()) {
         if ($("backDashboard")) {
           $("backDashboard").classList.add("hidden");
         }
       }
 
-      // Institutions
+      // Load institutions.
       try {
         await loadInstitutions();
 
@@ -1749,7 +1775,7 @@
         );
       }
 
-      // Students
+      // Load students.
       try {
         await loadStudents();
 
@@ -1764,7 +1790,7 @@
         );
       }
 
-      // Invoices
+      // Load invoices.
       try {
         await loadInvoices();
 
@@ -1775,7 +1801,7 @@
       renderInvoices();
       renderStats();
 
-      // Payments
+      // Load payments.
       try {
         await loadPayments();
 
