@@ -3,11 +3,20 @@
 
 (() => {
   const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjAi5g_RqLCs145";
 
-  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  if (!window.supabase) {
+    console.error("Supabase library is not loaded.");
+    alert("Supabase lama soo shubin. Fadlan refresh samee.");
+    return;
+  }
+
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
   const $ = id => document.getElementById(id);
-
   const LOGO_URL = "https://i.ibb.co/4ZCRpm30/gaawow-logo.png";
 
   const S = {
@@ -23,6 +32,10 @@
     tab: "invPanel"
   };
 
+  // ==========================================
+  // SAFE HELPERS
+  // ==========================================
+
   const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({
     "&": "&amp;",
     "<": "&lt;",
@@ -32,24 +45,46 @@
   }[c]));
 
   const cash = (n, cur = "USD") => {
+    const amount = Number(n || 0);
+
     try {
       return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: cur
-      }).format(Number(n || 0));
+      }).format(amount);
     } catch {
-      return Number(n || 0).toFixed(2) + " " + cur;
+      return amount.toFixed(2) + " " + cur;
     }
   };
 
   const fmtDate = v => {
     if (!v) return "—";
+
     const d = new Date(v);
-    return isNaN(d.getTime()) ? "—" : d.toLocaleString();
+
+    return isNaN(d.getTime())
+      ? "—"
+      : d.toLocaleString();
   };
+
+  function on(id, event, handler) {
+    const el = $(id);
+    if (el) el.addEventListener(event, handler);
+  }
+
+  function setValue(id, value) {
+    const el = $(id);
+    if (el) el.value = value;
+  }
+
+  function setDisabled(id, disabled) {
+    const el = $(id);
+    if (el) el.disabled = disabled;
+  }
 
   function msg(message, kind = "success") {
     const e = $("alertBox");
+
     if (!e) {
       console.log(message);
       return;
@@ -60,6 +95,7 @@
       (kind === "err" ? "error" : kind);
 
     clearTimeout(msg.timer);
+
     msg.timer = setTimeout(() => {
       e.classList.remove("show");
     }, 8500);
@@ -105,6 +141,7 @@
 
   function studentLabel(id) {
     const s = student(id);
+
     return s
       ? `${s.full_name} (${s.student_id})`
       : "Unknown student";
@@ -116,8 +153,14 @@
       : {};
   }
 
+  // ==========================================
+  // ROLE AND ACCESS CONTROL
+  // ==========================================
+
   function role() {
-    return S.profile?.role || "";
+    return String(S.profile?.role || "")
+      .trim()
+      .toLowerCase();
   }
 
   function isSuperAdmin() {
@@ -125,22 +168,38 @@
   }
 
   function isInstitutionUser() {
-    return role() === "school_admin";
+    return [
+      "school_admin",
+      "finance_manager"
+    ].includes(role());
+  }
+
+  function isFinanceManager() {
+    return role() === "finance_manager";
   }
 
   function institutionAllowed(id) {
-    return isSuperAdmin() ||
-      id === S.profile?.institution_id;
+    if (!id || !S.profile) return false;
+
+    if (isSuperAdmin()) return true;
+
+    return (
+      isInstitutionUser() &&
+      !!S.profile.institution_id &&
+      id === S.profile.institution_id
+    );
   }
 
   function statusBadge(status) {
     const s = String(status || "pending").toLowerCase();
+
     return `<span class="status ${esc(s)}">${esc(s)}</span>`;
   }
 
   function balance(i) {
     return Math.max(
-      Number(i.amount || 0) - Number(i.paid_amount || 0),
+      Number(i.amount || 0) -
+      Number(i.paid_amount || 0),
       0
     );
   }
@@ -155,7 +214,15 @@
     if (error) throw error;
 
     if (!data.session) {
-      msg("Fadlan marka hore ka gal GAAWOW EMS login-kaaga.", "err");
+      msg(
+        "Fadlan marka hore ka gal GAAWOW EMS login-kaaga.",
+        "err"
+      );
+
+      setTimeout(() => {
+        location.href = "login.html";
+      }, 1800);
+
       return false;
     }
 
@@ -171,19 +238,51 @@
 
     S.profile = r.data;
 
-    const allowed = ["super_admin", "school_admin"];
-
-    if (
-      !S.profile ||
-      !S.profile.is_active ||
-      !allowed.includes(S.profile.role)
-    ) {
-      msg("Access denied: Ma lihid oggolaanshaha Financial Management.", "err");
+    if (!S.profile) {
+      msg(
+        "Profile-ka akoonka lama helin. La xiriir Super Admin.",
+        "err"
+      );
       return false;
     }
 
-    if (isInstitutionUser() && !S.profile.institution_id) {
-      msg("Account-kan looma qoondeyn machad.", "err");
+    if (S.profile.is_active !== true) {
+      msg(
+        "Akoonkaagu ma shaqeynayo. La xiriir Super Admin.",
+        "err"
+      );
+
+      await db.auth.signOut();
+
+      setTimeout(() => {
+        location.href = "login.html";
+      }, 1800);
+
+      return false;
+    }
+
+    const allowed = [
+      "super_admin",
+      "school_admin",
+      "finance_manager"
+    ];
+
+    if (!allowed.includes(role())) {
+      msg(
+        "Doorka akoonka lama aqoonsan. La xiriir Super Admin.",
+        "err"
+      );
+      return false;
+    }
+
+    if (
+      isInstitutionUser() &&
+      !S.profile.institution_id
+    ) {
+      msg(
+        "Akoonka Finance Manager ama School Admin looma qoondeyn machad.",
+        "err"
+      );
       return false;
     }
 
@@ -206,9 +305,12 @@
     }
 
     const { data, error } = await q;
+
     if (error) throw error;
 
-    S.inst = (data || []).filter(x => x.is_active !== false);
+    S.inst = (data || []).filter(
+      x => x.is_active !== false
+    );
 
     fill(
       "filterInst",
@@ -267,13 +369,18 @@
       .limit(3000);
 
     if (isInstitutionUser()) {
-      q = q.eq("institution_id", S.profile.institution_id);
+      q = q.eq(
+        "institution_id",
+        S.profile.institution_id
+      );
     }
 
     const { data, error } = await q;
+
     if (error) throw error;
 
     S.students = data || [];
+
     studentOptions();
   }
 
@@ -309,8 +416,8 @@
   // ==========================================
 
   function invoiceOptions() {
-    const st = $("payStudent")?.value;
-    const inst = $("payFormInst")?.value;
+    const st = $("payStudent")?.value || "";
+    const inst = $("payFormInst")?.value || "";
 
     const rows = S.invoices.filter(i =>
       i.institution_id === inst &&
@@ -323,7 +430,8 @@
       "payInvoice",
       rows,
       i => i.id,
-      i => `${i.invoice_number} • ${cash(i.amount)} • Balance: ${cash(balance(i))}`,
+      i =>
+        `${i.invoice_number} • ${cash(i.amount)} • Balance: ${cash(balance(i))}`,
       "No invoice linked"
     );
   }
@@ -354,9 +462,15 @@
         .limit(1500);
 
       if (isInstitutionUser()) {
-        q = q.eq("institution_id", S.profile.institution_id);
+        q = q.eq(
+          "institution_id",
+          S.profile.institution_id
+        );
       } else if ($("filterInst")?.value) {
-        q = q.eq("institution_id", $("filterInst").value);
+        q = q.eq(
+          "institution_id",
+          $("filterInst").value
+        );
       }
 
       const { data, error } = await q;
@@ -364,13 +478,17 @@
       if (error) throw error;
 
       S.invoices = data || [];
+
       invoiceOptions();
 
       return S.invoices;
 
     } catch (e) {
-      S.invoiceError = e.message || "Unable to load invoices";
+      S.invoiceError =
+        e.message || "Unable to load invoices";
+
       console.error("INVOICE LOAD ERROR:", e);
+
       throw e;
     }
   }
@@ -407,9 +525,15 @@
         .limit(2000);
 
       if (isInstitutionUser()) {
-        q = q.eq("institution_id", S.profile.institution_id);
+        q = q.eq(
+          "institution_id",
+          S.profile.institution_id
+        );
       } else if ($("payInst")?.value) {
-        q = q.eq("institution_id", $("payInst").value);
+        q = q.eq(
+          "institution_id",
+          $("payInst").value
+        );
       }
 
       const { data, error } = await q;
@@ -417,11 +541,15 @@
       if (error) throw error;
 
       S.payments = data || [];
+
       return S.payments;
 
     } catch (e) {
-      S.paymentError = e.message || "Unable to load payments";
+      S.paymentError =
+        e.message || "Unable to load payments";
+
       console.error("PAYMENT LOAD ERROR:", e);
+
       throw e;
     }
   }
@@ -441,6 +569,7 @@
 
   function renderInvoices() {
     const table = $("invoiceTable");
+
     if (!table) return;
 
     if (S.invoiceError) {
@@ -495,6 +624,7 @@
 
   function renderPayments() {
     const table = $("paymentTable");
+
     if (!table) return;
 
     if (S.paymentError) {
@@ -530,7 +660,10 @@
       ].join(" ");
 
       return matches(searchText, query) &&
-        (!status || String(p.status).toLowerCase() === status);
+        (
+          !status ||
+          String(p.status).toLowerCase() === status
+        );
     });
 
     table.innerHTML = rows.length
@@ -594,11 +727,17 @@
 
     const totalUSD = received
       .filter(p => (p.currency || "USD") === "USD")
-      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      .reduce(
+        (sum, p) => sum + Number(p.amount || 0),
+        0
+      );
 
     const totalSOS = received
       .filter(p => p.currency === "SOS")
-      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      .reduce(
+        (sum, p) => sum + Number(p.amount || 0),
+        0
+      );
 
     if ($("statInvoices")) {
       $("statInvoices").textContent = S.invoices.length;
@@ -607,7 +746,11 @@
     if ($("statReceived")) {
       $("statReceived").textContent =
         cash(totalUSD, "USD") +
-        (totalSOS > 0 ? " | " + cash(totalSOS, "SOS") : "");
+        (
+          totalSOS > 0
+            ? " | " + cash(totalSOS, "SOS")
+            : ""
+        );
     }
 
     if ($("statPending")) {
@@ -615,7 +758,8 @@
     }
 
     if ($("statBalance")) {
-      $("statBalance").textContent = cash(totalBalance, "USD");
+      $("statBalance").textContent =
+        cash(totalBalance, "USD");
     }
   }
 
@@ -624,17 +768,23 @@
     renderPayments();
     renderStats();
 
-    document.querySelectorAll("[data-invoice-print]").forEach(b => {
-      b.onclick = () => printInvoice(b.dataset.invoicePrint);
-    });
+    document.querySelectorAll("[data-invoice-print]")
+      .forEach(b => {
+        b.onclick = () =>
+          printInvoice(b.dataset.invoicePrint);
+      });
 
-    document.querySelectorAll("[data-print]").forEach(b => {
-      b.onclick = () => printReceipt(b.dataset.print);
-    });
+    document.querySelectorAll("[data-print]")
+      .forEach(b => {
+        b.onclick = () =>
+          printReceipt(b.dataset.print);
+      });
 
-    document.querySelectorAll("[data-review]").forEach(b => {
-      b.onclick = () => openReview(b.dataset.review);
-    });
+    document.querySelectorAll("[data-review]")
+      .forEach(b => {
+        b.onclick = () =>
+          openReview(b.dataset.review);
+      });
 
     invoiceOptions();
   }
@@ -654,7 +804,9 @@
       "invoiceFormWrap",
       "paymentFormWrap"
     ].forEach(id => {
-      if ($(id)) $(id).classList.add("hidden");
+      if ($(id)) {
+        $(id).classList.add("hidden");
+      }
     });
 
     if ($("reviewModal")) {
@@ -663,20 +815,36 @@
   }
 
   function openInvoiceForm() {
+    if (!$("invoiceFormWrap")) return;
+
     hideForms();
+
     $("invoiceFormWrap").classList.remove("hidden");
+
     studentOptions();
-    $("invoiceFormWrap").scrollIntoView({ behavior: "smooth" });
+
+    $("invoiceFormWrap").scrollIntoView({
+      behavior: "smooth"
+    });
   }
 
   function openPaymentForm() {
+    if (!$("paymentFormWrap")) return;
+
     hideForms();
+
     $("paymentFormWrap").classList.remove("hidden");
 
-    $("payDate").value = new Date().toISOString().slice(0, 10);
+    setValue(
+      "payDate",
+      new Date().toISOString().slice(0, 10)
+    );
 
     studentOptions();
-    $("paymentFormWrap").scrollIntoView({ behavior: "smooth" });
+
+    $("paymentFormWrap").scrollIntoView({
+      behavior: "smooth"
+    });
   }
 
   // ==========================================
@@ -686,16 +854,15 @@
   async function saveInvoice(event) {
     event.preventDefault();
 
-    const institution_id = $("invInst").value;
-    const student_id = $("invStudent").value;
-    const description = $("invDescription").value.trim();
-    const amount = Number($("invAmount").value);
-    const due_date = $("invDueDate").value || null;
+    const institution_id = $("invInst")?.value || "";
+    const student_id = $("invStudent")?.value || "";
+    const description = $("invDescription")?.value.trim() || "";
+    const amount = Number($("invAmount")?.value);
+    const due_date = $("invDueDate")?.value || null;
 
     const st = student(student_id);
 
     if (
-      !institution_id ||
       !institutionAllowed(institution_id) ||
       !st ||
       st.institution_id !== institution_id ||
@@ -703,11 +870,15 @@
       !Number.isFinite(amount) ||
       amount <= 0
     ) {
-      return msg("Hubi machadka, ardayga, sharaxaadda iyo lacagta.", "err");
+      return msg(
+        "Hubi machadka, ardayga, sharaxaadda iyo lacagta.",
+        "err"
+      );
     }
 
     const btn = $("saveInvoiceBtn");
-    btn.disabled = true;
+
+    if (btn) btn.disabled = true;
 
     try {
       const { data, error } = await db
@@ -726,14 +897,20 @@
 
       if (error) throw error;
 
-      $("invoiceForm").reset();
+      if ($("invoiceForm")) {
+        $("invoiceForm").reset();
+      }
+
       hideForms();
 
       try {
         await loadInvoices();
         render();
       } catch (refreshError) {
-        console.error("Invoice saved but refresh failed:", refreshError);
+        console.error(
+          "Invoice saved but refresh failed:",
+          refreshError
+        );
         renderInvoices();
       }
 
@@ -744,9 +921,14 @@
 
     } catch (e) {
       console.error("SAVE INVOICE ERROR:", e);
-      msg("Invoice lama kaydin: " + e.message, "err");
+
+      msg(
+        "Invoice lama kaydin: " + e.message,
+        "err"
+      );
+
     } finally {
-      btn.disabled = false;
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -757,37 +939,46 @@
   async function savePayment(event) {
     event.preventDefault();
 
-    const institution_id = $("payFormInst").value;
-    const student_id = $("payStudent").value;
-    const invoice_id = $("payInvoice").value || null;
+    const institution_id =
+      $("payFormInst")?.value || "";
 
-    const amount = Number($("payAmount").value);
-    const currency = $("payCurrency").value;
-    const payment_method = $("payMethod").value;
+    const student_id =
+      $("payStudent")?.value || "";
+
+    const invoice_id =
+      $("payInvoice")?.value || null;
+
+    const amount = Number($("payAmount")?.value);
+    const currency = $("payCurrency")?.value || "USD";
+
+    const payment_method =
+      $("payMethod")?.value || "";
 
     const transaction_reference =
-      $("payReference").value.trim() || null;
+      $("payReference")?.value.trim() || null;
 
     const payer_phone =
-      $("payerPhone").value.trim() || null;
+      $("payerPhone")?.value.trim() || null;
 
     const provider =
-      $("payProvider").value.trim() || null;
+      $("payProvider")?.value.trim() || null;
 
     const sender_account =
-      $("senderAccount").value.trim() || null;
+      $("senderAccount")?.value.trim() || null;
 
     const receiver_account =
-      $("receiverAccount").value.trim() || null;
+      $("receiverAccount")?.value.trim() || null;
 
-    const payment_date = $("payDate").value || null;
-    const notes = $("payNotes").value.trim() || null;
+    const payment_date =
+      $("payDate")?.value || null;
+
+    const notes =
+      $("payNotes")?.value.trim() || null;
 
     const st = student(student_id);
     const iv = invoice(invoice_id);
 
     if (
-      !institution_id ||
       !institutionAllowed(institution_id) ||
       !st ||
       st.institution_id !== institution_id ||
@@ -795,7 +986,10 @@
       amount <= 0 ||
       !payment_method
     ) {
-      return msg("Fadlan hubi machadka, ardayga, lacagta iyo payment method.", "err");
+      return msg(
+        "Fadlan hubi machadka, ardayga, lacagta iyo payment method.",
+        "err"
+      );
     }
 
     if (
@@ -803,10 +997,14 @@
       (
         !iv ||
         iv.student_id !== student_id ||
-        iv.institution_id !== institution_id
+        iv.institution_id !== institution_id ||
+        String(iv.status).toLowerCase() === "cancelled"
       )
     ) {
-      return msg("Invoice-ka waa inuu la mid yahay ardayga iyo machadka.", "err");
+      return msg(
+        "Invoice-ka waa inuu la mid yahay ardayga iyo machadka, mana noqon karo cancelled.",
+        "err"
+      );
     }
 
     if (invoice_id && currency !== "USD") {
@@ -816,25 +1014,38 @@
       );
     }
 
-    if (invoice_id && amount > balance(iv) + 0.001) {
-      if (!confirm("Lacagtu waxay ka badan tahay balance-ka invoice-ka. Ma sii wadaysaa?")) {
+    if (
+      invoice_id &&
+      amount > balance(iv) + 0.001
+    ) {
+      if (
+        !confirm(
+          "Lacagtu waxay ka badan tahay balance-ka invoice-ka. Ma sii wadaysaa?"
+        )
+      ) {
         return;
       }
     }
 
     if (transaction_reference) {
-      const duplicate = S.payments.some(p =>
-        String(
+      const duplicate = S.payments.some(p => {
+        const existing = String(
           p.transaction_reference ||
           p.provider_transaction_id ||
           ""
-        ).trim().toLowerCase() ===
-        transaction_reference.toLowerCase() &&
-        String(p.status).toLowerCase() !== "failed"
-      );
+        ).trim().toLowerCase();
+
+        return (
+          existing === transaction_reference.toLowerCase() &&
+          String(p.status).toLowerCase() !== "failed"
+        );
+      });
 
       if (duplicate) {
-        return msg("Transaction reference-kan horay ayuu u diiwaangashan yahay.", "err");
+        return msg(
+          "Transaction reference-kan horay ayuu u diiwaangashan yahay.",
+          "err"
+        );
       }
     }
 
@@ -847,7 +1058,8 @@
       notes,
       manually_verified: false,
       recorded_by: S.user.id,
-      recorded_by_name: S.profile.full_name || "Financial Administrator",
+      recorded_by_name:
+        S.profile.full_name || "Financial Administrator",
       recorded_at: new Date().toISOString()
     };
 
@@ -866,7 +1078,8 @@
     };
 
     const btn = $("savePaymentBtn");
-    btn.disabled = true;
+
+    if (btn) btn.disabled = true;
 
     try {
       const { data, error } = await db
@@ -877,8 +1090,14 @@
 
       if (error) throw error;
 
-      $("paymentForm").reset();
-      $("payDate").value = new Date().toISOString().slice(0, 10);
+      if ($("paymentForm")) {
+        $("paymentForm").reset();
+      }
+
+      setValue(
+        "payDate",
+        new Date().toISOString().slice(0, 10)
+      );
 
       hideForms();
 
@@ -887,22 +1106,30 @@
         await loadInvoices();
         render();
       } catch (refreshError) {
-        console.error("Payment saved but refresh failed:", refreshError);
+        console.error(
+          "Payment saved but refresh failed:",
+          refreshError
+        );
       }
 
       setTab("payPanel");
 
       msg(
         "Payment waxaa loo kaydiyay PENDING. Reference: " +
-        (data.payment_reference || data.id) +
+        (data?.payment_reference || data?.id) +
         ". Ansixin ayaa loo baahan yahay."
       );
 
     } catch (e) {
       console.error("SAVE PAYMENT ERROR:", e);
-      msg("Payment lama kaydin: " + e.message, "err");
+
+      msg(
+        "Payment lama kaydin: " + e.message,
+        "err"
+      );
+
     } finally {
-      btn.disabled = false;
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -917,28 +1144,46 @@
       return msg("Payment lama helin.", "err");
     }
 
-    if (String(p.status).toLowerCase() !== "pending") {
-      return msg("Kaliya payment pending ah ayaa la review-gareyn karaa.", "err");
+    if (!institutionAllowed(p.institution_id)) {
+      return msg(
+        "Ma lihid oggolaanshaha payment-kan.",
+        "err"
+      );
+    }
+
+    if (
+      String(p.status).toLowerCase() !== "pending"
+    ) {
+      return msg(
+        "Kaliya payment pending ah ayaa la review-gareyn karaa.",
+        "err"
+      );
     }
 
     const m = meta(p);
+
     S.editingPayment = id;
 
-    $("reviewPaymentInfo").innerHTML = `
-      <b>Payment Reference:</b> ${esc(p.payment_reference || p.id)}<br>
-      <b>Student:</b> ${esc(studentLabel(p.student_id))}<br>
-      <b>Amount:</b> ${cash(p.amount, p.currency || "USD")}<br>
-      <b>Method:</b> ${esc(p.payment_method || "—")}<br>
-      <b>Provider:</b> ${esc(m.provider || "—")}<br>
-      <b>Sender:</b> ${esc(m.sender_account || p.payer_phone || "—")}<br>
-      <b>Receiver:</b> ${esc(m.receiver_account || "—")}<br>
-      <b>Transaction:</b> ${esc(p.transaction_reference || "—")}<br>
-      <b>Date:</b> ${esc(fmtDate(p.created_at))}
-    `;
+    if ($("reviewPaymentInfo")) {
+      $("reviewPaymentInfo").innerHTML = `
+        <b>Payment Reference:</b> ${esc(p.payment_reference || p.id)}<br>
+        <b>Student:</b> ${esc(studentLabel(p.student_id))}<br>
+        <b>Amount:</b> ${cash(p.amount, p.currency || "USD")}<br>
+        <b>Method:</b> ${esc(p.payment_method || "—")}<br>
+        <b>Provider:</b> ${esc(m.provider || "—")}<br>
+        <b>Sender:</b> ${esc(m.sender_account || p.payer_phone || "—")}<br>
+        <b>Receiver:</b> ${esc(m.receiver_account || "—")}<br>
+        <b>Transaction:</b> ${esc(p.transaction_reference || "—")}<br>
+        <b>Date:</b> ${esc(fmtDate(p.created_at))}
+      `;
+    }
 
-    $("reviewStatus").value = "";
-    $("reviewNote").value = "";
-    $("reviewModal").classList.add("show");
+    setValue("reviewStatus", "");
+    setValue("reviewNote", "");
+
+    if ($("reviewModal")) {
+      $("reviewModal").classList.add("show");
+    }
   }
 
   async function saveReview(event) {
@@ -946,20 +1191,37 @@
 
     const p = payment(S.editingPayment);
 
-    if (!p || String(p.status).toLowerCase() !== "pending") {
-      return msg("Payment-kan hadda pending ma aha. Refresh samee.", "err");
+    if (!p || !institutionAllowed(p.institution_id)) {
+      return msg(
+        "Payment-kan lama helin ama ma lihid oggolaanshihiisa.",
+        "err"
+      );
     }
 
-    const status = $("reviewStatus").value;
-    const review_note = $("reviewNote").value.trim();
+    if (
+      String(p.status).toLowerCase() !== "pending"
+    ) {
+      return msg(
+        "Payment-kan hadda pending ma aha. Refresh samee.",
+        "err"
+      );
+    }
 
-    if (!["successful", "failed", "cancelled"].includes(status)) {
+    const status = $("reviewStatus")?.value || "";
+    const review_note =
+      $("reviewNote")?.value.trim() || "";
+
+    if (
+      !["successful", "failed", "cancelled"].includes(status)
+    ) {
       return msg("Dooro go'aan sax ah.", "err");
     }
 
     if (
       status === "successful" &&
-      !confirm("Ma xaqiijisay in lacagta dhabta ah lagu helay account-ka GAAWOW Academy?")
+      !confirm(
+        "Ma xaqiijisay in lacagta dhabta ah lagu helay account-ka GAAWOW Academy?"
+      )
     ) {
       return;
     }
@@ -967,13 +1229,16 @@
     if (
       status !== "successful" &&
       !review_note &&
-      !confirm("Review note lama gelin. Ma sii wadaysaa?")
+      !confirm(
+        "Review note lama gelin. Ma sii wadaysaa?"
+      )
     ) {
       return;
     }
 
     const btn = $("saveReviewBtn");
-    btn.disabled = true;
+
+    if (btn) btn.disabled = true;
 
     try {
       const { data, error } = await db.functions.invoke(
@@ -990,14 +1255,20 @@
       if (error) throw error;
 
       if (!data || data.success !== true) {
-        throw new Error(data?.message || "Payment review was not completed.");
+        throw new Error(
+          data?.message ||
+          "Payment review was not completed."
+        );
       }
 
       if (status === "successful") {
         if (data.official_receipt_issued) {
           msg(
             "Payment waa la ansixiyay. Official Receipt: " +
-            (data.payment?.receipt_number || "Issued")
+            (
+              data.payment?.receipt_number ||
+              "Issued"
+            )
           );
         } else {
           msg(
@@ -1006,19 +1277,29 @@
           );
         }
       } else {
-        msg("Payment review waa la dhammeeyay: " + status);
+        msg(
+          "Payment review waa la dhammeeyay: " + status
+        );
       }
 
-      $("reviewModal").classList.remove("show");
+      if ($("reviewModal")) {
+        $("reviewModal").classList.remove("show");
+      }
+
       S.editingPayment = null;
 
       await reload();
 
     } catch (e) {
-      console.error("Payment review error:", e);
-      msg("Payment review failed: " + e.message, "err");
+      console.error("PAYMENT REVIEW ERROR:", e);
+
+      msg(
+        "Payment review failed: " + e.message,
+        "err"
+      );
+
     } finally {
-      btn.disabled = false;
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -1029,19 +1310,30 @@
   function printInvoice(id) {
     const i = invoice(id);
 
-    if (!i) return msg("Invoice lama helin.", "err");
+    if (!i) {
+      return msg("Invoice lama helin.", "err");
+    }
 
     const s = student(i.student_id);
-    const inst = S.inst.find(x => x.id === i.institution_id);
+    const inst = S.inst.find(
+      x => x.id === i.institution_id
+    );
 
     const amount = Number(i.amount || 0);
     const paid = Number(i.paid_amount || 0);
     const remaining = balance(i);
 
-    const w = window.open("", "_blank", "width=900,height=950");
+    const w = window.open(
+      "",
+      "_blank",
+      "width=900,height=950"
+    );
 
     if (!w) {
-      return msg("Fadlan oggolow pop-ups si invoice loo daabaco.", "err");
+      return msg(
+        "Fadlan oggolow pop-ups si invoice loo daabaco.",
+        "err"
+      );
     }
 
     w.document.write(`
@@ -1079,7 +1371,8 @@
           <b>Institution:</b> ${esc(inst?.name || "—")}<br>
           <b>Student:</b> ${esc(s?.full_name || "—")}<br>
           <b>Student ID:</b> ${esc(s?.student_id || "—")}<br>
-          <b>Issue date:</b> ${esc(i.created_at ? new Date(i.created_at).toLocaleDateString() : "—")}
+          <b>Issue date:</b>
+          ${esc(i.created_at ? new Date(i.created_at).toLocaleDateString() : "—")}
         </p>
 
         <table>
@@ -1093,7 +1386,10 @@
 
         <footer>
           <div>Issued by GAAWOW EMS</div>
-          <div>Authorized signature:<br><br><b>Dr Osmaan Gaawow</b></div>
+          <div>
+            Authorized signature:<br><br>
+            <b>Dr Osmaan Gaawow</b>
+          </div>
         </footer>
 
         <script>window.onload=()=>window.print()<\/script>
@@ -1111,9 +1407,12 @@
   function printReceipt(id) {
     const p = payment(id);
 
-    if (!p) return msg("Payment lama helin.", "err");
+    if (!p) {
+      return msg("Payment lama helin.", "err");
+    }
 
-    const successful = String(p.status).toLowerCase() === "successful";
+    const successful =
+      String(p.status).toLowerCase() === "successful";
 
     if (successful && !p.receipt_number) {
       return msg(
@@ -1122,19 +1421,31 @@
       );
     }
 
-    const official = successful && !!p.receipt_number;
+    const official =
+      successful && !!p.receipt_number;
 
     const m = meta(p);
     const s = student(p.student_id);
     const i = invoice(p.invoice_id);
-    const inst = S.inst.find(x => x.id === p.institution_id);
 
-    const documentNumber = official ? p.receipt_number : "NOT ISSUED";
+    const inst = S.inst.find(
+      x => x.id === p.institution_id
+    );
 
-    const w = window.open("", "_blank", "width=900,height=950");
+    const documentNumber =
+      official ? p.receipt_number : "NOT ISSUED";
+
+    const w = window.open(
+      "",
+      "_blank",
+      "width=900,height=950"
+    );
 
     if (!w) {
-      return msg("Fadlan oggolow pop-ups si document-ka loo daabaco.", "err");
+      return msg(
+        "Fadlan oggolow pop-ups si document-ka loo daabaco.",
+        "err"
+      );
     }
 
     w.document.write(`
@@ -1203,8 +1514,14 @@
           `}
 
           <div class="foot">
-            <div>Issued by GAAWOW EMS<br>Keep this document for your records.</div>
-            <div>Authorized signature:<br><br><b>Dr Osmaan Gaawow</b></div>
+            <div>
+              Issued by GAAWOW EMS<br>
+              Keep this document for your records.
+            </div>
+            <div>
+              Authorized signature:<br><br>
+              <b>Dr Osmaan Gaawow</b>
+            </div>
           </div>
         </div>
 
@@ -1229,9 +1546,13 @@
       }
     });
 
-    document.querySelectorAll("[data-tab]").forEach(b => {
-      b.classList.toggle("active", b.dataset.tab === id);
-    });
+    document.querySelectorAll("[data-tab]")
+      .forEach(b => {
+        b.classList.toggle(
+          "active",
+          b.dataset.tab === id
+        );
+      });
   }
 
   // ==========================================
@@ -1239,12 +1560,18 @@
   // ==========================================
 
   function events() {
-    $("backDashboard").onclick = () => {
-      location.href = "dashboard.html";
-    };
+    on("backDashboard", "click", () => {
+      if (isFinanceManager()) return;
 
-    $("logout").onclick = async () => {
-      if (!confirm("Ma hubtaa inaad ka baxayso GAAWOW EMS?")) return;
+      location.href = isSuperAdmin()
+        ? "dashboard.html"
+        : "school-dashboard.html";
+    });
+
+    on("logout", "click", async () => {
+      if (!confirm("Ma hubtaa inaad ka baxayso GAAWOW EMS?")) {
+        return;
+      }
 
       const { error } = await db.auth.signOut();
 
@@ -1253,49 +1580,57 @@
         return;
       }
 
-      location.href = "index.html";
-    };
+      location.href = "login.html";
+    });
 
-    $("newInvoiceBtn").onclick = openInvoiceForm;
-    $("newPaymentBtn").onclick = openPaymentForm;
+    on("newInvoiceBtn", "click", openInvoiceForm);
+    on("newPaymentBtn", "click", openPaymentForm);
 
-    $("closeInvoiceForm").onclick = hideForms;
-    $("cancelInvoiceBtn").onclick = hideForms;
+    on("closeInvoiceForm", "click", hideForms);
+    on("cancelInvoiceBtn", "click", hideForms);
 
-    $("closePaymentForm").onclick = hideForms;
-    $("cancelPaymentBtn").onclick = hideForms;
+    on("closePaymentForm", "click", hideForms);
+    on("cancelPaymentBtn", "click", hideForms);
 
-    $("invoiceForm").addEventListener("submit", saveInvoice);
-    $("paymentForm").addEventListener("submit", savePayment);
-    $("reviewForm").addEventListener("submit", saveReview);
+    on("invoiceForm", "submit", saveInvoice);
+    on("paymentForm", "submit", savePayment);
+    on("reviewForm", "submit", saveReview);
 
-    $("closeReviewModal").onclick = () => {
-      $("reviewModal").classList.remove("show");
+    on("closeReviewModal", "click", () => {
+      if ($("reviewModal")) {
+        $("reviewModal").classList.remove("show");
+      }
+
       S.editingPayment = null;
-    };
+    });
 
-    $("cancelReviewBtn").onclick = () => {
-      $("reviewModal").classList.remove("show");
+    on("cancelReviewBtn", "click", () => {
+      if ($("reviewModal")) {
+        $("reviewModal").classList.remove("show");
+      }
+
       S.editingPayment = null;
-    };
+    });
 
-    $("reviewModal").addEventListener("click", e => {
+    on("reviewModal", "click", e => {
       if (e.target === $("reviewModal")) {
         $("reviewModal").classList.remove("show");
         S.editingPayment = null;
       }
     });
 
-    document.querySelectorAll("[data-tab]").forEach(b => {
-      b.onclick = () => setTab(b.dataset.tab);
-    });
+    document.querySelectorAll("[data-tab]")
+      .forEach(b => {
+        b.onclick = () => setTab(b.dataset.tab);
+      });
 
-    $("invoiceSearch").oninput = renderInvoices;
-    $("paymentSearch").oninput = renderPayments;
-    $("paymentStatusFilter").onchange = renderPayments;
+    on("invoiceSearch", "input", renderInvoices);
+    on("paymentSearch", "input", renderPayments);
+    on("paymentStatusFilter", "change", renderPayments);
 
-    $("filterInst").onchange = async () => {
+    on("filterInst", "change", async () => {
       const btn = $("refreshInvoices");
+
       if (btn) btn.disabled = true;
 
       try {
@@ -1303,65 +1638,82 @@
         renderInvoices();
         renderStats();
         invoiceOptions();
+
       } catch (e) {
         renderInvoices();
         msg("Invoice error: " + e.message, "err");
+
       } finally {
         if (btn) btn.disabled = false;
       }
-    };
+    });
 
-    $("payInst").onchange = async () => {
+    on("payInst", "change", async () => {
       try {
         await loadPayments();
         renderPayments();
         renderStats();
+
       } catch (e) {
         renderPayments();
         msg("Payment error: " + e.message, "err");
       }
-    };
-
-    ["invInst", "payFormInst"].forEach(id => {
-      $(id).onchange = studentOptions;
     });
 
-    $("payStudent").onchange = invoiceOptions;
+    ["invInst", "payFormInst"].forEach(id => {
+      on(id, "change", studentOptions);
+    });
 
-    $("refreshInvoices").onclick = async () => {
+    on("payStudent", "change", invoiceOptions);
+
+    on("refreshInvoices", "click", async () => {
       const btn = $("refreshInvoices");
-      btn.disabled = true;
+
+      if (btn) btn.disabled = true;
 
       try {
         await loadInvoices();
         renderInvoices();
         renderStats();
         invoiceOptions();
+
         msg("Invoices waa la cusbooneysiiyay.");
+
       } catch (e) {
         renderInvoices();
-        msg("Invoice refresh failed: " + e.message, "err");
-      } finally {
-        btn.disabled = false;
-      }
-    };
+        msg(
+          "Invoice refresh failed: " + e.message,
+          "err"
+        );
 
-    $("refreshPayments").onclick = async () => {
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
+
+    on("refreshPayments", "click", async () => {
       const btn = $("refreshPayments");
-      btn.disabled = true;
+
+      if (btn) btn.disabled = true;
 
       try {
         await loadPayments();
         renderPayments();
         renderStats();
+
         msg("Payments waa la cusbooneysiiyay.");
+
       } catch (e) {
         renderPayments();
-        msg("Payment refresh failed: " + e.message, "err");
+        msg(
+          "Payment refresh failed: " + e.message,
+          "err"
+        );
+
       } finally {
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
       }
-    };
+    });
   }
 
   // ==========================================
@@ -1370,31 +1722,52 @@
 
   async function init() {
     try {
+      const authenticated = await auth();
+
+      if (!authenticated) return;
+
       events();
 
-      const authenticated = await auth();
-      if (!authenticated) return;
+      // Hide Super Admin dashboard navigation
+      // for Finance Manager accounts.
+      if (isFinanceManager()) {
+        if ($("backDashboard")) {
+          $("backDashboard").classList.add("hidden");
+        }
+      }
 
       // Institutions
       try {
         await loadInstitutions();
+
       } catch (e) {
         console.error("INSTITUTIONS ERROR:", e);
-        msg("Institutions error: " + e.message, "err");
+
+        msg(
+          "Institutions error: " + e.message,
+          "err"
+        );
       }
 
       // Students
       try {
         await loadStudents();
+
       } catch (e) {
         console.error("STUDENTS ERROR:", e);
+
         S.students = [];
-        msg("Students error: " + e.message, "err");
+
+        msg(
+          "Students error: " + e.message,
+          "err"
+        );
       }
 
-      // Invoices: load and display independently
+      // Invoices
       try {
         await loadInvoices();
+
       } catch (e) {
         console.error("INVOICES ERROR:", e);
       }
@@ -1402,18 +1775,23 @@
       renderInvoices();
       renderStats();
 
-      // Payments: failure must not block invoices
+      // Payments
       try {
         await loadPayments();
+
       } catch (e) {
         console.error("PAYMENTS ERROR:", e);
+
         S.payments = [];
-        S.paymentError = e.message || "Unable to load payments";
+
+        S.paymentError =
+          e.message || "Unable to load payments";
       }
 
       render();
 
-      const requested = sessionStorage.getItem("gaawowFinanceTab");
+      const requested =
+        sessionStorage.getItem("gaawowFinanceTab");
 
       setTab(
         location.hash.toLowerCase().includes("payment") ||
@@ -1425,14 +1803,26 @@
       sessionStorage.removeItem("gaawowFinanceTab");
 
       if (S.invoiceError) {
-        msg("Invoice loading failed: " + S.invoiceError, "err");
+        msg(
+          "Invoice loading failed: " + S.invoiceError,
+          "err"
+        );
       } else {
-        msg("GAAWOW EMS Financial Management is connected.");
+        msg(
+          "GAAWOW EMS Financial Management is connected."
+        );
       }
 
     } catch (e) {
-      console.error("Financial Management initialization:", e);
-      msg("Portal setup error: " + e.message, "err");
+      console.error(
+        "Financial Management initialization:",
+        e
+      );
+
+      msg(
+        "Portal setup error: " + e.message,
+        "err"
+      );
     }
   }
 
