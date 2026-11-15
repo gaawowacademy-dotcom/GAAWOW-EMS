@@ -115,7 +115,103 @@
       o.value = val(r);
       o.textContent = label(r);
       e.append(o);
-    });
+    }
+async function auth() {
+  try {
+    const { data, error } = await db.auth.getSession();
+
+    if (error) throw error;
+
+    if (!data?.session?.user) {
+      msg("Fadlan marka hore ka gal GAAWOW EMS.", "err");
+
+      setTimeout(() => {
+        location.href = "login.html";
+      }, 1800);
+
+      return false;
+    }
+
+    S.user = data.session.user;
+
+    const { data: profile, error: profileError } = await db
+      .from("profiles")
+      .select("id,institution_id,full_name,role,is_active")
+      .eq("id", S.user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      throw new Error("Profile error: " + profileError.message);
+    }
+
+    if (!profile) {
+      msg("Profile-ka akoonka lama helin.", "err");
+      return false;
+    }
+
+    S.profile = {
+      ...profile,
+      role: String(profile.role || "").trim().toLowerCase()
+    };
+
+    const diagnostic = [
+      "GAAWOW FINANCE LOGIN CHECK",
+      "--------------------------",
+      "Email: " + (S.user.email || "Unknown"),
+      "Auth ID: " + S.user.id,
+      "Profile ID: " + S.profile.id,
+      "Role: " + (S.profile.role || "MISSING"),
+      "Active: " + S.profile.is_active,
+      "Institution: " + (S.profile.institution_id || "MISSING"),
+      "IDs Match: " + (S.user.id === S.profile.id)
+    ].join("\n");
+
+    console.log(diagnostic);
+
+    if (S.user.id !== S.profile.id) {
+      msg("Auth ID iyo Profile ID isma waafaqaan.", "err");
+      alert(diagnostic);
+      return false;
+    }
+
+    if (S.profile.is_active !== true) {
+      msg("Akoonkaagu ma shaqeynayo.", "err");
+      alert(diagnostic);
+      return false;
+    }
+
+    const allowed = [
+      "super_admin",
+      "school_admin",
+      "finance_manager"
+    ];
+
+    if (!allowed.includes(S.profile.role)) {
+      msg("Doorka akoonka lama aqoonsan.", "err");
+      alert(diagnostic);
+      return false;
+    }
+
+    if (
+      ["school_admin", "finance_manager"].includes(S.profile.role) &&
+      !S.profile.institution_id
+    ) {
+      msg("Akoonka machad looma qoondeyn.", "err");
+      alert(diagnostic);
+      return false;
+    }
+
+    // Temporary diagnostic confirmation
+    alert(diagnostic);
+
+    return true;
+
+  } catch (e) {
+    console.error("FINANCE AUTH ERROR:", e);
+    msg("Login verification failed: " + e.message, "err");
+    return false;
+  }
+});
 
     if ([...e.options].some(o => o.value === old)) {
       e.value = old;
@@ -204,16 +300,15 @@
   // AUTHENTICATION
   // ==========================================
 
-  async function auth() {
+  
+async function auth() {
+  try {
     const { data, error } = await db.auth.getSession();
 
     if (error) throw error;
 
     if (!data?.session?.user) {
-      msg(
-        "Fadlan marka hore ka gal GAAWOW EMS login-kaaga.",
-        "err"
-      );
+      msg("Fadlan marka hore ka gal GAAWOW EMS.", "err");
 
       setTimeout(() => {
         location.href = "login.html";
@@ -224,23 +319,85 @@
 
     S.user = data.session.user;
 
-    const r = await db
+    const { data: profile, error: profileError } = await db
       .from("profiles")
       .select("id,institution_id,full_name,role,is_active")
       .eq("id", S.user.id)
       .maybeSingle();
 
-    if (r.error) {
-      console.error("PROFILE QUERY ERROR:", r.error);
-      throw r.error;
+    if (profileError) {
+      throw new Error("Profile error: " + profileError.message);
     }
 
-    if (!r.data) {
-      msg(
-        "Profile-ka akoonka lama helin. La xiriir Super Admin.",
-        "err"
-      );
+    if (!profile) {
+      msg("Profile-ka akoonka lama helin.", "err");
       return false;
+    }
+
+    S.profile = {
+      ...profile,
+      role: String(profile.role || "").trim().toLowerCase()
+    };
+
+    const diagnostic = [
+      "GAAWOW FINANCE LOGIN CHECK",
+      "--------------------------",
+      "Email: " + (S.user.email || "Unknown"),
+      "Auth ID: " + S.user.id,
+      "Profile ID: " + S.profile.id,
+      "Role: " + (S.profile.role || "MISSING"),
+      "Active: " + S.profile.is_active,
+      "Institution: " + (S.profile.institution_id || "MISSING"),
+      "IDs Match: " + (S.user.id === S.profile.id)
+    ].join("\n");
+
+    console.log(diagnostic);
+
+    if (S.user.id !== S.profile.id) {
+      msg("Auth ID iyo Profile ID isma waafaqaan.", "err");
+      alert(diagnostic);
+      return false;
+    }
+
+    if (S.profile.is_active !== true) {
+      msg("Akoonkaagu ma shaqeynayo.", "err");
+      alert(diagnostic);
+      return false;
+    }
+
+    const allowed = [
+      "super_admin",
+      "school_admin",
+      "finance_manager"
+    ];
+
+    if (!allowed.includes(S.profile.role)) {
+      msg("Doorka akoonka lama aqoonsan.", "err");
+      alert(diagnostic);
+      return false;
+    }
+
+    if (
+      ["school_admin", "finance_manager"].includes(S.profile.role) &&
+      !S.profile.institution_id
+    ) {
+      msg("Akoonka machad looma qoondeyn.", "err");
+      alert(diagnostic);
+      return false;
+    }
+
+    // Temporary diagnostic confirmation
+    alert(diagnostic);
+
+    return true;
+
+  } catch (e) {
+    console.error("FINANCE AUTH ERROR:", e);
+    msg("Login verification failed: " + e.message, "err");
+    return false;
+  }
+}
+
     }
 
     // Normalize role before checking permissions.
