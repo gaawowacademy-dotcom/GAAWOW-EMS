@@ -1,3 +1,4 @@
+
 "use strict";
 
 (() => {
@@ -209,11 +210,10 @@
   }
 
   // ==========================================
-  // AUTHENTICATION - FIXED
+  // AUTHENTICATION
   // ==========================================
 
   async function auth() {
-    // 1. Check Supabase session.
     const { data, error } = await db.auth.getSession();
 
     if (error) {
@@ -236,7 +236,6 @@
 
     S.user = data.session.user;
 
-    // 2. Load profile using authenticated user ID.
     const { data: profile, error: profileError } = await db
       .from("profiles")
       .select("id,institution_id,full_name,role,is_active")
@@ -255,11 +254,6 @@
     }
 
     if (!profile) {
-      console.error(
-        "PROFILE NOT FOUND FOR AUTH USER:",
-        S.user.id
-      );
-
       msg(
         "Profile-ka akoonka lama helin. La xiriir Super Admin.",
         "err"
@@ -268,13 +262,11 @@
       return false;
     }
 
-    // 3. Normalize role.
     S.profile = {
       ...profile,
       role: normalizeRole(profile.role)
     };
 
-    // 4. Diagnostic information.
     console.log("GAAWOW FINANCE AUTH CHECK:", {
       authUserId: S.user.id,
       profileId: S.profile.id,
@@ -285,17 +277,15 @@
       idsMatch: S.user.id === S.profile.id
     });
 
-    // 5. Verify Auth ID and Profile ID.
     if (S.user.id !== S.profile.id) {
       msg(
-        "Auth ID iyo Profile ID isma waafaqaan. La xiriir Super Admin.",
+        "Auth ID iyo Profile ID isma waafaqaan.",
         "err"
       );
 
       return false;
     }
 
-    // 6. Verify account status.
     if (S.profile.is_active !== true) {
       msg(
         "Akoonkaagu ma shaqeynayo. La xiriir Super Admin.",
@@ -311,7 +301,6 @@
       return false;
     }
 
-    // 7. Allowed roles.
     const allowed = [
       "super_admin",
       "school_admin",
@@ -319,12 +308,6 @@
     ];
 
     if (!allowed.includes(role())) {
-      console.error("UNRECOGNIZED PROFILE ROLE:", {
-        originalRole: profile.role,
-        normalizedRole: role(),
-        userId: S.user.id
-      });
-
       msg(
         "Doorka akoonka lama aqoonsan: " +
         (profile.role || "Role missing"),
@@ -334,23 +317,19 @@
       return false;
     }
 
-    // 8. Institution assignment.
     if (
       isInstitutionUser() &&
       !S.profile.institution_id
     ) {
       msg(
-        "Akoonka Finance Manager ama School Admin looma qoondeyn machad.",
+        "Akoonkaaga looma qoondeyn machad.",
         "err"
       );
 
       return false;
     }
 
-    console.log(
-      "GAAWOW FINANCE AUTH SUCCESS:",
-      role()
-    );
+    console.log("GAAWOW FINANCE AUTH SUCCESS:", role());
 
     return true;
   }
@@ -478,6 +457,195 @@
   }
 
   // ==========================================
+  // SUCCESSFUL PAYMENT CALCULATIONS
+  // ==========================================
+
+  function successfulPayments(studentId, invoiceId = null) {
+    return S.payments.filter(p =>
+      p.student_id === studentId &&
+      String(p.status || "").toLowerCase() === "successful" &&
+      (!invoiceId || p.invoice_id === invoiceId)
+    );
+  }
+
+  function totalByCurrency(rows) {
+    const totals = {};
+
+    rows.forEach(p => {
+      const currency = String(
+        p.currency || "USD"
+      ).toUpperCase();
+
+      totals[currency] =
+        (totals[currency] || 0) +
+        Number(p.amount || 0);
+    });
+
+    return totals;
+  }
+
+  function currencySummary(totals) {
+    const entries = Object.entries(totals);
+
+    return entries.length
+      ? entries.map(([currency, amount]) =>
+          cash(amount, currency)
+        ).join(" + ")
+      : cash(0, "USD");
+  }
+
+  // ==========================================
+  // PAYMENT SUMMARY UI
+  // ==========================================
+
+  function ensurePaymentSummary() {
+    if ($("paymentSummary")) {
+      return $("paymentSummary");
+    }
+
+    const invoiceSelect = $("payInvoice");
+
+    if (!invoiceSelect) return null;
+
+    const panel = document.createElement("div");
+
+    panel.id = "paymentSummary";
+
+    panel.style.cssText = `
+      margin:14px 0;
+      padding:17px;
+      border:1px solid #D4AF37;
+      border-left:5px solid #0B1E63;
+      border-radius:12px;
+      background:#F5F7FA;
+      color:#0B1E63;
+      line-height:1.8;
+      font-size:14px;
+      box-shadow:0 3px 12px rgba(11,30,99,.06);
+    `;
+
+    invoiceSelect.insertAdjacentElement(
+      "afterend",
+      panel
+    );
+
+    return panel;
+  }
+
+  function updatePaymentSummary() {
+    const panel = ensurePaymentSummary();
+
+    if (!panel) return;
+
+    const studentId = $("payStudent")?.value || "";
+    const invoiceId = $("payInvoice")?.value || "";
+
+    if (!studentId) {
+      panel.innerHTML = `
+        <b>PAYMENT SUMMARY</b><br>
+        Dooro arday si loo muujiyo lacagta uu bixiyey iyo haraaga.
+      `;
+      return;
+    }
+
+    const studentPayments =
+      successfulPayments(studentId);
+
+    const studentTotals =
+      totalByCurrency(studentPayments);
+
+    let invoiceHTML = `
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #D4AF37">
+        <b>INVOICE SUMMARY</b><br>
+        Dooro invoice si loo muujiyo lacagta laga bixiyey iyo haraaga.
+      </div>
+    `;
+
+    const selectedInvoice = invoice(invoiceId);
+
+    if (
+      selectedInvoice &&
+      selectedInvoice.student_id === studentId
+    ) {
+      const invoicePayments =
+        successfulPayments(studentId, selectedInvoice.id);
+
+      const invoicePaid = invoicePayments
+        .filter(p =>
+          String(p.currency || "USD").toUpperCase() === "USD"
+        )
+        .reduce(
+          (sum, p) => sum + Number(p.amount || 0),
+          0
+        );
+
+      const invoiceAmount =
+        Number(selectedInvoice.amount || 0);
+
+      const remaining = Math.max(
+        invoiceAmount - invoicePaid,
+        0
+      );
+
+      const invoiceTotals =
+        totalByCurrency(invoicePayments);
+
+      invoiceHTML = `
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid #D4AF37">
+          <b>INVOICE SUMMARY</b><br>
+
+          Invoice Number:
+          <b>${esc(selectedInvoice.invoice_number || "—")}</b><br>
+
+          Invoice Amount:
+          <b>${cash(invoiceAmount, "USD")}</b><br>
+
+          Invoice Total Paid:
+          <b style="color:#15803D">
+            ${cash(invoicePaid, "USD")}
+          </b><br>
+
+          Remaining Balance:
+          <b style="color:${remaining > 0 ? "#B45309" : "#15803D"}">
+            ${cash(remaining, "USD")}
+          </b>
+
+          <br>
+          <small>
+            Other successful currencies:
+            ${esc(currencySummary(
+              Object.fromEntries(
+                Object.entries(invoiceTotals).filter(
+                  ([currency]) => currency !== "USD"
+                )
+              )
+            ))}
+          </small>
+        </div>
+      `;
+    }
+
+    panel.innerHTML = `
+      <div style="font-weight:800;font-size:15px">
+        PAYMENT SUMMARY
+      </div>
+
+      <div style="margin-top:8px">
+        Student Total Paid:
+        <b style="color:#15803D;font-size:16px">
+          ${esc(currencySummary(studentTotals))}
+        </b>
+      </div>
+
+      <small>
+        Wadarta lacagaha successful-ka ah ee ardaygan bixiyey.
+      </small>
+
+      ${invoiceHTML}
+    `;
+  }
+
+  // ==========================================
   // INVOICE OPTIONS FOR PAYMENTS
   // ==========================================
 
@@ -500,6 +668,8 @@
         `${i.invoice_number} • ${cash(i.amount)} • Balance: ${cash(balance(i))}`,
       "No invoice linked"
     );
+
+    updatePaymentSummary();
   }
 
   // ==========================================
@@ -607,6 +777,8 @@
       if (error) throw error;
 
       S.payments = data || [];
+
+      updatePaymentSummary();
 
       return S.payments;
 
@@ -853,6 +1025,7 @@
       });
 
     invoiceOptions();
+    updatePaymentSummary();
   }
 
   async function reload() {
@@ -907,6 +1080,7 @@
     );
 
     studentOptions();
+    updatePaymentSummary();
 
     $("paymentFormWrap").scrollIntoView({
       behavior: "smooth"
@@ -973,10 +1147,7 @@
         await loadInvoices();
         render();
       } catch (refreshError) {
-        console.error(
-          "Invoice saved but refresh failed:",
-          refreshError
-        );
+        console.error("Invoice saved but refresh failed:", refreshError);
         renderInvoices();
       }
 
@@ -1172,10 +1343,7 @@
         await loadInvoices();
         render();
       } catch (refreshError) {
-        console.error(
-          "Payment saved but refresh failed:",
-          refreshError
-        );
+        console.error("Payment saved but refresh failed:", refreshError);
       }
 
       setTab("payPanel");
@@ -1381,6 +1549,7 @@
     }
 
     const s = student(i.student_id);
+
     const inst = S.inst.find(
       x => x.id === i.institution_id
     );
@@ -1719,6 +1888,7 @@
         await loadPayments();
         renderPayments();
         renderStats();
+        updatePaymentSummary();
 
       } catch (e) {
         renderPayments();
@@ -1730,7 +1900,12 @@
       on(id, "change", studentOptions);
     });
 
-    on("payStudent", "change", invoiceOptions);
+    on("payStudent", "change", () => {
+      invoiceOptions();
+      updatePaymentSummary();
+    });
+
+    on("payInvoice", "change", updatePaymentSummary);
 
     on("refreshInvoices", "click", async () => {
       const btn = $("refreshInvoices");
@@ -1766,6 +1941,7 @@
         await loadPayments();
         renderPayments();
         renderStats();
+        updatePaymentSummary();
 
         msg("Payments waa la cusbooneysiiyay.");
 
@@ -1794,14 +1970,12 @@
 
       events();
 
-      // Finance Manager does not need dashboard navigation.
       if (isFinanceManager()) {
         if ($("backDashboard")) {
           $("backDashboard").classList.add("hidden");
         }
       }
 
-      // Load institutions.
       try {
         await loadInstitutions();
 
@@ -1814,7 +1988,6 @@
         );
       }
 
-      // Load students.
       try {
         await loadStudents();
 
@@ -1829,7 +2002,6 @@
         );
       }
 
-      // Load invoices.
       try {
         await loadInvoices();
 
@@ -1837,10 +2009,6 @@
         console.error("INVOICES ERROR:", e);
       }
 
-      renderInvoices();
-      renderStats();
-
-      // Load payments.
       try {
         await loadPayments();
 
