@@ -5,7 +5,6 @@
   const SUPABASE_URL =
     "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-  // Existing Supabase publishable key
   const SUPABASE_KEY =
     "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
@@ -24,16 +23,31 @@
 
   let session = null;
   let currentPassword = "";
+  let isCreating = false;
 
+  // Normalize database roles
+  function normalizeRole(value) {
+    return String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+  }
+
+  // Display messages without changing page design
   function showMessage(id, message, type = "error") {
     const el = $(id);
+    if (!el) return;
+
     el.textContent = message;
     el.className = "message " + type;
   }
 
   function clearMessage(id) {
-    $(id).textContent = "";
-    $(id).className = "message";
+    const el = $(id);
+    if (!el) return;
+
+    el.textContent = "";
+    el.className = "message";
   }
 
   function escapeHTML(value) {
@@ -46,16 +60,22 @@
     })[char]);
   }
 
+  // 1. Secure Edge Function request
   async function apiRequest(url, payload) {
-    const { data: refreshed, error: refreshError } =
-      await db.auth.getSession();
+    const { data, error } = await db.auth.getSession();
 
-    if (refreshError) throw refreshError;
+    if (error) {
+      throw new Error("Session error: " + error.message);
+    }
 
-    const accessToken = refreshed.session?.access_token;
+    session = data.session;
+
+    const accessToken = session?.access_token;
 
     if (!accessToken) {
-      throw new Error("Session-ka wuu dhacay. Dib u gal.");
+      throw new Error(
+        "Session-ka wuu dhacay. Fadlan dib u gal."
+      );
     }
 
     const response = await fetch(url, {
@@ -68,19 +88,37 @@
       body: JSON.stringify(payload)
     });
 
-    const result = await response.json().catch(() => ({}));
+    let result = {};
+
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error(
+        "Server-ku ma soo celin jawaab sax ah. HTTP " +
+        response.status
+      );
+    }
 
     if (!response.ok || result.success === false) {
+      const details = result.details
+        ? " | Details: " + result.details
+        : "";
+
+      const code = result.code
+        ? " | Code: " + result.code
+        : "";
+
       throw new Error(
-        result.message || result.error ||
-        "Request failed. HTTP " + response.status
+        (result.message || result.error || "Request failed") +
+        code +
+        details
       );
     }
 
     return result;
   }
 
-  // 1. Super Admin security check
+  // 2. Verify active Super Admin
   async function initialize() {
     try {
       const { data, error } = await db.auth.getSession();
@@ -95,7 +133,8 @@
       }
 
       const { data: profile, error: profileError } =
-        await db.from("profiles")
+        await db
+          .from("profiles")
           .select("id,role,is_active,is_primary_admin")
           .eq("id", session.user.id)
           .maybeSingle();
@@ -104,7 +143,8 @@
 
       if (
         !profile ||
-        profile.role !== "super_admin" ||
+        profile.id !== session.user.id ||
+        normalizeRole(profile.role) !== "super_admin" ||
         profile.is_active !== true
       ) {
         document.body.innerHTML =
@@ -112,6 +152,7 @@
           "<h2>Access Denied</h2>" +
           "<p>Only active Super Admin accounts can access this page.</p>" +
           "<a href='index.html'>Return to Login</a></div>";
+
         return;
       }
 
@@ -119,14 +160,25 @@
       await loadManagers();
 
     } catch (error) {
-      console.error(error);
-      showMessage("pageMessage", error.message);
+      console.error("Finance Manager Initialization:", error);
+
+      showMessage(
+        "pageMessage",
+        error.message || "Page initialization failed."
+      );
     }
   }
 
-  // 2. Load active institutions
+  // 3. Load active institutions
   async function loadInstitutions() {
     const select = $("institution_id");
+
+    if (!select) {
+      throw new Error(
+        "HTML element institution_id lama helin."
+      );
+    }
+
     select.innerHTML =
       '<option value="">Loading...</option>';
 
@@ -143,9 +195,11 @@
 
     (data || []).forEach(inst => {
       const option = document.createElement("option");
+
       option.value = inst.id;
       option.textContent =
         inst.name + " (" + inst.code + ")";
+
       select.appendChild(option);
     });
 
@@ -155,13 +209,16 @@
     }
   }
 
-  // 3. Create Finance Manager
+  // 4. Create Finance Manager
   async function createManager(event) {
     event.preventDefault();
+
+    if (isCreating) return;
 
     clearMessage("createMessage");
 
     const button = $("createBtn");
+
     const full_name = $("full_name").value.trim();
     const email = $("email").value.trim().toLowerCase();
     const phone = $("phone").value.trim();
@@ -176,6 +233,22 @@
       return;
     }
 
+    if (full_name.length < 3 || full_name.length > 120) {
+      showMessage(
+        "createMessage",
+        "Magaca waa inuu u dhexeeyaa 3 ilaa 120 xaraf."
+      );
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showMessage(
+        "createMessage",
+        "Fadlan geli email sax ah."
+      );
+      return;
+    }
+
     if (password.length < 8) {
       showMessage(
         "createMessage",
@@ -184,6 +257,7 @@
       return;
     }
 
+    isCreating = true;
     button.disabled = true;
     button.textContent = "Creating Account...";
 
@@ -196,6 +270,7 @@
         phone: phone || null
       });
 
+      // Account was successfully created
       currentPassword = password;
 
       $("generatedPassword").textContent = password;
@@ -205,26 +280,38 @@
 
       showMessage(
         "createMessage",
-        result.message || "Finance Manager account created successfully.",
+        result.message ||
+          "Finance Manager account created successfully.",
         "success"
       );
 
+      // Refresh list separately.
+      // A list-loading error must not undo creation success.
       await loadManagers();
 
     } catch (error) {
       console.error("Create Finance Manager:", error);
-      showMessage("createMessage", error.message);
+
+      showMessage(
+        "createMessage",
+        error.message || "Could not create Finance Manager."
+      );
 
     } finally {
+      isCreating = false;
       button.disabled = false;
       button.textContent = "+ Create Finance Manager";
     }
   }
 
-  // 4. Load Finance Managers
+  // 5. Load Finance Managers
   async function loadManagers() {
-    $("loading").style.display = "block";
-    $("managerTable").innerHTML = "";
+    const loading = $("loading");
+    const table = $("managerTable");
+
+    loading.style.display = "block";
+    table.innerHTML = "";
+
     clearMessage("listMessage");
 
     try {
@@ -241,16 +328,17 @@
       const institutionIds = [
         ...new Set(
           (managers || [])
-            .map(m => m.institution_id)
+            .map(manager => manager.institution_id)
             .filter(Boolean)
         )
       ];
 
-      let institutionMap = {};
+      const institutionMap = {};
 
       if (institutionIds.length) {
         const { data: institutions, error: instError } =
-          await db.from("institutions")
+          await db
+            .from("institutions")
             .select("id,name,code,is_active")
             .in("id", institutionIds);
 
@@ -262,22 +350,23 @@
         });
       }
 
-      $("loading").style.display = "none";
+      loading.style.display = "none";
 
       if (!managers || managers.length === 0) {
-        $("managerTable").innerHTML =
+        table.innerHTML =
           '<tr><td colspan="6" class="empty">' +
-          'No Finance Managers found.</td></tr>';
+          "No Finance Managers found.</td></tr>";
+
         return;
       }
 
-      $("managerTable").innerHTML = managers.map(manager => {
+      table.innerHTML = managers.map(manager => {
         const active = manager.is_active === true;
 
         return `
           <tr>
             <td>${escapeHTML(manager.full_name)}</td>
-            <td>${escapeHTML(manager.email)}</td>
+            <td>${escapeHTML(manager.email || "-")}</td>
             <td>${escapeHTML(manager.phone || "-")}</td>
             <td>${escapeHTML(
               institutionMap[manager.institution_id] || "Not assigned"
@@ -303,14 +392,34 @@
 
     } catch (error) {
       console.error("Load Managers:", error);
-      $("loading").style.display = "none";
-      showMessage("listMessage", error.message);
+
+      loading.style.display = "none";
+
+      table.innerHTML =
+        '<tr><td colspan="6" class="empty">' +
+        "Unable to load Finance Managers.</td></tr>";
+
+      showMessage(
+        "listMessage",
+        error.message || "Could not load Finance Managers."
+      );
     }
   }
 
-  // 5. Activate / Deactivate
+  // 6. Activate / Deactivate Finance Manager
   async function changeStatus(action, adminId) {
-    const label = action === "activate" ? "Activate" : "Deactivate";
+    if (!["activate", "deactivate"].includes(action)) {
+      showMessage("listMessage", "Invalid account action.");
+      return;
+    }
+
+    if (!adminId) {
+      showMessage("listMessage", "Finance Manager ID is missing.");
+      return;
+    }
+
+    const label =
+      action === "activate" ? "Activate" : "Deactivate";
 
     const confirmed = window.confirm(
       "Are you sure you want to " + label +
@@ -321,13 +430,14 @@
 
     try {
       const result = await apiRequest(MANAGE_URL, {
-        action: action,
+        action,
         admin_id: adminId
       });
 
       showMessage(
         "listMessage",
-        result.message || "Account status updated successfully.",
+        result.message ||
+          "Account status updated successfully.",
         "success"
       );
 
@@ -335,13 +445,23 @@
 
     } catch (error) {
       console.error("Manage Finance Manager:", error);
-      showMessage("listMessage", error.message);
+
+      showMessage(
+        "listMessage",
+        error.message || "Could not update account status."
+      );
     }
   }
 
-  // 6. Copy temporary password
+  // 7. Copy temporary password
   async function copyPassword() {
-    if (!currentPassword) return;
+    if (!currentPassword) {
+      showMessage(
+        "createMessage",
+        "Ma jiro password la koobiyeeyo."
+      );
+      return;
+    }
 
     try {
       await navigator.clipboard.writeText(currentPassword);
@@ -349,6 +469,8 @@
       $("copyPassword").textContent = "Copied!";
 
     } catch (error) {
+      console.error("Copy Password:", error);
+
       showMessage(
         "createMessage",
         "Copy failed. Please copy the password manually."
@@ -356,17 +478,32 @@
     }
   }
 
-  // Event listeners
-  $("createForm").addEventListener("submit", createManager);
+  // 8. Event listeners
+  $("createForm").addEventListener(
+    "submit",
+    createManager
+  );
 
-  $("refreshBtn").addEventListener("click", loadManagers);
+  $("refreshBtn").addEventListener(
+    "click",
+    loadManagers
+  );
 
-  $("copyPassword").addEventListener("click", copyPassword);
+  $("copyPassword").addEventListener(
+    "click",
+    copyPassword
+  );
 
   $("managerTable").addEventListener("click", event => {
-    const button = event.target.closest("button[data-action]");
+    const target = event.target;
 
-    if (!button) return;
+    if (!target || typeof target.closest !== "function") {
+      return;
+    }
+
+    const button = target.closest("button[data-action]");
+
+    if (!button || button.disabled) return;
 
     changeStatus(
       button.dataset.action,
@@ -374,12 +511,18 @@
     );
   });
 
-  // Clear temporary password when leaving the page
+  // 9. Clear temporary password from memory on page exit
   window.addEventListener("pagehide", () => {
     currentPassword = "";
-    $("generatedPassword").textContent = "";
+
+    const passwordOutput = $("generatedPassword");
+
+    if (passwordOutput) {
+      passwordOutput.textContent = "";
+    }
   });
 
+  // 10. Start page
   initialize();
 
 })();
