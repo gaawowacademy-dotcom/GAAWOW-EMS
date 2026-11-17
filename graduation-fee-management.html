@@ -1,0 +1,671 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAAWOW EMS - Graduation Fee Management</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --navy:#0B1E63;
+  --blue:#0B4DA2;
+  --gold:#D4AF37;
+  --bg:#F5F7FA;
+  --white:#fff;
+  --text:#17233D;
+  --muted:#64748b;
+  --green:#15803d;
+  --red:#dc2626;
+  --border:#e2e8f0;
+}
+
+* {
+  box-sizing:border-box;
+}
+
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,sans-serif;
+}
+
+header {
+  background:linear-gradient(120deg,var(--navy),var(--blue));
+  color:white;
+  padding:22px 18px;
+}
+
+.header-inner {
+  max-width:1100px;
+  margin:auto;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.logo {
+  width:65px;
+  height:65px;
+  object-fit:contain;
+  background:white;
+  border-radius:10px;
+  padding:5px;
+}
+
+header h1 {
+  font-size:20px;
+  margin:0 0 5px;
+}
+
+header p {
+  font-size:12px;
+  margin:0;
+  opacity:.85;
+}
+
+.container {
+  max-width:1100px;
+  margin:25px auto;
+  padding:0 15px;
+}
+
+.card {
+  background:white;
+  border-radius:13px;
+  padding:22px;
+  margin-bottom:20px;
+  border:1px solid var(--border);
+  box-shadow:0 3px 12px rgba(0,0,0,.04);
+}
+
+.card h2 {
+  font-size:18px;
+  margin:0 0 18px;
+  color:var(--navy);
+}
+
+.institution {
+  background:#f0f5ff;
+  border-left:4px solid var(--gold);
+  padding:16px;
+  border-radius:8px;
+  margin-bottom:20px;
+}
+
+.institution strong {
+  display:block;
+  font-size:17px;
+  color:var(--navy);
+  margin-bottom:5px;
+}
+
+.small {
+  font-size:12px;
+  color:var(--muted);
+  word-break:break-word;
+}
+
+.current-fee {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  flex-wrap:wrap;
+  background:#f8fafc;
+  padding:18px;
+  border-radius:10px;
+  margin-bottom:20px;
+}
+
+.current-fee strong {
+  font-size:27px;
+  color:var(--navy);
+}
+
+label {
+  display:block;
+  font-weight:bold;
+  font-size:13px;
+  margin:15px 0 7px;
+}
+
+input,select {
+  width:100%;
+  padding:13px;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  font-size:16px;
+  background:white;
+}
+
+input:focus,select:focus {
+  outline:2px solid #93c5fd;
+  border-color:var(--blue);
+}
+
+button {
+  border:0;
+  border-radius:8px;
+  padding:13px 20px;
+  font-size:14px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:disabled {
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+.primary {
+  background:var(--navy);
+  color:white;
+  margin-top:18px;
+  width:100%;
+}
+
+.secondary {
+  background:#e8eef9;
+  color:var(--navy);
+}
+
+.message {
+  display:none;
+  padding:13px;
+  margin-top:15px;
+  border-radius:8px;
+  font-size:13px;
+  line-height:1.5;
+}
+
+.success {
+  display:block;
+  background:#dcfce7;
+  color:#166534;
+}
+
+.error {
+  display:block;
+  background:#fee2e2;
+  color:#991b1b;
+}
+
+.info {
+  display:block;
+  background:#eff6ff;
+  color:#1e40af;
+}
+
+.table-wrap {
+  overflow-x:auto;
+}
+
+table {
+  border-collapse:collapse;
+  width:100%;
+  min-width:550px;
+  font-size:13px;
+}
+
+th,td {
+  padding:12px;
+  text-align:left;
+  border-bottom:1px solid var(--border);
+}
+
+th {
+  background:#f1f5f9;
+  color:var(--navy);
+}
+
+footer {
+  text-align:center;
+  color:var(--muted);
+  padding:25px 10px;
+  font-size:12px;
+}
+
+.hidden {
+  display:none!important;
+}
+
+@media(min-width:700px) {
+  .form-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+    <img
+      class="logo"
+      src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+      alt="GAAWOW Academy Logo"
+    >
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <p>Graduation Fee Management | Super Admin</p>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <div id="loading" class="card">
+    Checking Super Admin access...
+  </div>
+
+  <div id="mainContent" class="hidden">
+
+    <section class="card">
+      <h2>Institution Information</h2>
+
+      <div class="institution">
+        <strong>Gaawow Academy</strong>
+        <div class="small">Institution Code: GA-2026_00003</div>
+        <div class="small">
+          Institution ID: 2caa7984-f0fe-4b15-919f-eb54aee083c8
+        </div>
+      </div>
+
+      <div class="current-fee">
+        <div>
+          <div class="small">CURRENT GRADUATION FEE</div>
+          <strong id="currentFee">Not configured</strong>
+        </div>
+        <div class="small" id="feeUpdated">No saved fee information</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Set Graduation Fee</h2>
+
+      <p class="small">
+        Only an active Super Admin can configure the official
+        graduation fee for this institution.
+      </p>
+
+      <form id="feeForm">
+
+        <div class="form-grid">
+          <div>
+            <label for="amount">Graduation Fee Amount</label>
+            <input
+              id="amount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              value="20"
+              required
+            >
+          </div>
+
+          <div>
+            <label for="currency">Currency</label>
+            <select id="currency" required>
+              <option value="USD" selected>USD - US Dollar</option>
+              <option value="SOS">SOS - Somali Shilling</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="saveButton" class="primary" type="submit">
+          SAVE GRADUATION FEE
+        </button>
+
+      </form>
+
+      <div id="message" class="message"></div>
+    </section>
+
+    <section class="card">
+      <h2>Graduation Fee Change History</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Previous Fee</th>
+              <th>New Fee</th>
+              <th>Operation</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody">
+            <tr>
+              <td colspan="4">Loading history...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+</main>
+
+<footer>
+  GAAWOW Academy | Ilayska Aqoonta iyo Xirfadda<br>
+  GAAWOW Education Management & Verification System
+</footer>
+
+<script>
+"use strict";
+
+// ======================================================
+// SUPABASE CONFIGURATION
+// ======================================================
+
+const SUPABASE_URL =
+  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+const INSTITUTION_ID =
+  "2caa7984-f0fe-4b15-919f-eb54aee083c8";
+
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+// ======================================================
+// ELEMENTS
+// ======================================================
+
+const loading = document.getElementById("loading");
+const mainContent = document.getElementById("mainContent");
+const feeForm = document.getElementById("feeForm");
+const amountInput = document.getElementById("amount");
+const currencyInput = document.getElementById("currency");
+const saveButton = document.getElementById("saveButton");
+const messageBox = document.getElementById("message");
+const currentFee = document.getElementById("currentFee");
+const feeUpdated = document.getElementById("feeUpdated");
+const historyBody = document.getElementById("historyBody");
+
+let currentUser = null;
+
+// ======================================================
+// MESSAGE
+// ======================================================
+
+function showMessage(message, type) {
+  messageBox.textContent = message;
+  messageBox.className = "message " + type;
+}
+
+function formatMoney(amount, currency) {
+  return Number(amount).toLocaleString("en-US", {
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  }) + " " + currency;
+}
+
+// ======================================================
+// CHECK SUPER ADMIN
+// ======================================================
+
+async function checkAccess() {
+
+  const {
+    data: { user },
+    error: authError
+  } = await db.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error(
+      "Session-ka lama helin. Fadlan ka gal EMS login-ka."
+    );
+  }
+
+  const { data: profile, error } = await db
+    .from("profiles")
+    .select("id, full_name, role, is_active")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      "Profile verification failed: " + error.message
+    );
+  }
+
+  if (
+    !profile ||
+    profile.role !== "super_admin" ||
+    profile.is_active !== true
+  ) {
+    throw new Error(
+      "Access denied. Active Super Admin only."
+    );
+  }
+
+  currentUser = user;
+}
+
+// ======================================================
+// LOAD CURRENT FEE
+// ======================================================
+
+async function loadCurrentFee() {
+
+  const { data, error } = await db
+    .from("graduation_fee_settings")
+    .select("amount, currency, is_active, updated_at")
+    .eq("institution_id", INSTITUTION_ID)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      "Could not load current fee: " + error.message
+    );
+  }
+
+  if (!data) {
+    currentFee.textContent = "Not configured";
+    feeUpdated.textContent =
+      "Super Admin must configure the fee.";
+
+    return;
+  }
+
+  currentFee.textContent = data.is_active
+    ? formatMoney(data.amount, data.currency)
+    : "Inactive";
+
+  feeUpdated.textContent =
+    "Last updated: " +
+    new Date(data.updated_at).toLocaleString();
+
+  amountInput.value = data.amount;
+  currencyInput.value = data.currency;
+}
+
+// ======================================================
+// LOAD AUDIT HISTORY
+// ======================================================
+
+async function loadHistory() {
+
+  const { data, error } = await db
+    .from("graduation_fee_settings_audit")
+    .select(
+      "old_amount,new_amount,old_currency,new_currency,operation,changed_at"
+    )
+    .eq("institution_id", INSTITUTION_ID)
+    .order("changed_at", { ascending:false })
+    .limit(30);
+
+  if (error) {
+    throw new Error(
+      "Could not load fee history: " + error.message
+    );
+  }
+
+  historyBody.replaceChildren();
+
+  if (!data || data.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+
+    td.colSpan = 4;
+    td.textContent = "No fee changes recorded yet.";
+
+    tr.appendChild(td);
+    historyBody.appendChild(tr);
+
+    return;
+  }
+
+  data.forEach(item => {
+
+    const tr = document.createElement("tr");
+
+    const oldValue = item.old_amount === null
+      ? "Initial setting"
+      : formatMoney(item.old_amount, item.old_currency);
+
+    const newValue = formatMoney(
+      item.new_amount,
+      item.new_currency
+    );
+
+    const values = [
+      oldValue,
+      newValue,
+      item.operation,
+      new Date(item.changed_at).toLocaleString()
+    ];
+
+    values.forEach(value => {
+      const td = document.createElement("td");
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    historyBody.appendChild(tr);
+  });
+}
+
+// ======================================================
+// SAVE GRADUATION FEE
+// ======================================================
+
+feeForm.addEventListener("submit", async function(event) {
+
+  event.preventDefault();
+
+  const amount = Number(amountInput.value);
+  const currency = currencyInput.value;
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    showMessage(
+      "Enter a valid fee amount greater than zero.",
+      "error"
+    );
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Confirm Graduation Fee:\n\n" +
+    formatMoney(amount, currency) +
+    "\n\nDo you want to save this official fee?"
+  );
+
+  if (!confirmed) return;
+
+  saveButton.disabled = true;
+  saveButton.textContent = "SAVING...";
+
+  messageBox.className = "message";
+
+  try {
+
+    const { data, error } = await db.rpc(
+      "scc_admin_set_graduation_fee_v1",
+      {
+        p_institution_id: INSTITUTION_ID,
+        p_amount: amount,
+        p_currency: currency
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data || data.success !== true) {
+      throw new Error(
+        "The server did not confirm the fee update."
+      );
+    }
+
+    showMessage(
+      "Graduation Fee saved successfully: " +
+      formatMoney(data.amount, data.currency),
+      "success"
+    );
+
+    await loadCurrentFee();
+    await loadHistory();
+
+  } catch (error) {
+
+    console.error("Graduation Fee Error:", error);
+
+    showMessage(
+      error.message || "Unable to save Graduation Fee.",
+      "error"
+    );
+
+  } finally {
+
+    saveButton.disabled = false;
+    saveButton.textContent = "SAVE GRADUATION FEE";
+
+  }
+});
+
+// ======================================================
+// INITIALIZE
+// ======================================================
+
+async function initialize() {
+
+  try {
+
+    await checkAccess();
+
+    mainContent.classList.remove("hidden");
+    loading.classList.add("hidden");
+
+    await loadCurrentFee();
+    await loadHistory();
+
+  } catch (error) {
+
+    loading.textContent =
+      error.message || "Unable to initialize page.";
+
+    console.error(error);
+
+  }
+}
+
+initialize();
+</script>
+
+</body>
+</html>
