@@ -407,6 +407,36 @@ body {
   padding:25px 10px;
 }
 
+.data-table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+  min-width:650px;
+}
+
+.data-table th,
+.data-table td {
+  padding:12px;
+  text-align:left;
+  border-bottom:1px solid var(--border);
+}
+
+.data-table th {
+  background:#f5f7fb;
+  color:var(--navy);
+  font-weight:700;
+}
+
+.data-table td {
+  color:var(--text);
+}
+
+.table-wrap {
+  width:100%;
+  overflow-x:auto;
+  margin-top:15px;
+}
+
 @media(max-width:950px) {
   .stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .modules { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -440,6 +470,7 @@ body {
   .stat-card h3 { font-size:20px; }
   .modules { grid-template-columns:1fr; }
   .user-name { max-width:110px; overflow-wrap:anywhere; }
+  .panel { padding:15px; }
 }
 </style>
 </head>
@@ -456,6 +487,7 @@ body {
 <div id="dashboardApp" class="layout" hidden>
 
   <aside class="sidebar">
+
     <div class="brand">
       <div class="brand-mark">G</div>
       <div>
@@ -467,6 +499,7 @@ body {
     <div class="nav-title">Finance Workspace</div>
 
     <div class="nav-list">
+
       <button class="nav-link active" data-section="overview">
         <i class="fas fa-chart-pie"></i> Overview
       </button>
@@ -490,6 +523,7 @@ body {
       <button class="nav-link" data-section="profile">
         <i class="fas fa-user-circle"></i> My Profile
       </button>
+
     </div>
 
     <div class="sidebar-bottom">
@@ -497,11 +531,13 @@ body {
         <i class="fas fa-sign-out-alt"></i> Secure Logout
       </button>
     </div>
+
   </aside>
 
   <main class="main">
 
     <header class="topbar">
+
       <div>
         <h1 id="pageTitle">Finance Overview</h1>
         <p>GAAWOW Education Management & Verification System</p>
@@ -514,6 +550,7 @@ body {
         </div>
         <div class="avatar" id="managerAvatar">FM</div>
       </div>
+
     </header>
 
     <div class="content">
@@ -523,10 +560,12 @@ body {
 
         <div class="welcome">
           <h2>Welcome, <span id="welcomeName">Finance Manager</span></h2>
+
           <p>
             Manage institutional financial activities, review payments,
             and process authorized financial clearances.
           </p>
+
           <div class="institution-line" id="institutionName">
             Institution: Loading...
           </div>
@@ -539,57 +578,54 @@ body {
           </div>
         </div>
 
+        <!-- FINANCIAL STATISTICS -->
         <div class="stats">
 
-  <!-- TOTAL INVOICES -->
-  <div class="stat-card">
-    <div class="stat-top">
-      <span class="stat-icon">
-        <i class="fas fa-file-invoice"></i>
-      </span>
-      <span class="stat-note">Invoices</span>
-    </div>
-    <h3 id="totalInvoices">--</h3>
-    <p>Total Invoices</p>
-  </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-icon">
+                <i class="fas fa-file-invoice"></i>
+              </span>
+              <span class="stat-note">Invoices</span>
+            </div>
+            <h3 id="totalInvoices">--</h3>
+            <p>Total Invoices</p>
+          </div>
 
-  <!-- VERIFIED PAYMENTS -->
-  <div class="stat-card">
-    <div class="stat-top">
-      <span class="stat-icon">
-        <i class="fas fa-coins"></i>
-      </span>
-      <span class="stat-note">Payments</span>
-    </div>
-    <h3 id="verifiedPayments">--</h3>
-    <p>Verified Payments</p>
-  </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-icon">
+                <i class="fas fa-coins"></i>
+              </span>
+              <span class="stat-note">Payments</span>
+            </div>
+            <h3 id="verifiedPayments">--</h3>
+            <p>Verified Payments</p>
+          </div>
 
-  <!-- PENDING PAYMENTS -->
-  <div class="stat-card">
-    <div class="stat-top">
-      <span class="stat-icon">
-        <i class="fas fa-clock"></i>
-      </span>
-      <span class="stat-note">Pending</span>
-    </div>
-    <h3 id="pendingPayments">--</h3>
-    <p>Pending Verification</p>
-  </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-icon">
+                <i class="fas fa-clock"></i>
+              </span>
+              <span class="stat-note">Pending</span>
+            </div>
+            <h3 id="pendingPayments">--</h3>
+            <p>Pending Verification</p>
+          </div>
 
-  <!-- GRADUATION REQUESTS -->
-  <div class="stat-card">
-    <div class="stat-top">
-      <span class="stat-icon">
-        <i class="fas fa-graduation-cap"></i>
-      </span>
-      <span class="stat-note">Clearance</span>
-    </div>
-    <h3 id="graduationRequests">--</h3>
-    <p>Graduation Fee Requests</p>
-  </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-icon">
+                <i class="fas fa-graduation-cap"></i>
+              </span>
+              <span class="stat-note">Clearance</span>
+            </div>
+            <h3 id="graduationRequests">--</h3>
+            <p>Graduation Fee Requests</p>
+          </div>
 
-</div>
+        </div>
 
         <div class="section-heading">
           <div>
@@ -601,35 +637,45 @@ body {
         <div class="modules">
 
           <button class="module" data-section="invoices">
-            <div class="module-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+            <div class="module-icon">
+              <i class="fas fa-file-invoice-dollar"></i>
+            </div>
             <h3>Student Invoices</h3>
             <p>View student invoices and financial obligations.</p>
             <span class="module-status">Module workspace</span>
           </button>
 
           <button class="module" data-section="payments">
-            <div class="module-icon"><i class="fas fa-money-check-alt"></i></div>
+            <div class="module-icon">
+              <i class="fas fa-money-check-alt"></i>
+            </div>
             <h3>Payments Verification</h3>
             <p>Review payment records and authorized verification tasks.</p>
             <span class="module-status">Module workspace</span>
           </button>
 
           <button class="module" data-section="graduation">
-            <div class="module-icon"><i class="fas fa-user-graduate"></i></div>
+            <div class="module-icon">
+              <i class="fas fa-user-graduate"></i>
+            </div>
             <h3>Graduation Fee Clearance</h3>
             <p>Review graduation fee payment clearance requests.</p>
             <span class="module-status">Module workspace</span>
           </button>
 
           <button class="module" data-section="reports">
-            <div class="module-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="module-icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
             <h3>Financial Reports</h3>
             <p>Access institution financial reporting workspace.</p>
             <span class="module-status">Module workspace</span>
           </button>
 
           <button class="module" data-section="profile">
-            <div class="module-icon"><i class="fas fa-user-cog"></i></div>
+            <div class="module-icon">
+              <i class="fas fa-user-cog"></i>
+            </div>
             <h3>My Profile</h3>
             <p>View your account and assigned institution details.</p>
             <span class="module-status">Account information</span>
@@ -638,7 +684,11 @@ body {
         </div>
 
         <div class="panel">
-          <h3><i class="fas fa-shield-alt"></i> Financial Security</h3>
+          <h3>
+            <i class="fas fa-shield-alt"></i>
+            Financial Security
+          </h3>
+
           <div class="notice">
             <i class="fas fa-info-circle"></i>
             Financial records and payment verification must be processed
@@ -651,102 +701,203 @@ body {
 
       <!-- INVOICES -->
       <section class="page-section" id="section-invoices">
+
         <div class="section-heading">
           <div>
             <h2>Student Invoices</h2>
             <p>Institution invoice management</p>
           </div>
         </div>
+
         <div class="panel">
-          <h3>Invoice Workspace</h3>
-          <div class="notice">
-            Invoice data connection is pending database schema verification.
-            No invoice records have been changed.
+
+          <h3>Invoice Records</h3>
+
+          <p id="invoiceMessage" class="notice">
+            Invoice connection is not yet initialized.
+          </p>
+
+          <div class="table-wrap">
+
+            <table class="data-table">
+
+              <thead>
+                <tr>
+                  <th>Invoice Number</th>
+                  <th>Student ID</th>
+                  <th>Amount</th>
+                  <th>Paid</th>
+                  <th>Balance</th>
+                  <th>Status</th>
+                  <th>Due Date</th>
+                </tr>
+              </thead>
+
+              <tbody id="invoiceTable">
+                <tr>
+                  <td colspan="7">Waiting for database connection...</td>
+                </tr>
+              </tbody>
+
+            </table>
+
           </div>
+
         </div>
+
       </section>
 
       <!-- PAYMENTS -->
       <section class="page-section" id="section-payments">
+
         <div class="section-heading">
           <div>
             <h2>Payments Verification</h2>
             <p>Review payment verification workflow</p>
           </div>
         </div>
+
         <div class="panel">
-          <h3>Payments Workspace</h3>
-          <div class="notice">
-            Payment verification will be connected to the existing secure
-            payment workflow. No payment approval is performed on this page yet.
+
+          <h3>Payment Records</h3>
+
+          <p id="paymentMessage" class="notice">
+            Payment connection is not yet initialized.
+          </p>
+
+          <div class="table-wrap">
+
+            <table class="data-table">
+
+              <thead>
+                <tr>
+                  <th>Reference</th>
+                  <th>Student ID</th>
+                  <th>Amount</th>
+                  <th>Method</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+
+              <tbody id="paymentTable">
+                <tr>
+                  <td colspan="6">Waiting for database connection...</td>
+                </tr>
+              </tbody>
+
+            </table>
+
           </div>
+
         </div>
+
       </section>
 
       <!-- GRADUATION -->
       <section class="page-section" id="section-graduation">
+
         <div class="section-heading">
           <div>
             <h2>Graduation Fee Clearance</h2>
             <p>Finance review for graduation clearance requests</p>
           </div>
         </div>
+
         <div class="panel">
+
           <h3>Graduation Clearance Workspace</h3>
+
           <div class="notice">
             This section will connect to the existing graduation fee clearance
             process. Finance clearance must only be issued after the required
             payment has been verified.
           </div>
+
         </div>
+
       </section>
 
       <!-- REPORTS -->
       <section class="page-section" id="section-reports">
+
         <div class="section-heading">
           <div>
             <h2>Financial Reports</h2>
             <p>Institution financial reporting</p>
           </div>
         </div>
+
         <div class="panel">
+
           <h3>Reports Workspace</h3>
+
           <div class="notice">
             Reports will be enabled after the existing financial tables and
             reporting permissions have been verified.
           </div>
+
         </div>
+
       </section>
 
       <!-- PROFILE -->
       <section class="page-section" id="section-profile">
+
         <div class="section-heading">
           <div>
             <h2>My Profile</h2>
             <p>Finance Manager account information</p>
           </div>
         </div>
+
         <div class="panel">
+
           <h3>Account Details</h3>
-          <p><strong>Name:</strong> <span id="profileName">--</span></p>
-          <p><strong>Role:</strong> <span id="profileRole">--</span></p>
-          <p><strong>Institution:</strong> <span id="profileInstitution">--</span></p>
-          <p><strong>Account Status:</strong> <span id="profileStatus">--</span></p>
-          <p><strong>Account ID:</strong> <span id="profileId">--</span></p>
+
+          <p>
+            <strong>Name:</strong>
+            <span id="profileName">--</span>
+          </p>
+
+          <p>
+            <strong>Role:</strong>
+            <span id="profileRole">--</span>
+          </p>
+
+          <p>
+            <strong>Institution:</strong>
+            <span id="profileInstitution">--</span>
+          </p>
+
+          <p>
+            <strong>Account Status:</strong>
+            <span id="profileStatus">--</span>
+          </p>
+
+          <p>
+            <strong>Account ID:</strong>
+            <span id="profileId">--</span>
+          </p>
+
         </div>
+
       </section>
 
       <div class="footer">
         GAAWOW ACADEMY | ILAYSKA AQOONTA IYO XIRFADDA
-        <br>GAAWOW EMS Finance Management System
+        <br>
+        GAAWOW EMS Finance Management System
       </div>
 
     </div>
+
   </main>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="finance-dashboard.js?v=20261118-1"></script>
+<script src="finance-dashboard.js?v=20261118-2"></script>
 
 </body>
 </html>
