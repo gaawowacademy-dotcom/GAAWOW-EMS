@@ -57,15 +57,22 @@ body {
 }
 
 .brand-mark {
-  width:43px;
-  height:43px;
-  border-radius:12px;
-  background:var(--gold);
-  color:var(--navy);
-  display:grid;
-  place-items:center;
-  font-size:20px;
-  font-weight:800;
+  width:48px;
+  height:48px;
+  border-radius:10px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  flex-shrink:0;
+}
+
+.brand-mark img {
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  padding:3px;
 }
 
 .brand h2 {
@@ -396,9 +403,7 @@ body {
   border-radius:10px;
 }
 
-.logout-btn {
-  color:#ffe2e2;
-}
+.logout-btn { color:#ffe2e2; }
 
 .footer {
   text-align:center;
@@ -425,16 +430,75 @@ body {
   background:#f5f7fb;
   color:var(--navy);
   font-weight:700;
+  white-space:nowrap;
 }
 
-.data-table td {
-  color:var(--text);
-}
+.data-table td { color:var(--text); }
 
 .table-wrap {
   width:100%;
   overflow-x:auto;
   margin-top:15px;
+}
+
+.status-badge {
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:20px;
+  font-size:10px;
+  font-weight:700;
+  text-transform:capitalize;
+  background:#eef2f6;
+  color:#475467;
+}
+
+.status-successful,
+.status-paid {
+  background:#e7f7ed;
+  color:#16834a;
+}
+
+.status-pending,
+.status-partial {
+  background:#fff5d9;
+  color:#8a6500;
+}
+
+.status-failed,
+.status-cancelled,
+.status-overdue {
+  background:#fff0f0;
+  color:#b42318;
+}
+
+.empty-state {
+  text-align:center;
+  color:var(--muted);
+  padding:22px !important;
+}
+
+.message-error {
+  background:#fff0f0;
+  border-color:#f1c4c4;
+  color:#9b1c1c;
+}
+
+.message-info {
+  background:#f0f5ff;
+  border-color:#d8e4ff;
+  color:#244477;
+}
+
+.profile-row {
+  padding:12px 0;
+  border-bottom:1px solid var(--border);
+  font-size:13px;
+}
+
+.profile-row strong {
+  display:inline-block;
+  min-width:130px;
+  color:var(--navy);
 }
 
 @media(max-width:950px) {
@@ -489,7 +553,12 @@ body {
   <aside class="sidebar">
 
     <div class="brand">
-      <div class="brand-mark">G</div>
+      <div class="brand-mark">
+        <img
+          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+          alt="GAAWOW Academy Official Logo"
+        >
+      </div>
       <div>
         <h2>GAAWOW EMS</h2>
         <small>FINANCE MANAGEMENT</small>
@@ -499,7 +568,6 @@ body {
     <div class="nav-title">Finance Workspace</div>
 
     <div class="nav-list">
-
       <button class="nav-link active" data-section="overview">
         <i class="fas fa-chart-pie"></i> Overview
       </button>
@@ -523,7 +591,6 @@ body {
       <button class="nav-link" data-section="profile">
         <i class="fas fa-user-circle"></i> My Profile
       </button>
-
     </div>
 
     <div class="sidebar-bottom">
@@ -537,7 +604,6 @@ body {
   <main class="main">
 
     <header class="topbar">
-
       <div>
         <h1 id="pageTitle">Finance Overview</h1>
         <p>GAAWOW Education Management & Verification System</p>
@@ -550,7 +616,6 @@ body {
         </div>
         <div class="avatar" id="managerAvatar">FM</div>
       </div>
-
     </header>
 
     <div class="content">
@@ -560,12 +625,10 @@ body {
 
         <div class="welcome">
           <h2>Welcome, <span id="welcomeName">Finance Manager</span></h2>
-
           <p>
             Manage institutional financial activities, review payments,
             and process authorized financial clearances.
           </p>
-
           <div class="institution-line" id="institutionName">
             Institution: Loading...
           </div>
@@ -578,14 +641,11 @@ body {
           </div>
         </div>
 
-        <!-- FINANCIAL STATISTICS -->
         <div class="stats">
 
           <div class="stat-card">
             <div class="stat-top">
-              <span class="stat-icon">
-                <i class="fas fa-file-invoice"></i>
-              </span>
+              <span class="stat-icon"><i class="fas fa-file-invoice"></i></span>
               <span class="stat-note">Invoices</span>
             </div>
             <h3 id="totalInvoices">--</h3>
@@ -594,9 +654,7 @@ body {
 
           <div class="stat-card">
             <div class="stat-top">
-              <span class="stat-icon">
-                <i class="fas fa-coins"></i>
-              </span>
+              <span class="stat-icon"><i class="fas fa-coins"></i></span>
               <span class="stat-note">Payments</span>
             </div>
             <h3 id="verifiedPayments">--</h3>
@@ -605,9 +663,7 @@ body {
 
           <div class="stat-card">
             <div class="stat-top">
-              <span class="stat-icon">
-                <i class="fas fa-clock"></i>
-              </span>
+              <span class="stat-icon"><i class="fas fa-clock"></i></span>
               <span class="stat-note">Pending</span>
             </div>
             <h3 id="pendingPayments">--</h3>
@@ -616,9 +672,7 @@ body {
 
           <div class="stat-card">
             <div class="stat-top">
-              <span class="stat-icon">
-                <i class="fas fa-graduation-cap"></i>
-              </span>
+              <span class="stat-icon"><i class="fas fa-graduation-cap"></i></span>
               <span class="stat-note">Clearance</span>
             </div>
             <h3 id="graduationRequests">--</h3>
@@ -637,45 +691,35 @@ body {
         <div class="modules">
 
           <button class="module" data-section="invoices">
-            <div class="module-icon">
-              <i class="fas fa-file-invoice-dollar"></i>
-            </div>
+            <div class="module-icon"><i class="fas fa-file-invoice-dollar"></i></div>
             <h3>Student Invoices</h3>
             <p>View student invoices and financial obligations.</p>
             <span class="module-status">Module workspace</span>
           </button>
 
           <button class="module" data-section="payments">
-            <div class="module-icon">
-              <i class="fas fa-money-check-alt"></i>
-            </div>
+            <div class="module-icon"><i class="fas fa-money-check-alt"></i></div>
             <h3>Payments Verification</h3>
             <p>Review payment records and authorized verification tasks.</p>
             <span class="module-status">Module workspace</span>
           </button>
 
           <button class="module" data-section="graduation">
-            <div class="module-icon">
-              <i class="fas fa-user-graduate"></i>
-            </div>
+            <div class="module-icon"><i class="fas fa-user-graduate"></i></div>
             <h3>Graduation Fee Clearance</h3>
             <p>Review graduation fee payment clearance requests.</p>
             <span class="module-status">Module workspace</span>
           </button>
 
           <button class="module" data-section="reports">
-            <div class="module-icon">
-              <i class="fas fa-chart-line"></i>
-            </div>
+            <div class="module-icon"><i class="fas fa-chart-line"></i></div>
             <h3>Financial Reports</h3>
             <p>Access institution financial reporting workspace.</p>
             <span class="module-status">Module workspace</span>
           </button>
 
           <button class="module" data-section="profile">
-            <div class="module-icon">
-              <i class="fas fa-user-cog"></i>
-            </div>
+            <div class="module-icon"><i class="fas fa-user-cog"></i></div>
             <h3>My Profile</h3>
             <p>View your account and assigned institution details.</p>
             <span class="module-status">Account information</span>
@@ -684,16 +728,12 @@ body {
         </div>
 
         <div class="panel">
-          <h3>
-            <i class="fas fa-shield-alt"></i>
-            Financial Security
-          </h3>
-
+          <h3><i class="fas fa-shield-alt"></i> Financial Security</h3>
           <div class="notice">
             <i class="fas fa-info-circle"></i>
             Financial records and payment verification must be processed
             through authorized server-side operations. This dashboard does
-            not approve or alter payments until the database workflow is connected.
+            not approve or alter payments.
           </div>
         </div>
 
@@ -701,7 +741,6 @@ body {
 
       <!-- INVOICES -->
       <section class="page-section" id="section-invoices">
-
         <div class="section-heading">
           <div>
             <h2>Student Invoices</h2>
@@ -710,17 +749,13 @@ body {
         </div>
 
         <div class="panel">
-
           <h3>Invoice Records</h3>
-
-          <p id="invoiceMessage" class="notice">
-            Invoice connection is not yet initialized.
+          <p id="invoiceMessage" class="notice message-info">
+            Loading invoice records...
           </p>
 
           <div class="table-wrap">
-
             <table class="data-table">
-
               <thead>
                 <tr>
                   <th>Invoice Number</th>
@@ -732,43 +767,31 @@ body {
                   <th>Due Date</th>
                 </tr>
               </thead>
-
               <tbody id="invoiceTable">
-                <tr>
-                  <td colspan="7">Waiting for database connection...</td>
-                </tr>
+                <tr><td colspan="7">Waiting for database connection...</td></tr>
               </tbody>
-
             </table>
-
           </div>
-
         </div>
-
       </section>
 
       <!-- PAYMENTS -->
       <section class="page-section" id="section-payments">
-
         <div class="section-heading">
           <div>
             <h2>Payments Verification</h2>
-            <p>Review payment verification workflow</p>
+            <p>Review payment records</p>
           </div>
         </div>
 
         <div class="panel">
-
           <h3>Payment Records</h3>
-
-          <p id="paymentMessage" class="notice">
-            Payment connection is not yet initialized.
+          <p id="paymentMessage" class="notice message-info">
+            Loading payment records...
           </p>
 
           <div class="table-wrap">
-
             <table class="data-table">
-
               <thead>
                 <tr>
                   <th>Reference</th>
@@ -779,24 +802,16 @@ body {
                   <th>Date</th>
                 </tr>
               </thead>
-
               <tbody id="paymentTable">
-                <tr>
-                  <td colspan="6">Waiting for database connection...</td>
-                </tr>
+                <tr><td colspan="6">Waiting for database connection...</td></tr>
               </tbody>
-
             </table>
-
           </div>
-
         </div>
-
       </section>
 
       <!-- GRADUATION -->
       <section class="page-section" id="section-graduation">
-
         <div class="section-heading">
           <div>
             <h2>Graduation Fee Clearance</h2>
@@ -805,22 +820,17 @@ body {
         </div>
 
         <div class="panel">
-
           <h3>Graduation Clearance Workspace</h3>
-
           <div class="notice">
             This section will connect to the existing graduation fee clearance
             process. Finance clearance must only be issued after the required
             payment has been verified.
           </div>
-
         </div>
-
       </section>
 
       <!-- REPORTS -->
       <section class="page-section" id="section-reports">
-
         <div class="section-heading">
           <div>
             <h2>Financial Reports</h2>
@@ -829,21 +839,16 @@ body {
         </div>
 
         <div class="panel">
-
           <h3>Reports Workspace</h3>
-
           <div class="notice">
             Reports will be enabled after the existing financial tables and
             reporting permissions have been verified.
           </div>
-
         </div>
-
       </section>
 
       <!-- PROFILE -->
       <section class="page-section" id="section-profile">
-
         <div class="section-heading">
           <div>
             <h2>My Profile</h2>
@@ -852,36 +857,33 @@ body {
         </div>
 
         <div class="panel">
-
           <h3>Account Details</h3>
 
-          <p>
+          <div class="profile-row">
             <strong>Name:</strong>
             <span id="profileName">--</span>
-          </p>
+          </div>
 
-          <p>
+          <div class="profile-row">
             <strong>Role:</strong>
             <span id="profileRole">--</span>
-          </p>
+          </div>
 
-          <p>
+          <div class="profile-row">
             <strong>Institution:</strong>
             <span id="profileInstitution">--</span>
-          </p>
+          </div>
 
-          <p>
+          <div class="profile-row">
             <strong>Account Status:</strong>
             <span id="profileStatus">--</span>
-          </p>
+          </div>
 
-          <p>
+          <div class="profile-row">
             <strong>Account ID:</strong>
             <span id="profileId">--</span>
-          </p>
-
+          </div>
         </div>
-
       </section>
 
       <div class="footer">
@@ -891,13 +893,11 @@ body {
       </div>
 
     </div>
-
   </main>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="finance-dashboard.js?v=20261118-3"></script>
+<script src="finance-dashboard.js?v=20261118-4"></script>
 
 </body>
 </html>
