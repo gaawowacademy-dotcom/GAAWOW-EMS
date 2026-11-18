@@ -22,10 +22,11 @@
   const $ = id => document.getElementById(id);
 
   let session = null;
+  let currentRole = null;
+  let currentInstitutionId = null;
   let currentPassword = "";
   let isCreating = false;
 
-  // Normalize database roles
   function normalizeRole(value) {
     return String(value ?? "")
       .trim()
@@ -33,7 +34,6 @@
       .replace(/[\s-]+/g, "_");
   }
 
-  // Display messages without changing page design
   function showMessage(id, message, type = "error") {
     const el = $(id);
     if (!el) return;
@@ -60,29 +60,30 @@
     })[char]);
   }
 
-  // 1. Secure Edge Function request
+  function isSuperAdmin() {
+    return currentRole === "super_admin";
+  }
+
+  function isSchoolAdmin() {
+    return currentRole === "school_admin";
+  }
+
   async function apiRequest(url, payload) {
     const { data, error } = await db.auth.getSession();
 
-    if (error) {
-      throw new Error("Session error: " + error.message);
-    }
+    if (error) throw error;
 
     session = data.session;
 
-    const accessToken = session?.access_token;
-
-    if (!accessToken) {
-      throw new Error(
-        "Session-ka wuu dhacay. Fadlan dib u gal."
-      );
+    if (!session?.access_token) {
+      throw new Error("Session-ka wuu dhacay. Fadlan dib u gal.");
     }
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + accessToken,
+        "Authorization": "Bearer " + session.access_token,
         "apikey": SUPABASE_KEY
       },
       body: JSON.stringify(payload)
@@ -100,25 +101,17 @@
     }
 
     if (!response.ok || result.success === false) {
-      const details = result.details
-        ? " | Details: " + result.details
-        : "";
-
-      const code = result.code
-        ? " | Code: " + result.code
-        : "";
-
       throw new Error(
-        (result.message || result.error || "Request failed") +
-        code +
-        details
+        result.message ||
+        result.error ||
+        "Request failed."
       );
     }
 
     return result;
   }
 
-  // 2. Verify active Super Admin
+  // 1. Verify active Super Admin or School Admin
   async function initialize() {
     try {
       const { data, error } = await db.auth.getSession();
@@ -135,7 +128,7 @@
       const { data: profile, error: profileError } =
         await db
           .from("profiles")
-          .select("id,role,is_active,is_primary_admin")
+          .select("id,role,is_active,institution_id")
           .eq("id", session.user.id)
           .maybeSingle();
 
@@ -144,16 +137,31 @@
       if (
         !profile ||
         profile.id !== session.user.id ||
-        normalizeRole(profile.role) !== "super_admin" ||
         profile.is_active !== true
+      ) {
+        throw new Error("Your account is inactive or unavailable.");
+      }
+
+      currentRole = normalizeRole(profile.role);
+      currentInstitutionId = profile.institution_id || null;
+
+      if (
+        !isSuperAdmin() &&
+        !isSchoolAdmin()
       ) {
         document.body.innerHTML =
           "<div style='padding:40px;text-align:center'>" +
           "<h2>Access Denied</h2>" +
-          "<p>Only active Super Admin accounts can access this page.</p>" +
+          "<p>Only active Super Admin and School Admin accounts can access this page.</p>" +
           "<a href='index.html'>Return to Login</a></div>";
 
         return;
+      }
+
+      if (isSchoolAdmin() && !currentInstitutionId) {
+        throw new Error(
+          "School Admin account has no assigned institution."
+        );
       }
 
       await loadInstitutions();
@@ -169,24 +177,24 @@
     }
   }
 
-  // 3. Load active institutions
+  // 2. Load institutions according to role
   async function loadInstitutions() {
     const select = $("institution_id");
-
-    if (!select) {
-      throw new Error(
-        "HTML element institution_id lama helin."
-      );
-    }
 
     select.innerHTML =
       '<option value="">Loading...</option>';
 
-    const { data, error } = await db
+    let query = db
       .from("institutions")
       .select("id,name,code,is_active")
       .eq("is_active", true)
       .order("name");
+
+    if (isSchoolAdmin()) {
+      query = query.eq("id", currentInstitutionId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -203,13 +211,24 @@
       select.appendChild(option);
     });
 
+    if (isSchoolAdmin()) {
+      if (!data || data.length !== 1) {
+        throw new Error(
+          "Your assigned institution could not be loaded."
+        );
+      }
+
+      select.value = currentInstitutionId;
+      select.disabled = true;
+    }
+
     if (!data || data.length === 0) {
       select.innerHTML =
         '<option value="">No active institutions found</option>';
     }
   }
 
-  // 4. Create Finance Manager
+  // 3. Create Finance Manager
   async function createManager(event) {
     event.preventDefault();
 
@@ -229,6 +248,17 @@
       showMessage(
         "createMessage",
         "Fadlan buuxi dhammaan meelaha muhiimka ah."
+      );
+      return;
+    }
+
+    if (
+      isSchoolAdmin() &&
+      institution_id !== currentInstitutionId
+    ) {
+      showMessage(
+        "createMessage",
+        "School Admin wuxuu maamuli karaa institution-kiisa oo keliya."
       );
       return;
     }
@@ -270,13 +300,16 @@
         phone: phone || null
       });
 
-      // Account was successfully created
       currentPassword = password;
 
       $("generatedPassword").textContent = password;
       $("passwordResult").style.display = "block";
 
       $("createForm").reset();
+
+      if (isSchoolAdmin()) {
+        $("institution_id").value = currentInstitutionId;
+      }
 
       showMessage(
         "createMessage",
@@ -285,8 +318,6 @@
         "success"
       );
 
-      // Refresh list separately.
-      // A list-loading error must not undo creation success.
       await loadManagers();
 
     } catch (error) {
@@ -304,7 +335,7 @@
     }
   }
 
-  // 5. Load Finance Managers
+  // 4. Load Finance Managers
   async function loadManagers() {
     const loading = $("loading");
     const table = $("managerTable");
@@ -315,13 +346,22 @@
     clearMessage("listMessage");
 
     try {
-      const { data: managers, error } = await db
+      let query = db
         .from("profiles")
         .select(
-          "id,full_name,email,phone,institution_id,is_active,is_primary_admin,role"
+          "id,full_name,email,phone,institution_id,is_active,is_primary_admin,role,created_at"
         )
         .eq("role", "finance_manager")
         .order("created_at", { ascending: false });
+
+      if (isSchoolAdmin()) {
+        query = query.eq(
+          "institution_id",
+          currentInstitutionId
+        );
+      }
+
+      const { data: managers, error } = await query;
 
       if (error) throw error;
 
@@ -339,7 +379,7 @@
         const { data: institutions, error: instError } =
           await db
             .from("institutions")
-            .select("id,name,code,is_active")
+            .select("id,name,code")
             .in("id", institutionIds);
 
         if (instError) throw instError;
@@ -356,7 +396,6 @@
         table.innerHTML =
           '<tr><td colspan="6" class="empty">' +
           "No Finance Managers found.</td></tr>";
-
         return;
       }
 
@@ -406,7 +445,7 @@
     }
   }
 
-  // 6. Activate / Deactivate Finance Manager
+  // 5. Activate / Deactivate Finance Manager
   async function changeStatus(action, adminId) {
     if (!["activate", "deactivate"].includes(action)) {
       showMessage("listMessage", "Invalid account action.");
@@ -418,11 +457,9 @@
       return;
     }
 
-    const label =
-      action === "activate" ? "Activate" : "Deactivate";
-
     const confirmed = window.confirm(
-      "Are you sure you want to " + label +
+      "Are you sure you want to " +
+      action +
       " this Finance Manager?"
     );
 
@@ -453,7 +490,7 @@
     }
   }
 
-  // 7. Copy temporary password
+  // 6. Copy temporary password
   async function copyPassword() {
     if (!currentPassword) {
       showMessage(
@@ -465,7 +502,6 @@
 
     try {
       await navigator.clipboard.writeText(currentPassword);
-
       $("copyPassword").textContent = "Copied!";
 
     } catch (error) {
@@ -478,7 +514,7 @@
     }
   }
 
-  // 8. Event listeners
+  // 7. Event listeners
   $("createForm").addEventListener(
     "submit",
     createManager
@@ -495,13 +531,7 @@
   );
 
   $("managerTable").addEventListener("click", event => {
-    const target = event.target;
-
-    if (!target || typeof target.closest !== "function") {
-      return;
-    }
-
-    const button = target.closest("button[data-action]");
+    const button = event.target.closest("button[data-action]");
 
     if (!button || button.disabled) return;
 
@@ -511,18 +541,18 @@
     );
   });
 
-  // 9. Clear temporary password from memory on page exit
+  // 8. Clear temporary password on page exit
   window.addEventListener("pagehide", () => {
     currentPassword = "";
 
-    const passwordOutput = $("generatedPassword");
+    const output = $("generatedPassword");
 
-    if (passwordOutput) {
-      passwordOutput.textContent = "";
+    if (output) {
+      output.textContent = "";
     }
   });
 
-  // 10. Start page
+  // 9. Start
   initialize();
 
 })();
