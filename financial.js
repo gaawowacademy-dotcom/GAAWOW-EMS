@@ -1,11 +1,8 @@
 "use strict";
 
 (() => {
-  const SUPABASE_URL =
-    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-
-  const SUPABASE_KEY =
-    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
   if (!window.supabase) {
     console.error("Supabase library is not loaded.");
@@ -13,13 +10,9 @@
     return;
   }
 
-  const db = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const $ = id => document.getElementById(id);
-  const LOGO_URL = "https://i.ibb.co/4ZCRpm30/gaawow-logo.png";
 
   const S = {
     user: null,
@@ -55,7 +48,6 @@
 
   const cash = (n, cur = "USD") => {
     const amount = Number(n || 0);
-
     try {
       return new Intl.NumberFormat("en-US", {
         style: "currency",
@@ -68,12 +60,8 @@
 
   const fmtDate = v => {
     if (!v) return "—";
-
     const d = new Date(v);
-
-    return isNaN(d.getTime())
-      ? "—"
-      : d.toLocaleString();
+    return isNaN(d.getTime()) ? "—" : d.toLocaleString();
   };
 
   function on(id, event, handler) {
@@ -95,14 +83,10 @@
     }
 
     e.textContent = message;
-    e.className = "alert show " +
-      (kind === "err" ? "error" : kind);
+    e.className = "alert show " + (kind === "err" ? "error" : kind);
 
     clearTimeout(msg.timer);
-
-    msg.timer = setTimeout(() => {
-      e.classList.remove("show");
-    }, 8500);
+    msg.timer = setTimeout(() => e.classList.remove("show"), 8500);
   }
 
   function fill(id, rows, val, label, first = "Choose...") {
@@ -145,20 +129,15 @@
 
   function studentLabel(id) {
     const s = student(id);
-
-    return s
-      ? `${s.full_name} (${s.student_id})`
-      : "Unknown student";
+    return s ? `${s.full_name} (${s.student_id})` : "Unknown student";
   }
 
   function meta(p) {
-    return p?.metadata && typeof p.metadata === "object"
-      ? p.metadata
-      : {};
+    return p?.metadata && typeof p.metadata === "object" ? p.metadata : {};
   }
 
   // ==========================================
-  // ROLE NORMALIZATION
+  // ROLE NORMALIZATION AND ACCESS CONTROL
   // ==========================================
 
   function normalizeRole(value) {
@@ -167,10 +146,6 @@
       .toLowerCase()
       .replace(/[\s-]+/g, "_");
   }
-
-  // ==========================================
-  // ROLE AND ACCESS CONTROL
-  // ==========================================
 
   function role() {
     return normalizeRole(S.profile?.role);
@@ -181,10 +156,7 @@
   }
 
   function isInstitutionUser() {
-    return [
-      "school_admin",
-      "finance_manager"
-    ].includes(role());
+    return ["school_admin", "finance_manager"].includes(role());
   }
 
   function isFinanceManager() {
@@ -197,7 +169,6 @@
 
   function institutionAllowed(id) {
     if (!id || !S.profile) return false;
-
     if (isSuperAdmin()) return true;
 
     return (
@@ -210,16 +181,11 @@
 
   function statusBadge(status) {
     const s = String(status || "pending").toLowerCase();
-
     return `<span class="status ${esc(s)}">${esc(s)}</span>`;
   }
 
   function balance(i) {
-    return Math.max(
-      Number(i.amount || 0) -
-      Number(i.paid_amount || 0),
-      0
-    );
+    return Math.max(Number(i.amount || 0) - Number(i.paid_amount || 0), 0);
   }
 
   // ==========================================
@@ -235,15 +201,8 @@
     }
 
     if (!data?.session?.user?.id) {
-      msg(
-        "Fadlan marka hore ka gal GAAWOW EMS login-kaaga.",
-        "err"
-      );
-
-      setTimeout(() => {
-        location.href = "login.html";
-      }, 1800);
-
+      msg("Fadlan marka hore ka gal GAAWOW EMS login-kaaga.", "err");
+      setTimeout(() => { location.href = "login.html"; }, 1800);
       return false;
     }
 
@@ -257,92 +216,40 @@
 
     if (profileError) {
       console.error("PROFILE QUERY ERROR:", profileError);
-
-      msg(
-        "Profile lama akhrin karin: " + profileError.message,
-        "err"
-      );
-
+      msg("Profile lama akhrin karin: " + profileError.message, "err");
       return false;
     }
 
     if (!profile) {
-      msg(
-        "Profile-ka akoonka lama helin. La xiriir Super Admin.",
-        "err"
-      );
-
+      msg("Profile-ka akoonka lama helin. La xiriir Super Admin.", "err");
       return false;
     }
 
-    S.profile = {
-      ...profile,
-      role: normalizeRole(profile.role)
-    };
-
-    console.log("GAAWOW FINANCE AUTH CHECK:", {
-      authUserId: S.user.id,
-      profileId: S.profile.id,
-      originalDatabaseRole: profile.role,
-      normalizedRole: S.profile.role,
-      isActive: S.profile.is_active,
-      institutionId: S.profile.institution_id,
-      idsMatch: S.user.id === S.profile.id
-    });
+    S.profile = { ...profile, role: normalizeRole(profile.role) };
 
     if (S.user.id !== S.profile.id) {
-      msg(
-        "Auth ID iyo Profile ID isma waafaqaan.",
-        "err"
-      );
-
+      msg("Auth ID iyo Profile ID isma waafaqaan.", "err");
       return false;
     }
 
     if (S.profile.is_active !== true) {
-      msg(
-        "Akoonkaagu ma shaqeynayo. La xiriir Super Admin.",
-        "err"
-      );
-
+      msg("Akoonkaagu ma shaqeynayo. La xiriir Super Admin.", "err");
       await db.auth.signOut();
-
-      setTimeout(() => {
-        location.href = "login.html";
-      }, 1800);
-
+      setTimeout(() => { location.href = "login.html"; }, 1800);
       return false;
     }
 
-    const allowed = [
-      "super_admin",
-      "school_admin",
-      "finance_manager"
-    ];
+    const allowed = ["super_admin", "school_admin", "finance_manager"];
 
     if (!allowed.includes(role())) {
-      msg(
-        "Doorka akoonka lama aqoonsan: " +
-        (profile.role || "Role missing"),
-        "err"
-      );
-
+      msg("Doorka akoonka lama aqoonsan: " + (profile.role || "Role missing"), "err");
       return false;
     }
 
-    if (
-      isInstitutionUser() &&
-      !S.profile.institution_id
-    ) {
-      msg(
-        "Akoonkaaga looma qoondeyn machad.",
-        "err"
-      );
-
+    if (isInstitutionUser() && !S.profile.institution_id) {
+      msg("Akoonkaaga looma qoondeyn machad.", "err");
       return false;
     }
-
-    console.log("GAAWOW FINANCE AUTH SUCCESS:", role());
 
     return true;
   }
@@ -363,50 +270,20 @@
     }
 
     const { data, error } = await q;
-
     if (error) throw error;
 
-    S.inst = (data || []).filter(
-      x => x.is_active !== false
-    );
+    S.inst = (data || []).filter(x => x.is_active !== false);
 
-    fill(
-      "filterInst",
-      S.inst,
-      x => x.id,
-      x => `${x.name} (${x.code})`,
-      "All Institutions"
-    );
+    const val = x => x.id;
+    const lab = x => `${x.name} (${x.code})`;
 
-    fill(
-      "invInst",
-      S.inst,
-      x => x.id,
-      x => `${x.name} (${x.code})`
-    );
-
-    fill(
-      "payInst",
-      S.inst,
-      x => x.id,
-      x => `${x.name} (${x.code})`,
-      "All Institutions"
-    );
-
-    fill(
-      "payFormInst",
-      S.inst,
-      x => x.id,
-      x => `${x.name} (${x.code})`
-    );
+    fill("filterInst", S.inst, val, lab, "All Institutions");
+    fill("invInst", S.inst, val, lab);
+    fill("payInst", S.inst, val, lab, "All Institutions");
+    fill("payFormInst", S.inst, val, lab);
 
     if (isInstitutionUser()) {
-      [
-        "filterInst",
-        "invInst",
-        "payInst",
-        "payFormInst"
-      ].forEach(id => {
+      ["filterInst", "invInst", "payInst", "payFormInst"].forEach(id => {
         if ($(id)) {
           $(id).value = S.profile.institution_id;
           $(id).disabled = true;
@@ -427,18 +304,13 @@
       .limit(3000);
 
     if (isInstitutionUser()) {
-      q = q.eq(
-        "institution_id",
-        S.profile.institution_id
-      );
+      q = q.eq("institution_id", S.profile.institution_id);
     }
 
     const { data, error } = await q;
-
     if (error) throw error;
 
     S.students = data || [];
-
     studentOptions();
   }
 
@@ -448,9 +320,7 @@
 
     fill(
       "invStudent",
-      S.students.filter(s =>
-        !invInst || s.institution_id === invInst
-      ),
+      S.students.filter(s => !invInst || s.institution_id === invInst),
       s => s.id,
       s => `${s.full_name} (${s.student_id})`,
       "Select student"
@@ -458,9 +328,7 @@
 
     fill(
       "payStudent",
-      S.students.filter(s =>
-        !payInst || s.institution_id === payInst
-      ),
+      S.students.filter(s => !payInst || s.institution_id === payInst),
       s => s.id,
       s => `${s.full_name} (${s.student_id})`,
       "Select student"
@@ -485,13 +353,8 @@
     const totals = {};
 
     rows.forEach(p => {
-      const currency = String(
-        p.currency || "USD"
-      ).toUpperCase();
-
-      totals[currency] =
-        (totals[currency] || 0) +
-        Number(p.amount || 0);
+      const currency = String(p.currency || "USD").toUpperCase();
+      totals[currency] = (totals[currency] || 0) + Number(p.amount || 0);
     });
 
     return totals;
@@ -501,9 +364,7 @@
     const entries = Object.entries(totals);
 
     return entries.length
-      ? entries.map(([currency, amount]) =>
-          cash(amount, currency)
-        ).join(" + ")
+      ? entries.map(([currency, amount]) => cash(amount, currency)).join(" + ")
       : cash(0, "USD");
   }
 
@@ -512,18 +373,13 @@
   // ==========================================
 
   function ensurePaymentSummary() {
-    if ($("paymentSummary")) {
-      return $("paymentSummary");
-    }
+    if ($("paymentSummary")) return $("paymentSummary");
 
     const invoiceSelect = $("payInvoice");
-
     if (!invoiceSelect) return null;
 
     const panel = document.createElement("div");
-
     panel.id = "paymentSummary";
-
     panel.style.cssText = `
       margin:14px 0;
       padding:17px;
@@ -538,13 +394,11 @@
     `;
 
     invoiceSelect.insertAdjacentElement("afterend", panel);
-
     return panel;
   }
 
   function updatePaymentSummary() {
     const panel = ensurePaymentSummary();
-
     if (!panel) return;
 
     const studentId = $("payStudent")?.value || "";
@@ -558,8 +412,7 @@
       return;
     }
 
-    const studentPayments = successfulPayments(studentId);
-    const studentTotals = totalByCurrency(studentPayments);
+    const studentTotals = totalByCurrency(successfulPayments(studentId));
 
     let invoiceHTML = `
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid #D4AF37">
@@ -570,73 +423,46 @@
 
     const selectedInvoice = invoice(invoiceId);
 
-    if (
-      selectedInvoice &&
-      selectedInvoice.student_id === studentId
-    ) {
-      const invoicePayments =
-        successfulPayments(studentId, selectedInvoice.id);
+    if (selectedInvoice && selectedInvoice.student_id === studentId) {
+      const invoicePayments = successfulPayments(studentId, selectedInvoice.id);
 
       const invoicePaid = invoicePayments
-        .filter(p =>
-          String(p.currency || "USD").toUpperCase() === "USD"
-        )
-        .reduce(
-          (sum, p) => sum + Number(p.amount || 0),
-          0
-        );
+        .filter(p => String(p.currency || "USD").toUpperCase() === "USD")
+        .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-      const invoiceAmount =
-        Number(selectedInvoice.amount || 0);
+      const invoiceAmount = Number(selectedInvoice.amount || 0);
+      const remaining = Math.max(invoiceAmount - invoicePaid, 0);
 
-      const remaining = Math.max(
-        invoiceAmount - invoicePaid,
-        0
+      const otherCurrencies = Object.fromEntries(
+        Object.entries(totalByCurrency(invoicePayments))
+          .filter(([currency]) => currency !== "USD")
       );
-
-      const invoiceTotals = totalByCurrency(invoicePayments);
 
       invoiceHTML = `
         <div style="margin-top:12px;padding-top:10px;border-top:1px solid #D4AF37">
           <b>INVOICE SUMMARY</b><br>
-          Invoice Number:
-          <b>${esc(selectedInvoice.invoice_number || "—")}</b><br>
-          Invoice Amount:
-          <b>${cash(invoiceAmount, "USD")}</b><br>
+          Invoice Number: <b>${esc(selectedInvoice.invoice_number || "—")}</b><br>
+          Invoice Amount: <b>${cash(invoiceAmount, "USD")}</b><br>
           Invoice Total Paid:
           <b style="color:#15803D">${cash(invoicePaid, "USD")}</b><br>
           Remaining Balance:
-          <b style="color:${remaining > 0 ? "#B45309" : "#15803D"}">
-            ${cash(remaining, "USD")}
-          </b>
-          <br>
-          <small>
-            Other successful currencies:
-            ${esc(currencySummary(
-              Object.fromEntries(
-                Object.entries(invoiceTotals).filter(
-                  ([currency]) => currency !== "USD"
-                )
-              )
-            ))}
-          </small>
+          <b style="color:${remaining > 0 ? "#B45309" : "#15803D"}">${cash(remaining, "USD")}</b>
+          ${
+            Object.keys(otherCurrencies).length
+              ? `<br><small>Other successful currencies: ${esc(currencySummary(otherCurrencies))}</small>`
+              : ""
+          }
         </div>
       `;
     }
 
     panel.innerHTML = `
-      <div style="font-weight:800;font-size:15px">
-        PAYMENT SUMMARY
-      </div>
+      <div style="font-weight:800;font-size:15px">PAYMENT SUMMARY</div>
       <div style="margin-top:8px">
         Student Total Paid:
-        <b style="color:#15803D;font-size:16px">
-          ${esc(currencySummary(studentTotals))}
-        </b>
+        <b style="color:#15803D;font-size:16px">${esc(currencySummary(studentTotals))}</b>
       </div>
-      <small>
-        Wadarta lacagaha successful-ka ah ee ardaygan bixiyey.
-      </small>
+      <small>Wadarta lacagaha successful-ka ah ee ardaygan bixiyey.</small>
       ${invoiceHTML}
     `;
   }
@@ -660,8 +486,7 @@
       "payInvoice",
       rows,
       i => i.id,
-      i =>
-        `${i.invoice_number} • ${cash(i.amount)} • Balance: ${cash(balance(i))}`,
+      i => `${i.invoice_number} • ${cash(i.amount)} • Balance: ${cash(balance(i))}`,
       "No invoice linked"
     );
 
@@ -694,33 +519,21 @@
         .limit(1500);
 
       if (isInstitutionUser()) {
-        q = q.eq(
-          "institution_id",
-          S.profile.institution_id
-        );
+        q = q.eq("institution_id", S.profile.institution_id);
       } else if ($("filterInst")?.value) {
-        q = q.eq(
-          "institution_id",
-          $("filterInst").value
-        );
+        q = q.eq("institution_id", $("filterInst").value);
       }
 
       const { data, error } = await q;
-
       if (error) throw error;
 
       S.invoices = data || [];
-
       invoiceOptions();
-
       return S.invoices;
 
     } catch (e) {
-      S.invoiceError =
-        e.message || "Unable to load invoices";
-
+      S.invoiceError = e.message || "Unable to load invoices";
       console.error("INVOICE LOAD ERROR:", e);
-
       throw e;
     }
   }
@@ -757,33 +570,21 @@
         .limit(2000);
 
       if (isInstitutionUser()) {
-        q = q.eq(
-          "institution_id",
-          S.profile.institution_id
-        );
+        q = q.eq("institution_id", S.profile.institution_id);
       } else if ($("payInst")?.value) {
-        q = q.eq(
-          "institution_id",
-          $("payInst").value
-        );
+        q = q.eq("institution_id", $("payInst").value);
       }
 
       const { data, error } = await q;
-
       if (error) throw error;
 
       S.payments = data || [];
-
       updatePaymentSummary();
-
       return S.payments;
 
     } catch (e) {
-      S.paymentError =
-        e.message || "Unable to load payments";
-
+      S.paymentError = e.message || "Unable to load payments";
       console.error("PAYMENT LOAD ERROR:", e);
-
       throw e;
     }
   }
@@ -824,19 +625,12 @@
         .limit(1000);
 
       if (isFinanceManager()) {
-        q = q.eq(
-          "institution_id",
-          S.profile.institution_id
-        );
+        q = q.eq("institution_id", S.profile.institution_id);
       } else if ($("filterInst")?.value) {
-        q = q.eq(
-          "institution_id",
-          $("filterInst").value
-        );
+        q = q.eq("institution_id", $("filterInst").value);
       }
 
       const { data, error } = await q;
-
       if (error) throw error;
 
       S.sccRequests = data || [];
@@ -872,9 +666,7 @@
 
     } catch (e) {
       S.sccError = e.message || "Unable to load SCC requests";
-
       console.error("SCC LOAD ERROR:", e);
-
       throw e;
 
     } finally {
@@ -884,25 +676,18 @@
 
   function sccStep(requestId, stage) {
     return S.sccSteps.find(x =>
-      x.request_id === requestId &&
-      x.approval_stage === stage
+      x.request_id === requestId && x.approval_stage === stage
     );
   }
 
   function sccStageLabel(requestId, stage) {
     const step = sccStep(requestId, stage);
 
-    if (!step) {
-      return statusBadge("missing");
-    }
+    if (!step) return statusBadge("missing");
 
     return `
       ${statusBadge(step.approval_status)}
-      ${
-        step.signed_at
-          ? `<br><small>${esc(fmtDate(step.signed_at))}</small>`
-          : ""
-      }
+      ${step.signed_at ? `<br><small>${esc(fmtDate(step.signed_at))}</small>` : ""}
     `;
   }
 
@@ -910,71 +695,46 @@
   // SCC: RENDER REQUESTS
   // ==========================================
 
+  function sccMessageRow(text) {
+    return `<tr><td colspan="8" class="empty">${text}</td></tr>`;
+  }
+
   function renderScc() {
     const table = $("sccTable");
-
     if (!table) return;
 
     if (!canViewScc()) {
-      table.innerHTML = `
-        <tr>
-          <td colspan="8" class="empty">
-            SCC Finance Clearance waxaa loogu talagalay
-            Finance Manager iyo Super Admin.
-          </td>
-        </tr>
-      `;
+      table.innerHTML = sccMessageRow(
+        "SCC Finance Clearance waxaa loogu talagalay Finance Manager iyo Super Admin."
+      );
       return;
     }
 
     if (S.sccLoading) {
-      table.innerHTML = `
-        <tr>
-          <td colspan="8" class="empty">
-            Loading SCC requests...
-          </td>
-        </tr>
-      `;
+      table.innerHTML = sccMessageRow("Loading SCC requests...");
       return;
     }
 
     if (S.sccError) {
-      table.innerHTML = `
-        <tr>
-          <td colspan="8" class="empty">
-            SCC loading failed: ${esc(S.sccError)}
-          </td>
-        </tr>
-      `;
+      table.innerHTML = sccMessageRow("SCC loading failed: " + esc(S.sccError));
       return;
     }
 
     if (!S.sccRequests.length) {
-      table.innerHTML = `
-        <tr>
-          <td colspan="8" class="empty">
-            No SCC requests found.
-          </td>
-        </tr>
-      `;
+      table.innerHTML = sccMessageRow("No SCC requests found.");
       return;
     }
 
     table.innerHTML = S.sccRequests.map(r => {
       const inv = invoice(r.fee_invoice_id);
-
       const finance = sccStep(r.id, "finance");
-      const academic = sccStep(r.id, "academic");
-      const director = sccStep(r.id, "director");
 
       const financePending =
         finance &&
         finance.approval_status === "pending" &&
         finance.assigned_role === "finance_manager";
 
-      const requestStatus = String(
-        r.request_status || ""
-      ).toLowerCase();
+      const requestStatus = String(r.request_status || "").toLowerCase();
 
       const eligible =
         isFinanceManager() &&
@@ -988,10 +748,7 @@
         ? `
           ${statusBadge(inv.status)}
           <br>
-          <small>
-            ${cash(inv.paid_amount || 0)} /
-            ${cash(inv.amount || 0)}
-          </small>
+          <small>${cash(inv.paid_amount || 0)} / ${cash(inv.amount || 0)}</small>
         `
         : `<span class="status missing">Invoice unavailable</span>`;
 
@@ -1006,17 +763,12 @@
           <td>${esc(fmtDate(r.requested_at || r.created_at))}</td>
 
           <td>
-            ${
-              inv
-                ? esc(inv.invoice_number || "Invoice")
-                : "Invoice not loaded"
-            }
+            ${inv ? esc(inv.invoice_number || "Invoice") : "Invoice not loaded"}
             <br>
             <b>${inv ? cash(inv.amount || 0) : "—"}</b>
           </td>
 
           <td>${invoiceStatus}</td>
-
           <td>${sccStageLabel(r.id, "finance")}</td>
           <td>${sccStageLabel(r.id, "academic")}</td>
           <td>${sccStageLabel(r.id, "director")}</td>
@@ -1024,29 +776,19 @@
           <td>
             ${
               eligible
-                ? `
-                  <button
-                    class="btn-green btn-small"
-                    data-scc-approve="${esc(r.id)}">
-                    Approve Finance Clearance
-                  </button>
-                `
-                : `
-                  <span class="form-note">
-                    ${esc(r.request_status || "Pending")}
-                  </span>
-                `
+                ? `<button class="btn-green btn-small" data-scc-approve="${esc(r.id)}">
+                     Approve Finance Clearance
+                   </button>`
+                : `<span class="form-note">${esc(r.request_status || "Pending")}</span>`
             }
           </td>
         </tr>
       `;
     }).join("");
 
-    document.querySelectorAll("[data-scc-approve]")
-      .forEach(btn => {
-        btn.onclick = () =>
-          approveSccFinance(btn.dataset.sccApprove);
-      });
+    document.querySelectorAll("[data-scc-approve]").forEach(btn => {
+      btn.onclick = () => approveSccFinance(btn.dataset.sccApprove);
+    });
   }
 
   // ==========================================
@@ -1057,25 +799,17 @@
     if (S.sccSubmitting) return;
 
     if (!isFinanceManager()) {
-      return msg(
-        "Finance Manager keliya ayaa saxiixi kara Finance Clearance.",
-        "err"
-      );
+      return msg("Finance Manager keliya ayaa saxiixi kara Finance Clearance.", "err");
     }
 
-    const request = S.sccRequests.find(
-      x => x.id === requestId
-    );
+    const request = S.sccRequests.find(x => x.id === requestId);
 
     if (!request) {
       return msg("SCC request lama helin.", "err");
     }
 
     if (!institutionAllowed(request.institution_id)) {
-      return msg(
-        "Ma lihid oggolaanshaha SCC request-kan.",
-        "err"
-      );
+      return msg("Ma lihid oggolaanshaha SCC request-kan.", "err");
     }
 
     const finance = sccStep(requestId, "finance");
@@ -1085,37 +819,23 @@
       finance.approval_status !== "pending" ||
       finance.assigned_role !== "finance_manager"
     ) {
-      return msg(
-        "Finance approval ma jiro ama hore ayaa loo saxiixay.",
-        "err"
-      );
+      return msg("Finance approval ma jiro ama hore ayaa loo saxiixay.", "err");
     }
 
-    const requestStatus = String(
-      request.request_status || ""
-    ).toLowerCase();
+    const requestStatus = String(request.request_status || "").toLowerCase();
 
     if (!["pending", "in_review"].includes(requestStatus)) {
-      return msg(
-        "SCC request-kan ma aha xaalad la ansixin karo.",
-        "err"
-      );
+      return msg("SCC request-kan ma aha xaalad la ansixin karo.", "err");
     }
 
     if (request.final_approved_at || request.issued_at) {
-      return msg(
-        "SCC request-kan hore ayuu u maray final approval ama issuance.",
-        "err"
-      );
+      return msg("SCC request-kan hore ayuu u maray final approval ama issuance.", "err");
     }
 
     const inv = invoice(request.fee_invoice_id);
 
     if (!inv) {
-      return msg(
-        "Graduation invoice lama helin. Refresh samee.",
-        "err"
-      );
+      return msg("Graduation invoice lama helin. Refresh samee.", "err");
     }
 
     if (
@@ -1144,50 +864,34 @@
 
     if (comments === null) return;
 
-    const btn = document.querySelector(
-      `[data-scc-approve="${requestId}"]`
-    );
+    const btn = document.querySelector(`[data-scc-approve="${requestId}"]`);
 
     S.sccSubmitting = true;
-
     if (btn) btn.disabled = true;
 
     try {
-      const { data, error } = await db.rpc(
-        "scc_finance_clearance",
-        {
-          p_request_id: requestId,
-          p_comments: comments.trim() || null
-        }
-      );
+      const { data, error } = await db.rpc("scc_finance_clearance", {
+        p_request_id: requestId,
+        p_comments: comments.trim() || null
+      });
 
       if (error) throw error;
 
       if (!data || data.success !== true) {
-        throw new Error(
-          data?.message ||
-          "Finance Clearance was not completed."
-        );
+        throw new Error(data?.message || "Finance Clearance was not completed.");
       }
 
-      msg(
-        "Finance Clearance waa la ansixiyey. Codsiga waxaa loo gudbiyey Academic stage."
-      );
+      msg("Finance Clearance waa la ansixiyey. Codsiga waxaa loo gudbiyey Academic stage.");
 
       await loadSccRequests();
       renderScc();
 
     } catch (e) {
       console.error("SCC FINANCE APPROVAL ERROR:", e);
-
-      msg(
-        "Finance Clearance lama ansixin: " + e.message,
-        "err"
-      );
+      msg("Finance Clearance lama ansixin: " + e.message, "err");
 
     } finally {
       S.sccSubmitting = false;
-
       if (btn) btn.disabled = false;
     }
   }
@@ -1197,8 +901,7 @@
   // ==========================================
 
   function matches(text, query) {
-    return !query ||
-      String(text || "").toLowerCase().includes(query);
+    return !query || String(text || "").toLowerCase().includes(query);
   }
 
   // ==========================================
@@ -1207,23 +910,18 @@
 
   function renderInvoices() {
     const table = $("invoiceTable");
-
     if (!table) return;
 
     if (S.invoiceError) {
       table.innerHTML = `
-        <tr>
-          <td colspan="9" class="empty">
-            Invoice loading failed: ${esc(S.invoiceError)}
-          </td>
-        </tr>
+        <tr><td colspan="9" class="empty">
+          Invoice loading failed: ${esc(S.invoiceError)}
+        </td></tr>
       `;
       return;
     }
 
-    const query = $("invoiceSearch")?.value
-      .trim()
-      .toLowerCase() || "";
+    const query = $("invoiceSearch")?.value.trim().toLowerCase() || "";
 
     const rows = S.invoices.filter(i =>
       matches([
@@ -1246,14 +944,21 @@
           <td>${esc(i.due_date || "—")}</td>
           <td>${statusBadge(i.status)}</td>
           <td>
-            <button class="btn-blue btn-small"
-              data-invoice-print="${esc(i.id)}">
+            <button class="btn-blue btn-small" data-invoice-print="${esc(i.id)}">
               View / Print
             </button>
           </td>
         </tr>
       `).join("")
       : `<tr><td colspan="9" class="empty">No invoices found.</td></tr>`;
+
+    bindInvoiceButtons();
+  }
+
+  function bindInvoiceButtons() {
+    document.querySelectorAll("[data-invoice-print]").forEach(b => {
+      b.onclick = () => printInvoice(b.dataset.invoicePrint);
+    });
   }
 
   // ==========================================
@@ -1262,24 +967,18 @@
 
   function renderPayments() {
     const table = $("paymentTable");
-
     if (!table) return;
 
     if (S.paymentError) {
       table.innerHTML = `
-        <tr>
-          <td colspan="8" class="empty">
-            Payment loading failed: ${esc(S.paymentError)}
-          </td>
-        </tr>
+        <tr><td colspan="8" class="empty">
+          Payment loading failed: ${esc(S.paymentError)}
+        </td></tr>
       `;
       return;
     }
 
-    const query = $("paymentSearch")?.value
-      .trim()
-      .toLowerCase() || "";
-
+    const query = $("paymentSearch")?.value.trim().toLowerCase() || "";
     const status = $("paymentStatusFilter")?.value || "";
 
     const rows = S.payments.filter(p => {
@@ -1298,20 +997,15 @@
       ].join(" ");
 
       return matches(searchText, query) &&
-        (
-          !status ||
-          String(p.status).toLowerCase() === status
-        );
+        (!status || String(p.status).toLowerCase() === status);
     });
 
     table.innerHTML = rows.length
       ? rows.map(p => {
         const official =
-          String(p.status).toLowerCase() === "successful" &&
-          !!p.receipt_number;
+          String(p.status).toLowerCase() === "successful" && !!p.receipt_number;
 
-        const pending =
-          String(p.status).toLowerCase() === "pending";
+        const pending = String(p.status).toLowerCase() === "pending";
 
         return `
           <tr>
@@ -1324,14 +1018,12 @@
             <td>${statusBadge(p.status)}</td>
             <td>
               ${pending ? `
-                <button class="btn-green btn-small"
-                  data-review="${esc(p.id)}">
+                <button class="btn-green btn-small" data-review="${esc(p.id)}">
                   Review
                 </button>
               ` : ""}
 
-              <button class="btn-blue btn-small"
-                data-print="${esc(p.id)}">
+              <button class="btn-blue btn-small" data-print="${esc(p.id)}">
                 ${official ? "Official Receipt" : "View Record"}
               </button>
             </td>
@@ -1339,6 +1031,18 @@
         `;
       }).join("")
       : `<tr><td colspan="8" class="empty">No payments found.</td></tr>`;
+
+    bindPaymentButtons();
+  }
+
+  function bindPaymentButtons() {
+    document.querySelectorAll("[data-print]").forEach(b => {
+      b.onclick = () => printReceipt(b.dataset.print);
+    });
+
+    document.querySelectorAll("[data-review]").forEach(b => {
+      b.onclick = () => openReview(b.dataset.review);
+    });
   }
 
   // ==========================================
@@ -1358,47 +1062,27 @@
       String(p.status).toLowerCase() === "pending"
     );
 
-    const totalBalance = valid.reduce(
-      (sum, i) => sum + balance(i),
-      0
-    );
+    const totalBalance = valid.reduce((sum, i) => sum + balance(i), 0);
 
     const totalUSD = received
       .filter(p => (p.currency || "USD") === "USD")
-      .reduce(
-        (sum, p) => sum + Number(p.amount || 0),
-        0
-      );
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     const totalSOS = received
       .filter(p => p.currency === "SOS")
-      .reduce(
-        (sum, p) => sum + Number(p.amount || 0),
-        0
-      );
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-    if ($("statInvoices")) {
-      $("statInvoices").textContent = S.invoices.length;
-    }
+    if ($("statInvoices")) $("statInvoices").textContent = S.invoices.length;
 
     if ($("statReceived")) {
       $("statReceived").textContent =
         cash(totalUSD, "USD") +
-        (
-          totalSOS > 0
-            ? " | " + cash(totalSOS, "SOS")
-            : ""
-        );
+        (totalSOS > 0 ? " | " + cash(totalSOS, "SOS") : "");
     }
 
-    if ($("statPending")) {
-      $("statPending").textContent = pending.length;
-    }
+    if ($("statPending")) $("statPending").textContent = pending.length;
 
-    if ($("statBalance")) {
-      $("statBalance").textContent =
-        cash(totalBalance, "USD");
-    }
+    if ($("statBalance")) $("statBalance").textContent = cash(totalBalance, "USD");
   }
 
   function render() {
@@ -1406,25 +1090,6 @@
     renderPayments();
     renderStats();
     renderScc();
-
-    document.querySelectorAll("[data-invoice-print]")
-      .forEach(b => {
-        b.onclick = () =>
-          printInvoice(b.dataset.invoicePrint);
-      });
-
-    document.querySelectorAll("[data-print]")
-      .forEach(b => {
-        b.onclick = () =>
-          printReceipt(b.dataset.print);
-      });
-
-    document.querySelectorAll("[data-review]")
-      .forEach(b => {
-        b.onclick = () =>
-          openReview(b.dataset.review);
-      });
-
     invoiceOptions();
     updatePaymentSummary();
   }
@@ -1445,52 +1110,33 @@
   // ==========================================
 
   function hideForms() {
-    [
-      "invoiceFormWrap",
-      "paymentFormWrap"
-    ].forEach(id => {
-      if ($(id)) {
-        $(id).classList.add("hidden");
-      }
+    ["invoiceFormWrap", "paymentFormWrap"].forEach(id => {
+      if ($(id)) $(id).classList.add("hidden");
     });
 
-    if ($("reviewModal")) {
-      $("reviewModal").classList.remove("show");
-    }
+    if ($("reviewModal")) $("reviewModal").classList.remove("show");
   }
 
   function openInvoiceForm() {
     if (!$("invoiceFormWrap")) return;
 
     hideForms();
-
     $("invoiceFormWrap").classList.remove("hidden");
-
     studentOptions();
-
-    $("invoiceFormWrap").scrollIntoView({
-      behavior: "smooth"
-    });
+    $("invoiceFormWrap").scrollIntoView({ behavior: "smooth" });
   }
 
   function openPaymentForm() {
     if (!$("paymentFormWrap")) return;
 
     hideForms();
-
     $("paymentFormWrap").classList.remove("hidden");
 
-    setValue(
-      "payDate",
-      new Date().toISOString().slice(0, 10)
-    );
+    setValue("payDate", new Date().toISOString().slice(0, 10));
 
     studentOptions();
     updatePaymentSummary();
-
-    $("paymentFormWrap").scrollIntoView({
-      behavior: "smooth"
-    });
+    $("paymentFormWrap").scrollIntoView({ behavior: "smooth" });
   }
 
   // ==========================================
@@ -1516,14 +1162,10 @@
       !Number.isFinite(amount) ||
       amount <= 0
     ) {
-      return msg(
-        "Hubi machadka, ardayga, sharaxaadda iyo lacagta.",
-        "err"
-      );
+      return msg("Hubi machadka, ardayga, sharaxaadda iyo lacagta.", "err");
     }
 
     const btn = $("saveInvoiceBtn");
-
     if (btn) btn.disabled = true;
 
     try {
@@ -1543,8 +1185,13 @@
 
       if (error) throw error;
 
-      if ($("invoiceForm")) {
-        $("invoiceForm").reset();
+      if ($("invoiceForm")) $("invoiceForm").reset();
+
+      // reset() clears disabled institution selects' values for institution users
+      if (isInstitutionUser()) {
+        ["invInst", "payFormInst"].forEach(id => {
+          if ($(id)) $(id).value = S.profile.institution_id;
+        });
       }
 
       hideForms();
@@ -1557,18 +1204,11 @@
         renderInvoices();
       }
 
-      msg(
-        "Invoice waa la sameeyay. Number: " +
-        (data?.invoice_number || "Database assigned")
-      );
+      msg("Invoice waa la sameeyay. Number: " + (data?.invoice_number || "Database assigned"));
 
     } catch (e) {
       console.error("SAVE INVOICE ERROR:", e);
-
-      msg(
-        "Invoice lama kaydin: " + e.message,
-        "err"
-      );
+      msg("Invoice lama kaydin: " + e.message, "err");
 
     } finally {
       if (btn) btn.disabled = false;
@@ -1582,41 +1222,19 @@
   async function savePayment(event) {
     event.preventDefault();
 
-    const institution_id =
-      $("payFormInst")?.value || "";
-
-    const student_id =
-      $("payStudent")?.value || "";
-
-    const invoice_id =
-      $("payInvoice")?.value || null;
-
+    const institution_id = $("payFormInst")?.value || "";
+    const student_id = $("payStudent")?.value || "";
+    const invoice_id = $("payInvoice")?.value || null;
     const amount = Number($("payAmount")?.value);
     const currency = $("payCurrency")?.value || "USD";
-
-    const payment_method =
-      $("payMethod")?.value || "";
-
-    const transaction_reference =
-      $("payReference")?.value.trim() || null;
-
-    const payer_phone =
-      $("payerPhone")?.value.trim() || null;
-
-    const provider =
-      $("payProvider")?.value.trim() || null;
-
-    const sender_account =
-      $("senderAccount")?.value.trim() || null;
-
-    const receiver_account =
-      $("receiverAccount")?.value.trim() || null;
-
-    const payment_date =
-      $("payDate")?.value || null;
-
-    const notes =
-      $("payNotes")?.value.trim() || null;
+    const payment_method = $("payMethod")?.value || "";
+    const transaction_reference = $("payReference")?.value.trim() || null;
+    const payer_phone = $("payerPhone")?.value.trim() || null;
+    const provider = $("payProvider")?.value.trim() || null;
+    const sender_account = $("senderAccount")?.value.trim() || null;
+    const receiver_account = $("receiverAccount")?.value.trim() || null;
+    const payment_date = $("payDate")?.value || null;
+    const notes = $("payNotes")?.value.trim() || null;
 
     const st = student(student_id);
     const iv = invoice(invoice_id);
@@ -1629,10 +1247,7 @@
       amount <= 0 ||
       !payment_method
     ) {
-      return msg(
-        "Fadlan hubi machadka, ardayga, lacagta iyo payment method.",
-        "err"
-      );
+      return msg("Fadlan hubi machadka, ardayga, lacagta iyo payment method.", "err");
     }
 
     if (
@@ -1657,15 +1272,8 @@
       );
     }
 
-    if (
-      invoice_id &&
-      amount > balance(iv) + 0.001
-    ) {
-      if (
-        !confirm(
-          "Lacagtu waxay ka badan tahay balance-ka invoice-ka. Ma sii wadaysaa?"
-        )
-      ) {
+    if (invoice_id && amount > balance(iv) + 0.001) {
+      if (!confirm("Lacagtu waxay ka badan tahay balance-ka invoice-ka. Ma sii wadaysaa?")) {
         return;
       }
     }
@@ -1673,9 +1281,7 @@
     if (transaction_reference) {
       const duplicate = S.payments.some(p => {
         const existing = String(
-          p.transaction_reference ||
-          p.provider_transaction_id ||
-          ""
+          p.transaction_reference || p.provider_transaction_id || ""
         ).trim().toLowerCase();
 
         return (
@@ -1685,10 +1291,7 @@
       });
 
       if (duplicate) {
-        return msg(
-          "Transaction reference-kan horay ayuu u diiwaangashan yahay.",
-          "err"
-        );
+        return msg("Transaction reference-kan horay ayuu u diiwaangashan yahay.", "err");
       }
     }
 
@@ -1701,8 +1304,7 @@
       notes,
       manually_verified: false,
       recorded_by: S.user.id,
-      recorded_by_name:
-        S.profile.full_name || "Financial Administrator",
+      recorded_by_name: S.profile.full_name || "Financial Administrator",
       recorded_at: new Date().toISOString()
     };
 
@@ -1721,7 +1323,6 @@
     };
 
     const btn = $("savePaymentBtn");
-
     if (btn) btn.disabled = true;
 
     try {
@@ -1733,14 +1334,15 @@
 
       if (error) throw error;
 
-      if ($("paymentForm")) {
-        $("paymentForm").reset();
+      if ($("paymentForm")) $("paymentForm").reset();
+
+      if (isInstitutionUser()) {
+        ["invInst", "payFormInst"].forEach(id => {
+          if ($(id)) $(id).value = S.profile.institution_id;
+        });
       }
 
-      setValue(
-        "payDate",
-        new Date().toISOString().slice(0, 10)
-      );
+      setValue("payDate", new Date().toISOString().slice(0, 10));
 
       hideForms();
 
@@ -1762,11 +1364,7 @@
 
     } catch (e) {
       console.error("SAVE PAYMENT ERROR:", e);
-
-      msg(
-        "Payment lama kaydin: " + e.message,
-        "err"
-      );
+      msg("Payment lama kaydin: " + e.message, "err");
 
     } finally {
       if (btn) btn.disabled = false;
@@ -1777,6 +1375,11 @@
   // REVIEW PAYMENT
   // ==========================================
 
+  function closeReview() {
+    if ($("reviewModal")) $("reviewModal").classList.remove("show");
+    S.editingPayment = null;
+  }
+
   function openReview(id) {
     const p = payment(id);
 
@@ -1785,19 +1388,11 @@
     }
 
     if (!institutionAllowed(p.institution_id)) {
-      return msg(
-        "Ma lihid oggolaanshaha payment-kan.",
-        "err"
-      );
+      return msg("Ma lihid oggolaanshaha payment-kan.", "err");
     }
 
-    if (
-      String(p.status).toLowerCase() !== "pending"
-    ) {
-      return msg(
-        "Kaliya payment pending ah ayaa la review-gareyn karaa.",
-        "err"
-      );
+    if (String(p.status).toLowerCase() !== "pending") {
+      return msg("Kaliya payment pending ah ayaa la review-gareyn karaa.", "err");
     }
 
     const m = meta(p);
@@ -1821,9 +1416,7 @@
     setValue("reviewStatus", "");
     setValue("reviewNote", "");
 
-    if ($("reviewModal")) {
-      $("reviewModal").classList.add("show");
-    }
+    if ($("reviewModal")) $("reviewModal").classList.add("show");
   }
 
   async function saveReview(event) {
@@ -1832,36 +1425,23 @@
     const p = payment(S.editingPayment);
 
     if (!p || !institutionAllowed(p.institution_id)) {
-      return msg(
-        "Payment-kan lama helin ama ma lihid oggolaanshihiisa.",
-        "err"
-      );
+      return msg("Payment-kan lama helin ama ma lihid oggolaanshihiisa.", "err");
     }
 
-    if (
-      String(p.status).toLowerCase() !== "pending"
-    ) {
-      return msg(
-        "Payment-kan hadda pending ma aha. Refresh samee.",
-        "err"
-      );
+    if (String(p.status).toLowerCase() !== "pending") {
+      return msg("Payment-kan hadda pending ma aha. Refresh samee.", "err");
     }
 
     const status = $("reviewStatus")?.value || "";
-    const review_note =
-      $("reviewNote")?.value.trim() || "";
+    const review_note = $("reviewNote")?.value.trim() || "";
 
-    if (
-      !["successful", "failed", "cancelled"].includes(status)
-    ) {
+    if (!["successful", "failed", "cancelled"].includes(status)) {
       return msg("Dooro go'aan sax ah.", "err");
     }
 
     if (
       status === "successful" &&
-      !confirm(
-        "Ma xaqiijisay in lacagta dhabta ah lagu helay account-ka GAAWOW Academy?"
-      )
+      !confirm("Ma xaqiijisay in lacagta dhabta ah lagu helay account-ka GAAWOW Academy?")
     ) {
       return;
     }
@@ -1869,46 +1449,34 @@
     if (
       status !== "successful" &&
       !review_note &&
-      !confirm(
-        "Review note lama gelin. Ma sii wadaysaa?"
-      )
+      !confirm("Review note lama gelin. Ma sii wadaysaa?")
     ) {
       return;
     }
 
     const btn = $("saveReviewBtn");
-
     if (btn) btn.disabled = true;
 
     try {
-      const { data, error } = await db.functions.invoke(
-        "review-payment",
-        {
-          body: {
-            payment_id: p.id,
-            status,
-            review_note
-          }
+      const { data, error } = await db.functions.invoke("review-payment", {
+        body: {
+          payment_id: p.id,
+          status,
+          review_note
         }
-      );
+      });
 
       if (error) throw error;
 
       if (!data || data.success !== true) {
-        throw new Error(
-          data?.message ||
-          "Payment review was not completed."
-        );
+        throw new Error(data?.message || "Payment review was not completed.");
       }
 
       if (status === "successful") {
         if (data.official_receipt_issued) {
           msg(
             "Payment waa la ansixiyay. Official Receipt: " +
-            (
-              data.payment?.receipt_number ||
-              "Issued"
-            )
+            (data.payment?.receipt_number || "Issued")
           );
         } else {
           msg(
@@ -1917,26 +1485,15 @@
           );
         }
       } else {
-        msg(
-          "Payment review waa la dhammeeyay: " + status
-        );
+        msg("Payment review waa la dhammeeyay: " + status);
       }
 
-      if ($("reviewModal")) {
-        $("reviewModal").classList.remove("show");
-      }
-
-      S.editingPayment = null;
-
+      closeReview();
       await reload();
 
     } catch (e) {
       console.error("PAYMENT REVIEW ERROR:", e);
-
-      msg(
-        "Payment review failed: " + e.message,
-        "err"
-      );
+      msg("Payment review failed: " + e.message, "err");
 
     } finally {
       if (btn) btn.disabled = false;
@@ -1944,8 +1501,19 @@
   }
 
   // ==========================================
-  // PRINT INVOICE
+  // PRINT INVOICE (uses receipts.js)
   // ==========================================
+
+  function receiptsReady() {
+    if (window.GaawowReceipt) return true;
+
+    msg(
+      "receipts.js lama soo shubin. Ku dar <script src=\"receipts.js\"></script> financial.html.",
+      "err"
+    );
+
+    return false;
+  }
 
   function printInvoice(id) {
     const i = invoice(id);
@@ -1954,95 +1522,29 @@
       return msg("Invoice lama helin.", "err");
     }
 
+    if (!receiptsReady()) return;
+
     const s = student(i.student_id);
+    const inst = S.inst.find(x => x.id === i.institution_id);
 
-    const inst = S.inst.find(
-      x => x.id === i.institution_id
-    );
-
-    const amount = Number(i.amount || 0);
-    const paid = Number(i.paid_amount || 0);
-    const remaining = balance(i);
-
-    const w = window.open(
-      "",
-      "_blank",
-      "width=900,height=950"
-    );
-
-    if (!w) {
-      return msg(
-        "Fadlan oggolow pop-ups si invoice loo daabaco.",
-        "err"
-      );
-    }
-
-    w.document.write(`
-      <!doctype html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Invoice ${esc(i.invoice_number)}</title>
-        <style>
-          *{box-sizing:border-box}
-          body{font:15px Arial;padding:35px;color:#172554;background:#fff}
-          header{background:#0B1E63;color:white;padding:22px;border-bottom:5px solid #D4AF37;display:flex;align-items:center;gap:18px}
-          header img{width:76px;height:76px;object-fit:contain;background:white;border-radius:10px;padding:5px}
-          table{width:100%;border-collapse:collapse;margin-top:24px}
-          td{padding:12px;border:1px solid #ddd}
-          .amount{font-size:22px;font-weight:bold}
-          footer{margin-top:50px;display:flex;justify-content:space-between}
-          @media print{body{padding:12mm}}
-        </style>
-      </head>
-      <body>
-        <header>
-          <img src="${esc(LOGO_URL)}">
-          <div>
-            <h1>GAAWOW ACADEMY</h1>
-            ILAYSKA AQOONTA IYO XIRFADDA<br>
-            Burhakaba, Bay, Somalia<br>
-            <b>OFFICIAL INVOICE</b>
-          </div>
-        </header>
-
-        <h2>${esc(i.invoice_number || "INVOICE")}</h2>
-
-        <p>
-          <b>Institution:</b> ${esc(inst?.name || "—")}<br>
-          <b>Student:</b> ${esc(s?.full_name || "—")}<br>
-          <b>Student ID:</b> ${esc(s?.student_id || "—")}<br>
-          <b>Issue date:</b>
-          ${esc(i.created_at ? new Date(i.created_at).toLocaleDateString() : "—")}
-        </p>
-
-        <table>
-          <tr><td>Description</td><td>${esc(i.description || "Education fees")}</td></tr>
-          <tr><td>Invoice amount</td><td>${cash(amount)}</td></tr>
-          <tr><td>Paid amount</td><td>${cash(paid)}</td></tr>
-          <tr><td>Outstanding balance</td><td class="amount">${cash(remaining)}</td></tr>
-          <tr><td>Status</td><td>${esc(i.status)}</td></tr>
-          <tr><td>Due date</td><td>${esc(i.due_date || "—")}</td></tr>
-        </table>
-
-        <footer>
-          <div>Issued by GAAWOW EMS</div>
-          <div>
-            Authorized signature:<br><br>
-            <b>Dr Osmaan Gaawow</b>
-          </div>
-        </footer>
-
-        <script>window.onload=()=>window.print()<\/script>
-      </body>
-      </html>
-    `);
-
-    w.document.close();
+    window.GaawowReceipt.invoice({
+      invoice_number: i.invoice_number || "INVOICE",
+      student_name: s?.full_name || "—",
+      student_id_number: s?.student_id || "",
+      institution_name: inst?.name || "—",
+      issue_date: i.created_at,
+      due_date: i.due_date,
+      currency: "USD",
+      description: i.description || "Education fees",
+      amount: Number(i.amount || 0),
+      paid_amount: Number(i.paid_amount || 0),
+      balance: balance(i),
+      status: i.status
+    });
   }
 
   // ==========================================
-  // PRINT PAYMENT / OFFICIAL RECEIPT
+  // PRINT PAYMENT / OFFICIAL RECEIPT (uses receipts.js)
   // ==========================================
 
   function printReceipt(id) {
@@ -2052,8 +1554,7 @@
       return msg("Payment lama helin.", "err");
     }
 
-    const successful =
-      String(p.status).toLowerCase() === "successful";
+    const successful = String(p.status).toLowerCase() === "successful";
 
     if (successful && !p.receipt_number) {
       return msg(
@@ -2062,116 +1563,31 @@
       );
     }
 
-    const official =
-      successful && !!p.receipt_number;
+    if (!receiptsReady()) return;
+
+    const official = successful && !!p.receipt_number;
 
     const m = meta(p);
     const s = student(p.student_id);
     const i = invoice(p.invoice_id);
+    const inst = S.inst.find(x => x.id === p.institution_id);
 
-    const inst = S.inst.find(
-      x => x.id === p.institution_id
-    );
-
-    const documentNumber =
-      official ? p.receipt_number : "NOT ISSUED";
-
-    const w = window.open(
-      "",
-      "_blank",
-      "width=900,height=950"
-    );
-
-    if (!w) {
-      return msg(
-        "Fadlan oggolow pop-ups si document-ka loo daabaco.",
-        "err"
-      );
-    }
-
-    w.document.write(`
-      <!doctype html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>${official ? "Official Receipt" : "Payment Record"}</title>
-        <style>
-          *{box-sizing:border-box}
-          body{font:14px Arial;color:#172554;padding:30px;background:white}
-          .receipt{max-width:760px;margin:auto;border:2px solid #0B1E63;padding:28px}
-          .head{background:linear-gradient(110deg,#0B1E63,#0B4DA2);color:white;padding:20px;border-bottom:5px solid #D4AF37;display:flex;align-items:center;gap:16px}
-          .logo{width:78px;height:78px;object-fit:contain;background:white;border-radius:10px;padding:5px}
-          .brand{flex:1}
-          h1{margin:0}
-          .stamp{border:2px solid ${official ? "#15803d" : "#b45309"};color:${official ? "#15803d" : "#b45309"};padding:8px;font-weight:bold;display:inline-block;margin-bottom:8px}
-          table{width:100%;border-collapse:collapse;margin-top:20px}
-          td{padding:11px;border-bottom:1px solid #ddd}
-          .amount{font-size:21px;font-weight:bold;color:#0B1E63}
-          .foot{display:flex;justify-content:space-between;gap:25px;margin-top:45px}
-          .note{background:#fff7dd;border:1px solid #f3df9b;padding:12px;margin-top:15px;line-height:1.5}
-          @media print{body{padding:12mm}}
-        </style>
-      </head>
-      <body>
-        <div class="receipt">
-          <div class="head">
-            <img class="logo" src="${esc(LOGO_URL)}">
-            <div class="brand">
-              <div class="stamp">
-                ${official ? "PAYMENT CONFIRMED" : "NOT AN OFFICIAL RECEIPT"}
-              </div>
-              <h1>GAAWOW ACADEMY</h1>
-              ILAYSKA AQOONTA IYO XIRFADDA<br>
-              Burhakaba, Bay, Somalia
-            </div>
-          </div>
-
-          <h2>${official ? "OFFICIAL PAYMENT RECEIPT" : "PAYMENT RECORD"}</h2>
-
-          <table>
-            <tr><td>Receipt Number</td><td><b>${esc(documentNumber)}</b></td></tr>
-            <tr><td>Payment Reference</td><td>${esc(p.payment_reference || p.id)}</td></tr>
-            <tr><td>Institution</td><td>${esc(inst?.name || "—")}</td></tr>
-            <tr><td>Student</td><td>${esc(s?.full_name || "—")}</td></tr>
-            <tr><td>Student ID</td><td>${esc(s?.student_id || "—")}</td></tr>
-            <tr><td>Invoice</td><td>${esc(i?.invoice_number || "No invoice linked")}</td></tr>
-            <tr><td>Provider</td><td>${esc(m.provider || "—")}</td></tr>
-            <tr><td>Payment method</td><td>${esc(p.payment_method || "—")}</td></tr>
-            <tr><td>Sender account</td><td>${esc(m.sender_account || p.payer_phone || "—")}</td></tr>
-            <tr><td>Receiver account</td><td>${esc(m.receiver_account || "—")}</td></tr>
-            <tr><td>Transaction reference</td><td>${esc(p.transaction_reference || "—")}</td></tr>
-            <tr><td>Payment date</td><td>${esc(fmtDate(p.paid_at || p.created_at))}</td></tr>
-            <tr><td>Amount</td><td class="amount">${cash(p.amount, p.currency || "USD")}</td></tr>
-            <tr><td>Status</td><td><b>${esc(String(p.status).toUpperCase())}</b></td></tr>
-            <tr><td>Reviewed by</td><td>${esc(m.reviewed_by_name || "—")}</td></tr>
-            <tr><td>Review note</td><td>${esc(m.review_note || "—")}</td></tr>
-          </table>
-
-          ${official ? "" : `
-            <div class="note">
-              This document is a payment record only. It is not proof of successful receipt.
-              An official receipt requires authorized payment approval.
-            </div>
-          `}
-
-          <div class="foot">
-            <div>
-              Issued by GAAWOW EMS<br>
-              Keep this document for your records.
-            </div>
-            <div>
-              Authorized signature:<br><br>
-              <b>Dr Osmaan Gaawow</b>
-            </div>
-          </div>
-        </div>
-
-        <script>window.onload=()=>window.print()<\/script>
-      </body>
-      </html>
-    `);
-
-    w.document.close();
+    window.GaawowReceipt.payment({
+      receipt_number: official ? p.receipt_number : "NOT ISSUED",
+      payment_reference: p.payment_reference || p.id,
+      student_name: s?.full_name || "—",
+      institution_name: inst?.name || "—",
+      payer_phone: m.sender_account || p.payer_phone || "",
+      payment_method: p.payment_method || "—",
+      transaction_reference: p.transaction_reference || "",
+      payment_date: p.paid_at || p.created_at,
+      invoice_number: i?.invoice_number || "No invoice linked",
+      reviewed_by: m.reviewed_by_name || "",
+      currency: p.currency || "USD",
+      amount: Number(p.amount || 0),
+      description: m.notes || (i?.description) || "Payment received",
+      status: p.status
+    });
   }
 
   // ==========================================
@@ -2179,39 +1595,22 @@
   // ==========================================
 
   function setTab(id) {
-    const allowedTabs = [
-      "invPanel",
-      "payPanel",
-      "sccPanel"
-    ];
+    const allowedTabs = ["invPanel", "payPanel", "sccPanel"];
 
-    if (!allowedTabs.includes(id)) {
-      id = "invPanel";
-    }
-
-    if (id === "sccPanel" && !canViewScc()) {
-      id = "invPanel";
-    }
+    if (!allowedTabs.includes(id)) id = "invPanel";
+    if (id === "sccPanel" && !canViewScc()) id = "invPanel";
 
     S.tab = id;
 
     allowedTabs.forEach(x => {
-      if ($(x)) {
-        $(x).classList.toggle("active", x === id);
-      }
+      if ($(x)) $(x).classList.toggle("active", x === id);
     });
 
-    document.querySelectorAll("[data-tab]")
-      .forEach(b => {
-        b.classList.toggle(
-          "active",
-          b.dataset.tab === id
-        );
-      });
+    document.querySelectorAll("[data-tab]").forEach(b => {
+      b.classList.toggle("active", b.dataset.tab === id);
+    });
 
-    if (id === "sccPanel") {
-      renderScc();
-    }
+    if (id === "sccPanel") renderScc();
   }
 
   // ==========================================
@@ -2222,15 +1621,11 @@
     on("backDashboard", "click", () => {
       if (isFinanceManager()) return;
 
-      location.href = isSuperAdmin()
-        ? "dashboard.html"
-        : "school-dashboard.html";
+      location.href = isSuperAdmin() ? "dashboard.html" : "school-dashboard.html";
     });
 
     on("logout", "click", async () => {
-      if (!confirm("Ma hubtaa inaad ka baxayso GAAWOW EMS?")) {
-        return;
-      }
+      if (!confirm("Ma hubtaa inaad ka baxayso GAAWOW EMS?")) return;
 
       const { error } = await db.auth.signOut();
 
@@ -2247,7 +1642,6 @@
 
     on("closeInvoiceForm", "click", hideForms);
     on("cancelInvoiceBtn", "click", hideForms);
-
     on("closePaymentForm", "click", hideForms);
     on("cancelPaymentBtn", "click", hideForms);
 
@@ -2255,33 +1649,16 @@
     on("paymentForm", "submit", savePayment);
     on("reviewForm", "submit", saveReview);
 
-    on("closeReviewModal", "click", () => {
-      if ($("reviewModal")) {
-        $("reviewModal").classList.remove("show");
-      }
-
-      S.editingPayment = null;
-    });
-
-    on("cancelReviewBtn", "click", () => {
-      if ($("reviewModal")) {
-        $("reviewModal").classList.remove("show");
-      }
-
-      S.editingPayment = null;
-    });
+    on("closeReviewModal", "click", closeReview);
+    on("cancelReviewBtn", "click", closeReview);
 
     on("reviewModal", "click", e => {
-      if (e.target === $("reviewModal")) {
-        $("reviewModal").classList.remove("show");
-        S.editingPayment = null;
-      }
+      if (e.target === $("reviewModal")) closeReview();
     });
 
-    document.querySelectorAll("[data-tab]")
-      .forEach(b => {
-        b.onclick = () => setTab(b.dataset.tab);
-      });
+    document.querySelectorAll("[data-tab]").forEach(b => {
+      b.onclick = () => setTab(b.dataset.tab);
+    });
 
     on("invoiceSearch", "input", renderInvoices);
     on("paymentSearch", "input", renderPayments);
@@ -2289,7 +1666,6 @@
 
     on("filterInst", "change", async () => {
       const btn = $("refreshInvoices");
-
       if (btn) btn.disabled = true;
 
       try {
@@ -2325,9 +1701,7 @@
       }
     });
 
-    ["invInst", "payFormInst"].forEach(id => {
-      on(id, "change", studentOptions);
-    });
+    ["invInst", "payFormInst"].forEach(id => on(id, "change", studentOptions));
 
     on("payStudent", "change", () => {
       invoiceOptions();
@@ -2338,7 +1712,6 @@
 
     on("refreshInvoices", "click", async () => {
       const btn = $("refreshInvoices");
-
       if (btn) btn.disabled = true;
 
       try {
@@ -2346,15 +1719,11 @@
         renderInvoices();
         renderStats();
         invoiceOptions();
-
         msg("Invoices waa la cusbooneysiiyay.");
 
       } catch (e) {
         renderInvoices();
-        msg(
-          "Invoice refresh failed: " + e.message,
-          "err"
-        );
+        msg("Invoice refresh failed: " + e.message, "err");
 
       } finally {
         if (btn) btn.disabled = false;
@@ -2363,7 +1732,6 @@
 
     on("refreshPayments", "click", async () => {
       const btn = $("refreshPayments");
-
       if (btn) btn.disabled = true;
 
       try {
@@ -2371,30 +1739,22 @@
         renderPayments();
         renderStats();
         updatePaymentSummary();
-
         msg("Payments waa la cusbooneysiiyay.");
 
       } catch (e) {
         renderPayments();
-        msg(
-          "Payment refresh failed: " + e.message,
-          "err"
-        );
+        msg("Payment refresh failed: " + e.message, "err");
 
       } finally {
         if (btn) btn.disabled = false;
       }
     });
 
-    // SCC refresh
     on("refreshScc", "click", async () => {
       const btn = $("refreshScc");
 
       if (!canViewScc()) {
-        return msg(
-          "SCC access looma oggola role-kan.",
-          "err"
-        );
+        return msg("SCC access looma oggola role-kan.", "err");
       }
 
       if (btn) btn.disabled = true;
@@ -2402,16 +1762,11 @@
       try {
         await loadSccRequests();
         renderScc();
-
         msg("SCC requests waa la cusbooneysiiyay.");
 
       } catch (e) {
         renderScc();
-
-        msg(
-          "SCC refresh failed: " + e.message,
-          "err"
-        );
+        msg("SCC refresh failed: " + e.message, "err");
 
       } finally {
         if (btn) btn.disabled = false;
@@ -2426,131 +1781,85 @@
   async function init() {
     try {
       const authenticated = await auth();
-
       if (!authenticated) return;
 
       events();
 
-      if (isFinanceManager()) {
-        if ($("backDashboard")) {
-          $("backDashboard").classList.add("hidden");
-        }
+      if (isFinanceManager() && $("backDashboard")) {
+        $("backDashboard").classList.add("hidden");
       }
 
-      // SCC tab visibility
       if (!canViewScc() && $("sccTab")) {
         $("sccTab").classList.add("hidden");
       }
 
       try {
         await loadInstitutions();
-
       } catch (e) {
         console.error("INSTITUTIONS ERROR:", e);
-
-        msg(
-          "Institutions error: " + e.message,
-          "err"
-        );
+        msg("Institutions error: " + e.message, "err");
       }
 
       try {
         await loadStudents();
-
       } catch (e) {
         console.error("STUDENTS ERROR:", e);
-
         S.students = [];
-
-        msg(
-          "Students error: " + e.message,
-          "err"
-        );
+        msg("Students error: " + e.message, "err");
       }
 
       try {
         await loadInvoices();
-
       } catch (e) {
         console.error("INVOICES ERROR:", e);
       }
 
       try {
         await loadPayments();
-
       } catch (e) {
         console.error("PAYMENTS ERROR:", e);
-
         S.payments = [];
-
-        S.paymentError =
-          e.message || "Unable to load payments";
+        S.paymentError = e.message || "Unable to load payments";
       }
 
-      // Load SCC only for Finance Manager and Super Admin.
       if (canViewScc()) {
         try {
           await loadSccRequests();
-
         } catch (e) {
           console.error("SCC INITIAL LOAD ERROR:", e);
-
           S.sccRequests = [];
           S.sccSteps = [];
-          S.sccError =
-            e.message || "Unable to load SCC requests";
+          S.sccError = e.message || "Unable to load SCC requests";
         }
       }
 
       render();
 
-      const requested =
-        sessionStorage.getItem("gaawowFinanceTab");
-
+      const requested = sessionStorage.getItem("gaawowFinanceTab");
       const hash = location.hash.toLowerCase();
 
       let initialTab = "invPanel";
 
-      if (
-        hash.includes("scc") ||
-        requested === "sccPanel"
-      ) {
+      if (hash.includes("scc") || requested === "sccPanel") {
         initialTab = "sccPanel";
-      } else if (
-        hash.includes("payment") ||
-        requested === "payPanel"
-      ) {
+      } else if (hash.includes("payment") || requested === "payPanel") {
         initialTab = "payPanel";
       }
 
       setTab(initialTab);
-
       sessionStorage.removeItem("gaawowFinanceTab");
 
       if (S.invoiceError) {
-        msg(
-          "Invoice loading failed: " + S.invoiceError,
-          "err"
-        );
+        msg("Invoice loading failed: " + S.invoiceError, "err");
       } else {
-        msg(
-          "GAAWOW EMS Financial Management is connected."
-        );
+        msg("GAAWOW EMS Financial Management is connected.");
       }
 
     } catch (e) {
-      console.error(
-        "Financial Management initialization:",
-        e
-      );
-
-      msg(
-        "Portal setup error: " + e.message,
-        "err"
-      );
+      console.error("Financial Management initialization:", e);
+      msg("Portal setup error: " + e.message, "err");
     }
   }
 
   init();
-
 })();
