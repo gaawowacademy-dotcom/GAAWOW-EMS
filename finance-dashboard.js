@@ -3,8 +3,8 @@
 
 /* =========================================================
    GAAWOW EMS - FINANCE MANAGER DASHBOARD
+   Secure institution-based access
    Read-only invoices and payments
-   Institution-restricted access
    ========================================================= */
 
 (() => {
@@ -15,24 +15,44 @@
   const SUPABASE_KEY =
     "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
+  // 2. CHECK SUPABASE LIBRARY
+  if (!window.supabase) {
+    showStartupError(
+      "Supabase library lama helin. Fadlan hubi internet-ka iyo Supabase script."
+    );
+    return;
+  }
+
   const db = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
   );
 
-  // 2. GLOBAL STATE
+  // 3. APPLICATION STATE
   let currentUser = null;
   let currentProfile = null;
   let currentInstitution = null;
 
   const PAGE_SIZE = 100;
 
-  // 3. HELPERS
   const $ = (id) => document.getElementById(id);
 
+  // 4. GENERAL HELPERS
+  function showStartupError(message) {
+    const loading = $("loadingScreen");
+    const error = $("accessError");
+
+    if (loading) loading.hidden = true;
+
+    if (error) {
+      error.hidden = false;
+      error.textContent = message;
+    }
+  }
+
   function setText(id, value) {
-    const el = $(id);
-    if (el) el.textContent = value;
+    const element = $(id);
+    if (element) element.textContent = value ?? "";
   }
 
   function escapeHTML(value) {
@@ -81,40 +101,57 @@
   }
 
   function statusClass(status) {
-    const value = String(status || "")
+    const safeStatus = String(status || "")
       .toLowerCase()
       .replace(/[^a-z0-9_-]/g, "");
 
-    return `status-${value}`;
+    return `status-${safeStatus}`;
   }
 
   function showMessage(id, message, type = "info") {
-    const el = $(id);
-    if (!el) return;
+    const element = $(id);
+    if (!element) return;
 
-    el.textContent = message;
-    el.dataset.type = type;
-    el.style.display = "block";
+    element.textContent = message;
+    element.classList.remove("message-info", "message-error");
+
+    element.classList.add(
+      type === "error" ? "message-error" : "message-info"
+    );
+
+    element.hidden = false;
+    element.style.display = "block";
   }
 
   function hideMessage(id) {
-    const el = $(id);
-    if (el) el.style.display = "none";
+    const element = $(id);
+    if (element) {
+      element.hidden = true;
+      element.style.display = "none";
+    }
   }
 
-  function showError(message) {
-    console.error("[GAAWOW Finance]", message);
+  function logError(section, error) {
+    console.error(
+      `[GAAWOW Finance] ${section}:`,
+      error?.message || error
+    );
   }
 
-  // 4. AUTHENTICATION AND PROFILE
+  // 5. SHOW DASHBOARD
+  function showDashboard() {
+    const loading = $("loadingScreen");
+    const app = $("dashboardApp");
+    const error = $("accessError");
+
+    if (loading) loading.hidden = true;
+    if (error) error.hidden = true;
+    if (app) app.hidden = false;
+  }
+
+  // 6. LOAD AND VERIFY ACCOUNT
   async function initializeDashboard() {
     try {
-      if (!window.supabase) {
-        throw new Error(
-          "Supabase library lama helin. Hubi script-ka Supabase ee HTML."
-        );
-      }
-
       const {
         data: { session },
         error: sessionError
@@ -123,7 +160,7 @@
       if (sessionError) throw sessionError;
 
       if (!session) {
-        window.location.href = "index.html";
+        window.location.replace("index.html");
         return;
       }
 
@@ -137,40 +174,49 @@
 
       if (profileError) throw profileError;
 
+      if (!profile) {
+        throw new Error("Account profile lama helin.");
+      }
+
       if (
-        !profile ||
         profile.role !== "finance_manager" ||
         profile.is_active !== true ||
         !profile.institution_id
       ) {
-        alert(
-          "Access denied. Account-ka Finance Manager ma aha mid firfircoon ama machad looma qoondeyn."
-        );
-
         await db.auth.signOut();
-        window.location.href = "index.html";
+
+        showStartupError(
+          "Access denied. Account-kan ma aha Finance Manager firfircoon oo machad loo qoondeeyey."
+        );
         return;
       }
 
       currentProfile = profile;
 
       await loadInstitution();
+
       displayProfile();
       setupNavigation();
       setupLogout();
 
+      // Muhiim: Dashboard-ka muuji marka account-ka la xaqiijiyo.
+      // Ha sugin in dhammaan xogta tables-ka ay soo degto.
+      showDashboard();
+
+      // Xogta dhaqaale si gooni ah u soo qaad.
       await loadDashboardData();
 
     } catch (error) {
-      console.error("Dashboard initialization error:", error);
+      logError("Account verification", error);
 
-      alert(
-        "Dashboard lama furi karin. Hubi internet-ka iyo rukhsadaha account-ka."
+      showStartupError(
+        "Dashboard lama furi karin: " +
+        (error.message || "Fadlan hubi internet-ka iyo account-ka.")
       );
     }
   }
 
-  // 5. LOAD ASSIGNED INSTITUTION
+  // 7. LOAD ASSIGNED INSTITUTION
   async function loadInstitution() {
     const { data, error } = await db
       .from("institutions")
@@ -187,40 +233,46 @@
     currentInstitution = data;
   }
 
-  // 6. DISPLAY PROFILE
+  // 8. DISPLAY PROFILE
   function displayProfile() {
     const name =
       currentProfile.full_name || "Finance Manager";
 
     const institution =
-      currentInstitution?.name || "Assigned Institution";
+      currentInstitution?.name || "—";
 
-    const profileNameIds = [
-      "profileName",
-      "financeManagerName",
-      "userName",
-      "managerName"
-    ];
+    setText("managerName", name);
+    setText("welcomeName", name);
+    setText("institutionName", "Institution: " + institution);
 
-    const institutionNameIds = [
-      "institutionName",
-      "schoolName",
-      "financeInstitution"
-    ];
-
-    profileNameIds.forEach((id) => setText(id, name));
-
-    institutionNameIds.forEach((id) =>
-      setText(id, institution)
-    );
-
-    setText("institutionCode", currentInstitution?.code || "—");
+    setText("profileName", name);
     setText("profileRole", "Finance Manager");
-    setText("profileEmail", currentUser?.email || "—");
+    setText("profileInstitution", institution);
+    setText("profileStatus", "Active");
+    setText("profileId", currentProfile.id);
+
+    const avatar = $("managerAvatar");
+
+    if (avatar) {
+      const initials = name
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((word) => word.charAt(0).toUpperCase())
+        .join("");
+
+      avatar.textContent = initials || "FM";
+    }
   }
 
-  // 7. LOAD DASHBOARD DATA
+  // 9. LOAD DASHBOARD DATA
   async function loadDashboardData() {
+    setText("totalInvoices", "...");
+    setText("verifiedPayments", "...");
+    setText("pendingPayments", "...");
+    setText("graduationRequests", "--");
+
     await Promise.allSettled([
       loadInvoiceStatistics(),
       loadPaymentStatistics(),
@@ -228,12 +280,12 @@
       loadPaymentRecords()
     ]);
 
-    // Graduation requests lama xisaabinayo ilaa schema
-    // iyo columns-keeda si rasmi ah loo xaqiijiyo.
+    // Graduation count lama xisaabinayo ilaa schema-ga
+    // graduation requests si buuxda loo xaqiijiyo.
     setText("graduationRequests", "--");
   }
 
-  // 8. INVOICE STATISTICS
+  // 10. INVOICE COUNT
   async function loadInvoiceStatistics() {
     try {
       const { count, error } = await db
@@ -249,12 +301,12 @@
       setText("totalInvoices", count ?? 0);
 
     } catch (error) {
-      showError("Invoice statistics: " + error.message);
+      logError("Invoice statistics", error);
       setText("totalInvoices", "—");
     }
   }
 
-  // 9. PAYMENT STATISTICS
+  // 11. PAYMENT COUNTS
   async function loadPaymentStatistics() {
     try {
       const [successfulResult, pendingResult] =
@@ -297,47 +349,26 @@
       );
 
     } catch (error) {
-      showError("Payment statistics: " + error.message);
+      logError("Payment statistics", error);
       setText("verifiedPayments", "—");
       setText("pendingPayments", "—");
     }
   }
 
-  // 10. TABLE RENDERING HELPER
-  function renderTable(tableId, headers, rows) {
-    const table = $(tableId);
+  // 12. TABLE BODY RENDERER
+  // HTML IDs invoiceTable/paymentTable waxay saaran yihiin TBODY.
+  function renderTableBody(tbodyId, rows, columnCount) {
+    const tbody = $(tbodyId);
 
-    if (!table) {
-      console.warn(`Table element not found: ${tableId}`);
+    if (!tbody) {
+      console.warn("Table body not found:", tbodyId);
       return;
     }
 
-    let tbody = table.querySelector("tbody");
-
-    if (!tbody) {
-      tbody = document.createElement("tbody");
-      table.appendChild(tbody);
-    }
-
-    // Haddii table-ku uusan lahayn thead, samee.
-    if (!table.querySelector("thead")) {
-      const thead = document.createElement("thead");
-      const headerRow = document.createElement("tr");
-
-      headers.forEach((header) => {
-        const th = document.createElement("th");
-        th.textContent = header;
-        headerRow.appendChild(th);
-      });
-
-      thead.appendChild(headerRow);
-      table.insertBefore(thead, tbody);
-    }
-
-    if (!rows.length) {
+    if (!rows || rows.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="${headers.length}" class="empty-state">
+          <td colspan="${columnCount}" class="empty-state">
             No records found.
           </td>
         </tr>
@@ -348,13 +379,11 @@
     tbody.innerHTML = rows.join("");
   }
 
-  // 11. LOAD INVOICE RECORDS
+  // 13. LOAD INVOICES
   async function loadInvoiceRecords() {
-    const messageId = "invoiceMessage";
+    showMessage("invoiceMessage", "Loading invoice records...");
 
     try {
-      showMessage(messageId, "Loading invoice records...");
-
       const { data, error } = await db
         .from("invoices")
         .select(`
@@ -386,7 +415,11 @@
 
         return `
           <tr>
-            <td>${escapeHTML(invoice.invoice_number || shortReference(invoice.id))}</td>
+            <td>
+              ${escapeHTML(
+                invoice.invoice_number || shortReference(invoice.id)
+              )}
+            </td>
             <td title="${escapeHTML(invoice.student_id || "")}">
               ${escapeHTML(shortReference(invoice.student_id))}
             </td>
@@ -403,44 +436,35 @@
         `;
       });
 
-      renderTable(
-        "invoiceTable",
-        [
-          "Invoice Number",
-          "Student Ref",
-          "Amount",
-          "Paid",
-          "Balance",
-          "Status",
-          "Due Date"
-        ],
-        rows
-      );
+      renderTableBody("invoiceTable", rows, 7);
 
       if (invoices.length === 0) {
-        showMessage(messageId, "No invoices found for this institution.");
+        showMessage(
+          "invoiceMessage",
+          "No invoices found for this institution."
+        );
       } else {
-        hideMessage(messageId);
+        hideMessage("invoiceMessage");
       }
 
     } catch (error) {
-      showError("Invoice records: " + error.message);
+      logError("Invoice records", error);
 
       showMessage(
-        messageId,
-        "Invoice records lama soo qaadi karin. Hubi RLS permissions iyo database connection.",
+        "invoiceMessage",
+        "Invoice records lama soo qaadi karin. Fadlan hubi database permissions ama RLS.",
         "error"
       );
+
+      renderTableBody("invoiceTable", [], 7);
     }
   }
 
-  // 12. LOAD PAYMENT RECORDS
+  // 14. LOAD PAYMENTS
   async function loadPaymentRecords() {
-    const messageId = "paymentMessage";
+    showMessage("paymentMessage", "Loading payment records...");
 
     try {
-      showMessage(messageId, "Loading payment records...");
-
       const { data, error } = await db
         .from("payments")
         .select(`
@@ -482,9 +506,11 @@
             <td title="${escapeHTML(payment.student_id || "")}">
               ${escapeHTML(shortReference(payment.student_id))}
             </td>
-            <td>${escapeHTML(
-              formatMoney(payment.amount, payment.currency || "USD")
-            )}</td>
+            <td>
+              ${escapeHTML(
+                formatMoney(payment.amount, payment.currency || "USD")
+              )}
+            </td>
             <td>${escapeHTML(payment.payment_method || "—")}</td>
             <td>
               <span class="status-badge ${statusClass(payment.status)}">
@@ -496,121 +522,121 @@
         `;
       });
 
-      renderTable(
-        "paymentTable",
-        [
-          "Payment Reference",
-          "Student Ref",
-          "Amount",
-          "Method",
-          "Status",
-          "Date"
-        ],
-        rows
-      );
+      renderTableBody("paymentTable", rows, 6);
 
       if (payments.length === 0) {
-        showMessage(messageId, "No payment records found for this institution.");
+        showMessage(
+          "paymentMessage",
+          "No payment records found for this institution."
+        );
       } else {
-        hideMessage(messageId);
+        hideMessage("paymentMessage");
       }
 
     } catch (error) {
-      showError("Payment records: " + error.message);
+      logError("Payment records", error);
 
       showMessage(
-        messageId,
-        "Payment records lama soo qaadi karin. Hubi RLS permissions iyo database connection.",
+        "paymentMessage",
+        "Payment records lama soo qaadi karin. Fadlan hubi database permissions ama RLS.",
         "error"
       );
+
+      renderTableBody("paymentTable", [], 6);
     }
   }
 
-  // 13. NAVIGATION
+  // 15. NAVIGATION
   function setupNavigation() {
+    const pageTitles = {
+      overview: "Finance Overview",
+      invoices: "Student Invoices",
+      payments: "Payments Verification",
+      graduation: "Graduation Fee Clearance",
+      reports: "Financial Reports",
+      profile: "My Profile"
+    };
+
     document.addEventListener("click", (event) => {
-      const navItem = event.target.closest(
-        "[data-target], [data-section]"
-      );
+      const navItem = event.target.closest("[data-section]");
 
       if (!navItem) return;
 
-      const target =
-        navItem.dataset.target ||
-        navItem.dataset.section;
-
-      if (!target) return;
-
-      const sectionId = target.startsWith("section-")
-        ? target
-        : `section-${target}`;
-
-      const targetSection = $(sectionId);
+      const sectionName = navItem.dataset.section;
+      const targetSection = $("section-" + sectionName);
 
       if (!targetSection) return;
 
-      document.querySelectorAll(
-        '[id^="section-"]'
-      ).forEach((section) => {
-        section.style.display = "none";
+      document.querySelectorAll(".page-section").forEach((section) => {
         section.classList.remove("active");
       });
 
-      targetSection.style.display = "block";
       targetSection.classList.add("active");
 
+      document.querySelectorAll(".nav-link").forEach((link) => {
+        link.classList.remove("active");
+      });
+
       document.querySelectorAll(
-        "[data-target], [data-section]"
-      ).forEach((item) => {
-        item.classList.remove("active");
+        `.nav-link[data-section="${sectionName}"]`
+      ).forEach((link) => {
+        link.classList.add("active");
       });
 
-      navItem.classList.add("active");
+      setText(
+        "pageTitle",
+        pageTitles[sectionName] || "Finance Dashboard"
+      );
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
     });
   }
 
-  // 14. LOGOUT
+  // 16. LOGOUT
   function setupLogout() {
-    const logoutButtons = [
-      "logoutBtn",
-      "logoutButton",
-      "signOutBtn"
-    ];
+    const logoutButton = $("logoutBtn");
 
-    logoutButtons.forEach((id) => {
-      const button = $(id);
+    if (!logoutButton) return;
 
-      if (!button) return;
+    logoutButton.addEventListener("click", async () => {
+      const confirmed = window.confirm(
+        "Ma hubtaa inaad ka baxdo Finance Manager Dashboard?"
+      );
 
-      button.addEventListener("click", async () => {
-        const confirmed = window.confirm(
-          "Ma hubtaa inaad ka baxdo Finance Manager Dashboard?"
-        );
+      if (!confirmed) return;
 
-        if (!confirmed) return;
+      logoutButton.disabled = true;
 
-        const { error } = await db.auth.signOut();
+      const { error } = await db.auth.signOut();
 
-        if (error) {
-          alert("Logout failed: " + error.message);
-          return;
-        }
+      if (error) {
+        logoutButton.disabled = false;
+        alert("Logout failed: " + error.message);
+        return;
+      }
 
-        window.location.href = "index.html";
-      });
+      window.location.replace("index.html");
     });
   }
 
-  // 15. AUTH STATE CHANGE
+  // 17. AUTH SESSION LISTENER
   db.auth.onAuthStateChange((event) => {
     if (event === "SIGNED_OUT") {
-      window.location.href = "index.html";
+      window.location.replace("index.html");
     }
   });
 
-  // 16. START
-  document.addEventListener("DOMContentLoaded", () => {
+  // 18. START APPLICATION
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      initializeDashboard
+    );
+  } else {
     initializeDashboard();
-  });
+  }
 
 })();
