@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,6 +12,8 @@
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+
+html,body{max-width:100%;overflow-x:hidden}
 
 body{
 font-family:Arial,Helvetica,sans-serif;
@@ -54,7 +55,8 @@ color:#0B1E63;
 padding:8px 14px;
 border-radius:999px;
 font-size:12px;
-font-weight:800
+font-weight:800;
+white-space:nowrap
 }
 
 .container{
@@ -384,6 +386,12 @@ box-shadow:0 14px 30px rgba(11,30,99,.13)
 background:linear-gradient(135deg,#FFF1B8,#EAF0FF)
 }
 
+/* INSTITUTIONS CARD */
+.institutions-card{
+border-top:4px solid #0B4DA2;
+background:linear-gradient(145deg,#fff,#F0F5FF)
+}
+
 /* SCHOOL ADMIN CARD */
 .school-admin-card{
 border-top:4px solid #7C3AED;
@@ -635,9 +643,21 @@ align-items:stretch
 </section>
 
 <!-- SYSTEM MANAGEMENT -->
+<section class="system-management-section">
+
 <div class="section-header">
   <h3>System Management</h3>
   <span class="module-count">28 Core EMS Modules</span>
+</div>
+
+<div class="menu-grid">
+
+  <!-- 1. INSTITUTIONS -->
+  <div class="menu-card institutions-card" onclick="openPage('institutions.html')">
+    <div class="menu-icon">🏫</div>
+    <h4>Institutions</h4>
+    <p>Create and manage institutions, schools and academies.</p>
+  </div>
 
   <!-- 2. SCHOOL ADMIN MANAGEMENT -->
   <div class="menu-card school-admin-card" onclick="openPage('school-admins.html')">
@@ -771,7 +791,7 @@ align-items:stretch
     <h4>Financial Management</h4>
     <p>Manage invoices, payments, receipts, student balances and financial records in one integrated portal.</p>
   </div>
-  
+
   <!-- 21. INVOICE MANAGEMENT -->
   <div class="menu-card financial-card" onclick="openPage('invoices.html')">
     <div class="menu-icon">🧾</div>
@@ -786,23 +806,12 @@ align-items:stretch
     <p>Access payment records, review transactions and manage payment receipts across all institutions.</p>
   </div>
 
-
-<!-- 23. FINANCE MANAGER MANAGEMENT -->
-<div class="menu-card finance-manager-card"
-     onclick="openPage('finance-manager-management.html')">
-
-  <div class="menu-icon">👨‍💼💰</div>
-
-  <h4>Finance Manager Management</h4>
-
-  <p>
-    Create Finance Manager accounts, assign institutions,
-    activate or deactivate accounts and manage financial
-    administrative access.
-  </p>
-
-</div>
-
+  <!-- 23. FINANCE MANAGER MANAGEMENT -->
+  <div class="menu-card finance-manager-card" onclick="openPage('finance-manager-management.html')">
+    <div class="menu-icon">👨‍💼</div>
+    <h4>Finance Manager Management</h4>
+    <p>Create Finance Manager accounts, assign institutions, activate or deactivate accounts and manage financial administrative access.</p>
+  </div>
 
   <!-- 24. MOBILE MONEY -->
   <div class="menu-card" onclick="openPage('mobile-money.html')">
@@ -839,6 +848,8 @@ align-items:stretch
     <p>View announcements, system alerts and important notifications.</p>
   </div>
 
+</div><!-- /menu-grid -->
+
 </section>
 
 <!-- FOOTER -->
@@ -855,7 +866,7 @@ align-items:stretch
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <!-- EXISTING DASHBOARD CONTROLLER -->
-<script src="./dashboard.js?v=201"></script>
+<script src="./dashboard.js?v=202"></script>
 
 <!-- GAAWOW EMS PWA REGISTRATION -->
 <script>
@@ -869,20 +880,10 @@ align-items:stretch
       navigator.serviceWorker
         .register("./service-worker.js")
         .then(function (registration) {
-
-          console.log(
-            "GAAWOW EMS PWA registered:",
-            registration.scope
-          );
-
+          console.log("GAAWOW EMS PWA registered:", registration.scope);
         })
         .catch(function (error) {
-
-          console.error(
-            "GAAWOW EMS PWA registration failed:",
-            error
-          );
-
+          console.error("GAAWOW EMS PWA registration failed:", error);
         });
 
     });
