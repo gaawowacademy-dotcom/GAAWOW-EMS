@@ -1,9 +1,11 @@
-
 "use strict";
 
 (() => {
-  const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
+  const SUPABASE_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
   if (!window.supabase) {
     console.error("Supabase library is not loaded.");
@@ -29,7 +31,14 @@
     payments: [],
     paymentError: null,
     editingPayment: null,
-    tab: "invPanel"
+    tab: "invPanel",
+
+    // SCC state
+    sccRequests: [],
+    sccSteps: [],
+    sccError: null,
+    sccLoading: false,
+    sccSubmitting: false
   };
 
   // ==========================================
@@ -180,6 +189,10 @@
 
   function isFinanceManager() {
     return role() === "finance_manager";
+  }
+
+  function canViewScc() {
+    return isFinanceManager() || isSuperAdmin();
   }
 
   function institutionAllowed(id) {
@@ -524,10 +537,7 @@
       box-shadow:0 3px 12px rgba(11,30,99,.06);
     `;
 
-    invoiceSelect.insertAdjacentElement(
-      "afterend",
-      panel
-    );
+    invoiceSelect.insertAdjacentElement("afterend", panel);
 
     return panel;
   }
@@ -548,11 +558,8 @@
       return;
     }
 
-    const studentPayments =
-      successfulPayments(studentId);
-
-    const studentTotals =
-      totalByCurrency(studentPayments);
+    const studentPayments = successfulPayments(studentId);
+    const studentTotals = totalByCurrency(studentPayments);
 
     let invoiceHTML = `
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid #D4AF37">
@@ -587,29 +594,21 @@
         0
       );
 
-      const invoiceTotals =
-        totalByCurrency(invoicePayments);
+      const invoiceTotals = totalByCurrency(invoicePayments);
 
       invoiceHTML = `
         <div style="margin-top:12px;padding-top:10px;border-top:1px solid #D4AF37">
           <b>INVOICE SUMMARY</b><br>
-
           Invoice Number:
           <b>${esc(selectedInvoice.invoice_number || "—")}</b><br>
-
           Invoice Amount:
           <b>${cash(invoiceAmount, "USD")}</b><br>
-
           Invoice Total Paid:
-          <b style="color:#15803D">
-            ${cash(invoicePaid, "USD")}
-          </b><br>
-
+          <b style="color:#15803D">${cash(invoicePaid, "USD")}</b><br>
           Remaining Balance:
           <b style="color:${remaining > 0 ? "#B45309" : "#15803D"}">
             ${cash(remaining, "USD")}
           </b>
-
           <br>
           <small>
             Other successful currencies:
@@ -629,18 +628,15 @@
       <div style="font-weight:800;font-size:15px">
         PAYMENT SUMMARY
       </div>
-
       <div style="margin-top:8px">
         Student Total Paid:
         <b style="color:#15803D;font-size:16px">
           ${esc(currencySummary(studentTotals))}
         </b>
       </div>
-
       <small>
         Wadarta lacagaha successful-ka ah ee ardaygan bixiyey.
       </small>
-
       ${invoiceHTML}
     `;
   }
@@ -789,6 +785,410 @@
       console.error("PAYMENT LOAD ERROR:", e);
 
       throw e;
+    }
+  }
+
+  // ==========================================
+  // SCC: LOAD REQUESTS AND APPROVAL STEPS
+  // ==========================================
+
+  async function loadSccRequests() {
+    S.sccError = null;
+    S.sccLoading = true;
+
+    if (!canViewScc()) {
+      S.sccRequests = [];
+      S.sccSteps = [];
+      S.sccLoading = false;
+      return;
+    }
+
+    try {
+      let q = db
+        .from("scc_requests")
+        .select(`
+          id,
+          institution_id,
+          student_id,
+          fee_invoice_id,
+          certificate_id,
+          request_status,
+          requested_by,
+          requested_at,
+          final_approved_at,
+          issued_at,
+          rejection_reason,
+          created_at
+        `)
+        .order("created_at", { ascending: false })
+        .limit(1000);
+
+      if (isFinanceManager()) {
+        q = q.eq(
+          "institution_id",
+          S.profile.institution_id
+        );
+      } else if ($("filterInst")?.value) {
+        q = q.eq(
+          "institution_id",
+          $("filterInst").value
+        );
+      }
+
+      const { data, error } = await q;
+
+      if (error) throw error;
+
+      S.sccRequests = data || [];
+
+      if (!S.sccRequests.length) {
+        S.sccSteps = [];
+        return;
+      }
+
+      const requestIds = S.sccRequests.map(r => r.id);
+
+      const { data: steps, error: stepsError } = await db
+        .from("scc_approval_steps")
+        .select(`
+          id,
+          request_id,
+          institution_id,
+          student_id,
+          approval_stage,
+          approval_status,
+          assigned_role,
+          signed_by,
+          signed_at,
+          comments,
+          rejection_reason,
+          created_at
+        `)
+        .in("request_id", requestIds);
+
+      if (stepsError) throw stepsError;
+
+      S.sccSteps = steps || [];
+
+    } catch (e) {
+      S.sccError = e.message || "Unable to load SCC requests";
+
+      console.error("SCC LOAD ERROR:", e);
+
+      throw e;
+
+    } finally {
+      S.sccLoading = false;
+    }
+  }
+
+  function sccStep(requestId, stage) {
+    return S.sccSteps.find(x =>
+      x.request_id === requestId &&
+      x.approval_stage === stage
+    );
+  }
+
+  function sccStageLabel(requestId, stage) {
+    const step = sccStep(requestId, stage);
+
+    if (!step) {
+      return statusBadge("missing");
+    }
+
+    return `
+      ${statusBadge(step.approval_status)}
+      ${
+        step.signed_at
+          ? `<br><small>${esc(fmtDate(step.signed_at))}</small>`
+          : ""
+      }
+    `;
+  }
+
+  // ==========================================
+  // SCC: RENDER REQUESTS
+  // ==========================================
+
+  function renderScc() {
+    const table = $("sccTable");
+
+    if (!table) return;
+
+    if (!canViewScc()) {
+      table.innerHTML = `
+        <tr>
+          <td colspan="8" class="empty">
+            SCC Finance Clearance waxaa loogu talagalay
+            Finance Manager iyo Super Admin.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    if (S.sccLoading) {
+      table.innerHTML = `
+        <tr>
+          <td colspan="8" class="empty">
+            Loading SCC requests...
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    if (S.sccError) {
+      table.innerHTML = `
+        <tr>
+          <td colspan="8" class="empty">
+            SCC loading failed: ${esc(S.sccError)}
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    if (!S.sccRequests.length) {
+      table.innerHTML = `
+        <tr>
+          <td colspan="8" class="empty">
+            No SCC requests found.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    table.innerHTML = S.sccRequests.map(r => {
+      const inv = invoice(r.fee_invoice_id);
+
+      const finance = sccStep(r.id, "finance");
+      const academic = sccStep(r.id, "academic");
+      const director = sccStep(r.id, "director");
+
+      const financePending =
+        finance &&
+        finance.approval_status === "pending" &&
+        finance.assigned_role === "finance_manager";
+
+      const requestStatus = String(
+        r.request_status || ""
+      ).toLowerCase();
+
+      const eligible =
+        isFinanceManager() &&
+        institutionAllowed(r.institution_id) &&
+        financePending &&
+        ["pending", "in_review"].includes(requestStatus) &&
+        !r.final_approved_at &&
+        !r.issued_at;
+
+      const invoiceStatus = inv
+        ? `
+          ${statusBadge(inv.status)}
+          <br>
+          <small>
+            ${cash(inv.paid_amount || 0)} /
+            ${cash(inv.amount || 0)}
+          </small>
+        `
+        : `<span class="status missing">Invoice unavailable</span>`;
+
+      return `
+        <tr>
+          <td>
+            <b>${esc(studentLabel(r.student_id))}</b>
+            <br>
+            <small>${esc(r.id)}</small>
+          </td>
+
+          <td>${esc(fmtDate(r.requested_at || r.created_at))}</td>
+
+          <td>
+            ${
+              inv
+                ? esc(inv.invoice_number || "Invoice")
+                : "Invoice not loaded"
+            }
+            <br>
+            <b>${inv ? cash(inv.amount || 0) : "—"}</b>
+          </td>
+
+          <td>${invoiceStatus}</td>
+
+          <td>${sccStageLabel(r.id, "finance")}</td>
+          <td>${sccStageLabel(r.id, "academic")}</td>
+          <td>${sccStageLabel(r.id, "director")}</td>
+
+          <td>
+            ${
+              eligible
+                ? `
+                  <button
+                    class="btn-green btn-small"
+                    data-scc-approve="${esc(r.id)}">
+                    Approve Finance Clearance
+                  </button>
+                `
+                : `
+                  <span class="form-note">
+                    ${esc(r.request_status || "Pending")}
+                  </span>
+                `
+            }
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    document.querySelectorAll("[data-scc-approve]")
+      .forEach(btn => {
+        btn.onclick = () =>
+          approveSccFinance(btn.dataset.sccApprove);
+      });
+  }
+
+  // ==========================================
+  // SCC: FINANCE MANAGER APPROVAL
+  // ==========================================
+
+  async function approveSccFinance(requestId) {
+    if (S.sccSubmitting) return;
+
+    if (!isFinanceManager()) {
+      return msg(
+        "Finance Manager keliya ayaa saxiixi kara Finance Clearance.",
+        "err"
+      );
+    }
+
+    const request = S.sccRequests.find(
+      x => x.id === requestId
+    );
+
+    if (!request) {
+      return msg("SCC request lama helin.", "err");
+    }
+
+    if (!institutionAllowed(request.institution_id)) {
+      return msg(
+        "Ma lihid oggolaanshaha SCC request-kan.",
+        "err"
+      );
+    }
+
+    const finance = sccStep(requestId, "finance");
+
+    if (
+      !finance ||
+      finance.approval_status !== "pending" ||
+      finance.assigned_role !== "finance_manager"
+    ) {
+      return msg(
+        "Finance approval ma jiro ama hore ayaa loo saxiixay.",
+        "err"
+      );
+    }
+
+    const requestStatus = String(
+      request.request_status || ""
+    ).toLowerCase();
+
+    if (!["pending", "in_review"].includes(requestStatus)) {
+      return msg(
+        "SCC request-kan ma aha xaalad la ansixin karo.",
+        "err"
+      );
+    }
+
+    if (request.final_approved_at || request.issued_at) {
+      return msg(
+        "SCC request-kan hore ayuu u maray final approval ama issuance.",
+        "err"
+      );
+    }
+
+    const inv = invoice(request.fee_invoice_id);
+
+    if (!inv) {
+      return msg(
+        "Graduation invoice lama helin. Refresh samee.",
+        "err"
+      );
+    }
+
+    if (
+      Number(inv.amount) !== 35 ||
+      String(inv.status || "").toLowerCase() !== "paid" ||
+      Number(inv.paid_amount || 0) < 35
+    ) {
+      return msg(
+        "Invoice-ka hadda ma muujinayo in Graduation Fee-ga USD $35 si buuxda loo bixiyey. Finance approval lama samayn karo.",
+        "err"
+      );
+    }
+
+    const confirmed = confirm(
+      "Ma hubisay in ardaygu bixiyey Graduation Fee-ga USD $35?\n\n" +
+      "Server-ka ayaa dib u hubin doona invoice-ka iyo successful payments-ka.\n\n" +
+      "Haddii lacagtu aanay si buuxda u bixin, approval-ka waa la diidi doonaa."
+    );
+
+    if (!confirmed) return;
+
+    const comments = prompt(
+      "Finance Clearance comments (optional):",
+      "Graduation fee verified."
+    );
+
+    if (comments === null) return;
+
+    const btn = document.querySelector(
+      `[data-scc-approve="${requestId}"]`
+    );
+
+    S.sccSubmitting = true;
+
+    if (btn) btn.disabled = true;
+
+    try {
+      const { data, error } = await db.rpc(
+        "scc_finance_clearance",
+        {
+          p_request_id: requestId,
+          p_comments: comments.trim() || null
+        }
+      );
+
+      if (error) throw error;
+
+      if (!data || data.success !== true) {
+        throw new Error(
+          data?.message ||
+          "Finance Clearance was not completed."
+        );
+      }
+
+      msg(
+        "Finance Clearance waa la ansixiyey. Codsiga waxaa loo gudbiyey Academic stage."
+      );
+
+      await loadSccRequests();
+      renderScc();
+
+    } catch (e) {
+      console.error("SCC FINANCE APPROVAL ERROR:", e);
+
+      msg(
+        "Finance Clearance lama ansixin: " + e.message,
+        "err"
+      );
+
+    } finally {
+      S.sccSubmitting = false;
+
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -1005,6 +1405,7 @@
     renderInvoices();
     renderPayments();
     renderStats();
+    renderScc();
 
     document.querySelectorAll("[data-invoice-print]")
       .forEach(b => {
@@ -1031,6 +1432,11 @@
   async function reload() {
     await loadInvoices();
     await loadPayments();
+
+    if (canViewScc()) {
+      await loadSccRequests();
+    }
+
     render();
   }
 
@@ -1773,9 +2179,23 @@
   // ==========================================
 
   function setTab(id) {
+    const allowedTabs = [
+      "invPanel",
+      "payPanel",
+      "sccPanel"
+    ];
+
+    if (!allowedTabs.includes(id)) {
+      id = "invPanel";
+    }
+
+    if (id === "sccPanel" && !canViewScc()) {
+      id = "invPanel";
+    }
+
     S.tab = id;
 
-    ["invPanel", "payPanel"].forEach(x => {
+    allowedTabs.forEach(x => {
       if ($(x)) {
         $(x).classList.toggle("active", x === id);
       }
@@ -1788,6 +2208,10 @@
           b.dataset.tab === id
         );
       });
+
+    if (id === "sccPanel") {
+      renderScc();
+    }
   }
 
   // ==========================================
@@ -1874,6 +2298,11 @@
         renderStats();
         invoiceOptions();
 
+        if (canViewScc()) {
+          await loadSccRequests();
+          renderScc();
+        }
+
       } catch (e) {
         renderInvoices();
         msg("Invoice error: " + e.message, "err");
@@ -1956,6 +2385,38 @@
         if (btn) btn.disabled = false;
       }
     });
+
+    // SCC refresh
+    on("refreshScc", "click", async () => {
+      const btn = $("refreshScc");
+
+      if (!canViewScc()) {
+        return msg(
+          "SCC access looma oggola role-kan.",
+          "err"
+        );
+      }
+
+      if (btn) btn.disabled = true;
+
+      try {
+        await loadSccRequests();
+        renderScc();
+
+        msg("SCC requests waa la cusbooneysiiyay.");
+
+      } catch (e) {
+        renderScc();
+
+        msg(
+          "SCC refresh failed: " + e.message,
+          "err"
+        );
+
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
   }
 
   // ==========================================
@@ -1974,6 +2435,11 @@
         if ($("backDashboard")) {
           $("backDashboard").classList.add("hidden");
         }
+      }
+
+      // SCC tab visibility
+      if (!canViewScc() && $("sccTab")) {
+        $("sccTab").classList.add("hidden");
       }
 
       try {
@@ -2021,17 +2487,43 @@
           e.message || "Unable to load payments";
       }
 
+      // Load SCC only for Finance Manager and Super Admin.
+      if (canViewScc()) {
+        try {
+          await loadSccRequests();
+
+        } catch (e) {
+          console.error("SCC INITIAL LOAD ERROR:", e);
+
+          S.sccRequests = [];
+          S.sccSteps = [];
+          S.sccError =
+            e.message || "Unable to load SCC requests";
+        }
+      }
+
       render();
 
       const requested =
         sessionStorage.getItem("gaawowFinanceTab");
 
-      setTab(
-        location.hash.toLowerCase().includes("payment") ||
+      const hash = location.hash.toLowerCase();
+
+      let initialTab = "invPanel";
+
+      if (
+        hash.includes("scc") ||
+        requested === "sccPanel"
+      ) {
+        initialTab = "sccPanel";
+      } else if (
+        hash.includes("payment") ||
         requested === "payPanel"
-          ? "payPanel"
-          : "invPanel"
-      );
+      ) {
+        initialTab = "payPanel";
+      }
+
+      setTab(initialTab);
 
       sessionStorage.removeItem("gaawowFinanceTab");
 
