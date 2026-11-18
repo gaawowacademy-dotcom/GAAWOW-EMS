@@ -1,0 +1,738 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Manager Dashboard | GAAWOW EMS</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+:root {
+  --navy:#0B1E63;
+  --blue:#0B4DA2;
+  --gold:#D4AF37;
+  --bg:#F5F7FA;
+  --white:#fff;
+  --text:#1d2939;
+  --muted:#667085;
+  --border:#e4e7ec;
+  --green:#16834a;
+  --red:#c0392b;
+}
+
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  font-family:Inter,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+.layout {
+  display:flex;
+  min-height:100vh;
+}
+
+.sidebar {
+  width:260px;
+  background:var(--navy);
+  color:white;
+  padding:24px 16px;
+  display:flex;
+  flex-direction:column;
+  flex-shrink:0;
+}
+
+.brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:0 8px 24px;
+  border-bottom:1px solid #ffffff25;
+}
+
+.brand-mark {
+  width:43px;
+  height:43px;
+  border-radius:12px;
+  background:var(--gold);
+  color:var(--navy);
+  display:grid;
+  place-items:center;
+  font-size:20px;
+  font-weight:800;
+}
+
+.brand h2 {
+  font-size:15px;
+  margin:0;
+  line-height:1.5;
+}
+
+.brand small {
+  color:#d6deef;
+  font-size:10px;
+}
+
+.nav-title {
+  margin:25px 10px 10px;
+  color:#aebbd8;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+
+.nav-link {
+  border:0;
+  background:transparent;
+  color:#e4eaf7;
+  padding:13px 12px;
+  border-radius:9px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  text-align:left;
+  font:inherit;
+  font-size:13px;
+  cursor:pointer;
+  margin:3px 0;
+}
+
+.nav-link i { width:18px; }
+
+.nav-link:hover,
+.nav-link.active {
+  background:#ffffff18;
+  color:#fff;
+}
+
+.nav-link.active {
+  border-left:3px solid var(--gold);
+}
+
+.sidebar-bottom {
+  margin-top:auto;
+  border-top:1px solid #ffffff25;
+  padding-top:15px;
+}
+
+.main {
+  flex:1;
+  min-width:0;
+}
+
+.topbar {
+  background:white;
+  padding:18px 28px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+}
+
+.topbar h1 {
+  margin:0;
+  color:var(--navy);
+  font-size:20px;
+}
+
+.topbar p {
+  margin:5px 0 0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.user-area {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.avatar {
+  width:39px;
+  height:39px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#e8eefb;
+  color:var(--navy);
+  font-weight:800;
+}
+
+.user-name {
+  font-size:12px;
+  font-weight:700;
+}
+
+.user-role {
+  color:var(--muted);
+  font-size:10px;
+  margin-top:3px;
+}
+
+.content {
+  padding:26px;
+  max-width:1450px;
+  margin:auto;
+}
+
+.welcome {
+  background:linear-gradient(115deg,var(--navy),var(--blue));
+  color:white;
+  border-radius:15px;
+  padding:25px;
+  margin-bottom:23px;
+  position:relative;
+  overflow:hidden;
+}
+
+.welcome:after {
+  content:"";
+  position:absolute;
+  width:190px;
+  height:190px;
+  border:25px solid #ffffff12;
+  border-radius:50%;
+  right:-45px;
+  top:-75px;
+}
+
+.welcome h2 {
+  margin:0 0 8px;
+  font-size:21px;
+}
+
+.welcome p {
+  margin:0;
+  color:#e0e8fa;
+  font-size:13px;
+  line-height:1.7;
+}
+
+.institution-line {
+  margin-top:13px;
+  color:#f3d879;
+  font-size:12px;
+  font-weight:700;
+}
+
+.section-heading {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin:25px 0 14px;
+}
+
+.section-heading h2 {
+  color:var(--navy);
+  font-size:16px;
+  margin:0;
+}
+
+.section-heading p {
+  color:var(--muted);
+  font-size:11px;
+  margin:5px 0 0;
+}
+
+.stats {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:15px;
+}
+
+.stat-card {
+  background:white;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:18px;
+  min-height:125px;
+}
+
+.stat-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.stat-icon {
+  width:38px;
+  height:38px;
+  border-radius:10px;
+  display:grid;
+  place-items:center;
+  background:#edf2ff;
+  color:var(--blue);
+}
+
+.stat-card h3 {
+  margin:17px 0 5px;
+  font-size:23px;
+  color:var(--navy);
+}
+
+.stat-card p {
+  margin:0;
+  color:var(--muted);
+  font-size:11px;
+}
+
+.stat-note {
+  font-size:10px;
+  color:#8a94a6;
+}
+
+.modules {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:15px;
+}
+
+.module {
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:white;
+  padding:19px;
+  text-align:left;
+  cursor:pointer;
+  color:var(--text);
+  font:inherit;
+  transition:.2s;
+}
+
+.module:hover {
+  border-color:var(--gold);
+  transform:translateY(-2px);
+  box-shadow:0 5px 18px #0b1e6310;
+}
+
+.module-icon {
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  background:#f1f4fb;
+  color:var(--navy);
+  border-radius:10px;
+  font-size:18px;
+  margin-bottom:13px;
+}
+
+.module h3 {
+  margin:0 0 7px;
+  color:var(--navy);
+  font-size:13px;
+}
+
+.module p {
+  margin:0;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.6;
+}
+
+.module-status {
+  display:inline-block;
+  margin-top:13px;
+  color:#8a6500;
+  background:#fff7df;
+  padding:5px 8px;
+  border-radius:20px;
+  font-size:9px;
+  font-weight:700;
+}
+
+.panel {
+  background:white;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:22px;
+  margin-top:20px;
+}
+
+.panel h3 {
+  color:var(--navy);
+  font-size:14px;
+  margin:0 0 12px;
+}
+
+.notice {
+  border:1px solid #f0dca2;
+  background:#fff9e9;
+  color:#705500;
+  padding:14px;
+  border-radius:9px;
+  font-size:12px;
+  line-height:1.7;
+}
+
+.notice i { margin-right:7px; }
+
+.page-section { display:none; }
+.page-section.active { display:block; }
+
+.loading {
+  padding:40px 15px;
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.error-box {
+  margin:20px;
+  background:#fff0f0;
+  color:#9b1c1c;
+  border:1px solid #f1c4c4;
+  padding:15px;
+  border-radius:10px;
+}
+
+.logout-btn {
+  color:#ffe2e2;
+}
+
+.footer {
+  text-align:center;
+  color:#98a2b3;
+  font-size:10px;
+  padding:25px 10px;
+}
+
+@media(max-width:950px) {
+  .stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .modules { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+@media(max-width:650px) {
+  .layout { display:block; }
+  .sidebar {
+    width:100%;
+    padding:12px;
+  }
+  .brand { padding:5px 8px 12px; }
+  .nav-title { margin-top:14px; }
+  .nav-list {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:3px;
+  }
+  .nav-link {
+    padding:10px 8px;
+    font-size:11px;
+  }
+  .sidebar-bottom { margin-top:10px; }
+  .topbar { padding:14px; }
+  .topbar h1 { font-size:16px; }
+  .content { padding:15px; }
+  .welcome { padding:20px; }
+  .welcome h2 { font-size:18px; }
+  .stats { gap:9px; }
+  .stat-card { padding:13px; }
+  .stat-card h3 { font-size:20px; }
+  .modules { grid-template-columns:1fr; }
+  .user-name { max-width:110px; overflow-wrap:anywhere; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="loadingScreen" class="loading">
+  <i class="fas fa-circle-notch fa-spin"></i>
+  <p>Verifying Finance Manager account...</p>
+</div>
+
+<div id="accessError" class="error-box" hidden></div>
+
+<div id="dashboardApp" class="layout" hidden>
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">G</div>
+      <div>
+        <h2>GAAWOW EMS</h2>
+        <small>FINANCE MANAGEMENT</small>
+      </div>
+    </div>
+
+    <div class="nav-title">Finance Workspace</div>
+
+    <div class="nav-list">
+      <button class="nav-link active" data-section="overview">
+        <i class="fas fa-chart-pie"></i> Overview
+      </button>
+
+      <button class="nav-link" data-section="invoices">
+        <i class="fas fa-file-invoice-dollar"></i> Student Invoices
+      </button>
+
+      <button class="nav-link" data-section="payments">
+        <i class="fas fa-money-check-alt"></i> Payments
+      </button>
+
+      <button class="nav-link" data-section="graduation">
+        <i class="fas fa-graduation-cap"></i> Graduation Clearance
+      </button>
+
+      <button class="nav-link" data-section="reports">
+        <i class="fas fa-chart-bar"></i> Financial Reports
+      </button>
+
+      <button class="nav-link" data-section="profile">
+        <i class="fas fa-user-circle"></i> My Profile
+      </button>
+    </div>
+
+    <div class="sidebar-bottom">
+      <button class="nav-link logout-btn" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i> Secure Logout
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <header class="topbar">
+      <div>
+        <h1 id="pageTitle">Finance Overview</h1>
+        <p>GAAWOW Education Management & Verification System</p>
+      </div>
+
+      <div class="user-area">
+        <div>
+          <div class="user-name" id="managerName">Finance Manager</div>
+          <div class="user-role">Finance Manager</div>
+        </div>
+        <div class="avatar" id="managerAvatar">FM</div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <section class="page-section active" id="section-overview">
+
+        <div class="welcome">
+          <h2>Welcome, <span id="welcomeName">Finance Manager</span></h2>
+          <p>
+            Manage institutional financial activities, review payments,
+            and process authorized financial clearances.
+          </p>
+          <div class="institution-line" id="institutionName">
+            Institution: Loading...
+          </div>
+        </div>
+
+        <div class="section-heading">
+          <div>
+            <h2>Financial Overview</h2>
+            <p>Institution financial summary</p>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-icon"><i class="fas fa-file-invoice"></i></span>
+              <span class="stat-note">Invoices</span>
+            </div>
+            <h3>--</h3>
+            <p>Total Invoices</p>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-icon"><i class="fas fa-coins"></i></span>
+              <span class="stat-note">Payments</span>
+            </div>
+            <h3>--</h3>
+            <p>Verified Payments</p>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-icon"><i class="fas fa-clock"></i></span>
+              <span class="stat-note">Pending</span>
+            </div>
+            <h3>--</h3>
+            <p>Pending Verification</p>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-top">
+              <span class="stat-icon"><i class="fas fa-graduation-cap"></i></span>
+              <span class="stat-note">Clearance</span>
+            </div>
+            <h3>--</h3>
+            <p>Graduation Fee Requests</p>
+          </div>
+        </div>
+
+        <div class="section-heading">
+          <div>
+            <h2>Finance Modules</h2>
+            <p>Choose the financial operation you need</p>
+          </div>
+        </div>
+
+        <div class="modules">
+
+          <button class="module" data-section="invoices">
+            <div class="module-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+            <h3>Student Invoices</h3>
+            <p>View student invoices and financial obligations.</p>
+            <span class="module-status">Module workspace</span>
+          </button>
+
+          <button class="module" data-section="payments">
+            <div class="module-icon"><i class="fas fa-money-check-alt"></i></div>
+            <h3>Payments Verification</h3>
+            <p>Review payment records and authorized verification tasks.</p>
+            <span class="module-status">Module workspace</span>
+          </button>
+
+          <button class="module" data-section="graduation">
+            <div class="module-icon"><i class="fas fa-user-graduate"></i></div>
+            <h3>Graduation Fee Clearance</h3>
+            <p>Review graduation fee payment clearance requests.</p>
+            <span class="module-status">Module workspace</span>
+          </button>
+
+          <button class="module" data-section="reports">
+            <div class="module-icon"><i class="fas fa-chart-line"></i></div>
+            <h3>Financial Reports</h3>
+            <p>Access institution financial reporting workspace.</p>
+            <span class="module-status">Module workspace</span>
+          </button>
+
+          <button class="module" data-section="profile">
+            <div class="module-icon"><i class="fas fa-user-cog"></i></div>
+            <h3>My Profile</h3>
+            <p>View your account and assigned institution details.</p>
+            <span class="module-status">Account information</span>
+          </button>
+
+        </div>
+
+        <div class="panel">
+          <h3><i class="fas fa-shield-alt"></i> Financial Security</h3>
+          <div class="notice">
+            <i class="fas fa-info-circle"></i>
+            Financial records and payment verification must be processed
+            through authorized server-side operations. This dashboard does
+            not approve or alter payments until the database workflow is connected.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- INVOICES -->
+      <section class="page-section" id="section-invoices">
+        <div class="section-heading">
+          <div>
+            <h2>Student Invoices</h2>
+            <p>Institution invoice management</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Invoice Workspace</h3>
+          <div class="notice">
+            Invoice data connection is pending database schema verification.
+            No invoice records have been changed.
+          </div>
+        </div>
+      </section>
+
+      <!-- PAYMENTS -->
+      <section class="page-section" id="section-payments">
+        <div class="section-heading">
+          <div>
+            <h2>Payments Verification</h2>
+            <p>Review payment verification workflow</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Payments Workspace</h3>
+          <div class="notice">
+            Payment verification will be connected to the existing secure
+            payment workflow. No payment approval is performed on this page yet.
+          </div>
+        </div>
+      </section>
+
+      <!-- GRADUATION -->
+      <section class="page-section" id="section-graduation">
+        <div class="section-heading">
+          <div>
+            <h2>Graduation Fee Clearance</h2>
+            <p>Finance review for graduation clearance requests</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Graduation Clearance Workspace</h3>
+          <div class="notice">
+            This section will connect to the existing graduation fee clearance
+            process. Finance clearance must only be issued after the required
+            payment has been verified.
+          </div>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section class="page-section" id="section-reports">
+        <div class="section-heading">
+          <div>
+            <h2>Financial Reports</h2>
+            <p>Institution financial reporting</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Reports Workspace</h3>
+          <div class="notice">
+            Reports will be enabled after the existing financial tables and
+            reporting permissions have been verified.
+          </div>
+        </div>
+      </section>
+
+      <!-- PROFILE -->
+      <section class="page-section" id="section-profile">
+        <div class="section-heading">
+          <div>
+            <h2>My Profile</h2>
+            <p>Finance Manager account information</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Account Details</h3>
+          <p><strong>Name:</strong> <span id="profileName">--</span></p>
+          <p><strong>Role:</strong> <span id="profileRole">--</span></p>
+          <p><strong>Institution:</strong> <span id="profileInstitution">--</span></p>
+          <p><strong>Account Status:</strong> <span id="profileStatus">--</span></p>
+          <p><strong>Account ID:</strong> <span id="profileId">--</span></p>
+        </div>
+      </section>
+
+      <div class="footer">
+        GAAWOW ACADEMY | ILAYSKA AQOONTA IYO XIRFADDA
+        <br>GAAWOW EMS Finance Management System
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="finance-dashboard.js?v=20261118-1"></script>
+
+</body>
+</html>
