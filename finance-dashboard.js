@@ -4,21 +4,22 @@
 /* =========================================================
    GAAWOW EMS - FINANCE MANAGER DASHBOARD
    Secure institution-based access
-   Read-only invoices and payments
+   Payment verification through review-payment Edge Function
    ========================================================= */
 
 (() => {
-  // 1. SUPABASE CONFIGURATION
   const SUPABASE_URL =
     "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
   const SUPABASE_KEY =
     "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-  // 2. CHECK SUPABASE LIBRARY
+  const REVIEW_FUNCTION = "review-payment";
+  const PAGE_SIZE = 100;
+
   if (!window.supabase) {
     showStartupError(
-      "Supabase library lama helin. Fadlan hubi internet-ka iyo Supabase script."
+      "Supabase library lama helin. Hubi internet-ka iyo Supabase script."
     );
     return;
   }
@@ -28,16 +29,17 @@
     SUPABASE_KEY
   );
 
-  // 3. APPLICATION STATE
   let currentUser = null;
   let currentProfile = null;
   let currentInstitution = null;
-
-  const PAGE_SIZE = 100;
+  let reviewInProgress = new Set();
 
   const $ = (id) => document.getElementById(id);
 
-  // 4. GENERAL HELPERS
+  // ---------------------------------------------------------
+  // GENERAL HELPERS
+  // ---------------------------------------------------------
+
   function showStartupError(message) {
     const loading = $("loadingScreen");
     const error = $("accessError");
@@ -84,9 +86,7 @@
 
     const date = new Date(value);
 
-    if (Number.isNaN(date.getTime())) {
-      return "—";
-    }
+    if (Number.isNaN(date.getTime())) return "—";
 
     return date.toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -125,6 +125,7 @@
 
   function hideMessage(id) {
     const element = $(id);
+
     if (element) {
       element.hidden = true;
       element.style.display = "none";
@@ -138,7 +139,6 @@
     );
   }
 
-  // 5. SHOW DASHBOARD
   function showDashboard() {
     const loading = $("loadingScreen");
     const app = $("dashboardApp");
@@ -149,7 +149,10 @@
     if (app) app.hidden = false;
   }
 
-  // 6. LOAD AND VERIFY ACCOUNT
+  // ---------------------------------------------------------
+  // AUTHENTICATION AND PROFILE VERIFICATION
+  // ---------------------------------------------------------
+
   async function initializeDashboard() {
     try {
       const {
@@ -198,12 +201,10 @@
       displayProfile();
       setupNavigation();
       setupLogout();
+      setupPaymentReview();
 
-      // Muhiim: Dashboard-ka muuji marka account-ka la xaqiijiyo.
-      // Ha sugin in dhammaan xogta tables-ka ay soo degto.
       showDashboard();
 
-      // Xogta dhaqaale si gooni ah u soo qaad.
       await loadDashboardData();
 
     } catch (error) {
@@ -211,12 +212,15 @@
 
       showStartupError(
         "Dashboard lama furi karin: " +
-        (error.message || "Fadlan hubi internet-ka iyo account-ka.")
+        (error.message || "Hubi internet-ka iyo account-ka.")
       );
     }
   }
 
-  // 7. LOAD ASSIGNED INSTITUTION
+  // ---------------------------------------------------------
+  // INSTITUTION
+  // ---------------------------------------------------------
+
   async function loadInstitution() {
     const { data, error } = await db
       .from("institutions")
@@ -233,13 +237,13 @@
     currentInstitution = data;
   }
 
-  // 8. DISPLAY PROFILE
-  function displayProfile() {
-    const name =
-      currentProfile.full_name || "Finance Manager";
+  // ---------------------------------------------------------
+  // PROFILE DISPLAY
+  // ---------------------------------------------------------
 
-    const institution =
-      currentInstitution?.name || "—";
+  function displayProfile() {
+    const name = currentProfile.full_name || "Finance Manager";
+    const institution = currentInstitution?.name || "—";
 
     setText("managerName", name);
     setText("welcomeName", name);
@@ -266,7 +270,10 @@
     }
   }
 
-  // 9. LOAD DASHBOARD DATA
+  // ---------------------------------------------------------
+  // DASHBOARD DATA
+  // ---------------------------------------------------------
+
   async function loadDashboardData() {
     setText("totalInvoices", "...");
     setText("verifiedPayments", "...");
@@ -280,20 +287,14 @@
       loadPaymentRecords()
     ]);
 
-    // Graduation count lama xisaabinayo ilaa schema-ga
-    // graduation requests si buuxda loo xaqiijiyo.
     setText("graduationRequests", "--");
   }
 
-  // 10. INVOICE COUNT
   async function loadInvoiceStatistics() {
     try {
       const { count, error } = await db
         .from("invoices")
-        .select("id", {
-          count: "exact",
-          head: true
-        })
+        .select("id", { count: "exact", head: true })
         .eq("institution_id", currentProfile.institution_id);
 
       if (error) throw error;
@@ -306,47 +307,28 @@
     }
   }
 
-  // 11. PAYMENT COUNTS
   async function loadPaymentStatistics() {
     try {
       const [successfulResult, pendingResult] =
         await Promise.all([
           db
             .from("payments")
-            .select("id", {
-              count: "exact",
-              head: true
-            })
+            .select("id", { count: "exact", head: true })
             .eq("institution_id", currentProfile.institution_id)
             .eq("status", "successful"),
 
           db
             .from("payments")
-            .select("id", {
-              count: "exact",
-              head: true
-            })
+            .select("id", { count: "exact", head: true })
             .eq("institution_id", currentProfile.institution_id)
             .eq("status", "pending")
         ]);
 
-      if (successfulResult.error) {
-        throw successfulResult.error;
-      }
+      if (successfulResult.error) throw successfulResult.error;
+      if (pendingResult.error) throw pendingResult.error;
 
-      if (pendingResult.error) {
-        throw pendingResult.error;
-      }
-
-      setText(
-        "verifiedPayments",
-        successfulResult.count ?? 0
-      );
-
-      setText(
-        "pendingPayments",
-        pendingResult.count ?? 0
-      );
+      setText("verifiedPayments", successfulResult.count ?? 0);
+      setText("pendingPayments", pendingResult.count ?? 0);
 
     } catch (error) {
       logError("Payment statistics", error);
@@ -355,8 +337,10 @@
     }
   }
 
-  // 12. TABLE BODY RENDERER
-  // HTML IDs invoiceTable/paymentTable waxay saaran yihiin TBODY.
+  // ---------------------------------------------------------
+  // TABLE RENDERER
+  // ---------------------------------------------------------
+
   function renderTableBody(tbodyId, rows, columnCount) {
     const tbody = $(tbodyId);
 
@@ -379,7 +363,10 @@
     tbody.innerHTML = rows.join("");
   }
 
-  // 13. LOAD INVOICES
+  // ---------------------------------------------------------
+  // INVOICE RECORDS
+  // ---------------------------------------------------------
+
   async function loadInvoiceRecords() {
     showMessage("invoiceMessage", "Loading invoice records...");
 
@@ -415,11 +402,9 @@
 
         return `
           <tr>
-            <td>
-              ${escapeHTML(
-                invoice.invoice_number || shortReference(invoice.id)
-              )}
-            </td>
+            <td>${escapeHTML(
+              invoice.invoice_number || shortReference(invoice.id)
+            )}</td>
             <td title="${escapeHTML(invoice.student_id || "")}">
               ${escapeHTML(shortReference(invoice.student_id))}
             </td>
@@ -452,7 +437,7 @@
 
       showMessage(
         "invoiceMessage",
-        "Invoice records lama soo qaadi karin. Fadlan hubi database permissions ama RLS.",
+        "Invoice records lama soo qaadi karin. Hubi database permissions ama RLS.",
         "error"
       );
 
@@ -460,7 +445,10 @@
     }
   }
 
-  // 14. LOAD PAYMENTS
+  // ---------------------------------------------------------
+  // PAYMENT RECORDS
+  // ---------------------------------------------------------
+
   async function loadPaymentRecords() {
     showMessage("paymentMessage", "Loading payment records...");
 
@@ -497,8 +485,31 @@
           payment.transaction_reference ||
           shortReference(payment.id);
 
-        const paymentDate =
-          payment.paid_at || payment.created_at;
+        const paymentDate = payment.paid_at || payment.created_at;
+
+        const actionCell = payment.status === "pending"
+          ? `
+            <button
+              type="button"
+              class="verify-payment-btn"
+              data-review-payment="${escapeHTML(payment.id)}"
+              data-payment-reference="${escapeHTML(payment.payment_reference || "")}"
+              data-payment-amount="${escapeHTML(payment.amount)}"
+              data-payment-currency="${escapeHTML(payment.currency || "USD")}"
+              data-payment-method="${escapeHTML(payment.payment_method || "—")}"
+            >
+              <i class="fas fa-check-circle"></i>
+              Verify Payment
+            </button>
+          `
+          : payment.status === "successful"
+            ? `
+              <span class="receipt-label">
+                <i class="fas fa-receipt"></i>
+                ${escapeHTML(payment.receipt_number || "Verified")}
+              </span>
+            `
+            : `<span class="action-muted">No action</span>`;
 
         return `
           <tr>
@@ -506,11 +517,9 @@
             <td title="${escapeHTML(payment.student_id || "")}">
               ${escapeHTML(shortReference(payment.student_id))}
             </td>
-            <td>
-              ${escapeHTML(
-                formatMoney(payment.amount, payment.currency || "USD")
-              )}
-            </td>
+            <td>${escapeHTML(
+              formatMoney(payment.amount, payment.currency || "USD")
+            )}</td>
             <td>${escapeHTML(payment.payment_method || "—")}</td>
             <td>
               <span class="status-badge ${statusClass(payment.status)}">
@@ -518,11 +527,12 @@
               </span>
             </td>
             <td>${escapeHTML(formatDate(paymentDate))}</td>
+            <td>${actionCell}</td>
           </tr>
         `;
       });
 
-      renderTableBody("paymentTable", rows, 6);
+      renderTableBody("paymentTable", rows, 7);
 
       if (payments.length === 0) {
         showMessage(
@@ -538,15 +548,146 @@
 
       showMessage(
         "paymentMessage",
-        "Payment records lama soo qaadi karin. Fadlan hubi database permissions ama RLS.",
+        "Payment records lama soo qaadi karin. Hubi database permissions ama RLS.",
         "error"
       );
 
-      renderTableBody("paymentTable", [], 6);
+      renderTableBody("paymentTable", [], 7);
     }
   }
 
-  // 15. NAVIGATION
+  // ---------------------------------------------------------
+  // SECURE PAYMENT REVIEW
+  // Calls the deployed review-payment Edge Function.
+  // Does not update payment status directly from browser.
+  // ---------------------------------------------------------
+
+  function setupPaymentReview() {
+    const table = $("paymentTable");
+
+    if (!table) {
+      console.warn("paymentTable lama helin.");
+      return;
+    }
+
+    table.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-review-payment]");
+
+      if (!button) return;
+
+      const paymentId = button.dataset.reviewPayment;
+      const reference = button.dataset.paymentReference || paymentId;
+      const amount = button.dataset.paymentAmount;
+      const currency = button.dataset.paymentCurrency || "USD";
+      const method = button.dataset.paymentMethod || "—";
+
+      if (!paymentId || reviewInProgress.has(paymentId)) return;
+
+      const confirmed = window.confirm(
+        "MA HUBTAA IN LACAGTU SOO DHACDAY?\n\n" +
+        "Payment Reference: " + reference + "\n" +
+        "Amount: " + formatMoney(amount, currency) + "\n" +
+        "Method: " + method + "\n\n" +
+        "Haddii aad xaqiijisay lacagta, dooro OK si loo ansixiyo.\n" +
+        "Ansixinta waxay soo saaraysaa receipt rasmi ah."
+      );
+
+      if (!confirmed) return;
+
+      reviewInProgress.add(paymentId);
+      button.disabled = true;
+      button.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+
+      try {
+        // Ensure the authenticated session still exists.
+        const {
+          data: { session },
+          error: sessionError
+        } = await db.auth.getSession();
+
+        if (sessionError) throw sessionError;
+
+        if (!session) {
+          throw new Error("Session-kaagu wuu dhammaaday. Dib u gal.");
+        }
+
+        const { data, error } = await db.functions.invoke(
+          REVIEW_FUNCTION,
+          {
+            body: {
+              payment_id: paymentId,
+              status: "successful",
+              review_note: "Verified by Finance Manager after confirming receipt of funds."
+            }
+          }
+        );
+
+        if (error) {
+          let detail = error.message || "Edge Function error";
+
+          if (error.context && typeof error.context.json === "function") {
+            try {
+              const body = await error.context.json();
+              detail = body.error || body.message || detail;
+            } catch {
+              // Keep the original error message.
+            }
+          }
+
+          throw new Error(detail);
+        }
+
+        if (!data || data.success !== true) {
+          throw new Error(
+            data?.error ||
+            data?.message ||
+            "Payment review lama xaqiijin. Hubi Edge Function response."
+          );
+        }
+
+        const receiptNumber =
+          data.receipt_number ||
+          data.payment?.receipt_number ||
+          data.review?.receipt_number ||
+          data.data?.receipt_number ||
+          null;
+
+        window.alert(
+          "PAYMENT SI GUUL LEH AYAA LOO ANSIXIYAY.\n\n" +
+          "Reference: " + reference + "\n" +
+          "Receipt: " + (receiptNumber || "Ka hubi payment records") +
+          "\n\nInvoice iyo receipt-ka hadda dib ayaa loo cusboonaysiinayaa."
+        );
+
+        await loadDashboardData();
+
+      } catch (error) {
+        logError("Payment verification", error);
+
+        window.alert(
+          "PAYMENT LAMA ANSIXIN.\n\n" +
+          (error.message || "Khalad aan la aqoon ayaa dhacay.") +
+          "\n\nFadlan hubi Edge Function logs ka hor intaadan mar kale isku dayin."
+        );
+
+        // Refresh from database to avoid showing stale status.
+        await Promise.allSettled([
+          loadPaymentStatistics(),
+          loadPaymentRecords(),
+          loadInvoiceRecords()
+        ]);
+
+      } finally {
+        reviewInProgress.delete(paymentId);
+      }
+    });
+  }
+
+  // ---------------------------------------------------------
+  // NAVIGATION
+  // ---------------------------------------------------------
+
   function setupNavigation() {
     const pageTitles = {
       overview: "Finance Overview",
@@ -595,7 +736,10 @@
     });
   }
 
-  // 16. LOGOUT
+  // ---------------------------------------------------------
+  // LOGOUT
+  // ---------------------------------------------------------
+
   function setupLogout() {
     const logoutButton = $("logoutBtn");
 
@@ -622,14 +766,20 @@
     });
   }
 
-  // 17. AUTH SESSION LISTENER
+  // ---------------------------------------------------------
+  // AUTH SESSION LISTENER
+  // ---------------------------------------------------------
+
   db.auth.onAuthStateChange((event) => {
     if (event === "SIGNED_OUT") {
       window.location.replace("index.html");
     }
   });
 
-  // 18. START APPLICATION
+  // ---------------------------------------------------------
+  // START
+  // ---------------------------------------------------------
+
   if (document.readyState === "loading") {
     document.addEventListener(
       "DOMContentLoaded",
