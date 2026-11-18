@@ -1,8 +1,14 @@
-<!DOCTYPE html><html lang="en">
+
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0B1E63"><link rel="manifest" href="./manifest.json"><title>GAAWOW EMS | School Admin Dashboard</title><style>
+<meta name="theme-color" content="#0B1E63">
+<link rel="manifest" href="./manifest.json">
+<title>GAAWOW EMS | School Admin Dashboard</title>
+
+<style>
 :root{
   --navy:#0B1E63;
   --blue:#0B4DA2;
@@ -11,16 +17,13 @@
   --text:#17233F;
   --muted:#64748B;
 }
-
 *{box-sizing:border-box}
-
 body{
   margin:0;
   background:var(--bg);
   color:var(--text);
   font-family:Arial,sans-serif;
 }
-
 header{
   background:linear-gradient(120deg,var(--navy),var(--blue));
   color:white;
@@ -30,354 +33,243 @@ header{
   align-items:center;
   gap:12px;
 }
-
-.brand{
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-
+.brand{display:flex;align-items:center;gap:12px}
 .brand img{
-  width:52px;
-  height:52px;
-  object-fit:contain;
-  background:white;
-  border-radius:10px;
-  padding:4px;
+  width:52px;height:52px;object-fit:contain;
+  background:white;border-radius:10px;padding:4px;
 }
-
 .brand h1{font-size:18px;margin:0 0 5px}
 .brand p{font-size:11px;margin:0;opacity:.85}
-
 header button{
-  background:#ffffff18;
-  border:1px solid #ffffff66;
-  color:white;
-  padding:10px 14px;
-  border-radius:8px;
-  cursor:pointer;
+  background:#ffffff18;border:1px solid #ffffff66;
+  color:white;padding:10px 14px;border-radius:8px;cursor:pointer;
 }
-
-.container{
-  max-width:1400px;
-  margin:25px auto;
-  padding:0 16px;
-}
-
+.container{max-width:1400px;margin:25px auto;padding:0 16px}
 .welcome{
-  background:white;
-  padding:23px;
-  border-radius:14px;
-  border:1px solid #e5eaf3;
-  margin-bottom:20px;
+  background:white;padding:23px;border-radius:14px;
+  border:1px solid #e5eaf3;margin-bottom:20px;
 }
-
-.welcome h2{
-  color:var(--navy);
-  margin:0 0 8px;
-}
-
-.welcome p{
-  color:var(--muted);
-  font-size:13px;
-  margin:5px 0;
-}
-
-.school-info{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin-top:15px;
-}
-
+.welcome h2{color:var(--navy);margin:0 0 8px}
+.welcome p{color:var(--muted);font-size:13px;margin:5px 0}
+.school-info{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
 .info-badge{
-  background:#eaf1ff;
-  color:var(--blue);
-  padding:8px 12px;
-  border-radius:20px;
-  font-size:11px;
-  font-weight:bold;
+  background:#eaf1ff;color:var(--blue);padding:8px 12px;
+  border-radius:20px;font-size:11px;font-weight:bold;
 }
-
 .section-title{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin:25px 0 15px;
-  gap:10px;
+  display:flex;justify-content:space-between;align-items:center;
+  margin:25px 0 15px;gap:10px;
 }
-
-.section-title h2{
-  color:var(--navy);
-  font-size:19px;
-}
-
+.section-title h2{color:var(--navy);font-size:19px}
 .module-count{
-  background:#eaf1ff;
-  color:var(--blue);
-  padding:8px 12px;
-  border-radius:20px;
-  font-size:11px;
-  font-weight:bold;
+  background:#eaf1ff;color:var(--blue);padding:8px 12px;
+  border-radius:20px;font-size:11px;font-weight:bold;
 }
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:14px;
-}
-
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .card{
-  background:white;
-  border:1px solid #e5eaf3;
-  border-radius:13px;
-  padding:17px;
-  display:flex;
-  gap:12px;
-  text-decoration:none;
-  color:var(--text);
-  min-height:105px;
-  transition:.2s;
+  background:white;border:1px solid #e5eaf3;border-radius:13px;
+  padding:17px;display:flex;gap:12px;text-decoration:none;
+  color:var(--text);min-height:105px;transition:.2s;
 }
-
 .card:hover{
-  transform:translateY(-3px);
-  border-color:#b8c9ec;
+  transform:translateY(-3px);border-color:#b8c9ec;
   box-shadow:0 8px 20px #10265012;
 }
-
 .icon{
-  width:42px;
-  height:42px;
-  flex-shrink:0;
-  border-radius:11px;
-  background:#edf3ff;
-  display:grid;
-  place-items:center;
-  font-size:21px;
+  width:42px;height:42px;flex-shrink:0;border-radius:11px;
+  background:#edf3ff;display:grid;place-items:center;font-size:21px;
 }
-
-.card h3{
-  color:var(--navy);
-  font-size:13px;
-  margin:3px 0 7px;
-}
-
-.card p{
-  color:var(--muted);
-  font-size:11px;
-  line-height:1.5;
-  margin:0;
-}
-
+.card h3{color:var(--navy);font-size:13px;margin:3px 0 7px}
+.card p{color:var(--muted);font-size:11px;line-height:1.5;margin:0}
+.finance-card{border-top:4px solid var(--gold)}
+.finance-card .icon{background:#fff5d6}
+.finance-card:hover{border-color:var(--gold)}
 .notice{
-  display:none;
-  padding:12px;
-  margin:15px 0;
-  border-radius:8px;
-  font-size:12px;
+  display:none;padding:12px;margin:15px 0;border-radius:8px;font-size:12px;
 }
-
 .notice.show{display:block}
 .notice.error{background:#fff0f0;color:#a32323}
 .notice.info{background:#eaf1ff;color:#17468d}
-
-footer{
-  text-align:center;
-  color:#8290a7;
-  padding:25px;
-  font-size:11px;
-}
-
-@media(max-width:1000px){
-  .grid{grid-template-columns:repeat(3,1fr)}
-}
-
+footer{text-align:center;color:#8290a7;padding:25px;font-size:11px}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:650px){
   .grid{grid-template-columns:repeat(2,1fr)}
   header{padding:12px}
   .brand img{width:43px;height:43px}
   .brand h1{font-size:15px}
 }
+@media(max-width:420px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
 
-@media(max-width:420px){
-  .grid{grid-template-columns:1fr}
-}
-</style></head><body><header>
+<body>
+<header>
   <div class="brand">
-    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-         alt="GAAWOW Academy Logo">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy Logo">
     <div>
       <h1>GAAWOW EMS</h1>
       <p>School Management Dashboard</p>
     </div>
-  </div><button id="logoutBtn" type="button">Logout</button>
+  </div>
+  <button id="logoutBtn" type="button">Logout</button>
+</header>
 
-</header><main class="container">  <section class="welcome">
+<main class="container">
+  <section class="welcome">
     <h2>School Admin Dashboard</h2>
     <p>Welcome, <strong id="adminName">Loading...</strong></p>
-    <p>Manage your institution's academic activities.</p><div class="school-info">
-  <span class="info-badge" id="schoolName">
-    Loading Institution...
-  </span>
-  <span class="info-badge">SCHOOL ADMIN</span>
-</div>
+    <p>Manage your institution's academic activities.</p>
+    <div class="school-info">
+      <span class="info-badge" id="schoolName">Loading Institution...</span>
+      <span class="info-badge">SCHOOL ADMIN</span>
+    </div>
+  </section>
 
-  </section>  <div id="dashboardNotice" class="notice" role="status"></div>  <div class="section-title">
+  <div id="dashboardNotice" class="notice" role="status"></div>
+
+  <div class="section-title">
     <h2>Institution Management</h2>
     <span class="module-count">School Modules</span>
-  </div>  <section class="grid"><a class="card" href="students.html">
-  <span class="icon">🎓</span>
-  <div>
-    <h3>Students</h3>
-    <p>Manage your institution's students.</p>
   </div>
-</a>
 
-<a class="card" href="parents.html">
-  <span class="icon">👨‍👩‍👧</span>
-  <div>
-    <h3>Parents</h3>
-    <p>Manage student parents and guardians.</p>
+  <section class="grid">
+    <a class="card" href="students.html">
+      <span class="icon">🎓</span>
+      <div><h3>Students</h3><p>Manage your institution's students.</p></div>
+    </a>
+
+    <a class="card" href="parents.html">
+      <span class="icon">👨‍👩‍👧</span>
+      <div><h3>Parents</h3><p>Manage student parents and guardians.</p></div>
+    </a>
+
+    <a class="card" href="teacher.html">
+      <span class="icon">👩‍🏫</span>
+      <div><h3>Teachers</h3><p>Manage teachers and assignments.</p></div>
+    </a>
+
+    <a class="card" href="departments.html">
+      <span class="icon">🏢</span>
+      <div><h3>Departments</h3><p>Manage academic departments.</p></div>
+    </a>
+
+    <a class="card" href="courses.html">
+      <span class="icon">📚</span>
+      <div><h3>Courses</h3><p>Manage institution courses.</p></div>
+    </a>
+
+    <a class="card" href="classes.html">
+      <span class="icon">🏛️</span>
+      <div><h3>Classes</h3><p>Manage classes and groups.</p></div>
+    </a>
+
+    <a class="card" href="enrollment.html">
+      <span class="icon">📝</span>
+      <div><h3>Enrollment</h3><p>Manage student enrollment.</p></div>
+    </a>
+
+    <a class="card" href="lessons.html">
+      <span class="icon">📖</span>
+      <div><h3>Lessons</h3><p>Manage academic lessons.</p></div>
+    </a>
+
+    <a class="card" href="subjects.html">
+      <span class="icon">🧬</span>
+      <div><h3>Subjects</h3><p>Manage academic subjects.</p></div>
+    </a>
+
+    <a class="card" href="exams.html">
+      <span class="icon">🧪</span>
+      <div><h3>Exams</h3><p>Prepare and manage examinations.</p></div>
+    </a>
+
+    <a class="card" href="grades.html">
+      <span class="icon">📊</span>
+      <div><h3>Grades</h3><p>Manage student examination results.</p></div>
+    </a>
+
+    <a class="card" href="attendance.html">
+      <span class="icon">📅</span>
+      <div><h3>Attendance</h3><p>Manage student attendance.</p></div>
+    </a>
+
+    <a class="card" href="certificates.html">
+      <span class="icon">📜</span>
+      <div><h3>Certificates</h3><p>Manage student certificates.</p></div>
+    </a>
+
+    <a class="card" href="authentication-letter.html">
+      <span class="icon">✉️</span>
+      <div><h3>Authentication Letters</h3><p>Issue student authentication letters.</p></div>
+    </a>
+
+    <a class="card" href="reports.html">
+      <span class="icon">📈</span>
+      <div><h3>Reports</h3><p>View institutional reports.</p></div>
+    </a>
+
+    <a class="card" href="notifications.html">
+      <span class="icon">🔔</span>
+      <div><h3>Notifications</h3><p>View institutional notifications.</p></div>
+    </a>
+  </section>
+
+  <!-- FINANCE MANAGEMENT -->
+  <div class="section-title">
+    <h2>Finance Management</h2>
+    <span class="module-count">Financial Modules</span>
   </div>
-</a>
 
-<a class="card" href="teacher.html">
-  <span class="icon">👩‍🏫</span>
-  <div>
-    <h3>Teachers</h3>
-    <p>Manage teachers and assignments.</p>
-  </div>
-</a>
+  <section class="grid">
+    <a class="card finance-card" href="financial.html">
+      <span class="icon">💰</span>
+      <div>
+        <h3>Financial Management</h3>
+        <p>Manage institutional invoices, payments, receipts and financial records.</p>
+      </div>
+    </a>
 
-<a class="card" href="departments.html">
-  <span class="icon">🏢</span>
-  <div>
-    <h3>Departments</h3>
-    <p>Manage academic departments.</p>
-  </div>
-</a>
+    <a class="card finance-card" href="invoices.html">
+      <span class="icon">🧾</span>
+      <div>
+        <h3>Invoice Management</h3>
+        <p>Create, review and manage student invoices and outstanding balances.</p>
+      </div>
+    </a>
 
-<a class="card" href="courses.html">
-  <span class="icon">📚</span>
-  <div>
-    <h3>Courses</h3>
-    <p>Manage institution courses.</p>
-  </div>
-</a>
+    <a class="card finance-card" href="payments.html">
+      <span class="icon">💳</span>
+      <div>
+        <h3>Payments &amp; Receipts</h3>
+        <p>Review payment records and access payment receipts.</p>
+      </div>
+    </a>
+  </section>
+</main>
 
-<a class="card" href="classes.html">
-  <span class="icon">🏛️</span>
-  <div>
-    <h3>Classes</h3>
-    <p>Manage classes and groups.</p>
-  </div>
-</a>
-
-<a class="card" href="enrollment.html">
-  <span class="icon">📝</span>
-  <div>
-    <h3>Enrollment</h3>
-    <p>Manage student enrollment.</p>
-  </div>
-</a>
-
-<a class="card" href="lessons.html">
-  <span class="icon">📖</span>
-  <div>
-    <h3>Lessons</h3>
-    <p>Manage academic lessons.</p>
-  </div>
-</a>
-
-<a class="card" href="subjects.html">
-  <span class="icon">🧬</span>
-  <div>
-    <h3>Subjects</h3>
-    <p>Manage academic subjects.</p>
-  </div>
-</a>
-
-<a class="card" href="exams.html">
-  <span class="icon">🧪</span>
-  <div>
-    <h3>Exams</h3>
-    <p>Prepare and manage examinations.</p>
-  </div>
-</a>
-
-<a class="card" href="grades.html">
-  <span class="icon">📊</span>
-  <div>
-    <h3>Grades</h3>
-    <p>Manage student examination results.</p>
-  </div>
-</a>
-
-<a class="card" href="attendance.html">
-  <span class="icon">📅</span>
-  <div>
-    <h3>Attendance</h3>
-    <p>Manage student attendance.</p>
-  </div>
-</a>
-
-<a class="card" href="certificates.html">
-  <span class="icon">📜</span>
-  <div>
-    <h3>Certificates</h3>
-    <p>Manage student certificates.</p>
-  </div>
-</a>
-
-<a class="card" href="authentication-letter.html">
-  <span class="icon">✉️</span>
-  <div>
-    <h3>Authentication Letters</h3>
-    <p>Issue student authentication letters.</p>
-  </div>
-</a>
-
-<a class="card" href="reports.html">
-  <span class="icon">📈</span>
-  <div>
-    <h3>Reports</h3>
-    <p>View institutional reports.</p>
-  </div>
-</a>
-
-<a class="card" href="notifications.html">
-  <span class="icon">🔔</span>
-  <div>
-    <h3>Notifications</h3>
-    <p>View institutional notifications.</p>
-  </div>
-</a>
-
-  </section></main><footer>
+<footer>
   GAAWOW Academy · Ilayska Aqoonta iyo Xirfadda
-</footer><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="./school-dashboard.js?v=20261103"></script><script>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./school-dashboard.js?v=20261103"></script>
+
+<script>
 (function () {
   "use strict";
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
-      navigator.serviceWorker
-        .register("./service-worker.js")
+      navigator.serviceWorker.register("./service-worker.js")
         .then(function (registration) {
-          console.log(
-            "GAAWOW EMS PWA registered:",
-            registration.scope
-          );
+          console.log("GAAWOW EMS PWA registered:", registration.scope);
         })
         .catch(function (error) {
-          console.error(
-            "GAAWOW EMS PWA registration failed:",
-            error
-          );
+          console.error("GAAWOW EMS PWA registration failed:", error);
         });
     });
   }
 })();
-</script></body>
+</script>
+</body>
 </html>
