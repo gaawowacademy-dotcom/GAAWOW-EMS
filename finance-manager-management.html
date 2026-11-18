@@ -1,0 +1,219 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Manager Management | GAAWOW EMS</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --navy:#0B1E63;
+  --blue:#0B4DA2;
+  --gold:#D4AF37;
+  --bg:#F5F7FA;
+  --white:#fff;
+  --green:#16834a;
+  --red:#c62828;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:#202b40;
+  font-family:Arial,sans-serif;
+}
+header{
+  background:linear-gradient(120deg,var(--navy),var(--blue));
+  color:white;padding:22px 18px;
+}
+.header-inner{max-width:1150px;margin:auto}
+header h2{margin:0 0 6px;font-size:22px}
+header p{margin:0;color:#e0e8ff;font-size:13px}
+.container{max-width:1150px;margin:25px auto;padding:0 15px}
+.panel{
+  background:white;border-radius:12px;padding:20px;
+  margin-bottom:20px;box-shadow:0 3px 14px #10205012;
+}
+.panel h3{margin:0 0 18px;color:var(--navy)}
+.grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:15px;
+}
+.field label{
+  display:block;font-size:13px;font-weight:bold;margin-bottom:7px;
+}
+.field input,.field select{
+  width:100%;padding:12px;border:1px solid #d5dbea;
+  border-radius:7px;background:white;font-size:14px;
+}
+.full{grid-column:1/-1}
+button{
+  border:0;border-radius:7px;padding:11px 16px;
+  cursor:pointer;font-weight:bold;font-size:13px;
+}
+.primary{background:var(--navy);color:white}
+.gold{background:var(--gold);color:#17213b}
+.green{background:var(--green);color:white}
+.red{background:var(--red);color:white}
+.gray{background:#e8edf5;color:var(--navy)}
+button:disabled{opacity:.55;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.message{
+  display:none;padding:12px;border-radius:7px;
+  margin:15px 0;font-size:13px;overflow-wrap:anywhere;
+}
+.success{display:block;background:#e6f5eb;color:#126638}
+.error{display:block;background:#fdeaea;color:#a51e1e}
+.notice{
+  background:#fff8e5;padding:12px;border-radius:7px;
+  font-size:13px;line-height:1.6;margin-bottom:15px;
+}
+.password-result{
+  display:none;background:#eef4ff;border:1px solid #b8cafa;
+  border-radius:9px;padding:15px;margin-top:15px;
+}
+.password-result code{
+  display:block;word-break:break-all;
+  padding:10px;background:white;border-radius:5px;margin:8px 0;
+}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:680px}
+th,td{
+  text-align:left;padding:12px;
+  border-bottom:1px solid #e8edf3;font-size:13px;
+}
+th{background:#f1f4fa;color:var(--navy)}
+.status{font-weight:bold}
+.active{color:var(--green)}
+.inactive{color:var(--red)}
+#loading{text-align:center;padding:15px;color:#667}
+.empty{text-align:center;padding:25px;color:#778}
+@media(max-width:650px){
+ .grid{grid-template-columns:1fr}
+ .full{grid-column:auto}
+ .panel{padding:15px}
+ header h2{font-size:19px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+ <div class="header-inner">
+  <h2>GAAWOW EMS</h2>
+  <p>Finance Manager Management | Super Admin & School Admin</p>
+ </div>
+</header>
+
+<main class="container">
+
+ <div id="pageMessage" class="message"></div>
+
+ <section class="panel">
+  <h3>Create Finance Manager</h3>
+
+  <div class="notice">
+   <strong>Security:</strong>
+   Super Admin can assign Finance Managers to any active institution.
+   School Admin can create and manage Finance Managers only within
+   their own institution.
+  </div>
+
+  <form id="createForm">
+   <div class="grid">
+
+    <div class="field">
+     <label for="full_name">Full Name *</label>
+     <input id="full_name" type="text" required maxlength="120"
+     placeholder="Finance Manager full name">
+    </div>
+
+    <div class="field">
+     <label for="email">Email Address *</label>
+     <input id="email" type="email" required
+     placeholder="manager@example.com">
+    </div>
+
+    <div class="field">
+     <label for="phone">Phone Number</label>
+     <input id="phone" type="tel" maxlength="30"
+     placeholder="Phone number">
+    </div>
+
+    <div class="field">
+     <label for="institution_id">Select Institution *</label>
+     <select id="institution_id" required>
+      <option value="">Loading institutions...</option>
+     </select>
+    </div>
+
+    <div class="field full">
+     <label for="password">Temporary Password *</label>
+     <input id="password" type="password" minlength="8"
+     autocomplete="new-password" required
+     placeholder="Enter a strong temporary password">
+    </div>
+
+    <div class="full">
+     <button class="primary" id="createBtn" type="submit">
+      + Create Finance Manager
+     </button>
+    </div>
+   </div>
+  </form>
+
+  <div id="createMessage" class="message"></div>
+
+  <div id="passwordResult" class="password-result">
+   <strong>Account created successfully</strong>
+   <p>Temporary password:</p>
+   <code id="generatedPassword"></code>
+   <div class="actions">
+    <button type="button" class="gold" id="copyPassword">
+     Copy Password
+    </button>
+   </div>
+   <p style="font-size:12px;color:#52617c">
+    Save this password securely. It will not be displayed again
+    after leaving this page.
+   </p>
+  </div>
+ </section>
+
+ <section class="panel">
+  <h3>Finance Managers</h3>
+
+  <div class="actions" style="margin-bottom:15px">
+   <button class="gray" id="refreshBtn" type="button">
+    ↻ Refresh List
+   </button>
+  </div>
+
+  <div id="listMessage" class="message"></div>
+  <div id="loading">Loading Finance Managers...</div>
+
+  <div class="table-wrap">
+   <table>
+    <thead>
+     <tr>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Phone</th>
+      <th>Institution</th>
+      <th>Status</th>
+      <th>Actions</th>
+     </tr>
+    </thead>
+    <tbody id="managerTable"></tbody>
+   </table>
+  </div>
+ </section>
+
+</main>
+
+<script src="finance-manager.js?v=20261118-2"></script>
+
+</body>
+</html>
