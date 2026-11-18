@@ -1,10 +1,11 @@
+
 "use strict";
 
 /* =========================================================
-   GAAWOW EMS — SECURE LOGIN V9
+   GAAWOW EMS — SECURE LOGIN V10
    Single System Login
    Supabase Auth + profiles.role
-   No dependency on Teacher Login HTML elements
+   Supports all six system roles
    ========================================================= */
 
 (() => {
@@ -16,13 +17,15 @@
 
   const CLIENT_KEY = "gaawowEMSLoginClient";
 
-  const ROLE_ROUTES = {
+  // ROLE-BASED DASHBOARD ROUTING
+  const ROLE_ROUTES = Object.freeze({
     super_admin: "dashboard.html",
     school_admin: "school-dashboard.html",
     teacher: "teacher-portal.html",
     parent: "parent.html",
-    student: "student.html"
-  };
+    student: "student.html",
+    finance_manager: "finance-dashboard.html"
+  });
 
   let supabaseClient = null;
   let isSubmitting = false;
@@ -66,7 +69,8 @@
     box.style.borderRadius = "8px";
     box.style.fontSize = "14px";
     box.style.lineHeight = "1.5";
-    box.style.color = type === "success" ? "#155724" : "#842029";
+    box.style.color =
+      type === "success" ? "#155724" : "#842029";
     box.style.background =
       type === "success" ? "#d4edda" : "#f8d7da";
     box.style.border =
@@ -136,13 +140,11 @@
       !SUPABASE_URL.startsWith("https://") ||
       !SUPABASE_KEY
     ) {
-      throw new Error("Supabase configuration sax ma aha.");
+      throw new Error(
+        "Supabase configuration sax ma aha."
+      );
     }
 
-    /*
-     * Hal client oo keliya.
-     * session persistence waa muhiim si login-ku u sii jiro.
-     */
     supabaseClient = window.supabase.createClient(
       SUPABASE_URL,
       SUPABASE_KEY,
@@ -165,12 +167,15 @@
 
     const { data, error } = await client
       .from("profiles")
-      .select("id, full_name, role, is_active, institution_id")
+      .select(
+        "id, full_name, role, is_active, institution_id"
+      )
       .eq("id", userId)
       .maybeSingle();
 
     if (error) {
       console.error("Profile lookup failed:", error);
+
       throw new Error(
         "Akoonka waa la xaqiijiyey, laakiin profile-ka lama akhrin karin. Hubi profiles RLS iyo xogta profile-ka."
       );
@@ -178,7 +183,7 @@
 
     if (!data) {
       throw new Error(
-        "Profile-ka isticmaalaha lama helin. Ma jiro wax isbeddel SQL ah oo si toos ah loo samaynayo."
+        "Profile-ka isticmaalaha lama helin. La xiriir Super Admin."
       );
     }
 
@@ -190,9 +195,21 @@
 
     const role = normalizeRole(data.role);
 
-    if (!Object.prototype.hasOwnProperty.call(ROLE_ROUTES, role)) {
+    if (
+      !Object.prototype.hasOwnProperty.call(
+        ROLE_ROUTES,
+        role
+      )
+    ) {
       throw new Error(
         "Doorka akoonka lama aqoonsan. La xiriir Super Admin."
+      );
+    }
+
+    // Finance Manager must have an assigned institution.
+    if (role === "finance_manager" && !data.institution_id) {
+      throw new Error(
+        "Finance Manager-ka machad looma qoondeyn. La xiriir Super Admin."
       );
     }
 
@@ -254,72 +271,77 @@
     try {
       const client = getClient();
 
-      /*
-       * STEP 1: Authenticate with Supabase.
-       */
-      const { data: authData, error: authError } =
-  await client.auth.signInWithPassword({
-    email,
-    password
-  });
+      // STEP 1: SUPABASE AUTHENTICATION
+      const {
+        data: authData,
+        error: authError
+      } = await client.auth.signInWithPassword({
+        email,
+        password
+      });
 
-if (authError) {
-  console.error("SUPABASE AUTH ERROR:", {
-    name: authError.name,
-    message: authError.message,
-    status: authError.status,
-    code: authError.code
-  });
+      if (authError) {
+        console.error("SUPABASE AUTH ERROR:", {
+          name: authError.name,
+          message: authError.message,
+          status: authError.status,
+          code: authError.code
+        });
 
-  let message = "Supabase login wuu fashilmay.";
+        let message = "Supabase login wuu fashilmay.";
 
-  if (/invalid login credentials/i.test(authError.message || "")) {
-    message =
-      "Email ama Password waa khaldan yahay, ama akoonka lama heli karo.";
-  } else if (/email not confirmed/i.test(authError.message || "")) {
-    message =
-      "Email-ka weli lama xaqiijin. Hubi Supabase Auth.";
-  } else if (authError.status === 429) {
-    message =
-      "Codsiyo badan ayaa la diray. Sug wax yar kadibna isku day.";
-  } else if (authError.status >= 500) {
-    message =
-      "Supabase server ayaa cilad qaba. Dib u tijaabi.";
-  } else {
-    message =
-      "Supabase error: " +
-      (authError.message || "Sababta lama aqoonsan.") +
-      (authError.code ? " (Code: " + authError.code + ")" : "");
-  }
+        if (
+          /invalid login credentials/i.test(
+            authError.message || ""
+          )
+        ) {
+          message =
+            "Email ama Password waa khaldan yahay, ama akoonka lama heli karo.";
+        } else if (
+          /email not confirmed/i.test(
+            authError.message || ""
+          )
+        ) {
+          message =
+            "Email-ka weli lama xaqiijin. Hubi Supabase Auth.";
+        } else if (authError.status === 429) {
+          message =
+            "Codsiyo badan ayaa la diray. Sug wax yar kadibna isku day.";
+        } else if (authError.status >= 500) {
+          message =
+            "Supabase server ayaa cilad qaba. Dib u tijaabi.";
+        } else {
+          message =
+            "Supabase error: " +
+            (authError.message ||
+              "Sababta lama aqoonsan.") +
+            (authError.code
+              ? " (Code: " + authError.code + ")"
+              : "");
+        }
 
-  throw new Error(message);
-}
+        throw new Error(message);
+      }
 
-if (!authData.user || !authData.session) {
-  throw new Error(
-    "Supabase ma soo celin user iyo session sax ah."
-  );
-}
+      if (!authData.user || !authData.session) {
+        throw new Error(
+          "Supabase ma soo celin user iyo session sax ah."
+        );
+      }
 
-      /*
-       * STEP 2: Read profiles.role.
-       */
+      // STEP 2: VERIFY PROFILE AND ROLE
       let profile;
 
       try {
-        profile = await getAuthorizedProfile(authData.user.id);
+        profile = await getAuthorizedProfile(
+          authData.user.id
+        );
       } catch (profileError) {
-        /*
-         * Fail closed: logout haddii profile-ka ama rukhsadda
-         * aan la xaqiijin karin.
-         */
         await client.auth.signOut();
         throw profileError;
       }
 
-      /*
-       * STEP 3: Navigate according to verified role.
-       */
+      // STEP 3: REDIRECT TO AUTHORIZED DASHBOARD
       showMessage(
         "Login waa guulaystay. Waxaa lagu gelinayaa boggaaga...",
         "success"
@@ -349,11 +371,10 @@ if (!authData.user || !authData.session) {
   }
 
   function initializeLogin() {
-    /*
-     * Teacher Login elements are optional.
-     * Missing elements must never stop System Login.
-     */
-    const form = byId("login-form", "loginForm");
+    const form = byId(
+      "login-form",
+      "loginForm"
+    );
 
     const button = byId(
       "login-button",
@@ -371,15 +392,15 @@ if (!authData.user || !authData.session) {
       console.error(
         "Login form/button lama helin. Hubi index.html IDs."
       );
+
       showMessage(
         "Login button lama helin. Hubi HTML-ka bogga."
       );
+
       return;
     }
 
-    /*
-     * Optional password visibility button.
-     */
+    // OPTIONAL PASSWORD VISIBILITY
     const togglePassword = byId(
       "toggle-password",
       "togglePassword",
@@ -395,9 +416,13 @@ if (!authData.user || !authData.session) {
 
     if (togglePassword && passwordInput) {
       togglePassword.addEventListener("click", () => {
-        const hidden = passwordInput.type === "password";
+        const hidden =
+          passwordInput.type === "password";
 
-        passwordInput.type = hidden ? "text" : "password";
+        passwordInput.type = hidden
+          ? "text"
+          : "password";
+
         togglePassword.setAttribute(
           "aria-pressed",
           String(hidden)
@@ -405,7 +430,9 @@ if (!authData.user || !authData.session) {
       });
     }
 
-    console.info("GAAWOW EMS Login V9 initialized.");
+    console.info(
+      "GAAWOW EMS Login V10 initialized."
+    );
   }
 
   if (document.readyState === "loading") {
@@ -418,30 +445,35 @@ if (!authData.user || !authData.session) {
     initializeLogin();
   }
 
-  /*
-   * Optional diagnostic access for testing.
-   * Does not expose the password or service-role key.
-   */
+  // SAFE DIAGNOSTIC ACCESS
   window.GAAWOW_LOGIN = Object.freeze({
-    version: "9.0",
+    version: "10.0",
+
     testConnection: async () => {
       try {
         const client = getClient();
-        const { data, error } = await client.auth.getSession();
+
+        const { data, error } =
+          await client.auth.getSession();
 
         if (error) throw error;
 
         return {
           ok: true,
           sessionExists: Boolean(data.session),
-          message: "Supabase client wuu shaqaynayaa."
+          message:
+            "Supabase client wuu shaqaynayaa."
         };
+
       } catch (error) {
         return {
           ok: false,
-          message: error.message || "Supabase connection failed."
+          message:
+            error.message ||
+            "Supabase connection failed."
         };
       }
     }
   });
+
 })();
