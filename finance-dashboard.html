@@ -4,8 +4,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0B1E63">
-
 <title>Finance Manager Dashboard | GAAWOW EMS</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,1348 +15,936 @@
   --navy:#0B1E63;
   --blue:#0B4DA2;
   --gold:#D4AF37;
-  --bg:#F5F7FA;
-  --white:#fff;
-  --text:#1d2939;
-  --muted:#667085;
-  --border:#e4e7ec;
-  --green:#16834a;
-  --red:#c0392b;
+  --bg:#F4F6FB;
+  --white:#FFFFFF;
+  --text:#18243B;
+  --muted:#748097;
+  --green:#16834A;
+  --red:#D94343;
+  --orange:#D98716;
+  --border:#E6EAF1;
+  --shadow:0 8px 28px rgba(11,30,99,.07);
 }
 
-* {
-  box-sizing:border-box;
-}
+* {box-sizing:border-box;margin:0;padding:0}
 
 body {
-  margin:0;
-  font-family:Inter,Arial,sans-serif;
+  font-family:'Inter',sans-serif;
   background:var(--bg);
   color:var(--text);
 }
 
-button {
-  font-family:inherit;
-}
+button,input,select,textarea {font:inherit}
+button {cursor:pointer}
 
-.layout {
-  display:flex;
-  min-height:100vh;
-}
+.layout {display:flex;min-height:100vh}
 
 .sidebar {
-  width:260px;
-  background:var(--navy);
+  width:255px;
+  background:linear-gradient(180deg,#09184F,#0B1E63 65%,#102B78);
   color:white;
-  padding:24px 16px;
+  padding:24px 17px;
+  position:fixed;
+  top:0;bottom:0;left:0;
   display:flex;
   flex-direction:column;
-  flex-shrink:0;
+  z-index:20;
 }
 
 .brand {
   display:flex;
   align-items:center;
   gap:12px;
-  padding:0 8px 24px;
-  border-bottom:1px solid #ffffff25;
+  padding:5px 8px 27px;
+  border-bottom:1px solid rgba(255,255,255,.13);
 }
 
-.brand-mark {
-  width:48px;
-  height:48px;
-  border-radius:10px;
-  background:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-  flex-shrink:0;
-}
-
-.brand-mark img {
-  width:100%;
-  height:100%;
+.brand img {
+  width:48px;height:48px;
   object-fit:contain;
-  padding:3px;
+  background:white;
+  border-radius:12px;
+  padding:4px;
 }
 
-.brand h2 {
-  font-size:15px;
-  margin:0;
-  line-height:1.5;
-}
-
-.brand small {
-  color:#d6deef;
-  font-size:10px;
-}
+.brand h2 {font-size:15px;font-weight:800}
+.brand small {display:block;color:#D9C77C;font-size:10px;margin-top:4px}
 
 .nav-title {
-  margin:25px 10px 10px;
-  color:#aebbd8;
+  color:#AAB8E2;
   font-size:10px;
   font-weight:700;
-  letter-spacing:1px;
-  text-transform:uppercase;
+  letter-spacing:1.5px;
+  padding:25px 12px 10px;
 }
 
 .nav-link {
-  border:0;
-  background:transparent;
-  color:#e4eaf7;
-  padding:13px 12px;
-  border-radius:9px;
   display:flex;
   align-items:center;
-  gap:12px;
+  gap:13px;
   width:100%;
-  text-align:left;
-  font:inherit;
-  font-size:13px;
-  cursor:pointer;
+  border:0;
+  padding:13px 14px;
   margin:3px 0;
+  color:#D9E1F7;
+  background:transparent;
+  border-radius:10px;
+  text-align:left;
+  font-size:13px;
+  font-weight:600;
+  transition:.2s;
 }
 
-.nav-link i {
-  width:18px;
+.nav-link i {width:17px;text-align:center}
+
+.nav-link:hover,.nav-link.active {
+  background:rgba(255,255,255,.13);
+  color:white;
 }
 
-.nav-link:hover,
-.nav-link.active {
-  background:#ffffff18;
-  color:#fff;
-}
+.nav-link.active {border-left:3px solid var(--gold)}
 
-.nav-link.active {
-  border-left:3px solid var(--gold);
-}
-
-.sidebar-bottom {
-  margin-top:auto;
-  border-top:1px solid #ffffff25;
-  padding-top:15px;
-}
-
-.logout-btn {
-  color:#ffe2e2;
-}
+.sidebar-bottom {margin-top:auto}
 
 .main {
-  flex:1;
-  min-width:0;
+  margin-left:255px;
+  width:calc(100% - 255px);
+  padding:27px 32px 45px;
 }
 
 .topbar {
-  background:white;
-  padding:18px 28px;
-  border-bottom:1px solid var(--border);
   display:flex;
   justify-content:space-between;
   align-items:center;
   gap:15px;
+  margin-bottom:27px;
 }
 
-.topbar h1 {
-  margin:0;
-  color:var(--navy);
-  font-size:20px;
-}
-
-.topbar p {
-  margin:5px 0 0;
-  color:var(--muted);
-  font-size:12px;
-}
-
-.user-area {
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-
-.avatar {
-  width:39px;
-  height:39px;
-  border-radius:50%;
-  display:grid;
-  place-items:center;
-  background:#e8eefb;
+.page-heading h1 {
+  font-size:24px;
   color:var(--navy);
   font-weight:800;
 }
 
-.user-name {
-  font-size:12px;
-  font-weight:700;
-}
-
-.user-role {
+.page-heading p {
   color:var(--muted);
-  font-size:10px;
-  margin-top:3px;
+  font-size:12px;
+  margin-top:6px;
 }
 
-.content {
-  padding:26px;
-  max-width:1450px;
-  margin:auto;
+.user-box {
+  display:flex;
+  align-items:center;
+  gap:11px;
+  background:white;
+  border:1px solid var(--border);
+  padding:9px 14px;
+  border-radius:13px;
+  box-shadow:var(--shadow);
 }
+
+.user-avatar {
+  width:36px;height:36px;
+  display:grid;place-items:center;
+  background:#EAF0FF;
+  color:var(--navy);
+  border-radius:50%;
+}
+
+.user-box strong {font-size:12px;display:block}
+.user-box small {font-size:10px;color:var(--muted)}
 
 .welcome {
-  background:linear-gradient(115deg,var(--navy),var(--blue));
+  background:linear-gradient(110deg,#0B1E63,#0B4DA2);
   color:white;
-  border-radius:15px;
-  padding:25px;
+  padding:25px 27px;
+  border-radius:17px;
   margin-bottom:23px;
   position:relative;
   overflow:hidden;
+  box-shadow:0 12px 30px rgba(11,30,99,.16);
 }
 
 .welcome:after {
   content:"";
   position:absolute;
-  width:190px;
-  height:190px;
-  border:25px solid #ffffff12;
+  width:220px;height:220px;
+  right:-55px;top:-110px;
+  border:35px solid rgba(255,255,255,.07);
   border-radius:50%;
-  right:-45px;
-  top:-75px;
-  pointer-events:none;
 }
 
-.welcome h2 {
-  margin:0 0 8px;
-  font-size:21px;
+.welcome h2 {font-size:19px;margin-bottom:8px}
+.welcome p {font-size:12px;color:#DDE7FF;line-height:1.7}
+.welcome .gold-line {
+  width:48px;height:4px;
+  background:var(--gold);
+  border-radius:10px;
+  margin-bottom:15px;
 }
 
-.welcome p {
-  margin:0;
-  color:#e0e8fa;
-  font-size:13px;
-  line-height:1.7;
+.stats-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:17px;
+  margin-bottom:26px;
 }
 
-.institution-line {
-  margin-top:13px;
-  color:#f3d879;
-  font-size:12px;
-  font-weight:700;
+.stat-card {
+  background:white;
+  border:1px solid var(--border);
+  padding:20px;
+  border-radius:15px;
+  box-shadow:var(--shadow);
+  min-width:0;
+  transition:.2s;
+}
+
+.stat-card:hover {transform:translateY(-3px)}
+
+.stat-top {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:16px;
+}
+
+.stat-icon {
+  width:42px;height:42px;
+  border-radius:12px;
+  display:grid;place-items:center;
+  font-size:17px;
+}
+
+.icon-blue {background:#E9F0FF;color:#2456B5}
+.icon-green {background:#E5F7ED;color:var(--green)}
+.icon-orange {background:#FFF3DF;color:var(--orange)}
+.icon-purple {background:#F0EAFE;color:#7650C9}
+
+.stat-card small {color:var(--muted);font-size:11px;font-weight:600}
+.stat-card h2 {font-size:25px;color:var(--navy);margin-top:7px}
+
+.section {
+  display:none;
+  animation:fade .25s ease;
+}
+
+.section.active {display:block}
+
+@keyframes fade {
+  from {opacity:.5;transform:translateY(5px)}
+  to {opacity:1;transform:translateY(0)}
 }
 
 .section-heading {
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:10px;
-  margin:25px 0 14px;
+  gap:12px;
+  flex-wrap:wrap;
+  margin:24px 0 15px;
 }
 
 .section-heading h2 {
+  font-size:17px;
   color:var(--navy);
-  font-size:16px;
-  margin:0;
+  font-weight:800;
 }
 
 .section-heading p {
   color:var(--muted);
   font-size:11px;
-  margin:5px 0 0;
-}
-
-.stats {
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:15px;
-}
-
-.stat-card {
-  background:white;
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:18px;
-  min-height:125px;
-}
-
-.stat-top {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-}
-
-.stat-icon {
-  width:38px;
-  height:38px;
-  border-radius:10px;
-  display:grid;
-  place-items:center;
-  background:#edf2ff;
-  color:var(--blue);
-}
-
-.stat-card h3 {
-  margin:17px 0 5px;
-  font-size:23px;
-  color:var(--navy);
-}
-
-.stat-card p {
-  margin:0;
-  color:var(--muted);
-  font-size:11px;
-}
-
-.stat-note {
-  font-size:10px;
-  color:#8a94a6;
-}
-
-.modules {
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:15px;
-}
-
-.module {
-  border:1px solid var(--border);
-  border-radius:12px;
-  background:white;
-  padding:19px;
-  text-align:left;
-  cursor:pointer;
-  color:var(--text);
-  font:inherit;
-  transition:.2s;
-}
-
-.module:hover {
-  border-color:var(--gold);
-  transform:translateY(-2px);
-  box-shadow:0 5px 18px #0b1e6310;
-}
-
-.module-icon {
-  width:42px;
-  height:42px;
-  display:grid;
-  place-items:center;
-  background:#f1f4fb;
-  color:var(--navy);
-  border-radius:10px;
-  font-size:18px;
-  margin-bottom:13px;
-}
-
-.module h3 {
-  margin:0 0 7px;
-  color:var(--navy);
-  font-size:13px;
-}
-
-.module p {
-  margin:0;
-  color:var(--muted);
-  font-size:11px;
-  line-height:1.6;
-}
-
-.module-status {
-  display:inline-block;
-  margin-top:13px;
-  color:#8a6500;
-  background:#fff7df;
-  padding:5px 8px;
-  border-radius:20px;
-  font-size:9px;
-  font-weight:700;
+  margin-top:5px;
 }
 
 .panel {
   background:white;
   border:1px solid var(--border);
-  border-radius:12px;
-  padding:22px;
-  margin-top:20px;
+  border-radius:15px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  margin-bottom:22px;
 }
 
-.panel h3 {
-  color:var(--navy);
-  font-size:14px;
-  margin:0 0 12px;
-}
-
-.notice {
-  border:1px solid #f0dca2;
-  background:#fff9e9;
-  color:#705500;
-  padding:14px;
-  border-radius:9px;
-  font-size:12px;
-  line-height:1.7;
-}
-
-.notice i {
-  margin-right:7px;
-}
-
-.page-section {
-  display:none;
-}
-
-.page-section.active {
-  display:block;
-}
-
-.loading {
-  padding:40px 15px;
-  text-align:center;
-  color:var(--muted);
-  font-size:13px;
-}
-
-.error-box {
-  margin:20px;
-  background:#fff0f0;
-  color:#9b1c1c;
-  border:1px solid #f1c4c4;
-  padding:15px;
-  border-radius:10px;
-}
-
-.footer {
-  text-align:center;
-  color:#98a2b3;
-  font-size:10px;
-  padding:25px 10px;
-}
-
-/* TABLES */
-
-.data-table {
-  width:100%;
-  border-collapse:collapse;
-  font-size:12px;
-  min-width:850px;
-}
-
-.data-table th,
-.data-table td {
-  padding:12px;
-  text-align:left;
+.panel-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:18px 20px;
   border-bottom:1px solid var(--border);
-  vertical-align:middle;
+  gap:12px;
+  flex-wrap:wrap;
 }
 
-.data-table th {
-  background:#f5f7fb;
-  color:var(--navy);
-  font-weight:700;
+.panel-header h3 {font-size:14px;color:var(--navy)}
+.panel-header p {font-size:11px;color:var(--muted);margin-top:4px}
+
+.table-wrap {width:100%;overflow-x:auto}
+
+table {width:100%;border-collapse:collapse;min-width:760px}
+
+th {
+  background:#F7F9FD;
+  color:#66738C;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  text-align:left;
+  padding:14px 16px;
   white-space:nowrap;
 }
 
-.data-table td {
-  color:var(--text);
+td {
+  padding:14px 16px;
+  border-top:1px solid #EEF1F6;
+  font-size:11px;
+  color:#39465C;
+  white-space:nowrap;
 }
 
-.table-wrap {
-  width:100%;
-  overflow-x:auto;
-  margin-top:15px;
+tbody tr:hover {background:#FAFBFE}
+
+.primary-btn,.secondary-btn,.danger-btn {
+  border:0;
+  padding:10px 15px;
+  border-radius:9px;
+  font-size:11px;
+  font-weight:700;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  transition:.2s;
 }
 
-.status-badge {
+.primary-btn {
+  color:white;
+  background:linear-gradient(110deg,var(--navy),var(--blue));
+}
+
+.primary-btn:hover {filter:brightness(1.13)}
+
+.secondary-btn {
+  color:var(--navy);
+  background:#EDF2FF;
+}
+
+.danger-btn {color:white;background:var(--red)}
+
+.small-btn {padding:7px 10px;font-size:10px}
+
+.badge {
   display:inline-block;
   padding:5px 9px;
-  border-radius:20px;
-  font-size:10px;
-  font-weight:700;
+  border-radius:30px;
+  font-size:9px;
+  font-weight:800;
   text-transform:capitalize;
-  background:#eef2f6;
-  color:#475467;
-  white-space:nowrap;
 }
 
-.status-successful,
-.status-paid {
-  background:#e7f7ed;
-  color:#16834a;
+.badge.success {background:#E5F7ED;color:#16834A}
+.badge.pending {background:#FFF4DF;color:#A56A0B}
+.badge.failed,.badge.cancelled {background:#FDEAEA;color:#C83D3D}
+.badge.partial {background:#EAF0FF;color:#2456B5}
+.badge.neutral {background:#EEF0F4;color:#657085}
+
+.search-input {
+  width:230px;
+  max-width:100%;
+  border:1px solid var(--border);
+  background:#FAFBFD;
+  padding:10px 12px;
+  border-radius:9px;
+  outline:none;
+  font-size:11px;
 }
 
-.status-pending,
-.status-partial {
-  background:#fff5d9;
-  color:#8a6500;
-}
-
-.status-failed,
-.status-cancelled,
-.status-overdue {
-  background:#fff0f0;
-  color:#b42318;
+.search-input:focus,.form-control:focus {
+  border-color:#6688D7;
+  box-shadow:0 0 0 3px rgba(11,77,162,.09);
 }
 
 .empty-state {
   text-align:center;
+  padding:35px 15px;
   color:var(--muted);
-  padding:22px !important;
+  font-size:12px;
 }
 
-.message-error {
-  background:#fff0f0;
-  border-color:#f1c4c4;
-  color:#9b1c1c;
+.empty-state i {
+  font-size:25px;
+  display:block;
+  margin-bottom:10px;
+  color:#AAB5C8;
 }
 
-.message-info {
-  background:#f0f5ff;
-  border-color:#d8e4ff;
-  color:#244477;
+.modal {
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:100;
+  background:rgba(5,15,48,.62);
+  padding:18px;
+  align-items:center;
+  justify-content:center;
 }
 
-.profile-row {
-  padding:12px 0;
-  border-bottom:1px solid var(--border);
-  font-size:13px;
+.modal.show {display:flex}
+
+.modal-content {
+  background:white;
+  width:100%;
+  max-width:490px;
+  max-height:90vh;
+  overflow-y:auto;
+  border-radius:17px;
+  box-shadow:0 20px 70px rgba(0,0,0,.25);
 }
 
-.profile-row strong {
-  display:inline-block;
-  min-width:130px;
-  color:var(--navy);
-}
-
-/* PAYMENT VERIFICATION */
-
-.verify-payment-btn {
-  border:0;
-  background:var(--green);
+.modal-header {
+  background:linear-gradient(110deg,var(--navy),var(--blue));
   color:white;
-  padding:9px 12px;
-  border-radius:7px;
+  padding:20px 22px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.modal-header h3 {font-size:15px}
+.close-modal {
+  color:white;background:transparent;border:0;font-size:20px;
+}
+
+.modal-body {padding:22px}
+
+.form-group {margin-bottom:15px}
+.form-group label {
+  display:block;
   font-size:11px;
   font-weight:700;
-  cursor:pointer;
-  white-space:nowrap;
-  transition:.2s;
+  color:#45516A;
+  margin-bottom:7px;
 }
 
-.verify-payment-btn:hover {
-  background:#116b3d;
+.form-control {
+  width:100%;
+  border:1px solid var(--border);
+  border-radius:9px;
+  padding:12px;
+  outline:none;
+  background:#FCFDFF;
+  font-size:12px;
 }
 
-.verify-payment-btn:disabled {
-  opacity:.6;
-  cursor:not-allowed;
-}
-
-.receipt-label {
-  color:var(--green);
-  font-size:10px;
-  font-weight:700;
-  overflow-wrap:anywhere;
-}
-
-.action-muted {
+.form-note {
   color:var(--muted);
   font-size:10px;
+  line-height:1.6;
+  margin:12px 0;
 }
 
-.payment-security-note {
-  margin-top:15px;
-  padding:13px;
+.form-actions {
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  margin-top:20px;
+}
+
+.notice {
+  display:none;
+  padding:12px 14px;
   border-radius:9px;
-  background:#f0f5ff;
-  border:1px solid #d8e4ff;
-  color:#244477;
+  margin-bottom:15px;
   font-size:11px;
-  line-height:1.7;
+  line-height:1.5;
 }
 
-.payment-security-note i {
-  margin-right:6px;
+.notice.show {display:block}
+.notice.error {background:#FDEAEA;color:#A82C2C}
+.notice.success {background:#E5F7ED;color:#126A3A}
+.notice.info {background:#EAF0FF;color:#204B9B}
+
+#toast {
+  position:fixed;
+  bottom:22px;
+  right:22px;
+  z-index:200;
+  max-width:350px;
+  background:#14234D;
+  color:white;
+  padding:13px 18px;
+  border-radius:10px;
+  font-size:12px;
+  box-shadow:var(--shadow);
+  display:none;
 }
 
-@media(max-width:950px) {
-  .stats {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
+#toast.show {display:block}
 
-  .modules {
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
+.mobile-menu {
+  display:none;
+  border:0;
+  background:white;
+  color:var(--navy);
+  font-size:19px;
+  padding:8px 11px;
+  border-radius:9px;
 }
 
-@media(max-width:650px) {
-  .layout {
-    display:block;
-  }
+.footer {
+  text-align:center;
+  color:#98A2B5;
+  font-size:10px;
+  padding:22px 0 5px;
+}
 
+@media(max-width:1100px) {
+  .stats-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(max-width:760px) {
   .sidebar {
+    transform:translateX(-100%);
+    transition:.25s;
+  }
+  .sidebar.open {transform:translateX(0)}
+  .main {
+    margin-left:0;
     width:100%;
-    padding:12px;
+    padding:19px 14px 35px;
   }
+  .mobile-menu {display:block}
+  .topbar {align-items:flex-start}
+  .page-heading h1 {font-size:19px}
+  .user-box {padding:7px}
+  .user-box small {display:none}
+  .welcome {padding:21px}
+  .stats-grid {gap:10px}
+  .stat-card {padding:15px}
+  .stat-card h2 {font-size:21px}
+  .stat-card small {font-size:10px}
+  .section-heading {margin-top:20px}
+}
 
-  .brand {
-    padding:5px 8px 12px;
-  }
-
-  .nav-title {
-    margin-top:14px;
-  }
-
-  .nav-list {
-    display:grid;
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:3px;
-  }
-
-  .nav-link {
-    padding:10px 8px;
-    font-size:11px;
-  }
-
-  .sidebar-bottom {
-    margin-top:10px;
-  }
-
-  .topbar {
-    padding:14px;
-  }
-
-  .topbar h1 {
-    font-size:16px;
-  }
-
-  .content {
-    padding:15px;
-  }
-
-  .welcome {
-    padding:20px;
-  }
-
-  .welcome h2 {
-    font-size:18px;
-  }
-
-  .stats {
-    gap:9px;
-  }
-
-  .stat-card {
-    padding:13px;
-  }
-
-  .stat-card h3 {
-    font-size:20px;
-  }
-
-  .modules {
-    grid-template-columns:1fr;
-  }
-
-  .user-name {
-    max-width:110px;
-    overflow-wrap:anywhere;
-  }
-
-  .panel {
-    padding:15px;
-  }
-
-  .profile-row strong {
-    min-width:110px;
-  }
+@media(max-width:390px) {
+  .stats-grid {grid-template-columns:1fr 1fr}
+  .user-box strong {max-width:85px;overflow:hidden;text-overflow:ellipsis}
 }
 </style>
 </head>
 
 <body>
 
-<!-- LOADING -->
+<div class="layout">
 
-<div id="loadingScreen" class="loading">
-  <i class="fas fa-circle-notch fa-spin"></i>
-  <p>Verifying Finance Manager account...</p>
-</div>
-
-<!-- ACCESS ERROR -->
-
-<div id="accessError" class="error-box" hidden></div>
-
-<!-- DASHBOARD -->
-
-<div id="dashboardApp" class="layout" hidden>
-
-  <!-- SIDEBAR -->
-
-  <aside class="sidebar">
-
-    <div class="brand">
-      <div class="brand-mark">
-        <img
-          src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
-          alt="GAAWOW Academy Official Logo"
-        >
-      </div>
-
-      <div>
-        <h2>GAAWOW EMS</h2>
-        <small>FINANCE MANAGEMENT</small>
-      </div>
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Logo">
+    <div>
+      <h2>GAAWOW EMS</h2>
+      <small>FINANCE MANAGEMENT</small>
     </div>
+  </div>
 
-    <div class="nav-title">Finance Workspace</div>
+  <div class="nav-title">FINANCE MENU</div>
 
-    <div class="nav-list">
+  <button class="nav-link active" data-section="overview">
+    <i class="fa-solid fa-chart-pie"></i> Overview
+  </button>
 
-      <button class="nav-link active" data-section="overview">
-        <i class="fas fa-chart-pie"></i>
-        Overview
+  <button class="nav-link" data-section="invoices">
+    <i class="fa-solid fa-file-invoice-dollar"></i> Student Invoices
+  </button>
+
+  <button class="nav-link" data-section="payments">
+    <i class="fa-solid fa-money-bill-transfer"></i> Payments
+  </button>
+
+  <button class="nav-link" data-section="graduation">
+    <i class="fa-solid fa-graduation-cap"></i> Graduation Clearance
+  </button>
+
+  <button class="nav-link" data-section="reports">
+    <i class="fa-solid fa-chart-column"></i> Financial Reports
+  </button>
+
+  <div class="nav-title">ACCOUNT</div>
+
+  <button class="nav-link" data-section="profile">
+    <i class="fa-solid fa-user"></i> My Profile
+  </button>
+
+  <div class="sidebar-bottom">
+    <button class="nav-link" id="logoutBtn">
+      <i class="fa-solid fa-right-from-bracket"></i> Secure Logout
+    </button>
+  </div>
+</aside>
+
+<main class="main">
+
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="mobile-menu" id="mobileMenu">
+        <i class="fa-solid fa-bars"></i>
       </button>
-
-      <button class="nav-link" data-section="invoices">
-        <i class="fas fa-file-invoice-dollar"></i>
-        Student Invoices
-      </button>
-
-      <button class="nav-link" data-section="payments">
-        <i class="fas fa-money-check-alt"></i>
-        Payments
-      </button>
-
-      <button class="nav-link" data-section="graduation">
-        <i class="fas fa-graduation-cap"></i>
-        Graduation Clearance
-      </button>
-
-      <button class="nav-link" data-section="reports">
-        <i class="fas fa-chart-bar"></i>
-        Financial Reports
-      </button>
-
-      <button class="nav-link" data-section="profile">
-        <i class="fas fa-user-circle"></i>
-        My Profile
-      </button>
-
-    </div>
-
-    <div class="sidebar-bottom">
-
-      <button class="nav-link logout-btn" id="logoutBtn">
-        <i class="fas fa-sign-out-alt"></i>
-        Secure Logout
-      </button>
-
-    </div>
-
-  </aside>
-
-  <!-- MAIN CONTENT -->
-
-  <main class="main">
-
-    <!-- TOPBAR -->
-
-    <header class="topbar">
-
-      <div>
+      <div class="page-heading">
         <h1 id="pageTitle">Finance Overview</h1>
-        <p>
-          GAAWOW Education Management & Verification System
-        </p>
+        <p>GAAWOW Education Management & Verification System</p>
       </div>
-
-      <div class="user-area">
-
-        <div>
-          <div class="user-name" id="managerName">
-            Finance Manager
-          </div>
-
-          <div class="user-role">
-            Finance Manager
-          </div>
-        </div>
-
-        <div class="avatar" id="managerAvatar">
-          FM
-        </div>
-
-      </div>
-
-    </header>
-
-    <!-- CONTENT -->
-
-    <div class="content">
-
-      <!-- =====================================
-           OVERVIEW
-      ====================================== -->
-
-      <section
-        class="page-section active"
-        id="section-overview"
-      >
-
-        <div class="welcome">
-
-          <h2>
-            Welcome,
-            <span id="welcomeName">Finance Manager</span>
-          </h2>
-
-          <p>
-            Manage institutional financial activities,
-            review payments, and process authorized
-            financial clearances.
-          </p>
-
-          <div
-            class="institution-line"
-            id="institutionName"
-          >
-            Institution: Loading...
-          </div>
-
-        </div>
-
-        <div class="section-heading">
-
-          <div>
-            <h2>Financial Overview</h2>
-            <p>Institution financial summary</p>
-          </div>
-
-        </div>
-
-        <div class="stats">
-
-          <!-- TOTAL INVOICES -->
-
-          <div class="stat-card">
-
-            <div class="stat-top">
-
-              <span class="stat-icon">
-                <i class="fas fa-file-invoice"></i>
-              </span>
-
-              <span class="stat-note">
-                Invoices
-              </span>
-
-            </div>
-
-            <h3 id="totalInvoices">--</h3>
-            <p>Total Invoices</p>
-
-          </div>
-
-          <!-- VERIFIED PAYMENTS -->
-
-          <div class="stat-card">
-
-            <div class="stat-top">
-
-              <span class="stat-icon">
-                <i class="fas fa-coins"></i>
-              </span>
-
-              <span class="stat-note">
-                Payments
-              </span>
-
-            </div>
-
-            <h3 id="verifiedPayments">--</h3>
-            <p>Verified Payments</p>
-
-          </div>
-
-          <!-- PENDING PAYMENTS -->
-
-          <div class="stat-card">
-
-            <div class="stat-top">
-
-              <span class="stat-icon">
-                <i class="fas fa-clock"></i>
-              </span>
-
-              <span class="stat-note">
-                Pending
-              </span>
-
-            </div>
-
-            <h3 id="pendingPayments">--</h3>
-            <p>Pending Verification</p>
-
-          </div>
-
-          <!-- GRADUATION REQUESTS -->
-
-          <div class="stat-card">
-
-            <div class="stat-top">
-
-              <span class="stat-icon">
-                <i class="fas fa-graduation-cap"></i>
-              </span>
-
-              <span class="stat-note">
-                Clearance
-              </span>
-
-            </div>
-
-            <h3 id="graduationRequests">--</h3>
-            <p>Graduation Fee Requests</p>
-
-          </div>
-
-        </div>
-
-        <!-- FINANCE MODULES -->
-
-        <div class="section-heading">
-
-          <div>
-            <h2>Finance Modules</h2>
-            <p>Choose the financial operation you need</p>
-          </div>
-
-        </div>
-
-        <div class="modules">
-
-          <button
-            class="module"
-            data-section="invoices"
-          >
-
-            <div class="module-icon">
-              <i class="fas fa-file-invoice-dollar"></i>
-            </div>
-
-            <h3>Student Invoices</h3>
-
-            <p>
-              View student invoices and financial obligations.
-            </p>
-
-            <span class="module-status">
-              Module workspace
-            </span>
-
-          </button>
-
-          <button
-            class="module"
-            data-section="payments"
-          >
-
-            <div class="module-icon">
-              <i class="fas fa-money-check-alt"></i>
-            </div>
-
-            <h3>Payments Verification</h3>
-
-            <p>
-              Review payment records and authorized verification tasks.
-            </p>
-
-            <span class="module-status">
-              Module workspace
-            </span>
-
-          </button>
-
-          <button
-            class="module"
-            data-section="graduation"
-          >
-
-            <div class="module-icon">
-              <i class="fas fa-user-graduate"></i>
-            </div>
-
-            <h3>Graduation Fee Clearance</h3>
-
-            <p>
-              Review graduation fee payment clearance requests.
-            </p>
-
-            <span class="module-status">
-              Module workspace
-            </span>
-
-          </button>
-
-          <button
-            class="module"
-            data-section="reports"
-          >
-
-            <div class="module-icon">
-              <i class="fas fa-chart-line"></i>
-            </div>
-
-            <h3>Financial Reports</h3>
-
-            <p>
-              Access institution financial reporting workspace.
-            </p>
-
-            <span class="module-status">
-              Module workspace
-            </span>
-
-          </button>
-
-          <button
-            class="module"
-            data-section="profile"
-          >
-
-            <div class="module-icon">
-              <i class="fas fa-user-cog"></i>
-            </div>
-
-            <h3>My Profile</h3>
-
-            <p>
-              View your account and assigned institution details.
-            </p>
-
-            <span class="module-status">
-              Account information
-            </span>
-
-          </button>
-
-        </div>
-
-        <!-- SECURITY -->
-
-        <div class="panel">
-
-          <h3>
-            <i class="fas fa-shield-alt"></i>
-            Financial Security
-          </h3>
-
-          <div class="notice">
-
-            <i class="fas fa-info-circle"></i>
-
-            Pending payments can be verified by an authorized
-            Finance Manager after confirming receipt of funds.
-            Verification is processed securely through the
-            server-side payment review service. Successful
-            verification automatically generates an official receipt.
-
-          </div>
-
-        </div>
-
-      </section>
-
-      <!-- =====================================
-           INVOICES
-      ====================================== -->
-
-      <section
-        class="page-section"
-        id="section-invoices"
-      >
-
-        <div class="section-heading">
-
-          <div>
-            <h2>Student Invoices</h2>
-            <p>Institution invoice management</p>
-          </div>
-
-        </div>
-
-        <div class="panel">
-
-          <h3>Invoice Records</h3>
-
-          <p
-            id="invoiceMessage"
-            class="notice message-info"
-          >
-            Loading invoice records...
-          </p>
-
-          <div class="table-wrap">
-
-            <table class="data-table">
-
-              <thead>
-
-                <tr>
-                  <th>Invoice Number</th>
-                  <th>Student ID</th>
-                  <th>Amount</th>
-                  <th>Paid</th>
-                  <th>Balance</th>
-                  <th>Status</th>
-                  <th>Due Date</th>
-                </tr>
-
-              </thead>
-
-              <tbody id="invoiceTable">
-
-                <tr>
-                  <td colspan="7">
-                    Waiting for database connection...
-                  </td>
-                </tr>
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-        </div>
-
-      </section>
-
-      <!-- =====================================
-           PAYMENTS
-      ====================================== -->
-
-      <section
-        class="page-section"
-        id="section-payments"
-      >
-
-        <div class="section-heading">
-
-          <div>
-            <h2>Payments Verification</h2>
-            <p>
-              Review payments and verify confirmed transactions
-            </p>
-          </div>
-
-        </div>
-
-        <div class="panel">
-
-          <h3>Payment Records</h3>
-
-          <p
-            id="paymentMessage"
-            class="notice message-info"
-          >
-            Loading payment records...
-          </p>
-
-          <div class="table-wrap">
-
-            <table class="data-table">
-
-              <thead>
-
-                <tr>
-                  <th>Reference</th>
-                  <th>Student ID</th>
-                  <th>Amount</th>
-                  <th>Method</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th>Action</th>
-                </tr>
-
-              </thead>
-
-              <tbody id="paymentTable">
-
-                <tr>
-                  <td colspan="7">
-                    Waiting for database connection...
-                  </td>
-                </tr>
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-          <div class="payment-security-note">
-
-            <i class="fas fa-lock"></i>
-
-            <strong>Secure Payment Verification:</strong>
-
-            Only verify payments after confirming that funds
-            have actually been received. Successful verification
-            generates an official receipt number automatically.
-
-          </div>
-
-        </div>
-
-      </section>
-
-      <!-- =====================================
-           GRADUATION CLEARANCE
-      ====================================== -->
-
-      <section
-        class="page-section"
-        id="section-graduation"
-      >
-
-        <div class="section-heading">
-
-          <div>
-            <h2>Graduation Fee Clearance</h2>
-            <p>
-              Finance review for graduation clearance requests
-            </p>
-          </div>
-
-        </div>
-
-        <div class="panel">
-
-          <h3>Graduation Clearance Workspace</h3>
-
-          <div class="notice">
-
-            This section will connect to the existing
-            graduation fee clearance process.
-
-            Finance clearance must only be issued after
-            the required payment has been verified.
-
-          </div>
-
-        </div>
-
-      </section>
-
-      <!-- =====================================
-           REPORTS
-      ====================================== -->
-
-      <section
-        class="page-section"
-        id="section-reports"
-      >
-
-        <div class="section-heading">
-
-          <div>
-            <h2>Financial Reports</h2>
-            <p>Institution financial reporting</p>
-          </div>
-
-        </div>
-
-        <div class="panel">
-
-          <h3>Reports Workspace</h3>
-
-          <div class="notice">
-
-            Reports will be enabled after the existing
-            financial tables and reporting permissions
-            have been verified.
-
-          </div>
-
-        </div>
-
-      </section>
-
-      <!-- =====================================
-           PROFILE
-      ====================================== -->
-
-      <section
-        class="page-section"
-        id="section-profile"
-      >
-
-        <div class="section-heading">
-
-          <div>
-            <h2>My Profile</h2>
-            <p>Finance Manager account information</p>
-          </div>
-
-        </div>
-
-        <div class="panel">
-
-          <h3>Account Details</h3>
-
-          <div class="profile-row">
-            <strong>Name:</strong>
-            <span id="profileName">--</span>
-          </div>
-
-          <div class="profile-row">
-            <strong>Role:</strong>
-            <span id="profileRole">--</span>
-          </div>
-
-          <div class="profile-row">
-            <strong>Institution:</strong>
-            <span id="profileInstitution">--</span>
-          </div>
-
-          <div class="profile-row">
-            <strong>Account Status:</strong>
-            <span id="profileStatus">--</span>
-          </div>
-
-          <div class="profile-row">
-            <strong>Account ID:</strong>
-            <span id="profileId">--</span>
-          </div>
-
-        </div>
-
-      </section>
-
-      <!-- FOOTER -->
-
-      <div class="footer">
-
-        GAAWOW ACADEMY | ILAYSKA AQOONTA IYO XIRFADDA
-
-        <br>
-
-        GAAWOW EMS Finance Management System
-
-      </div>
-
     </div>
 
-  </main>
+    <div class="user-box">
+      <div class="user-avatar"><i class="fa-solid fa-user-tie"></i></div>
+      <div>
+        <strong id="userName">Finance Manager</strong>
+        <small>Finance Manager</small>
+      </div>
+    </div>
+  </header>
 
+  <div id="globalNotice" class="notice"></div>
+
+  <section class="section active" id="overview">
+
+    <div class="welcome">
+      <div class="gold-line"></div>
+      <h2>Welcome to GAAWOW Finance</h2>
+      <p>Manage student invoices, review payments and monitor financial activities securely.</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-top">
+          <small>Total Invoices</small>
+          <div class="stat-icon icon-blue"><i class="fa-solid fa-file-invoice"></i></div>
+        </div>
+        <h2 id="totalInvoices">0</h2>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <small>Verified Payments</small>
+          <div class="stat-icon icon-green"><i class="fa-solid fa-circle-check"></i></div>
+        </div>
+        <h2 id="verifiedPayments">0</h2>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <small>Pending Payments</small>
+          <div class="stat-icon icon-orange"><i class="fa-solid fa-clock"></i></div>
+        </div>
+        <h2 id="pendingPayments">0</h2>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <small>Graduation Requests</small>
+          <div class="stat-icon icon-purple"><i class="fa-solid fa-graduation-cap"></i></div>
+        </div>
+        <h2 id="graduationRequests">0</h2>
+      </div>
+    </div>
+
+    <div class="section-heading">
+      <div>
+        <h2>Recent Financial Activity</h2>
+        <p>Latest payments received by your institution</p>
+      </div>
+      <button class="secondary-btn" data-goto="payments">
+        View Payments <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>Recent Payments</h3>
+          <p>Payment reference and verification status</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Student</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="recentPaymentTable">
+            <tr><td colspan="6" class="empty-state">Loading payments...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="invoices">
+    <div class="section-heading">
+      <div>
+        <h2>Student Invoices</h2>
+        <p>View invoices and record student payments</p>
+      </div>
+      <button class="primary-btn" id="openPaymentModal">
+        <i class="fa-solid fa-plus"></i> Record Payment
+      </button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>Invoice Records</h3>
+          <p>Institution financial records</p>
+        </div>
+        <input class="search-input" id="invoiceSearch" placeholder="Search invoice or student...">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Invoice Number</th>
+              <th>Student</th>
+              <th>Amount</th>
+              <th>Paid</th>
+              <th>Balance</th>
+              <th>Status</th>
+              <th>Due Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="invoiceTable">
+            <tr><td colspan="8" class="empty-state">Loading invoices...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="payments">
+    <div class="section-heading">
+      <div>
+        <h2>Payment Management</h2>
+        <p>Review pending payments and verify valid transactions</p>
+      </div>
+      <button class="secondary-btn" id="refreshPayments">
+        <i class="fa-solid fa-rotate"></i> Refresh
+      </button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>All Payments</h3>
+          <p>Pending, successful, failed and cancelled payments</p>
+        </div>
+        <input class="search-input" id="paymentSearch" placeholder="Search reference or student...">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Student</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th>Receipt</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="paymentTable">
+            <tr><td colspan="8" class="empty-state">Loading payments...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="graduation">
+    <div class="section-heading">
+      <div>
+        <h2>Graduation Clearance</h2>
+        <p>Graduation fee and clearance requests</p>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="empty-state">
+        <i class="fa-solid fa-graduation-cap"></i>
+        Graduation clearance records will appear here when the connected clearance workflow is enabled.
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="reports">
+    <div class="section-heading">
+      <div>
+        <h2>Financial Reports</h2>
+        <p>Summary based on the loaded invoice and payment records</p>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <small>Total Invoiced</small>
+        <h2 id="reportInvoiced">0</h2>
+      </div>
+      <div class="stat-card">
+        <small>Total Collected</small>
+        <h2 id="reportCollected">0</h2>
+      </div>
+      <div class="stat-card">
+        <small>Outstanding Balance</small>
+        <h2 id="reportBalance">0</h2>
+      </div>
+      <div class="stat-card">
+        <small>Successful Payments</small>
+        <h2 id="reportSuccessful">0</h2>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="profile">
+    <div class="section-heading">
+      <div>
+        <h2>My Profile</h2>
+        <p>Your authenticated finance account</p>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input class="form-control" id="profileName" readonly>
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <input class="form-control" value="Finance Manager" readonly>
+        </div>
+        <div class="form-group">
+          <label>Institution ID</label>
+          <input class="form-control" id="profileInstitution" readonly>
+        </div>
+        <div class="form-group">
+          <label>Account Status</label>
+          <input class="form-control" value="Active session" readonly>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    © GAAWOW Academy | Ilayska Aqoonta iyo Xirfadda | GAAWOW EMS
+  </footer>
+
+</main>
 </div>
 
-<!-- SUPABASE LIBRARY -->
+<!-- RECORD PAYMENT MODAL -->
+<div class="modal" id="paymentModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-money-bill-wave"></i> Record Student Payment</h3>
+      <button class="close-modal" id="closePaymentModal">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div id="paymentNotice" class="notice"></div>
+
+      <form id="recordPaymentForm">
+
+        <div class="form-group">
+          <label for="paymentInvoice">Select Invoice</label>
+          <select class="form-control" id="paymentInvoice" required>
+            <option value="">Loading invoices...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="paymentAmount">Payment Amount</label>
+          <input class="form-control" id="paymentAmount" type="number" min="0.01" step="0.01" required placeholder="Enter amount">
+        </div>
+
+        <div class="form-group">
+          <label for="paymentMethod">Payment Method</label>
+          <select class="form-control" id="paymentMethod" required>
+            <option value="">Select method</option>
+            <option value="Cash">Cash</option>
+            <option value="EVC Plus">EVC Plus</option>
+            <option value="Zaad">Zaad</option>
+            <option value="Sahal">Sahal</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="payerPhone">Payer Phone (Optional)</label>
+          <input class="form-control" id="payerPhone" type="tel" placeholder="Phone number">
+        </div>
+
+        <div class="form-group">
+          <label for="transactionReference">Transaction Reference (Optional)</label>
+          <input class="form-control" id="transactionReference" placeholder="Enter transaction reference">
+        </div>
+
+        <p class="form-note">
+          This action records a payment as PENDING. It does not issue a receipt or mark an invoice as paid. The payment must be reviewed and verified separately.
+        </p>
+
+        <div class="form-actions">
+          <button type="button" class="secondary-btn" id="cancelPayment">Cancel</button>
+          <button type="submit" class="primary-btn" id="submitPayment">
+            <i class="fa-solid fa-lock"></i> Record Payment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="finance-dashboard.js?v=20261119-1"></script>
 
-<!-- FINANCE DASHBOARD JAVASCRIPT -->
+<script>
+document.querySelectorAll("[data-section]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const target = btn.dataset.section;
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.querySelectorAll(".nav-link[data-section]").forEach(b => b.classList.remove("active"));
+    document.getElementById(target)?.classList.add("active");
+    btn.classList.add("active");
 
-<script src="finance-dashboard.js?v=20261118-5"></script>
+    const titles = {
+      overview:"Finance Overview",
+      invoices:"Student Invoices",
+      payments:"Payment Management",
+      graduation:"Graduation Clearance",
+      reports:"Financial Reports",
+      profile:"My Profile"
+    };
+    document.getElementById("pageTitle").textContent = titles[target] || "Finance Dashboard";
+    document.getElementById("sidebar").classList.remove("open");
+  });
+});
+
+document.querySelectorAll("[data-goto]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelector(`[data-section="${btn.dataset.goto}"]`)?.click();
+  });
+});
+
+document.getElementById("mobileMenu").addEventListener("click", () => {
+  document.getElementById("sidebar").classList.toggle("open");
+});
+</script>
 
 </body>
 </html>
