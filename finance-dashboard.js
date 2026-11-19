@@ -1,792 +1,673 @@
 
 "use strict";
 
-/* =========================================================
-   GAAWOW EMS - FINANCE MANAGER DASHBOARD
-   Secure institution-based access
-   Payment verification through review-payment Edge Function
-   ========================================================= */
+// ============================================================
+// GAAWOW EMS - FINANCE MANAGER DASHBOARD
+// Secure Supabase RPC payment workflow
+// ============================================================
 
-(() => {
-  const SUPABASE_URL =
-    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+const SUPABASE_URL =
+  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-  const SUPABASE_KEY =
-    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+// Ku beddel isla Publishable Key-gii file-kaagii hore.
+// WALIGAA halkan ha gelin service_role key.
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-  const REVIEW_FUNCTION = "review-payment";
-  const PAGE_SIZE = 100;
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
 
-  if (!window.supabase) {
-    showStartupError(
-      "Supabase library lama helin. Hubi internet-ka iyo Supabase script."
+let currentUser = null;
+let currentProfile = null;
+let institutionId = null;
+
+let invoices = [];
+let payments = [];
+let students = [];
+
+const $ = id => document.getElementById(id);
+
+function money(value, currency = "USD") {
+  const amount = Number(value || 0);
+  return `${amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })} ${currency || "USD"}`;
+}
+
+function dateText(value) {
+  if (!value) return "N/A";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "N/A";
+  return date.toLocaleDateString();
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#039;"
+  })[char]);
+}
+
+function showToast(message) {
+  const toast = $("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 4000);
+}
+
+function showNotice(id, message, type = "info") {
+  const el = $(id);
+  if (!el) return;
+
+  el.className = `notice show ${type}`;
+  el.textContent = message;
+}
+
+function hideNotice(id) {
+  const el = $(id);
+  if (!el) return;
+  el.className = "notice";
+  el.textContent = "";
+}
+
+function statusBadge(status) {
+  const value = String(status || "unknown").toLowerCase();
+
+  let style = "neutral";
+
+  if (["successful","paid"].includes(value)) style = "success";
+  else if (["pending","overdue"].includes(value)) style = "pending";
+  else if (["failed","cancelled","refunded"].includes(value)) style = "failed";
+  else if (["partial"].includes(value)) style = "partial";
+
+  return `<span class="badge ${style}">${escapeHTML(value)}</span>`;
+}
+
+function getStudent(studentId) {
+  return students.find(s => s.id === studentId) || null;
+}
+
+function studentLabel(studentId) {
+  const student = getStudent(studentId);
+
+  if (!student) return escapeHTML(studentId || "Unknown");
+
+  return `${escapeHTML(student.full_name)} (${escapeHTML(student.student_id)})`;
+}
+
+// ------------------------------------------------------------
+// AUTHENTICATION AND ROLE VALIDATION
+// ------------------------------------------------------------
+
+async function initializeDashboard() {
+  try {
+    const { data: sessionData, error: sessionError } =
+      await db.auth.getSession();
+
+    if (sessionError) throw sessionError;
+
+    const session = sessionData?.session;
+
+    if (!session) {
+      window.location.replace("index.html");
+      return;
+    }
+
+    currentUser = session.user;
+
+    const { data: profile, error: profileError } = await db
+      .from("profiles")
+      .select("id, full_name, role, active, institution_id")
+      .eq("id", currentUser.id)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+
+    if (!profile) {
+      throw new Error("Your user profile was not found.");
+    }
+
+    if (profile.role !== "finance_manager") {
+      alert("Access denied. Finance Manager account required.");
+      await db.auth.signOut();
+      window.location.replace("index.html");
+      return;
+    }
+
+    if (profile.active !== true) {
+      alert("Your Finance Manager account is inactive.");
+      await db.auth.signOut();
+      window.location.replace("index.html");
+      return;
+    }
+
+    if (!profile.institution_id) {
+      throw new Error("Your Finance Manager account has no institution assigned.");
+    }
+
+    currentProfile = profile;
+    institutionId = profile.institution_id;
+
+    $("userName").textContent = profile.full_name || "Finance Manager";
+    $("profileName").value = profile.full_name || "";
+    $("profileInstitution").value = institutionId;
+
+    await loadDashboardData();
+
+  } catch (error) {
+    console.error("Dashboard initialization:", error);
+    showNotice("globalNotice", error.message || "Unable to load dashboard.", "error");
+  }
+}
+
+// ------------------------------------------------------------
+// LOAD INSTITUTION DATA
+// ------------------------------------------------------------
+
+async function loadDashboardData() {
+  showNotice("globalNotice", "Loading your institution's financial records...", "info");
+
+  const [studentResult, invoiceResult, paymentResult] = await Promise.all([
+    db.from("students")
+      .select("id, institution_id, student_id, full_name")
+      .eq("institution_id", institutionId),
+
+    db.from("invoices")
+      .select("id, institution_id, student_id, invoice_number, description, amount, paid_amount, due_date, status, created_at, currency")
+      .eq("institution_id", institutionId)
+      .order("created_at", { ascending:false }),
+
+    db.from("payments")
+      .select("id, institution_id, invoice_id, student_id, amount, currency, payment_method, status, paid_at, created_at, payment_reference, receipt_number, transaction_reference")
+      .eq("institution_id", institutionId)
+      .order("created_at", { ascending:false })
+  ]);
+
+  if (studentResult.error) throw studentResult.error;
+  if (invoiceResult.error) throw invoiceResult.error;
+  if (paymentResult.error) throw paymentResult.error;
+
+  students = studentResult.data || [];
+  invoices = invoiceResult.data || [];
+  payments = paymentResult.data || [];
+
+  renderDashboard();
+  hideNotice("globalNotice");
+}
+
+// ------------------------------------------------------------
+// RENDER DASHBOARD
+// ------------------------------------------------------------
+
+function renderDashboard() {
+  renderStatistics();
+  renderInvoices();
+  renderPayments();
+  renderRecentPayments();
+  renderReports();
+  populateInvoiceSelect();
+}
+
+function renderStatistics() {
+  $("totalInvoices").textContent = invoices.length;
+
+  $("verifiedPayments").textContent =
+    payments.filter(p => p.status === "successful").length;
+
+  $("pendingPayments").textContent =
+    payments.filter(p => p.status === "pending").length;
+
+  // Graduation count is intentionally not fabricated.
+  // Connect it after confirming the exact SCC request schema.
+  $("graduationRequests").textContent = "—";
+}
+
+function renderReports() {
+  const totalInvoiced = invoices.reduce(
+    (sum, invoice) => sum + Number(invoice.amount || 0), 0
+  );
+
+  const totalCollected = invoices.reduce(
+    (sum, invoice) => sum + Number(invoice.paid_amount || 0), 0
+  );
+
+  const balance = invoices.reduce(
+    (sum, invoice) =>
+      sum + Math.max(0, Number(invoice.amount || 0) - Number(invoice.paid_amount || 0)),
+    0
+  );
+
+  const successful = payments.filter(p => p.status === "successful").length;
+
+  $("reportInvoiced").textContent = money(totalInvoiced);
+  $("reportCollected").textContent = money(totalCollected);
+  $("reportBalance").textContent = money(balance);
+  $("reportSuccessful").textContent = successful;
+}
+
+// ------------------------------------------------------------
+// INVOICES
+// ------------------------------------------------------------
+
+function renderInvoices(filter = "") {
+  const tbody = $("invoiceTable");
+
+  const filtered = invoices.filter(invoice => {
+    const student = getStudent(invoice.student_id);
+    const searchText = [
+      invoice.invoice_number,
+      invoice.description,
+      student?.full_name,
+      student?.student_id
+    ].join(" ").toLowerCase();
+
+    return searchText.includes(filter.toLowerCase());
+  });
+
+  if (!filtered.length) {
+    tbody.innerHTML = `
+      <tr><td colspan="8" class="empty-state">
+        No invoices found.
+      </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(invoice => {
+    const amount = Number(invoice.amount || 0);
+    const paid = Number(invoice.paid_amount || 0);
+    const balance = Math.max(0, amount - paid);
+    const canRecord = !["paid","cancelled"].includes(invoice.status);
+
+    return `
+      <tr>
+        <td><strong>${escapeHTML(invoice.invoice_number)}</strong></td>
+        <td>${studentLabel(invoice.student_id)}</td>
+        <td>${money(amount, invoice.currency)}</td>
+        <td>${money(paid, invoice.currency)}</td>
+        <td><strong>${money(balance, invoice.currency)}</strong></td>
+        <td>${statusBadge(invoice.status)}</td>
+        <td>${dateText(invoice.due_date)}</td>
+        <td>
+          ${
+            canRecord
+            ? `<button class="primary-btn small-btn"
+                data-record-invoice="${invoice.id}">
+                <i class="fa-solid fa-plus"></i> Payment
+              </button>`
+            : `<span class="badge neutral">Closed</span>`
+          }
+        </td>
+      </tr>`;
+  }).join("");
+
+  tbody.querySelectorAll("[data-record-invoice]").forEach(button => {
+    button.addEventListener("click", () => {
+      openRecordPayment(button.dataset.recordInvoice);
+    });
+  });
+}
+
+// ------------------------------------------------------------
+// PAYMENTS
+// ------------------------------------------------------------
+
+function renderPayments(filter = "") {
+  const tbody = $("paymentTable");
+
+  const filtered = payments.filter(payment => {
+    const student = getStudent(payment.student_id);
+
+    const searchText = [
+      payment.payment_reference,
+      payment.receipt_number,
+      payment.transaction_reference,
+      student?.full_name,
+      student?.student_id
+    ].join(" ").toLowerCase();
+
+    return searchText.includes(filter.toLowerCase());
+  });
+
+  if (!filtered.length) {
+    tbody.innerHTML = `
+      <tr><td colspan="8" class="empty-state">
+        No payment records found.
+      </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(payment => {
+    const action = payment.status === "pending"
+      ? `<button class="primary-btn small-btn"
+          data-verify-payment="${payment.id}">
+          <i class="fa-solid fa-check"></i> Verify
+        </button>`
+      : `<span class="badge neutral">No Action</span>`;
+
+    return `
+      <tr>
+        <td><strong>${escapeHTML(payment.payment_reference)}</strong></td>
+        <td>${studentLabel(payment.student_id)}</td>
+        <td>${money(payment.amount, payment.currency)}</td>
+        <td>${escapeHTML(payment.payment_method || "N/A")}</td>
+        <td>${statusBadge(payment.status)}</td>
+        <td>${escapeHTML(payment.receipt_number || "Not issued")}</td>
+        <td>${dateText(payment.created_at)}</td>
+        <td>${action}</td>
+      </tr>`;
+  }).join("");
+
+  tbody.querySelectorAll("[data-verify-payment]").forEach(button => {
+    button.addEventListener("click", () => {
+      verifyPayment(button.dataset.verifyPayment, button);
+    });
+  });
+}
+
+function renderRecentPayments() {
+  const tbody = $("recentPaymentTable");
+  const recent = payments.slice(0, 7);
+
+  if (!recent.length) {
+    tbody.innerHTML = `
+      <tr><td colspan="6" class="empty-state">
+        No recent payments.
+      </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = recent.map(payment => `
+    <tr>
+      <td><strong>${escapeHTML(payment.payment_reference)}</strong></td>
+      <td>${studentLabel(payment.student_id)}</td>
+      <td>${money(payment.amount, payment.currency)}</td>
+      <td>${escapeHTML(payment.payment_method || "N/A")}</td>
+      <td>${statusBadge(payment.status)}</td>
+      <td>${dateText(payment.created_at)}</td>
+    </tr>
+  `).join("");
+}
+
+// ------------------------------------------------------------
+// RECORD PAYMENT
+// ------------------------------------------------------------
+
+function populateInvoiceSelect() {
+  const select = $("paymentInvoice");
+
+  const available = invoices.filter(invoice =>
+    !["paid","cancelled"].includes(invoice.status)
+  );
+
+  if (!available.length) {
+    select.innerHTML = `<option value="">No open invoices available</option>`;
+    return;
+  }
+
+  select.innerHTML = `
+    <option value="">Select invoice</option>
+    ${available.map(invoice => {
+      const student = getStudent(invoice.student_id);
+      const balance = Math.max(
+        0,
+        Number(invoice.amount || 0) - Number(invoice.paid_amount || 0)
+      );
+
+      return `
+        <option value="${invoice.id}">
+          ${escapeHTML(invoice.invoice_number)}
+          | ${escapeHTML(student?.full_name || "Student")}
+          | Balance: ${money(balance, invoice.currency)}
+        </option>`;
+    }).join("")}
+  `;
+}
+
+function openRecordPayment(invoiceId = "") {
+  hideNotice("paymentNotice");
+  $("recordPaymentForm").reset();
+  populateInvoiceSelect();
+
+  if (invoiceId) {
+    $("paymentInvoice").value = invoiceId;
+  }
+
+  $("paymentModal").classList.add("show");
+}
+
+function closeRecordPayment() {
+  $("paymentModal").classList.remove("show");
+  hideNotice("paymentNotice");
+}
+
+async function recordPayment(event) {
+  event.preventDefault();
+
+  const invoiceId = $("paymentInvoice").value;
+  const amount = Number($("paymentAmount").value);
+  const paymentMethod = $("paymentMethod").value;
+  const payerPhone = $("payerPhone").value.trim() || null;
+  const transactionReference =
+    $("transactionReference").value.trim() || null;
+
+  if (!invoiceId || !Number.isFinite(amount) || amount <= 0 || !paymentMethod) {
+    showNotice("paymentNotice", "Please complete all required fields correctly.", "error");
+    return;
+  }
+
+  const invoice = invoices.find(item => item.id === invoiceId);
+
+  if (!invoice) {
+    showNotice("paymentNotice", "Selected invoice was not found.", "error");
+    return;
+  }
+
+  const balance = Number(invoice.amount) - Number(invoice.paid_amount);
+
+  if (amount > balance) {
+    showNotice(
+      "paymentNotice",
+      "The amount is greater than the displayed invoice balance. Please check the amount.",
+      "error"
     );
     return;
   }
 
-  const db = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
+  const button = $("submitPayment");
+  button.disabled = true;
+  button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
 
-  let currentUser = null;
-  let currentProfile = null;
-  let currentInstitution = null;
-  let reviewInProgress = new Set();
-
-  const $ = (id) => document.getElementById(id);
-
-  // ---------------------------------------------------------
-  // GENERAL HELPERS
-  // ---------------------------------------------------------
-
-  function showStartupError(message) {
-    const loading = $("loadingScreen");
-    const error = $("accessError");
-
-    if (loading) loading.hidden = true;
-
-    if (error) {
-      error.hidden = false;
-      error.textContent = message;
-    }
-  }
-
-  function setText(id, value) {
-    const element = $(id);
-    if (element) element.textContent = value ?? "";
-  }
-
-  function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    })[char]);
-  }
-
-  function formatMoney(amount, currency = "USD") {
-    const number = Number(amount || 0);
-
-    try {
-      return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: currency || "USD",
-        minimumFractionDigits: 2
-      }).format(number);
-    } catch {
-      return `${number.toFixed(2)} ${currency || "USD"}`;
-    }
-  }
-
-  function formatDate(value) {
-    if (!value) return "—";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "—";
-
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    });
-  }
-
-  function shortReference(value) {
-    if (!value) return "—";
-    return String(value).slice(0, 8).toUpperCase();
-  }
-
-  function statusClass(status) {
-    const safeStatus = String(status || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]/g, "");
-
-    return `status-${safeStatus}`;
-  }
-
-  function showMessage(id, message, type = "info") {
-    const element = $(id);
-    if (!element) return;
-
-    element.textContent = message;
-    element.classList.remove("message-info", "message-error");
-
-    element.classList.add(
-      type === "error" ? "message-error" : "message-info"
+  try {
+    const { data, error } = await db.rpc(
+      "gaawow_finance_record_invoice_payment_v1",
+      {
+        p_invoice_id: invoiceId,
+        p_amount: amount,
+        p_payment_method: paymentMethod,
+        p_payer_phone: payerPhone,
+        p_transaction_reference: transactionReference
+      }
     );
-
-    element.hidden = false;
-    element.style.display = "block";
-  }
-
-  function hideMessage(id) {
-    const element = $(id);
-
-    if (element) {
-      element.hidden = true;
-      element.style.display = "none";
-    }
-  }
-
-  function logError(section, error) {
-    console.error(
-      `[GAAWOW Finance] ${section}:`,
-      error?.message || error
-    );
-  }
-
-  function showDashboard() {
-    const loading = $("loadingScreen");
-    const app = $("dashboardApp");
-    const error = $("accessError");
-
-    if (loading) loading.hidden = true;
-    if (error) error.hidden = true;
-    if (app) app.hidden = false;
-  }
-
-  // ---------------------------------------------------------
-  // AUTHENTICATION AND PROFILE VERIFICATION
-  // ---------------------------------------------------------
-
-  async function initializeDashboard() {
-    try {
-      const {
-        data: { session },
-        error: sessionError
-      } = await db.auth.getSession();
-
-      if (sessionError) throw sessionError;
-
-      if (!session) {
-        window.location.replace("index.html");
-        return;
-      }
-
-      currentUser = session.user;
-
-      const { data: profile, error: profileError } = await db
-        .from("profiles")
-        .select("id, full_name, role, is_active, institution_id")
-        .eq("id", currentUser.id)
-        .maybeSingle();
-
-      if (profileError) throw profileError;
-
-      if (!profile) {
-        throw new Error("Account profile lama helin.");
-      }
-
-      if (
-        profile.role !== "finance_manager" ||
-        profile.is_active !== true ||
-        !profile.institution_id
-      ) {
-        await db.auth.signOut();
-
-        showStartupError(
-          "Access denied. Account-kan ma aha Finance Manager firfircoon oo machad loo qoondeeyey."
-        );
-        return;
-      }
-
-      currentProfile = profile;
-
-      await loadInstitution();
-
-      displayProfile();
-      setupNavigation();
-      setupLogout();
-      setupPaymentReview();
-
-      showDashboard();
-
-      await loadDashboardData();
-
-    } catch (error) {
-      logError("Account verification", error);
-
-      showStartupError(
-        "Dashboard lama furi karin: " +
-        (error.message || "Hubi internet-ka iyo account-ka.")
-      );
-    }
-  }
-
-  // ---------------------------------------------------------
-  // INSTITUTION
-  // ---------------------------------------------------------
-
-  async function loadInstitution() {
-    const { data, error } = await db
-      .from("institutions")
-      .select("id, name, code")
-      .eq("id", currentProfile.institution_id)
-      .maybeSingle();
 
     if (error) throw error;
 
-    if (!data) {
-      throw new Error("Machadka Finance Manager-ka lama helin.");
+    if (!data || data.success !== true) {
+      throw new Error(data?.message || "Payment could not be recorded.");
     }
 
-    currentInstitution = data;
-  }
-
-  // ---------------------------------------------------------
-  // PROFILE DISPLAY
-  // ---------------------------------------------------------
-
-  function displayProfile() {
-    const name = currentProfile.full_name || "Finance Manager";
-    const institution = currentInstitution?.name || "—";
-
-    setText("managerName", name);
-    setText("welcomeName", name);
-    setText("institutionName", "Institution: " + institution);
-
-    setText("profileName", name);
-    setText("profileRole", "Finance Manager");
-    setText("profileInstitution", institution);
-    setText("profileStatus", "Active");
-    setText("profileId", currentProfile.id);
-
-    const avatar = $("managerAvatar");
-
-    if (avatar) {
-      const initials = name
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((word) => word.charAt(0).toUpperCase())
-        .join("");
-
-      avatar.textContent = initials || "FM";
-    }
-  }
-
-  // ---------------------------------------------------------
-  // DASHBOARD DATA
-  // ---------------------------------------------------------
-
-  async function loadDashboardData() {
-    setText("totalInvoices", "...");
-    setText("verifiedPayments", "...");
-    setText("pendingPayments", "...");
-    setText("graduationRequests", "--");
-
-    await Promise.allSettled([
-      loadInvoiceStatistics(),
-      loadPaymentStatistics(),
-      loadInvoiceRecords(),
-      loadPaymentRecords()
-    ]);
-
-    setText("graduationRequests", "--");
-  }
-
-  async function loadInvoiceStatistics() {
-    try {
-      const { count, error } = await db
-        .from("invoices")
-        .select("id", { count: "exact", head: true })
-        .eq("institution_id", currentProfile.institution_id);
-
-      if (error) throw error;
-
-      setText("totalInvoices", count ?? 0);
-
-    } catch (error) {
-      logError("Invoice statistics", error);
-      setText("totalInvoices", "—");
-    }
-  }
-
-  async function loadPaymentStatistics() {
-    try {
-      const [successfulResult, pendingResult] =
-        await Promise.all([
-          db
-            .from("payments")
-            .select("id", { count: "exact", head: true })
-            .eq("institution_id", currentProfile.institution_id)
-            .eq("status", "successful"),
-
-          db
-            .from("payments")
-            .select("id", { count: "exact", head: true })
-            .eq("institution_id", currentProfile.institution_id)
-            .eq("status", "pending")
-        ]);
-
-      if (successfulResult.error) throw successfulResult.error;
-      if (pendingResult.error) throw pendingResult.error;
-
-      setText("verifiedPayments", successfulResult.count ?? 0);
-      setText("pendingPayments", pendingResult.count ?? 0);
-
-    } catch (error) {
-      logError("Payment statistics", error);
-      setText("verifiedPayments", "—");
-      setText("pendingPayments", "—");
-    }
-  }
-
-  // ---------------------------------------------------------
-  // TABLE RENDERER
-  // ---------------------------------------------------------
-
-  function renderTableBody(tbodyId, rows, columnCount) {
-    const tbody = $(tbodyId);
-
-    if (!tbody) {
-      console.warn("Table body not found:", tbodyId);
-      return;
-    }
-
-    if (!rows || rows.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="${columnCount}" class="empty-state">
-            No records found.
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    tbody.innerHTML = rows.join("");
-  }
-
-  // ---------------------------------------------------------
-  // INVOICE RECORDS
-  // ---------------------------------------------------------
-
-  async function loadInvoiceRecords() {
-    showMessage("invoiceMessage", "Loading invoice records...");
-
-    try {
-      const { data, error } = await db
-        .from("invoices")
-        .select(`
-          id,
-          institution_id,
-          student_id,
-          invoice_number,
-          description,
-          amount,
-          paid_amount,
-          due_date,
-          status,
-          created_at,
-          currency
-        `)
-        .eq("institution_id", currentProfile.institution_id)
-        .order("created_at", { ascending: false })
-        .limit(PAGE_SIZE);
-
-      if (error) throw error;
-
-      const invoices = data || [];
-
-      const rows = invoices.map((invoice) => {
-        const amount = Number(invoice.amount || 0);
-        const paid = Number(invoice.paid_amount || 0);
-        const balance = Math.max(amount - paid, 0);
-        const currency = invoice.currency || "USD";
-
-        return `
-          <tr>
-            <td>${escapeHTML(
-              invoice.invoice_number || shortReference(invoice.id)
-            )}</td>
-            <td title="${escapeHTML(invoice.student_id || "")}">
-              ${escapeHTML(shortReference(invoice.student_id))}
-            </td>
-            <td>${escapeHTML(formatMoney(amount, currency))}</td>
-            <td>${escapeHTML(formatMoney(paid, currency))}</td>
-            <td>${escapeHTML(formatMoney(balance, currency))}</td>
-            <td>
-              <span class="status-badge ${statusClass(invoice.status)}">
-                ${escapeHTML(invoice.status || "unknown")}
-              </span>
-            </td>
-            <td>${escapeHTML(formatDate(invoice.due_date))}</td>
-          </tr>
-        `;
-      });
-
-      renderTableBody("invoiceTable", rows, 7);
-
-      if (invoices.length === 0) {
-        showMessage(
-          "invoiceMessage",
-          "No invoices found for this institution."
-        );
-      } else {
-        hideMessage("invoiceMessage");
-      }
-
-    } catch (error) {
-      logError("Invoice records", error);
-
-      showMessage(
-        "invoiceMessage",
-        "Invoice records lama soo qaadi karin. Hubi database permissions ama RLS.",
-        "error"
-      );
-
-      renderTableBody("invoiceTable", [], 7);
-    }
-  }
-
-  // ---------------------------------------------------------
-  // PAYMENT RECORDS
-  // ---------------------------------------------------------
-
-  async function loadPaymentRecords() {
-    showMessage("paymentMessage", "Loading payment records...");
-
-    try {
-      const { data, error } = await db
-        .from("payments")
-        .select(`
-          id,
-          institution_id,
-          invoice_id,
-          student_id,
-          amount,
-          currency,
-          payment_method,
-          status,
-          paid_at,
-          created_at,
-          payment_reference,
-          receipt_number,
-          transaction_reference
-        `)
-        .eq("institution_id", currentProfile.institution_id)
-        .order("created_at", { ascending: false })
-        .limit(PAGE_SIZE);
-
-      if (error) throw error;
-
-      const payments = data || [];
-
-      const rows = payments.map((payment) => {
-        const reference =
-          payment.receipt_number ||
-          payment.payment_reference ||
-          payment.transaction_reference ||
-          shortReference(payment.id);
-
-        const paymentDate = payment.paid_at || payment.created_at;
-
-        const actionCell = payment.status === "pending"
-          ? `
-            <button
-              type="button"
-              class="verify-payment-btn"
-              data-review-payment="${escapeHTML(payment.id)}"
-              data-payment-reference="${escapeHTML(payment.payment_reference || "")}"
-              data-payment-amount="${escapeHTML(payment.amount)}"
-              data-payment-currency="${escapeHTML(payment.currency || "USD")}"
-              data-payment-method="${escapeHTML(payment.payment_method || "—")}"
-            >
-              <i class="fas fa-check-circle"></i>
-              Verify Payment
-            </button>
-          `
-          : payment.status === "successful"
-            ? `
-              <span class="receipt-label">
-                <i class="fas fa-receipt"></i>
-                ${escapeHTML(payment.receipt_number || "Verified")}
-              </span>
-            `
-            : `<span class="action-muted">No action</span>`;
-
-        return `
-          <tr>
-            <td>${escapeHTML(reference)}</td>
-            <td title="${escapeHTML(payment.student_id || "")}">
-              ${escapeHTML(shortReference(payment.student_id))}
-            </td>
-            <td>${escapeHTML(
-              formatMoney(payment.amount, payment.currency || "USD")
-            )}</td>
-            <td>${escapeHTML(payment.payment_method || "—")}</td>
-            <td>
-              <span class="status-badge ${statusClass(payment.status)}">
-                ${escapeHTML(payment.status || "unknown")}
-              </span>
-            </td>
-            <td>${escapeHTML(formatDate(paymentDate))}</td>
-            <td>${actionCell}</td>
-          </tr>
-        `;
-      });
-
-      renderTableBody("paymentTable", rows, 7);
-
-      if (payments.length === 0) {
-        showMessage(
-          "paymentMessage",
-          "No payment records found for this institution."
-        );
-      } else {
-        hideMessage("paymentMessage");
-      }
-
-    } catch (error) {
-      logError("Payment records", error);
-
-      showMessage(
-        "paymentMessage",
-        "Payment records lama soo qaadi karin. Hubi database permissions ama RLS.",
-        "error"
-      );
-
-      renderTableBody("paymentTable", [], 7);
-    }
-  }
-
-  // ---------------------------------------------------------
-  // SECURE PAYMENT REVIEW
-  // Calls the deployed review-payment Edge Function.
-  // Does not update payment status directly from browser.
-  // ---------------------------------------------------------
-
-  function setupPaymentReview() {
-    const table = $("paymentTable");
-
-    if (!table) {
-      console.warn("paymentTable lama helin.");
-      return;
-    }
-
-    table.addEventListener("click", async (event) => {
-      const button = event.target.closest("[data-review-payment]");
-
-      if (!button) return;
-
-      const paymentId = button.dataset.reviewPayment;
-      const reference = button.dataset.paymentReference || paymentId;
-      const amount = button.dataset.paymentAmount;
-      const currency = button.dataset.paymentCurrency || "USD";
-      const method = button.dataset.paymentMethod || "—";
-
-      if (!paymentId || reviewInProgress.has(paymentId)) return;
-
-      const confirmed = window.confirm(
-        "MA HUBTAA IN LACAGTU SOO DHACDAY?\n\n" +
-        "Payment Reference: " + reference + "\n" +
-        "Amount: " + formatMoney(amount, currency) + "\n" +
-        "Method: " + method + "\n\n" +
-        "Haddii aad xaqiijisay lacagta, dooro OK si loo ansixiyo.\n" +
-        "Ansixinta waxay soo saaraysaa receipt rasmi ah."
-      );
-
-      if (!confirmed) return;
-
-      reviewInProgress.add(paymentId);
-      button.disabled = true;
-      button.innerHTML =
-        '<i class="fas fa-spinner fa-spin"></i> Verifying...';
-
-      try {
-        // Ensure the authenticated session still exists.
-        const {
-          data: { session },
-          error: sessionError
-        } = await db.auth.getSession();
-
-        if (sessionError) throw sessionError;
-
-        if (!session) {
-          throw new Error("Session-kaagu wuu dhammaaday. Dib u gal.");
-        }
-
-        const { data, error } = await db.functions.invoke(
-          REVIEW_FUNCTION,
-          {
-            body: {
-              payment_id: paymentId,
-              status: "successful",
-              review_note: "Verified by Finance Manager after confirming receipt of funds."
-            }
-          }
-        );
-
-        if (error) {
-          let detail = error.message || "Edge Function error";
-
-          if (error.context && typeof error.context.json === "function") {
-            try {
-              const body = await error.context.json();
-              detail = body.error || body.message || detail;
-            } catch {
-              // Keep the original error message.
-            }
-          }
-
-          throw new Error(detail);
-        }
-
-        if (!data || data.success !== true) {
-          throw new Error(
-            data?.error ||
-            data?.message ||
-            "Payment review lama xaqiijin. Hubi Edge Function response."
-          );
-        }
-
-        const receiptNumber =
-          data.receipt_number ||
-          data.payment?.receipt_number ||
-          data.review?.receipt_number ||
-          data.data?.receipt_number ||
-          null;
-
-        window.alert(
-          "PAYMENT SI GUUL LEH AYAA LOO ANSIXIYAY.\n\n" +
-          "Reference: " + reference + "\n" +
-          "Receipt: " + (receiptNumber || "Ka hubi payment records") +
-          "\n\nInvoice iyo receipt-ka hadda dib ayaa loo cusboonaysiinayaa."
-        );
-
-        await loadDashboardData();
-
-      } catch (error) {
-        logError("Payment verification", error);
-
-        window.alert(
-          "PAYMENT LAMA ANSIXIN.\n\n" +
-          (error.message || "Khalad aan la aqoon ayaa dhacay.") +
-          "\n\nFadlan hubi Edge Function logs ka hor intaadan mar kale isku dayin."
-        );
-
-        // Refresh from database to avoid showing stale status.
-        await Promise.allSettled([
-          loadPaymentStatistics(),
-          loadPaymentRecords(),
-          loadInvoiceRecords()
-        ]);
-
-      } finally {
-        reviewInProgress.delete(paymentId);
-      }
-    });
-  }
-
-  // ---------------------------------------------------------
-  // NAVIGATION
-  // ---------------------------------------------------------
-
-  function setupNavigation() {
-    const pageTitles = {
-      overview: "Finance Overview",
-      invoices: "Student Invoices",
-      payments: "Payments Verification",
-      graduation: "Graduation Fee Clearance",
-      reports: "Financial Reports",
-      profile: "My Profile"
-    };
-
-    document.addEventListener("click", (event) => {
-      const navItem = event.target.closest("[data-section]");
-
-      if (!navItem) return;
-
-      const sectionName = navItem.dataset.section;
-      const targetSection = $("section-" + sectionName);
-
-      if (!targetSection) return;
-
-      document.querySelectorAll(".page-section").forEach((section) => {
-        section.classList.remove("active");
-      });
-
-      targetSection.classList.add("active");
-
-      document.querySelectorAll(".nav-link").forEach((link) => {
-        link.classList.remove("active");
-      });
-
-      document.querySelectorAll(
-        `.nav-link[data-section="${sectionName}"]`
-      ).forEach((link) => {
-        link.classList.add("active");
-      });
-
-      setText(
-        "pageTitle",
-        pageTitles[sectionName] || "Finance Dashboard"
-      );
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      });
-    });
-  }
-
-  // ---------------------------------------------------------
-  // LOGOUT
-  // ---------------------------------------------------------
-
-  function setupLogout() {
-    const logoutButton = $("logoutBtn");
-
-    if (!logoutButton) return;
-
-    logoutButton.addEventListener("click", async () => {
-      const confirmed = window.confirm(
-        "Ma hubtaa inaad ka baxdo Finance Manager Dashboard?"
-      );
-
-      if (!confirmed) return;
-
-      logoutButton.disabled = true;
-
-      const { error } = await db.auth.signOut();
-
-      if (error) {
-        logoutButton.disabled = false;
-        alert("Logout failed: " + error.message);
-        return;
-      }
-
-      window.location.replace("index.html");
-    });
-  }
-
-  // ---------------------------------------------------------
-  // AUTH SESSION LISTENER
-  // ---------------------------------------------------------
-
-  db.auth.onAuthStateChange((event) => {
-    if (event === "SIGNED_OUT") {
-      window.location.replace("index.html");
-    }
-  });
-
-  // ---------------------------------------------------------
-  // START
-  // ---------------------------------------------------------
-
-  if (document.readyState === "loading") {
-    document.addEventListener(
-      "DOMContentLoaded",
-      initializeDashboard
+    showNotice(
+      "paymentNotice",
+      `Payment recorded successfully. Reference: ${data.payment_reference || "Generated"} . Status: PENDING. No receipt has been issued yet.`,
+      "success"
     );
-  } else {
-    initializeDashboard();
+
+    showToast("Payment recorded as pending.");
+
+    $("recordPaymentForm").reset();
+
+    await loadDashboardData();
+
+  } catch (error) {
+    console.error("Record payment error:", error);
+    showNotice(
+      "paymentNotice",
+      error.message || "Unable to record payment.",
+      "error"
+    );
+  } finally {
+    button.disabled = false;
+    button.innerHTML = '<i class="fa-solid fa-lock"></i> Record Payment';
+  }
+}
+
+// ------------------------------------------------------------
+// VERIFY PAYMENT
+// ------------------------------------------------------------
+
+async function verifyPayment(paymentId, button) {
+  const payment = payments.find(p => p.id === paymentId);
+
+  if (!payment) {
+    showToast("Payment record not found.");
+    return;
   }
 
-})();
+  if (payment.status !== "pending") {
+    showToast("Only pending payments can be verified.");
+    return;
+  }
+
+  const confirmed = confirm(
+    "IMPORTANT PAYMENT VERIFICATION\n\n" +
+    "Reference: " + payment.payment_reference + "\n" +
+    "Amount: " + money(payment.amount, payment.currency) + "\n\n" +
+    "Only approve this payment after confirming that the money was actually received.\n\n" +
+    "Continue and mark as SUCCESSFUL?"
+  );
+
+  if (!confirmed) return;
+
+  const reviewNote = prompt(
+    "Enter a verification note. Include how you confirmed receipt of the money:"
+  );
+
+  if (!reviewNote || !reviewNote.trim()) {
+    showToast("Verification note is required.");
+    return;
+  }
+
+  button.disabled = true;
+  button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+  try {
+    const { data, error } = await db.rpc(
+      "gaawow_finance_review_invoice_payment_v1",
+      {
+        p_payment_id: paymentId,
+        p_decision: "successful",
+        p_review_note: reviewNote.trim()
+      }
+    );
+
+    if (error) throw error;
+
+    if (!data || data.success !== true) {
+      throw new Error(data?.message || "Payment verification failed.");
+    }
+
+    const receipt = data.receipt_number || "Receipt not returned";
+
+    alert(
+      "PAYMENT VERIFIED SUCCESSFULLY\n\n" +
+      "Payment Reference: " + payment.payment_reference + "\n" +
+      "Receipt Number: " + receipt + "\n" +
+      "Amount: " + money(payment.amount, payment.currency) + "\n\n" +
+      "Invoice reconciliation is handled by the database trigger."
+    );
+
+    await loadDashboardData();
+
+    showToast("Payment successfully verified.");
+
+  } catch (error) {
+    console.error("Payment verification error:", error);
+    alert("Verification failed:\n" + (error.message || "Unknown error"));
+    button.disabled = false;
+    button.innerHTML = '<i class="fa-solid fa-check"></i> Verify';
+  }
+}
+
+// ------------------------------------------------------------
+// SEARCH
+// ------------------------------------------------------------
+
+$("invoiceSearch").addEventListener("input", event => {
+  renderInvoices(event.target.value);
+});
+
+$("paymentSearch").addEventListener("input", event => {
+  renderPayments(event.target.value);
+});
+
+// ------------------------------------------------------------
+// MODAL EVENTS
+// ------------------------------------------------------------
+
+$("openPaymentModal").addEventListener("click", () => openRecordPayment());
+$("closePaymentModal").addEventListener("click", closeRecordPayment);
+$("cancelPayment").addEventListener("click", closeRecordPayment);
+$("recordPaymentForm").addEventListener("submit", recordPayment);
+
+$("paymentModal").addEventListener("click", event => {
+  if (event.target === $("paymentModal")) closeRecordPayment();
+});
+
+$("refreshPayments").addEventListener("click", async () => {
+  try {
+    await loadDashboardData();
+    showToast("Financial records refreshed.");
+  } catch (error) {
+    showToast(error.message || "Refresh failed.");
+  }
+});
+
+// ------------------------------------------------------------
+// SECURE LOGOUT
+// ------------------------------------------------------------
+
+$("logoutBtn").addEventListener("click", async () => {
+  const confirmed = confirm("Are you sure you want to securely log out?");
+
+  if (!confirmed) return;
+
+  const { error } = await db.auth.signOut();
+
+  if (error) {
+    alert("Logout failed: " + error.message);
+    return;
+  }
+
+  window.location.replace("index.html");
+});
+
+// ------------------------------------------------------------
+// AUTH SESSION CHANGE
+// ------------------------------------------------------------
+
+db.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_OUT") {
+    window.location.replace("index.html");
+  }
+});
+
+// ------------------------------------------------------------
+// START
+// ------------------------------------------------------------
+
+document.addEventListener("DOMContentLoaded", initializeDashboard);
