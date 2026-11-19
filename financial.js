@@ -1504,25 +1504,33 @@
   // PRINT INVOICE (uses receipts.js)
   // ==========================================
 
+  // Loads receipts.js automatically if financial.html does not include it
   function receiptsReady() {
-    if (window.GaawowReceipt) return true;
+    if (window.GaawowReceipt) return Promise.resolve(true);
 
-    msg(
-      "receipts.js lama soo shubin. Ku dar <script src=\"receipts.js\"></script> financial.html.",
-      "err"
-    );
-
-    return false;
+    return new Promise(resolve => {
+      const sc = document.createElement("script");
+      sc.src = "receipts.js?v=" + Date.now();
+      sc.onload = () => resolve(!!window.GaawowReceipt);
+      sc.onerror = () => {
+        msg(
+          "receipts.js lama helin. Hubi in faylka receipts.js uu ku jiro isla galka financial.html ee GitHub (404).",
+          "err"
+        );
+        resolve(false);
+      };
+      document.head.appendChild(sc);
+    });
   }
 
-  function printInvoice(id) {
+  async function printInvoice(id) {
     const i = invoice(id);
 
     if (!i) {
       return msg("Invoice lama helin.", "err");
     }
 
-    if (!receiptsReady()) return;
+    if (!(await receiptsReady())) return;
 
     const s = student(i.student_id);
     const inst = S.inst.find(x => x.id === i.institution_id);
@@ -1549,7 +1557,7 @@
   // PRINT PAYMENT / OFFICIAL RECEIPT (uses receipts.js)
   // ==========================================
 
-  function printReceipt(id) {
+  async function printReceipt(id) {
     const p = payment(id);
 
     if (!p) {
@@ -1565,7 +1573,7 @@
       );
     }
 
-    if (!receiptsReady()) return;
+    if (!(await receiptsReady())) return;
 
     const official = successful && !!p.receipt_number;
 
