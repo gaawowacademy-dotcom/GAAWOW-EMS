@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,12 +85,18 @@
     }
 
     .page-heading { margin-bottom:18px; }
+
     .page-heading h2 {
       color:var(--navy);
       margin:0 0 6px;
       font-size:23px;
     }
-    .page-heading p { margin:0; color:var(--muted); font-size:13px; }
+
+    .page-heading p {
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+    }
 
     .stats {
       display:grid;
@@ -113,7 +120,10 @@
       margin-bottom:9px;
     }
 
-    .stat-card strong { font-size:23px; color:var(--navy); }
+    .stat-card strong {
+      font-size:23px;
+      color:var(--navy);
+    }
 
     .panel {
       background:white;
@@ -132,7 +142,11 @@
       margin-bottom:15px;
     }
 
-    .panel-heading h3 { margin:0; color:var(--navy); font-size:17px; }
+    .panel-heading h3 {
+      margin:0;
+      color:var(--navy);
+      font-size:17px;
+    }
 
     .tabs {
       display:flex;
@@ -164,10 +178,20 @@
       gap:13px;
     }
 
-    .field { display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .field {
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:0;
+    }
+
     .field.full { grid-column:1/-1; }
 
-    label { font-size:12px; font-weight:700; color:var(--navy); }
+    label {
+      font-size:12px;
+      font-weight:700;
+      color:var(--navy);
+    }
 
     input,select,textarea {
       width:100%;
@@ -185,9 +209,19 @@
       box-shadow:0 0 0 3px rgba(11,77,162,.08);
     }
 
+    input:disabled,select:disabled,textarea:disabled {
+      background:#f1f4f8;
+      cursor:not-allowed;
+    }
+
     textarea { resize:vertical; min-height:80px; }
 
-    .form-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:15px; }
+    .form-actions {
+      display:flex;
+      gap:9px;
+      flex-wrap:wrap;
+      margin-top:15px;
+    }
 
     .form-note {
       color:var(--muted);
@@ -231,20 +265,32 @@
     }
 
     .status.pending { background:#fff2d8; color:#9a6100; }
+
     .status.successful,.status.paid,.status.approved,.status.issued {
       background:#dcf5e6;
       color:#126b39;
     }
+
     .status.failed,.status.rejected,.status.overdue {
       background:#ffe1e1;
       color:#a51d1d;
     }
-    .status.cancelled { background:#e9edf3; color:#475569; }
-    .status.refunded { background:#eee5ff; color:#6941a5; }
+
+    .status.cancelled {
+      background:#e9edf3;
+      color:#475569;
+    }
+
+    .status.refunded {
+      background:#eee5ff;
+      color:#6941a5;
+    }
+
     .status.partial,.status.in_review {
       background:#e0efff;
       color:#1456a0;
     }
+
     .status.unpaid,.status.missing {
       background:#fff2d8;
       color:#9a6100;
@@ -258,7 +304,10 @@
       align-items:end;
     }
 
-    .toolbar .field { min-width:180px; flex:1; }
+    .toolbar .field {
+      min-width:180px;
+      flex:1;
+    }
 
     .empty {
       padding:25px;
@@ -302,8 +351,16 @@
       margin-bottom:15px;
     }
 
-    .modal-header h3 { margin:0; color:var(--navy); }
-    .close-btn { background:#eef2fa; color:var(--navy); padding:7px 11px; }
+    .modal-header h3 {
+      margin:0;
+      color:var(--navy);
+    }
+
+    .close-btn {
+      background:#eef2fa;
+      color:var(--navy);
+      padding:7px 11px;
+    }
 
     .alert {
       padding:12px 14px;
@@ -375,8 +432,8 @@
   </div>
 
   <div class="top-actions no-print">
-    <button class="btn-light" id="backDashboard">Dashboard</button>
-    <button class="btn-gold" id="logout">Logout</button>
+    <button type="button" class="btn-light" id="backDashboard">Dashboard</button>
+    <button type="button" class="btn-gold" id="logout">Logout</button>
   </div>
 </header>
 
@@ -394,14 +451,17 @@
       <span>Total Invoices</span>
       <strong id="statInvoices">0</strong>
     </div>
+
     <div class="stat-card">
       <span>Total Payments Received</span>
       <strong id="statReceived">$0.00</strong>
     </div>
+
     <div class="stat-card">
       <span>Pending Payments</span>
       <strong id="statPending">0</strong>
     </div>
+
     <div class="stat-card">
       <span>Outstanding Balance</span>
       <strong id="statBalance">$0.00</strong>
@@ -411,9 +471,9 @@
   <section class="panel">
 
     <div class="tabs no-print">
-      <button class="tab active" data-tab="invPanel">Invoices</button>
-      <button class="tab" data-tab="payPanel">Payments</button>
-      <button class="tab" data-tab="sccPanel" id="sccTab">SCC Clearance</button>
+      <button type="button" class="tab active" data-tab="invPanel">Invoices</button>
+      <button type="button" class="tab" data-tab="payPanel">Payments</button>
+      <button type="button" class="tab" data-tab="sccPanel" id="sccTab">SCC Clearance</button>
     </div>
 
     <!-- INVOICES -->
@@ -421,7 +481,7 @@
 
       <div class="panel-heading">
         <h3>Invoice Management</h3>
-        <button class="btn-gold" id="newInvoiceBtn">+ Create Invoice</button>
+        <button type="button" class="btn-gold" id="newInvoiceBtn">+ Create Invoice</button>
       </div>
 
       <div class="toolbar no-print">
@@ -431,44 +491,67 @@
             <option value="">All Institutions</option>
           </select>
         </div>
+
         <div class="field">
           <label>Search Invoice / Student</label>
           <input id="invoiceSearch" placeholder="Search...">
         </div>
-        <button class="btn-blue" id="refreshInvoices">Refresh</button>
+
+        <button type="button" class="btn-blue" id="refreshInvoices">Refresh</button>
       </div>
 
       <div id="invoiceFormWrap" class="panel hidden">
         <div class="panel-heading">
           <h3>Create New Invoice</h3>
-          <button class="close-btn" id="closeInvoiceForm">Close</button>
+          <button type="button" class="close-btn" id="closeInvoiceForm">Close</button>
         </div>
 
         <form id="invoiceForm">
           <div class="form-grid">
+
             <div class="field">
               <label>Institution *</label>
               <select id="invInst" required></select>
             </div>
+
             <div class="field">
-              <label>Student *</label>
-              <select id="invStudent" required>
-                <option value="">Select student</option>
+              <label>Academic Year *</label>
+              <select id="invYear" required disabled>
+                <option value="">Select institution first</option>
               </select>
             </div>
+
+            <div class="field">
+              <label>Class *</label>
+              <select id="invClass" required disabled>
+                <option value="">Select academic year first</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Student *</label>
+              <select id="invStudent" required disabled>
+                <option value="">Select class first</option>
+              </select>
+            </div>
+
             <div class="field">
               <label>Invoice Amount *</label>
               <input id="invAmount" type="number" min="0.01" step="0.01" required>
             </div>
+
             <div class="field">
               <label>Due Date</label>
               <input id="invDueDate" type="date">
             </div>
+
             <div class="field full">
               <label>Description *</label>
               <textarea id="invDescription" required placeholder="Enter invoice description"></textarea>
             </div>
+
           </div>
+
           <div class="form-actions">
             <button type="submit" class="btn-gold" id="saveInvoiceBtn">Save Invoice</button>
             <button type="button" class="btn-light" id="cancelInvoiceBtn">Cancel</button>
@@ -491,8 +574,11 @@
               <th>Actions</th>
             </tr>
           </thead>
+
           <tbody id="invoiceTable">
-            <tr><td colspan="9" class="empty">Loading invoices...</td></tr>
+            <tr>
+              <td colspan="9" class="empty">Loading invoices...</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -503,7 +589,7 @@
 
       <div class="panel-heading">
         <h3>Payment Management</h3>
-        <button class="btn-gold" id="newPaymentBtn">+ Record Payment</button>
+        <button type="button" class="btn-gold" id="newPaymentBtn">+ Record Payment</button>
       </div>
 
       <div class="toolbar no-print">
@@ -513,10 +599,12 @@
             <option value="">All Institutions</option>
           </select>
         </div>
+
         <div class="field">
           <label>Search Payment / Student</label>
           <input id="paymentSearch" placeholder="Search...">
         </div>
+
         <div class="field">
           <label>Payment Status</label>
           <select id="paymentStatusFilter">
@@ -528,13 +616,14 @@
             <option value="refunded">Refunded</option>
           </select>
         </div>
-        <button class="btn-blue" id="refreshPayments">Refresh</button>
+
+        <button type="button" class="btn-blue" id="refreshPayments">Refresh</button>
       </div>
 
       <div id="paymentFormWrap" class="panel hidden">
         <div class="panel-heading">
           <h3>Record New Payment</h3>
-          <button class="close-btn" id="closePaymentForm">Close</button>
+          <button type="button" class="close-btn" id="closePaymentForm">Close</button>
         </div>
 
         <p class="form-note">
@@ -551,16 +640,30 @@
             </div>
 
             <div class="field">
+              <label>Academic Year *</label>
+              <select id="payYear" required disabled>
+                <option value="">Select institution first</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Class *</label>
+              <select id="payClass" required disabled>
+                <option value="">Select academic year first</option>
+              </select>
+            </div>
+
+            <div class="field">
               <label>Student *</label>
-              <select id="payStudent" required>
-                <option value="">Select student</option>
+              <select id="payStudent" required disabled>
+                <option value="">Select class first</option>
               </select>
             </div>
 
             <div class="field">
               <label>Invoice</label>
-              <select id="payInvoice">
-                <option value="">Select invoice</option>
+              <select id="payInvoice" disabled>
+                <option value="">Select student first</option>
               </select>
             </div>
 
@@ -648,8 +751,11 @@
               <th>Receipt / Actions</th>
             </tr>
           </thead>
+
           <tbody id="paymentTable">
-            <tr><td colspan="8" class="empty">Loading payments...</td></tr>
+            <tr>
+              <td colspan="8" class="empty">Loading payments...</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -660,7 +766,7 @@
 
       <div class="panel-heading">
         <h3>Student Clearance Certificate (SCC)</h3>
-        <button class="btn-blue" id="refreshScc">Refresh SCC</button>
+        <button type="button" class="btn-blue" id="refreshScc">Refresh SCC</button>
       </div>
 
       <div class="scc-info">
@@ -686,8 +792,11 @@
               <th>Action</th>
             </tr>
           </thead>
+
           <tbody id="sccTable">
-            <tr><td colspan="8" class="empty">Loading SCC requests...</td></tr>
+            <tr>
+              <td colspan="8" class="empty">Loading SCC requests...</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -705,15 +814,17 @@
 <!-- PAYMENT REVIEW MODAL -->
 <div class="modal" id="reviewModal">
   <div class="modal-box">
+
     <div class="modal-header">
       <h3>Review Payment</h3>
-      <button class="close-btn" id="closeReviewModal">Close</button>
+      <button type="button" class="close-btn" id="closeReviewModal">Close</button>
     </div>
 
     <div id="reviewPaymentInfo" class="form-note"></div>
 
     <form id="reviewForm">
       <div class="form-grid">
+
         <div class="field full">
           <label>Review Decision *</label>
           <select id="reviewStatus" required>
@@ -728,6 +839,7 @@
           <label>Review Note</label>
           <textarea id="reviewNote" placeholder="Enter reason or review note"></textarea>
         </div>
+
       </div>
 
       <div class="form-actions">
@@ -739,6 +851,7 @@
 </div>
 
 <script src="receipts.js?v=3"></script>
-<script src="financial.js?v=20261118-3"></script>
+<script src="financial.js?v=20261119-4"></script>
+
 </body>
 </html>
