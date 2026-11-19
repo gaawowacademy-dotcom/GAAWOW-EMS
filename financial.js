@@ -1,3 +1,4 @@
+
 "use strict";
 
 (() => {
@@ -5,13 +6,11 @@
   const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
   if (!window.supabase) {
-    console.error("Supabase library is not loaded.");
     alert("Supabase lama soo shubin. Fadlan refresh samee.");
     return;
   }
 
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
   const $ = id => document.getElementById(id);
 
   const S = {
@@ -26,7 +25,11 @@
     editingPayment: null,
     tab: "invPanel",
 
-    // SCC state
+    academicYears: [],
+    classes: [],
+    enrollments: [],
+    academicDataError: null,
+
     sccRequests: [],
     sccSteps: [],
     sccError: null,
@@ -34,16 +37,13 @@
     sccSubmitting: false
   };
 
-  // ==========================================
+  // =====================================================
   // SAFE HELPERS
-  // ==========================================
+  // =====================================================
 
   const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;"
   }[c]));
 
   const cash = (n, cur = "USD") => {
@@ -76,7 +76,6 @@
 
   function msg(message, kind = "success") {
     const e = $("alertBox");
-
     if (!e) {
       console.log(message);
       return;
@@ -116,15 +115,15 @@
   }
 
   function student(id) {
-    return S.students.find(x => x.id === id);
+    return S.students.find(x => String(x.id) === String(id));
   }
 
   function invoice(id) {
-    return S.invoices.find(x => x.id === id);
+    return S.invoices.find(x => String(x.id) === String(id));
   }
 
   function payment(id) {
-    return S.payments.find(x => x.id === id);
+    return S.payments.find(x => String(x.id) === String(id));
   }
 
   function studentLabel(id) {
@@ -136,9 +135,16 @@
     return p?.metadata && typeof p.metadata === "object" ? p.metadata : {};
   }
 
-  // ==========================================
-  // ROLE NORMALIZATION AND ACCESS CONTROL
-  // ==========================================
+  function balance(i) {
+    return Math.max(
+      Number(i?.amount || 0) - Number(i?.paid_amount || 0),
+      0
+    );
+  }
+
+  // =====================================================
+  // ROLE AND ACCESS CONTROL
+  // =====================================================
 
   function normalizeRole(value) {
     return String(value ?? "")
@@ -184,25 +190,20 @@
     return `<span class="status ${esc(s)}">${esc(s)}</span>`;
   }
 
-  function balance(i) {
-    return Math.max(Number(i.amount || 0) - Number(i.paid_amount || 0), 0);
-  }
-
-  // ==========================================
+  // =====================================================
   // AUTHENTICATION
-  // ==========================================
+  // =====================================================
 
   async function auth() {
     const { data, error } = await db.auth.getSession();
 
-    if (error) {
-      console.error("SESSION ERROR:", error);
-      throw error;
-    }
+    if (error) throw error;
 
     if (!data?.session?.user?.id) {
       msg("Fadlan marka hore ka gal GAAWOW EMS login-kaaga.", "err");
-      setTimeout(() => { location.href = "login.html"; }, 1800);
+      setTimeout(() => {
+        location.href = "login.html";
+      }, 1800);
       return false;
     }
 
@@ -215,17 +216,18 @@
       .maybeSingle();
 
     if (profileError) {
-      console.error("PROFILE QUERY ERROR:", profileError);
-      msg("Profile lama akhrin karin: " + profileError.message, "err");
-      return false;
+      throw new Error("Profile error: " + profileError.message);
     }
 
     if (!profile) {
-      msg("Profile-ka akoonka lama helin. La xiriir Super Admin.", "err");
+      msg("Profile-ka akoonka lama helin.", "err");
       return false;
     }
 
-    S.profile = { ...profile, role: normalizeRole(profile.role) };
+    S.profile = {
+      ...profile,
+      role: normalizeRole(profile.role)
+    };
 
     if (S.user.id !== S.profile.id) {
       msg("Auth ID iyo Profile ID isma waafaqaan.", "err");
@@ -233,16 +235,22 @@
     }
 
     if (S.profile.is_active !== true) {
-      msg("Akoonkaagu ma shaqeynayo. La xiriir Super Admin.", "err");
+      msg("Akoonkaagu ma shaqeynayo.", "err");
       await db.auth.signOut();
-      setTimeout(() => { location.href = "login.html"; }, 1800);
+      setTimeout(() => {
+        location.href = "login.html";
+      }, 1800);
       return false;
     }
 
-    const allowed = ["super_admin", "school_admin", "finance_manager"];
+    const allowed = [
+      "super_admin",
+      "school_admin",
+      "finance_manager"
+    ];
 
     if (!allowed.includes(role())) {
-      msg("Doorka akoonka lama aqoonsan: " + (profile.role || "Role missing"), "err");
+      msg("Doorka akoonka lama aqoonsan.", "err");
       return false;
     }
 
@@ -254,9 +262,9 @@
     return true;
   }
 
-  // ==========================================
+  // =====================================================
   // INSTITUTIONS
-  // ==========================================
+  // =====================================================
 
   async function loadInstitutions() {
     let q = db
@@ -292,9 +300,9 @@
     }
   }
 
-  // ==========================================
+  // =====================================================
   // STUDENTS
-  // ==========================================
+  // =====================================================
 
   async function loadStudents() {
     let q = db
@@ -311,41 +319,275 @@
     if (error) throw error;
 
     S.students = data || [];
-    studentOptions();
   }
 
-  function studentOptions() {
-    const invInst = $("invInst")?.value || "";
-    const payInst = $("payFormInst")?.value || "";
+  // =====================================================
+  // ACADEMIC YEARS, CLASSES AND ENROLLMENTS
+  // =====================================================
+
+  async function loadAcademicClassData() {
+    S.academicDataError = null;
+
+    let yearQuery = db
+      .from("academic_years")
+      .select("id,institution_id,year_name,is_active")
+      .order("year_name", { ascending: false })
+      .limit(2000);
+
+    let classQuery = db
+      .from("classes")
+      .select("id,institution_id,name,code,is_active,status")
+      .order("name")
+      .limit(3000);
+
+    let enrollmentQuery = db
+      .from("enrollments")
+      .select("id,institution_id,student_id,class_id,academic_year_id,status")
+      .limit(5000);
+
+    if (isInstitutionUser()) {
+      const institutionId = S.profile.institution_id;
+
+      yearQuery = yearQuery.eq("institution_id", institutionId);
+      classQuery = classQuery.eq("institution_id", institutionId);
+      enrollmentQuery = enrollmentQuery.eq("institution_id", institutionId);
+    }
+
+    const [yearsResult, classesResult, enrollmentsResult] =
+      await Promise.all([
+        yearQuery,
+        classQuery,
+        enrollmentQuery
+      ]);
+
+    if (yearsResult.error) throw yearsResult.error;
+    if (classesResult.error) throw classesResult.error;
+    if (enrollmentsResult.error) throw enrollmentsResult.error;
+
+    S.academicYears = yearsResult.data || [];
+    S.classes = classesResult.data || [];
+    S.enrollments = enrollmentsResult.data || [];
+  }
+
+  function activeEnrollments(institutionId, yearId, classId = null) {
+    return S.enrollments.filter(e =>
+      String(e.institution_id) === String(institutionId) &&
+      String(e.academic_year_id) === String(yearId) &&
+      String(e.status || "").toLowerCase() === "active" &&
+      (!classId || String(e.class_id) === String(classId))
+    );
+  }
+
+  function resetClassAndStudent(prefix) {
+    const classId = prefix === "inv" ? "invClass" : "payClass";
+    const studentId = prefix === "inv" ? "invStudent" : "payStudent";
+
+    fill(classId, [], x => x.id, x => x.name, "Select academic year first");
+    fill(studentId, [], x => x.id, x => x.full_name, "Select class first");
+
+    if ($(classId)) $(classId).disabled = true;
+    if ($(studentId)) $(studentId).disabled = true;
+
+    if (prefix === "pay") {
+      invoiceOptions();
+    }
+  }
+
+  function populateAcademicYearOptions(prefix) {
+    const institutionId = $(
+      prefix === "inv" ? "invInst" : "payFormInst"
+    )?.value || "";
+
+    const yearSelect = $(prefix === "inv" ? "invYear" : "payYear");
+
+    resetClassAndStudent(prefix);
+
+    if (yearSelect) {
+      fill(
+        yearSelect.id,
+        [],
+        x => x.id,
+        x => x.year_name,
+        institutionId ? "Select academic year" : "Select institution first"
+      );
+      yearSelect.disabled = true;
+    }
+
+    if (!institutionId) return;
+
+    if (S.academicDataError) {
+      msg("Academic data lama helin: " + S.academicDataError, "err");
+      return;
+    }
+
+    const availableYearIds = new Set(
+      S.enrollments
+        .filter(e =>
+          String(e.institution_id) === String(institutionId) &&
+          String(e.status || "").toLowerCase() === "active" &&
+          !!e.academic_year_id
+        )
+        .map(e => String(e.academic_year_id))
+    );
+
+    const rows = S.academicYears.filter(y =>
+      String(y.institution_id) === String(institutionId) &&
+      y.is_active !== false &&
+      availableYearIds.has(String(y.id))
+    );
 
     fill(
-      "invStudent",
-      S.students.filter(s => !invInst || s.institution_id === invInst),
+      yearSelect.id,
+      rows,
+      y => y.id,
+      y => y.year_name,
+      "Select academic year"
+    );
+
+    if (yearSelect) yearSelect.disabled = rows.length === 0;
+
+    if (!rows.length) {
+      msg("Machadkan lagama helin active enrollment academic year-kan.", "info");
+    }
+  }
+
+  function populateClasses(prefix) {
+    const institutionId = $(
+      prefix === "inv" ? "invInst" : "payFormInst"
+    )?.value || "";
+
+    const yearId = $(
+      prefix === "inv" ? "invYear" : "payYear"
+    )?.value || "";
+
+    const classSelect = $(prefix === "inv" ? "invClass" : "payClass");
+
+    resetClassAndStudent(prefix);
+
+    if (!institutionId || !yearId) return;
+
+    const enrollmentRows = activeEnrollments(institutionId, yearId);
+
+    const enrolledClassIds = new Set(
+      enrollmentRows
+        .filter(e => !!e.class_id)
+        .map(e => String(e.class_id))
+    );
+
+    const rows = S.classes.filter(c => {
+      const classStatus = String(c.status || "").toLowerCase();
+
+      return (
+        String(c.institution_id) === String(institutionId) &&
+        c.is_active !== false &&
+        !["inactive", "archived", "cancelled"].includes(classStatus) &&
+        enrolledClassIds.has(String(c.id))
+      );
+    });
+
+    fill(
+      classSelect.id,
+      rows,
+      c => c.id,
+      c => `${c.name}${c.code ? " (" + c.code + ")" : ""}`,
+      "Select class"
+    );
+
+    if (classSelect) classSelect.disabled = rows.length === 0;
+
+    if (!rows.length) {
+      msg("Sannad-dugsiyeedkan fasal active enrollment leh lama helin.", "info");
+    }
+  }
+
+  function populateClassStudents(prefix) {
+    const institutionId = $(
+      prefix === "inv" ? "invInst" : "payFormInst"
+    )?.value || "";
+
+    const yearId = $(
+      prefix === "inv" ? "invYear" : "payYear"
+    )?.value || "";
+
+    const classId = $(
+      prefix === "inv" ? "invClass" : "payClass"
+    )?.value || "";
+
+    const studentSelect = $(prefix === "inv" ? "invStudent" : "payStudent");
+
+    fill(
+      studentSelect.id,
+      [],
+      s => s.id,
+      s => s.full_name,
+      "Select class first"
+    );
+
+    if (studentSelect) studentSelect.disabled = true;
+
+    if (!institutionId || !yearId || !classId) {
+      if (prefix === "pay") invoiceOptions();
+      return;
+    }
+
+    const rows = activeEnrollments(institutionId, yearId, classId);
+
+    const enrolledStudentIds = new Set(
+      rows.map(e => String(e.student_id))
+    );
+
+    const enrolledStudents = S.students.filter(s =>
+      String(s.institution_id) === String(institutionId) &&
+      enrolledStudentIds.has(String(s.id))
+    );
+
+    fill(
+      studentSelect.id,
+      enrolledStudents,
       s => s.id,
       s => `${s.full_name} (${s.student_id})`,
       "Select student"
     );
 
-    fill(
-      "payStudent",
-      S.students.filter(s => !payInst || s.institution_id === payInst),
-      s => s.id,
-      s => `${s.full_name} (${s.student_id})`,
-      "Select student"
-    );
+    if (studentSelect) studentSelect.disabled = enrolledStudents.length === 0;
 
-    invoiceOptions();
+    if (!enrolledStudents.length) {
+      msg("Fasalkan lagama helin arday active enrollment leh.", "info");
+    }
+
+    if (prefix === "pay") invoiceOptions();
   }
 
-  // ==========================================
+  function isStudentInSelectedClass(prefix, studentId) {
+    const institutionId = $(
+      prefix === "inv" ? "invInst" : "payFormInst"
+    )?.value || "";
+
+    const yearId = $(
+      prefix === "inv" ? "invYear" : "payYear"
+    )?.value || "";
+
+    const classId = $(
+      prefix === "inv" ? "invClass" : "payClass"
+    )?.value || "";
+
+    if (!institutionId || !yearId || !classId || !studentId) {
+      return false;
+    }
+
+    return activeEnrollments(institutionId, yearId, classId)
+      .some(e => String(e.student_id) === String(studentId));
+  }
+
+  // =====================================================
   // SUCCESSFUL PAYMENT CALCULATIONS
-  // ==========================================
+  // =====================================================
 
   function successfulPayments(studentId, invoiceId = null) {
     return S.payments.filter(p =>
-      p.student_id === studentId &&
+      String(p.student_id) === String(studentId) &&
       String(p.status || "").toLowerCase() === "successful" &&
-      (!invoiceId || p.invoice_id === invoiceId)
+      (!invoiceId || String(p.invoice_id) === String(invoiceId))
     );
   }
 
@@ -368,9 +610,9 @@
       : cash(0, "USD");
   }
 
-  // ==========================================
-  // PAYMENT SUMMARY UI
-  // ==========================================
+  // =====================================================
+  // PAYMENT SUMMARY
+  // =====================================================
 
   function ensurePaymentSummary() {
     if ($("paymentSummary")) return $("paymentSummary");
@@ -381,16 +623,11 @@
     const panel = document.createElement("div");
     panel.id = "paymentSummary";
     panel.style.cssText = `
-      margin:14px 0;
-      padding:17px;
+      margin:14px 0;padding:17px;
       border:1px solid #D4AF37;
       border-left:5px solid #0B1E63;
-      border-radius:12px;
-      background:#F5F7FA;
-      color:#0B1E63;
-      line-height:1.8;
-      font-size:14px;
-      box-shadow:0 3px 12px rgba(11,30,99,.06);
+      border-radius:12px;background:#F5F7FA;
+      color:#0B1E63;line-height:1.8;font-size:14px;
     `;
 
     invoiceSelect.insertAdjacentElement("afterend", panel);
@@ -412,7 +649,9 @@
       return;
     }
 
-    const studentTotals = totalByCurrency(successfulPayments(studentId));
+    const studentTotals = totalByCurrency(
+      successfulPayments(studentId)
+    );
 
     let invoiceHTML = `
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid #D4AF37">
@@ -423,8 +662,14 @@
 
     const selectedInvoice = invoice(invoiceId);
 
-    if (selectedInvoice && selectedInvoice.student_id === studentId) {
-      const invoicePayments = successfulPayments(studentId, selectedInvoice.id);
+    if (
+      selectedInvoice &&
+      String(selectedInvoice.student_id) === String(studentId)
+    ) {
+      const invoicePayments = successfulPayments(
+        studentId,
+        selectedInvoice.id
+      );
 
       const invoicePaid = invoicePayments
         .filter(p => String(p.currency || "USD").toUpperCase() === "USD")
@@ -446,7 +691,9 @@
           Invoice Total Paid:
           <b style="color:#15803D">${cash(invoicePaid, "USD")}</b><br>
           Remaining Balance:
-          <b style="color:${remaining > 0 ? "#B45309" : "#15803D"}">${cash(remaining, "USD")}</b>
+          <b style="color:${remaining > 0 ? "#B45309" : "#15803D"}">
+            ${cash(remaining, "USD")}
+          </b>
           ${
             Object.keys(otherCurrencies).length
               ? `<br><small>Other successful currencies: ${esc(currencySummary(otherCurrencies))}</small>`
@@ -467,19 +714,22 @@
     `;
   }
 
-  // ==========================================
-  // INVOICE OPTIONS FOR PAYMENTS
-  // ==========================================
+  // =====================================================
+  // INVOICE OPTIONS FOR PAYMENT
+  // =====================================================
 
   function invoiceOptions() {
-    const st = $("payStudent")?.value || "";
-    const inst = $("payFormInst")?.value || "";
+    const studentId = $("payStudent")?.value || "";
+    const institutionId = $("payFormInst")?.value || "";
 
     const rows = S.invoices.filter(i =>
-      i.institution_id === inst &&
-      (!st || i.student_id === st) &&
+      !!studentId &&
+      String(i.institution_id) === String(institutionId) &&
+      String(i.student_id) === String(studentId) &&
       balance(i) > 0 &&
-      String(i.status).toLowerCase() !== "cancelled"
+      !["cancelled", "paid"].includes(
+        String(i.status || "").toLowerCase()
+      )
     );
 
     fill(
@@ -487,15 +737,18 @@
       rows,
       i => i.id,
       i => `${i.invoice_number} • ${cash(i.amount)} • Balance: ${cash(balance(i))}`,
-      "No invoice linked"
+      rows.length ? "Select outstanding invoice" : "No outstanding invoice for this student"
     );
+
+    const select = $("payInvoice");
+    if (select) select.disabled = !studentId;
 
     updatePaymentSummary();
   }
 
-  // ==========================================
+  // =====================================================
   // LOAD INVOICES
-  // ==========================================
+  // =====================================================
 
   async function loadInvoices() {
     S.invoiceError = null;
@@ -504,16 +757,8 @@
       let q = db
         .from("invoices")
         .select(`
-          id,
-          institution_id,
-          student_id,
-          invoice_number,
-          description,
-          amount,
-          paid_amount,
-          due_date,
-          status,
-          created_at
+          id,institution_id,student_id,invoice_number,
+          description,amount,paid_amount,due_date,status,created_at
         `)
         .order("created_at", { ascending: false })
         .limit(1500);
@@ -538,9 +783,9 @@
     }
   }
 
-  // ==========================================
+  // =====================================================
   // LOAD PAYMENTS
-  // ==========================================
+  // =====================================================
 
   async function loadPayments() {
     S.paymentError = null;
@@ -549,22 +794,10 @@
       let q = db
         .from("payments")
         .select(`
-          id,
-          institution_id,
-          invoice_id,
-          student_id,
-          amount,
-          currency,
-          payment_method,
-          transaction_reference,
-          provider_transaction_id,
-          payer_phone,
-          status,
-          paid_at,
-          created_at,
-          payment_reference,
-          receipt_number,
-          metadata
+          id,institution_id,invoice_id,student_id,amount,currency,
+          payment_method,transaction_reference,provider_transaction_id,
+          payer_phone,status,paid_at,created_at,payment_reference,
+          receipt_number,metadata
         `)
         .order("created_at", { ascending: false })
         .limit(2000);
@@ -589,9 +822,9 @@
     }
   }
 
-  // ==========================================
-  // SCC: LOAD REQUESTS AND APPROVAL STEPS
-  // ==========================================
+  // =====================================================
+  // SCC: LOAD REQUESTS AND STEPS
+  // =====================================================
 
   async function loadSccRequests() {
     S.sccError = null;
@@ -608,18 +841,9 @@
       let q = db
         .from("scc_requests")
         .select(`
-          id,
-          institution_id,
-          student_id,
-          fee_invoice_id,
-          certificate_id,
-          request_status,
-          requested_by,
-          requested_at,
-          final_approved_at,
-          issued_at,
-          rejection_reason,
-          created_at
+          id,institution_id,student_id,fee_invoice_id,certificate_id,
+          request_status,requested_by,requested_at,final_approved_at,
+          issued_at,rejection_reason,created_at
         `)
         .order("created_at", { ascending: false })
         .limit(1000);
@@ -645,18 +869,9 @@
       const { data: steps, error: stepsError } = await db
         .from("scc_approval_steps")
         .select(`
-          id,
-          request_id,
-          institution_id,
-          student_id,
-          approval_stage,
-          approval_status,
-          assigned_role,
-          signed_by,
-          signed_at,
-          comments,
-          rejection_reason,
-          created_at
+          id,request_id,institution_id,student_id,approval_stage,
+          approval_status,assigned_role,signed_by,signed_at,
+          comments,rejection_reason,created_at
         `)
         .in("request_id", requestIds);
 
@@ -676,13 +891,13 @@
 
   function sccStep(requestId, stage) {
     return S.sccSteps.find(x =>
-      x.request_id === requestId && x.approval_stage === stage
+      x.request_id === requestId &&
+      x.approval_stage === stage
     );
   }
 
   function sccStageLabel(requestId, stage) {
     const step = sccStep(requestId, stage);
-
     if (!step) return statusBadge("missing");
 
     return `
@@ -691,9 +906,9 @@
     `;
   }
 
-  // ==========================================
-  // SCC: RENDER REQUESTS
-  // ==========================================
+  // =====================================================
+  // SCC RENDER
+  // =====================================================
 
   function sccMessageRow(text) {
     return `<tr><td colspan="8" class="empty">${text}</td></tr>`;
@@ -716,7 +931,9 @@
     }
 
     if (S.sccError) {
-      table.innerHTML = sccMessageRow("SCC loading failed: " + esc(S.sccError));
+      table.innerHTML = sccMessageRow(
+        "SCC loading failed: " + esc(S.sccError)
+      );
       return;
     }
 
@@ -747,8 +964,7 @@
       const invoiceStatus = inv
         ? `
           ${statusBadge(inv.status)}
-          <br>
-          <small>${cash(inv.paid_amount || 0)} / ${cash(inv.amount || 0)}</small>
+          <br><small>${cash(inv.paid_amount || 0)} / ${cash(inv.amount || 0)}</small>
         `
         : `<span class="status missing">Invoice unavailable</span>`;
 
@@ -756,23 +972,17 @@
         <tr>
           <td>
             <b>${esc(studentLabel(r.student_id))}</b>
-            <br>
-            <small>${esc(r.id)}</small>
+            <br><small>${esc(r.id)}</small>
           </td>
-
           <td>${esc(fmtDate(r.requested_at || r.created_at))}</td>
-
           <td>
             ${inv ? esc(inv.invoice_number || "Invoice") : "Invoice not loaded"}
-            <br>
-            <b>${inv ? cash(inv.amount || 0) : "—"}</b>
+            <br><b>${inv ? cash(inv.amount || 0) : "—"}</b>
           </td>
-
           <td>${invoiceStatus}</td>
           <td>${sccStageLabel(r.id, "finance")}</td>
           <td>${sccStageLabel(r.id, "academic")}</td>
           <td>${sccStageLabel(r.id, "director")}</td>
-
           <td>
             ${
               eligible
@@ -791,9 +1001,9 @@
     });
   }
 
-  // ==========================================
-  // SCC: FINANCE MANAGER APPROVAL
-  // ==========================================
+  // =====================================================
+  // SCC FINANCE APPROVAL
+  // =====================================================
 
   async function approveSccFinance(requestId) {
     if (S.sccSubmitting) return;
@@ -844,18 +1054,15 @@
       Number(inv.paid_amount || 0) < 35
     ) {
       return msg(
-        "Invoice-ka hadda ma muujinayo in Graduation Fee-ga USD $35 si buuxda loo bixiyey. Finance approval lama samayn karo.",
+        "Invoice-ka hadda ma muujinayo in Graduation Fee-ga USD $35 si buuxda loo bixiyey.",
         "err"
       );
     }
 
-    const confirmed = confirm(
+    if (!confirm(
       "Ma hubisay in ardaygu bixiyey Graduation Fee-ga USD $35?\n\n" +
-      "Server-ka ayaa dib u hubin doona invoice-ka iyo successful payments-ka.\n\n" +
-      "Haddii lacagtu aanay si buuxda u bixin, approval-ka waa la diidi doonaa."
-    );
-
-    if (!confirmed) return;
+      "Server-ka ayaa dib u hubin doona invoice-ka iyo successful payments-ka."
+    )) return;
 
     const comments = prompt(
       "Finance Clearance comments (optional):",
@@ -864,7 +1071,9 @@
 
     if (comments === null) return;
 
-    const btn = document.querySelector(`[data-scc-approve="${requestId}"]`);
+    const btn = document.querySelector(
+      `[data-scc-approve="${requestId}"]`
+    );
 
     S.sccSubmitting = true;
     if (btn) btn.disabled = true;
@@ -896,17 +1105,13 @@
     }
   }
 
-  // ==========================================
-  // SEARCH
-  // ==========================================
+  // =====================================================
+  // SEARCH AND INVOICE RENDER
+  // =====================================================
 
   function matches(text, query) {
     return !query || String(text || "").toLowerCase().includes(query);
   }
-
-  // ==========================================
-  // RENDER INVOICES
-  // ==========================================
 
   function renderInvoices() {
     const table = $("invoiceTable");
@@ -952,18 +1157,14 @@
       `).join("")
       : `<tr><td colspan="9" class="empty">No invoices found.</td></tr>`;
 
-    bindInvoiceButtons();
-  }
-
-  function bindInvoiceButtons() {
     document.querySelectorAll("[data-invoice-print]").forEach(b => {
       b.onclick = () => printInvoice(b.dataset.invoicePrint);
     });
   }
 
-  // ==========================================
-  // RENDER PAYMENTS
-  // ==========================================
+  // =====================================================
+  // PAYMENT RENDER
+  // =====================================================
 
   function renderPayments() {
     const table = $("paymentTable");
@@ -1003,7 +1204,8 @@
     table.innerHTML = rows.length
       ? rows.map(p => {
         const official =
-          String(p.status).toLowerCase() === "successful" && !!p.receipt_number;
+          String(p.status).toLowerCase() === "successful" &&
+          !!p.receipt_number;
 
         const pending = String(p.status).toLowerCase() === "pending";
 
@@ -1022,7 +1224,6 @@
                   Review
                 </button>
               ` : ""}
-
               <button class="btn-blue btn-small" data-print="${esc(p.id)}">
                 ${official ? "Official Receipt" : "View Record"}
               </button>
@@ -1032,10 +1233,6 @@
       }).join("")
       : `<tr><td colspan="8" class="empty">No payments found.</td></tr>`;
 
-    bindPaymentButtons();
-  }
-
-  function bindPaymentButtons() {
     document.querySelectorAll("[data-print]").forEach(b => {
       b.onclick = () => printReceipt(b.dataset.print);
     });
@@ -1045,9 +1242,9 @@
     });
   }
 
-  // ==========================================
-  // STATISTICS
-  // ==========================================
+  // =====================================================
+  // STATISTICS AND MAIN RENDER
+  // =====================================================
 
   function renderStats() {
     const valid = S.invoices.filter(i =>
@@ -1065,14 +1262,16 @@
     const totalBalance = valid.reduce((sum, i) => sum + balance(i), 0);
 
     const totalUSD = received
-      .filter(p => (p.currency || "USD") === "USD")
+      .filter(p => String(p.currency || "USD").toUpperCase() === "USD")
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     const totalSOS = received
-      .filter(p => p.currency === "SOS")
+      .filter(p => String(p.currency || "").toUpperCase() === "SOS")
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-    if ($("statInvoices")) $("statInvoices").textContent = S.invoices.length;
+    if ($("statInvoices")) {
+      $("statInvoices").textContent = S.invoices.length;
+    }
 
     if ($("statReceived")) {
       $("statReceived").textContent =
@@ -1080,9 +1279,13 @@
         (totalSOS > 0 ? " | " + cash(totalSOS, "SOS") : "");
     }
 
-    if ($("statPending")) $("statPending").textContent = pending.length;
+    if ($("statPending")) {
+      $("statPending").textContent = pending.length;
+    }
 
-    if ($("statBalance")) $("statBalance").textContent = cash(totalBalance, "USD");
+    if ($("statBalance")) {
+      $("statBalance").textContent = cash(totalBalance, "USD");
+    }
   }
 
   function render() {
@@ -1105,24 +1308,35 @@
     render();
   }
 
-  // ==========================================
+  // =====================================================
   // FORM DISPLAY
-  // ==========================================
+  // =====================================================
 
   function hideForms() {
     ["invoiceFormWrap", "paymentFormWrap"].forEach(id => {
       if ($(id)) $(id).classList.add("hidden");
     });
 
-    if ($("reviewModal")) $("reviewModal").classList.remove("show");
+    if ($("reviewModal")) {
+      $("reviewModal").classList.remove("show");
+    }
   }
 
   function openInvoiceForm() {
     if (!$("invoiceFormWrap")) return;
 
     hideForms();
+
     $("invoiceFormWrap").classList.remove("hidden");
-    studentOptions();
+
+    if ($("invoiceForm")) $("invoiceForm").reset();
+
+    if (isInstitutionUser()) {
+      setValue("invInst", S.profile.institution_id);
+    }
+
+    populateAcademicYearOptions("inv");
+
     $("invoiceFormWrap").scrollIntoView({ behavior: "smooth" });
   }
 
@@ -1130,23 +1344,34 @@
     if (!$("paymentFormWrap")) return;
 
     hideForms();
+
     $("paymentFormWrap").classList.remove("hidden");
+
+    if ($("paymentForm")) $("paymentForm").reset();
+
+    if (isInstitutionUser()) {
+      setValue("payFormInst", S.profile.institution_id);
+    }
 
     setValue("payDate", new Date().toISOString().slice(0, 10));
 
-    studentOptions();
+    populateAcademicYearOptions("pay");
+    invoiceOptions();
     updatePaymentSummary();
+
     $("paymentFormWrap").scrollIntoView({ behavior: "smooth" });
   }
 
-  // ==========================================
+  // =====================================================
   // CREATE INVOICE
-  // ==========================================
+  // =====================================================
 
   async function saveInvoice(event) {
     event.preventDefault();
 
     const institution_id = $("invInst")?.value || "";
+    const academic_year_id = $("invYear")?.value || "";
+    const class_id = $("invClass")?.value || "";
     const student_id = $("invStudent")?.value || "";
     const description = $("invDescription")?.value.trim() || "";
     const amount = Number($("invAmount")?.value);
@@ -1156,13 +1381,25 @@
 
     if (
       !institutionAllowed(institution_id) ||
+      !academic_year_id ||
+      !class_id ||
       !st ||
-      st.institution_id !== institution_id ||
+      String(st.institution_id) !== String(institution_id) ||
       !description ||
       !Number.isFinite(amount) ||
       amount <= 0
     ) {
-      return msg("Hubi machadka, ardayga, sharaxaadda iyo lacagta.", "err");
+      return msg(
+        "Hubi machadka, sannad-dugsiyeedka, fasalka, ardayga, sharaxaadda iyo lacagta.",
+        "err"
+      );
+    }
+
+    if (!isStudentInSelectedClass("inv", student_id)) {
+      return msg(
+        "Ardayga kuma jiro fasalka iyo sannad-dugsiyeedka aad dooratay.",
+        "err"
+      );
     }
 
     const btn = $("saveInvoiceBtn");
@@ -1187,11 +1424,9 @@
 
       if ($("invoiceForm")) $("invoiceForm").reset();
 
-      // reset() clears disabled institution selects' values for institution users
       if (isInstitutionUser()) {
-        ["invInst", "payFormInst"].forEach(id => {
-          if ($(id)) $(id).value = S.profile.institution_id;
-        });
+        setValue("invInst", S.profile.institution_id);
+        setValue("payFormInst", S.profile.institution_id);
       }
 
       hideForms();
@@ -1204,7 +1439,10 @@
         renderInvoices();
       }
 
-      msg("Invoice waa la sameeyay. Number: " + (data?.invoice_number || "Database assigned"));
+      msg(
+        "Invoice waa la sameeyay. Number: " +
+        (data?.invoice_number || "Database assigned")
+      );
 
     } catch (e) {
       console.error("SAVE INVOICE ERROR:", e);
@@ -1215,20 +1453,23 @@
     }
   }
 
-  // ==========================================
+  // =====================================================
   // CREATE PENDING PAYMENT
-  // ==========================================
+  // =====================================================
 
   async function savePayment(event) {
     event.preventDefault();
 
     const institution_id = $("payFormInst")?.value || "";
+    const academic_year_id = $("payYear")?.value || "";
+    const class_id = $("payClass")?.value || "";
     const student_id = $("payStudent")?.value || "";
     const invoice_id = $("payInvoice")?.value || null;
     const amount = Number($("payAmount")?.value);
     const currency = $("payCurrency")?.value || "USD";
     const payment_method = $("payMethod")?.value || "";
-    const transaction_reference = $("payReference")?.value.trim() || null;
+    const transaction_reference =
+      $("payReference")?.value.trim() || null;
     const payer_phone = $("payerPhone")?.value.trim() || null;
     const provider = $("payProvider")?.value.trim() || null;
     const sender_account = $("senderAccount")?.value.trim() || null;
@@ -1241,22 +1482,34 @@
 
     if (
       !institutionAllowed(institution_id) ||
+      !academic_year_id ||
+      !class_id ||
       !st ||
-      st.institution_id !== institution_id ||
+      String(st.institution_id) !== String(institution_id) ||
       !Number.isFinite(amount) ||
       amount <= 0 ||
       !payment_method
     ) {
-      return msg("Fadlan hubi machadka, ardayga, lacagta iyo payment method.", "err");
+      return msg(
+        "Hubi machadka, sannad-dugsiyeedka, fasalka, ardayga, lacagta iyo payment method.",
+        "err"
+      );
+    }
+
+    if (!isStudentInSelectedClass("pay", student_id)) {
+      return msg(
+        "Ardayga kuma jiro fasalka iyo sannad-dugsiyeedka aad dooratay.",
+        "err"
+      );
     }
 
     if (
       invoice_id &&
       (
         !iv ||
-        iv.student_id !== student_id ||
-        iv.institution_id !== institution_id ||
-        String(iv.status).toLowerCase() === "cancelled"
+        String(iv.student_id) !== String(student_id) ||
+        String(iv.institution_id) !== String(institution_id) ||
+        String(iv.status || "").toLowerCase() === "cancelled"
       )
     ) {
       return msg(
@@ -1273,9 +1526,9 @@
     }
 
     if (invoice_id && amount > balance(iv) + 0.001) {
-      if (!confirm("Lacagtu waxay ka badan tahay balance-ka invoice-ka. Ma sii wadaysaa?")) {
-        return;
-      }
+      if (!confirm(
+        "Lacagtu waxay ka badan tahay balance-ka invoice-ka. Ma sii wadaysaa?"
+      )) return;
     }
 
     if (transaction_reference) {
@@ -1291,7 +1544,10 @@
       });
 
       if (duplicate) {
-        return msg("Transaction reference-kan horay ayuu u diiwaangashan yahay.", "err");
+        return msg(
+          "Transaction reference-kan horay ayuu u diiwaangashan yahay.",
+          "err"
+        );
       }
     }
 
@@ -1337,9 +1593,8 @@
       if ($("paymentForm")) $("paymentForm").reset();
 
       if (isInstitutionUser()) {
-        ["invInst", "payFormInst"].forEach(id => {
-          if ($(id)) $(id).value = S.profile.institution_id;
-        });
+        setValue("invInst", S.profile.institution_id);
+        setValue("payFormInst", S.profile.institution_id);
       }
 
       setValue("payDate", new Date().toISOString().slice(0, 10));
@@ -1371,21 +1626,21 @@
     }
   }
 
-  // ==========================================
+  // =====================================================
   // REVIEW PAYMENT
-  // ==========================================
+  // =====================================================
 
   function closeReview() {
-    if ($("reviewModal")) $("reviewModal").classList.remove("show");
+    if ($("reviewModal")) {
+      $("reviewModal").classList.remove("show");
+    }
     S.editingPayment = null;
   }
 
   function openReview(id) {
     const p = payment(id);
 
-    if (!p) {
-      return msg("Payment lama helin.", "err");
-    }
+    if (!p) return msg("Payment lama helin.", "err");
 
     if (!institutionAllowed(p.institution_id)) {
       return msg("Ma lihid oggolaanshaha payment-kan.", "err");
@@ -1396,7 +1651,6 @@
     }
 
     const m = meta(p);
-
     S.editingPayment = id;
 
     if ($("reviewPaymentInfo")) {
@@ -1416,7 +1670,9 @@
     setValue("reviewStatus", "");
     setValue("reviewNote", "");
 
-    if ($("reviewModal")) $("reviewModal").classList.add("show");
+    if ($("reviewModal")) {
+      $("reviewModal").classList.add("show");
+    }
   }
 
   async function saveReview(event) {
@@ -1442,17 +1698,13 @@
     if (
       status === "successful" &&
       !confirm("Ma xaqiijisay in lacagta dhabta ah lagu helay account-ka GAAWOW Academy?")
-    ) {
-      return;
-    }
+    ) return;
 
     if (
       status !== "successful" &&
       !review_note &&
       !confirm("Review note lama gelin. Ma sii wadaysaa?")
-    ) {
-      return;
-    }
+    ) return;
 
     const btn = $("saveReviewBtn");
     if (btn) btn.disabled = true;
@@ -1500,40 +1752,38 @@
     }
   }
 
-  // ==========================================
-  // PRINT INVOICE (uses receipts.js)
-  // ==========================================
+  // =====================================================
+  // RECEIPTS
+  // =====================================================
 
-  // Loads receipts.js automatically if financial.html does not include it
   function receiptsReady() {
     if (window.GaawowReceipt) return Promise.resolve(true);
 
     return new Promise(resolve => {
       const sc = document.createElement("script");
       sc.src = "receipts.js?v=" + Date.now();
+
       sc.onload = () => resolve(!!window.GaawowReceipt);
+
       sc.onerror = () => {
         msg(
-          "receipts.js lama helin. Hubi in faylka receipts.js uu ku jiro isla galka financial.html ee GitHub (404).",
+          "receipts.js lama helin. Hubi inuu ku jiro isla galka financial.html.",
           "err"
         );
         resolve(false);
       };
+
       document.head.appendChild(sc);
     });
   }
 
   async function printInvoice(id) {
     const i = invoice(id);
-
-    if (!i) {
-      return msg("Invoice lama helin.", "err");
-    }
-
+    if (!i) return msg("Invoice lama helin.", "err");
     if (!(await receiptsReady())) return;
 
     const s = student(i.student_id);
-    const inst = S.inst.find(x => x.id === i.institution_id);
+    const inst = S.inst.find(x => String(x.id) === String(i.institution_id));
 
     window.GaawowReceipt.invoice({
       invoice_number: i.invoice_number || "INVOICE",
@@ -1553,16 +1803,9 @@
     });
   }
 
-  // ==========================================
-  // PRINT PAYMENT / OFFICIAL RECEIPT (uses receipts.js)
-  // ==========================================
-
   async function printReceipt(id) {
     const p = payment(id);
-
-    if (!p) {
-      return msg("Payment lama helin.", "err");
-    }
+    if (!p) return msg("Payment lama helin.", "err");
 
     const successful = String(p.status).toLowerCase() === "successful";
 
@@ -1576,11 +1819,10 @@
     if (!(await receiptsReady())) return;
 
     const official = successful && !!p.receipt_number;
-
     const m = meta(p);
     const s = student(p.student_id);
     const i = invoice(p.invoice_id);
-    const inst = S.inst.find(x => x.id === p.institution_id);
+    const inst = S.inst.find(x => String(x.id) === String(p.institution_id));
 
     window.GaawowReceipt.payment({
       receipt_number: official ? p.receipt_number : "NOT ISSUED",
@@ -1595,16 +1837,16 @@
       reviewed_by: m.reviewed_by_name || "",
       currency: p.currency || "USD",
       amount: Number(p.amount || 0),
-      description: m.notes || (i?.description) || "Payment received",
+      description: m.notes || i?.description || "Payment received",
       status: p.status,
       finance_manager_name: m.reviewed_by_name || S.profile?.full_name || "",
       payer_name: s?.full_name || ""
     });
   }
 
-  // ==========================================
+  // =====================================================
   // TABS
-  // ==========================================
+  // =====================================================
 
   function setTab(id) {
     const allowedTabs = ["invPanel", "payPanel", "sccPanel"];
@@ -1625,15 +1867,17 @@
     if (id === "sccPanel") renderScc();
   }
 
-  // ==========================================
+  // =====================================================
   // EVENTS
-  // ==========================================
+  // =====================================================
 
   function events() {
     on("backDashboard", "click", () => {
       if (isFinanceManager()) return;
 
-      location.href = isSuperAdmin() ? "dashboard.html" : "school-dashboard.html";
+      location.href = isSuperAdmin()
+        ? "dashboard.html"
+        : "school-dashboard.html";
     });
 
     on("logout", "click", async () => {
@@ -1690,11 +1934,9 @@
           await loadSccRequests();
           renderScc();
         }
-
       } catch (e) {
         renderInvoices();
         msg("Invoice error: " + e.message, "err");
-
       } finally {
         if (btn) btn.disabled = false;
       }
@@ -1706,14 +1948,37 @@
         renderPayments();
         renderStats();
         updatePaymentSummary();
-
       } catch (e) {
         renderPayments();
         msg("Payment error: " + e.message, "err");
       }
     });
 
-    ["invInst", "payFormInst"].forEach(id => on(id, "change", studentOptions));
+    // V2: INVOICE CASCADE
+    on("invInst", "change", () => {
+      populateAcademicYearOptions("inv");
+    });
+
+    on("invYear", "change", () => {
+      populateClasses("inv");
+    });
+
+    on("invClass", "change", () => {
+      populateClassStudents("inv");
+    });
+
+    // V2: PAYMENT CASCADE
+    on("payFormInst", "change", () => {
+      populateAcademicYearOptions("pay");
+    });
+
+    on("payYear", "change", () => {
+      populateClasses("pay");
+    });
+
+    on("payClass", "change", () => {
+      populateClassStudents("pay");
+    });
 
     on("payStudent", "change", () => {
       invoiceOptions();
@@ -1732,11 +1997,9 @@
         renderStats();
         invoiceOptions();
         msg("Invoices waa la cusbooneysiiyay.");
-
       } catch (e) {
         renderInvoices();
         msg("Invoice refresh failed: " + e.message, "err");
-
       } finally {
         if (btn) btn.disabled = false;
       }
@@ -1752,11 +2015,9 @@
         renderStats();
         updatePaymentSummary();
         msg("Payments waa la cusbooneysiiyay.");
-
       } catch (e) {
         renderPayments();
         msg("Payment refresh failed: " + e.message, "err");
-
       } finally {
         if (btn) btn.disabled = false;
       }
@@ -1775,20 +2036,18 @@
         await loadSccRequests();
         renderScc();
         msg("SCC requests waa la cusbooneysiiyay.");
-
       } catch (e) {
         renderScc();
         msg("SCC refresh failed: " + e.message, "err");
-
       } finally {
         if (btn) btn.disabled = false;
       }
     });
   }
 
-  // ==========================================
-  // INITIALIZE
-  // ==========================================
+  // =====================================================
+  // INITIALIZATION
+  // =====================================================
 
   async function init() {
     try {
@@ -1818,6 +2077,17 @@
         console.error("STUDENTS ERROR:", e);
         S.students = [];
         msg("Students error: " + e.message, "err");
+      }
+
+      try {
+        await loadAcademicClassData();
+      } catch (e) {
+        console.error("ACADEMIC DATA ERROR:", e);
+        S.academicYears = [];
+        S.classes = [];
+        S.enrollments = [];
+        S.academicDataError = e.message || "Academic data could not load";
+        msg("Academic Year / Class data error: " + e.message, "err");
       }
 
       try {
@@ -1863,8 +2133,10 @@
 
       if (S.invoiceError) {
         msg("Invoice loading failed: " + S.invoiceError, "err");
+      } else if (S.academicDataError) {
+        msg("Financial Management waa furmay, laakiin Academic Data lama helin: " + S.academicDataError, "err");
       } else {
-        msg("GAAWOW EMS Financial Management is connected.");
+        msg("GAAWOW EMS Financial Management V2 is connected.");
       }
 
     } catch (e) {
