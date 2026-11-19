@@ -1539,7 +1539,9 @@
       amount: Number(i.amount || 0),
       paid_amount: Number(i.paid_amount || 0),
       balance: balance(i),
-      status: i.status
+      status: i.status,
+      finance_manager_name: S.profile?.full_name || "",
+      payer_name: s?.full_name || ""
     });
   }
 
@@ -1586,7 +1588,9 @@
       currency: p.currency || "USD",
       amount: Number(p.amount || 0),
       description: m.notes || (i?.description) || "Payment received",
-      status: p.status
+      status: p.status,
+      finance_manager_name: m.reviewed_by_name || S.profile?.full_name || "",
+      payer_name: s?.full_name || ""
     });
   }
 
