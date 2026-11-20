@@ -22,7 +22,13 @@
     invoiceError: null,
     payments: [],
     paymentError: null,
+
+    // Review Payment state
     editingPayment: null,
+
+    // Edit Pending Payment state
+    paymentEditId: null,
+
     tab: "invPanel",
 
     academicYears: [],
@@ -42,8 +48,11 @@
   // =====================================================
 
   const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;",
-    '"': "&quot;", "'": "&#39;"
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
   }[c]));
 
   const cash = (n, cur = "USD") => {
@@ -71,11 +80,12 @@
 
   function setValue(id, value) {
     const el = $(id);
-    if (el) el.value = value;
+    if (el) el.value = value ?? "";
   }
 
   function msg(message, kind = "success") {
     const e = $("alertBox");
+
     if (!e) {
       console.log(message);
       return;
@@ -132,7 +142,9 @@
   }
 
   function meta(p) {
-    return p?.metadata && typeof p.metadata === "object" ? p.metadata : {};
+    return p?.metadata && typeof p.metadata === "object"
+      ? p.metadata
+      : {};
   }
 
   function balance(i) {
@@ -171,6 +183,10 @@
 
   function canViewScc() {
     return isFinanceManager() || isSuperAdmin();
+  }
+
+  function canEditPayments() {
+    return isSuperAdmin() || isFinanceManager();
   }
 
   function institutionAllowed(id) {
@@ -237,9 +253,11 @@
     if (S.profile.is_active !== true) {
       msg("Akoonkaagu ma shaqeynayo.", "err");
       await db.auth.signOut();
+
       setTimeout(() => {
         location.href = "login.html";
       }, 1800);
+
       return false;
     }
 
@@ -291,7 +309,12 @@
     fill("payFormInst", S.inst, val, lab);
 
     if (isInstitutionUser()) {
-      ["filterInst", "invInst", "payInst", "payFormInst"].forEach(id => {
+      [
+        "filterInst",
+        "invInst",
+        "payInst",
+        "payFormInst"
+      ].forEach(id => {
         if ($(id)) {
           $(id).value = S.profile.institution_id;
           $(id).disabled = true;
@@ -388,9 +411,7 @@
     if ($(classId)) $(classId).disabled = true;
     if ($(studentId)) $(studentId).disabled = true;
 
-    if (prefix === "pay") {
-      invoiceOptions();
-    }
+    if (prefix === "pay") invoiceOptions();
   }
 
   function populateAcademicYearOptions(prefix) {
@@ -549,7 +570,9 @@
       "Select student"
     );
 
-    if (studentSelect) studentSelect.disabled = enrolledStudents.length === 0;
+    if (studentSelect) {
+      studentSelect.disabled = enrolledStudents.length === 0;
+    }
 
     if (!enrolledStudents.length) {
       msg("Fasalkan lagama helin arday active enrollment leh.", "info");
@@ -666,17 +689,15 @@
       selectedInvoice &&
       String(selectedInvoice.student_id) === String(studentId)
     ) {
+      // Database invoice total is authoritative.
+      const invoicePaid = Number(selectedInvoice.paid_amount || 0);
+      const invoiceAmount = Number(selectedInvoice.amount || 0);
+      const remaining = Math.max(invoiceAmount - invoicePaid, 0);
+
       const invoicePayments = successfulPayments(
         studentId,
         selectedInvoice.id
       );
-
-      const invoicePaid = invoicePayments
-        .filter(p => String(p.currency || "USD").toUpperCase() === "USD")
-        .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-
-      const invoiceAmount = Number(selectedInvoice.amount || 0);
-      const remaining = Math.max(invoiceAmount - invoicePaid, 0);
 
       const otherCurrencies = Object.fromEntries(
         Object.entries(totalByCurrency(invoicePayments))
@@ -686,8 +707,10 @@
       invoiceHTML = `
         <div style="margin-top:12px;padding-top:10px;border-top:1px solid #D4AF37">
           <b>INVOICE SUMMARY</b><br>
-          Invoice Number: <b>${esc(selectedInvoice.invoice_number || "—")}</b><br>
-          Invoice Amount: <b>${cash(invoiceAmount, "USD")}</b><br>
+          Invoice Number:
+          <b>${esc(selectedInvoice.invoice_number || "—")}</b><br>
+          Invoice Amount:
+          <b>${cash(invoiceAmount, "USD")}</b><br>
           Invoice Total Paid:
           <b style="color:#15803D">${cash(invoicePaid, "USD")}</b><br>
           Remaining Balance:
@@ -737,7 +760,9 @@
       rows,
       i => i.id,
       i => `${i.invoice_number} • ${cash(i.amount)} • Balance: ${cash(balance(i))}`,
-      rows.length ? "Select outstanding invoice" : "No outstanding invoice for this student"
+      rows.length
+        ? "Select outstanding invoice"
+        : "No outstanding invoice for this student"
     );
 
     const select = $("payInvoice");
@@ -774,6 +799,7 @@
 
       S.invoices = data || [];
       invoiceOptions();
+
       return S.invoices;
 
     } catch (e) {
@@ -813,6 +839,7 @@
 
       S.payments = data || [];
       updatePaymentSummary();
+
       return S.payments;
 
     } catch (e) {
@@ -902,7 +929,9 @@
 
     return `
       ${statusBadge(step.approval_status)}
-      ${step.signed_at ? `<br><small>${esc(fmtDate(step.signed_at))}</small>` : ""}
+      ${step.signed_at
+        ? `<br><small>${esc(fmtDate(step.signed_at))}</small>`
+        : ""}
     `;
   }
 
@@ -1163,6 +1192,284 @@
   }
 
   // =====================================================
+  // EDIT PENDING PAYMENT MODAL
+  // =====================================================
+
+  function ensurePaymentEditModal() {
+    if ($("paymentEditModal")) return;
+
+    const modal = document.createElement("div");
+    modal.id = "paymentEditModal";
+
+    modal.style.cssText = `
+      display:none;
+      position:fixed;
+      inset:0;
+      z-index:99999;
+      background:rgba(5,15,45,.72);
+      align-items:center;
+      justify-content:center;
+      padding:15px;
+      overflow-y:auto;
+    `;
+
+    modal.innerHTML = `
+      <div style="
+        width:100%;
+        max-width:480px;
+        background:#fff;
+        border-radius:16px;
+        padding:22px;
+        box-shadow:0 15px 50px rgba(0,0,0,.25);
+        color:#0B1E63;
+        margin:auto;
+      ">
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          border-bottom:2px solid #D4AF37;
+          padding-bottom:12px;
+          margin-bottom:16px;
+        ">
+          <div>
+            <h3 style="margin:0">Edit Pending Payment</h3>
+            <small>GAAWOW EMS Financial Management</small>
+          </div>
+
+          <button type="button" id="closePaymentEdit"
+            aria-label="Close"
+            style="border:0;background:none;font-size:25px;cursor:pointer">
+            &times;
+          </button>
+        </div>
+
+        <div id="paymentEditInfo" style="
+          background:#F5F7FA;
+          border-left:4px solid #D4AF37;
+          padding:12px;
+          border-radius:8px;
+          margin-bottom:16px;
+          font-size:13px;
+          line-height:1.8;
+        "></div>
+
+        <form id="paymentEditForm">
+
+          <label style="display:block;font-weight:700;margin-bottom:6px">
+            Payment Amount
+          </label>
+
+          <input id="editPaymentAmount"
+            type="number" min="0.01" step="0.01" required
+            style="width:100%;padding:12px;border:1px solid #CBD5E1;
+            border-radius:8px;margin-bottom:14px;box-sizing:border-box">
+
+          <label style="display:block;font-weight:700;margin-bottom:6px">
+            Payment Method
+          </label>
+
+          <input id="editPaymentMethod"
+            type="text" maxlength="100" required
+            style="width:100%;padding:12px;border:1px solid #CBD5E1;
+            border-radius:8px;margin-bottom:14px;box-sizing:border-box">
+
+          <label style="display:block;font-weight:700;margin-bottom:6px">
+            Payer Phone
+          </label>
+
+          <input id="editPaymentPhone"
+            type="tel" maxlength="50"
+            style="width:100%;padding:12px;border:1px solid #CBD5E1;
+            border-radius:8px;margin-bottom:14px;box-sizing:border-box">
+
+          <label style="display:block;font-weight:700;margin-bottom:6px">
+            Transaction Reference
+          </label>
+
+          <input id="editPaymentReference"
+            type="text" maxlength="150"
+            style="width:100%;padding:12px;border:1px solid #CBD5E1;
+            border-radius:8px;margin-bottom:18px;box-sizing:border-box">
+
+          <div style="
+            background:#FFF8E7;
+            border:1px solid #D4AF37;
+            padding:10px;
+            border-radius:8px;
+            font-size:12px;
+            margin-bottom:16px;
+          ">
+            Kaliya Pending Payment ayaa la beddeli karaa.
+            Successful payments iyo Official Receipts lama beddelayo.
+          </div>
+
+          <div style="display:flex;gap:10px">
+            <button type="submit" id="savePaymentEditBtn"
+              style="flex:1;background:#0B1E63;color:#fff;
+              border:0;border-radius:8px;padding:12px;font-weight:700">
+              Save Changes
+            </button>
+
+            <button type="button" id="cancelPaymentEdit"
+              style="flex:1;background:#64748B;color:#fff;
+              border:0;border-radius:8px;padding:12px;font-weight:700">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    $("closePaymentEdit").addEventListener("click", closePaymentEdit);
+    $("cancelPaymentEdit").addEventListener("click", closePaymentEdit);
+    $("paymentEditForm").addEventListener("submit", savePaymentEdit);
+
+    modal.addEventListener("click", e => {
+      if (e.target === modal) closePaymentEdit();
+    });
+  }
+
+  function closePaymentEdit() {
+    S.paymentEditId = null;
+
+    const modal = $("paymentEditModal");
+    if (modal) modal.style.display = "none";
+
+    if ($("paymentEditForm")) {
+      $("paymentEditForm").reset();
+    }
+  }
+
+  function openPaymentEdit(id) {
+    const p = payment(id);
+
+    if (!p) {
+      return msg("Payment lama helin.", "err");
+    }
+
+    if (!canEditPayments()) {
+      return msg("Edit Payment waxaa loo oggol yahay Finance Manager iyo Super Admin.", "err");
+    }
+
+    if (!institutionAllowed(p.institution_id)) {
+      return msg("Ma lihid oggolaanshaha payment-kan.", "err");
+    }
+
+    if (String(p.status).toLowerCase() !== "pending") {
+      return msg("Kaliya Pending Payment ayaa la edit-gareyn karaa.", "err");
+    }
+
+    ensurePaymentEditModal();
+
+    S.paymentEditId = id;
+
+    $("paymentEditInfo").innerHTML = `
+      <b>Payment Reference:</b> ${esc(p.payment_reference || p.id)}<br>
+      <b>Student:</b> ${esc(studentLabel(p.student_id))}<br>
+      <b>Currency:</b> ${esc(p.currency || "USD")}<br>
+      <b>Current Amount:</b> ${cash(p.amount, p.currency || "USD")}<br>
+      <b>Status:</b> ${statusBadge(p.status)}
+    `;
+
+    setValue("editPaymentAmount", Number(p.amount || 0));
+    setValue("editPaymentMethod", p.payment_method || "");
+    setValue("editPaymentPhone", p.payer_phone || "");
+    setValue("editPaymentReference", p.transaction_reference || "");
+
+    $("paymentEditModal").style.display = "flex";
+  }
+
+  async function savePaymentEdit(event) {
+    event.preventDefault();
+
+    const p = payment(S.paymentEditId);
+
+    if (!p) {
+      return msg("Payment lama helin. Refresh samee.", "err");
+    }
+
+    if (!canEditPayments()) {
+      return msg("Ma lihid oggolaanshaha Edit Payment.", "err");
+    }
+
+    if (!institutionAllowed(p.institution_id)) {
+      return msg("Ma lihid oggolaanshaha machadkan.", "err");
+    }
+
+    if (String(p.status).toLowerCase() !== "pending") {
+      return msg("Payment-kan hadda Pending ma aha. Refresh samee.", "err");
+    }
+
+    const amount = Number($("editPaymentAmount")?.value);
+    const payment_method = $("editPaymentMethod")?.value.trim() || "";
+    const payer_phone = $("editPaymentPhone")?.value.trim() || null;
+    const transaction_reference =
+      $("editPaymentReference")?.value.trim() || null;
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return msg("Geli lacag ka weyn eber.", "err");
+    }
+
+    if (!payment_method) {
+      return msg("Payment Method waa waajib.", "err");
+    }
+
+    if (!confirm(
+      "Ma hubtaa inaad beddelayso xogta Payment-kan?\n\n" +
+      "Lacagta cusub: " + cash(amount, p.currency || "USD")
+    )) return;
+
+    const btn = $("savePaymentEditBtn");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+    }
+
+    try {
+      const { data, error } = await db.rpc(
+        "gaawow_finance_edit_pending_payment_v1",
+        {
+          p_payment_id: p.id,
+          p_amount: amount,
+          p_payment_method: payment_method,
+          p_payer_phone: payer_phone,
+          p_transaction_reference: transaction_reference
+        }
+      );
+
+      if (error) throw error;
+
+      if (!data || data.success !== true) {
+        throw new Error(
+          data?.message || "Payment edit was not completed."
+        );
+      }
+
+      closePaymentEdit();
+
+      await reload();
+
+      msg(
+        "Payment si guul leh ayaa loo cusboonaysiiyey. " +
+        "Invoice totals dib ayaa loo xisaabiyey."
+      );
+
+    } catch (e) {
+      console.error("EDIT PAYMENT ERROR:", e);
+      msg("Payment lama beddeli karin: " + e.message, "err");
+
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Save Changes";
+      }
+    }
+  }
+
+  // =====================================================
   // PAYMENT RENDER
   // =====================================================
 
@@ -1209,6 +1516,11 @@
 
         const pending = String(p.status).toLowerCase() === "pending";
 
+        const canEdit =
+          pending &&
+          canEditPayments() &&
+          institutionAllowed(p.institution_id);
+
         return `
           <tr>
             <td><b>${esc(p.payment_reference || p.id)}</b></td>
@@ -1219,11 +1531,22 @@
             <td>${esc(fmtDate(p.paid_at || p.created_at))}</td>
             <td>${statusBadge(p.status)}</td>
             <td>
-              ${pending ? `
-                <button class="btn-green btn-small" data-review="${esc(p.id)}">
-                  Review
-                </button>
-              ` : ""}
+              ${
+                canEdit
+                  ? `<button class="btn-blue btn-small" data-edit-payment="${esc(p.id)}">
+                       Edit
+                     </button>`
+                  : ""
+              }
+
+              ${
+                pending
+                  ? `<button class="btn-green btn-small" data-review="${esc(p.id)}">
+                       Review
+                     </button>`
+                  : ""
+              }
+
               <button class="btn-blue btn-small" data-print="${esc(p.id)}">
                 ${official ? "Official Receipt" : "View Record"}
               </button>
@@ -1239,6 +1562,10 @@
 
     document.querySelectorAll("[data-review]").forEach(b => {
       b.onclick = () => openReview(b.dataset.review);
+    });
+
+    document.querySelectorAll("[data-edit-payment]").forEach(b => {
+      b.onclick = () => openPaymentEdit(b.dataset.editPayment);
     });
   }
 
@@ -1634,6 +1961,7 @@
     if ($("reviewModal")) {
       $("reviewModal").classList.remove("show");
     }
+
     S.editingPayment = null;
   }
 
@@ -1954,7 +2282,7 @@
       }
     });
 
-    // V2: INVOICE CASCADE
+    // INVOICE CASCADE
     on("invInst", "change", () => {
       populateAcademicYearOptions("inv");
     });
@@ -1967,7 +2295,7 @@
       populateClassStudents("inv");
     });
 
-    // V2: PAYMENT CASCADE
+    // PAYMENT CASCADE
     on("payFormInst", "change", () => {
       populateAcademicYearOptions("pay");
     });
@@ -2054,6 +2382,9 @@
       const authenticated = await auth();
       if (!authenticated) return;
 
+      // Create Edit Payment modal before event registration.
+      ensurePaymentEditModal();
+
       events();
 
       if (isFinanceManager() && $("backDashboard")) {
@@ -2134,7 +2465,11 @@
       if (S.invoiceError) {
         msg("Invoice loading failed: " + S.invoiceError, "err");
       } else if (S.academicDataError) {
-        msg("Financial Management waa furmay, laakiin Academic Data lama helin: " + S.academicDataError, "err");
+        msg(
+          "Financial Management waa furmay, laakiin Academic Data lama helin: " +
+          S.academicDataError,
+          "err"
+        );
       } else {
         msg("GAAWOW EMS Financial Management V2 is connected.");
       }
