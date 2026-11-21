@@ -49,6 +49,7 @@ button {cursor:pointer}
   display:flex;
   flex-direction:column;
   z-index:20;
+  overflow-y:auto;
 }
 
 .brand {
@@ -104,7 +105,7 @@ button {cursor:pointer}
 
 .nav-link.active {border-left:3px solid var(--gold)}
 
-.sidebar-bottom {margin-top:auto}
+.sidebar-bottom {margin-top:auto;padding-top:15px}
 
 .main {
   margin-left:255px;
@@ -222,7 +223,7 @@ button {cursor:pointer}
 .icon-purple {background:#F0EAFE;color:#7650C9}
 
 .stat-card small {color:var(--muted);font-size:11px;font-weight:600}
-.stat-card h2 {font-size:25px;color:var(--navy);margin-top:7px}
+.stat-card h2 {font-size:25px;color:var(--navy);margin-top:7px;overflow-wrap:anywhere}
 
 .section {
   display:none;
@@ -330,7 +331,6 @@ tbody tr:hover {background:#FAFBFE}
 }
 
 .danger-btn {color:white;background:var(--red)}
-
 .small-btn {padding:7px 10px;font-size:10px}
 
 .badge {
@@ -498,6 +498,35 @@ tbody tr:hover {background:#FAFBFE}
   padding:22px 0 5px;
 }
 
+.report-note {
+  padding:15px 18px;
+  color:#59677F;
+  font-size:11px;
+  line-height:1.7;
+  background:#F8FAFE;
+  border-top:1px solid var(--border);
+}
+
+.report-summary {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  padding:18px 20px;
+}
+
+.report-summary div {
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.8;
+}
+
+.report-summary strong {
+  color:var(--navy);
+  display:block;
+  font-size:14px;
+  overflow-wrap:anywhere;
+}
+
 @media(max-width:1100px) {
   .stats-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -529,6 +558,36 @@ tbody tr:hover {background:#FAFBFE}
 @media(max-width:390px) {
   .stats-grid {grid-template-columns:1fr 1fr}
   .user-box strong {max-width:85px;overflow:hidden;text-overflow:ellipsis}
+  .report-summary {grid-template-columns:1fr}
+}
+
+@media print {
+  body {background:white}
+  .sidebar,.topbar,.footer,.mobile-menu,
+  .section-heading button,.panel-header select,
+  #toast,#globalNotice,.no-print {
+    display:none !important;
+  }
+  .main {
+    margin:0 !important;
+    padding:0 !important;
+    width:100% !important;
+  }
+  .section {display:none !important}
+  #fee-report {display:block !important}
+  #fee-report .panel,
+  #fee-report .stat-card {
+    box-shadow:none;
+    break-inside:avoid;
+  }
+  #fee-report .stats-grid {
+    grid-template-columns:repeat(4,1fr);
+  }
+  #fee-report table {min-width:0}
+  #fee-report th,#fee-report td {
+    font-size:9px;
+    padding:8px;
+  }
 }
 </style>
 </head>
@@ -558,6 +617,10 @@ tbody tr:hover {background:#FAFBFE}
 
   <button class="nav-link" data-section="payments">
     <i class="fa-solid fa-money-bill-transfer"></i> Payments
+  </button>
+
+  <button class="nav-link" data-section="fee-report">
+    <i class="fa-solid fa-chart-column"></i> Fee Collection Report
   </button>
 
   <button class="nav-link" data-section="graduation">
@@ -669,6 +732,7 @@ tbody tr:hover {background:#FAFBFE}
           <thead>
             <tr>
               <th>Reference</th>
+              <th>Transaction Ref</th>
               <th>Student</th>
               <th>Amount</th>
               <th>Method</th>
@@ -677,7 +741,7 @@ tbody tr:hover {background:#FAFBFE}
             </tr>
           </thead>
           <tbody id="recentPaymentTable">
-            <tr><td colspan="6" class="empty-state">Loading payments...</td></tr>
+            <tr><td colspan="7" class="empty-state">Loading payments...</td></tr>
           </tbody>
         </table>
       </div>
@@ -749,6 +813,7 @@ tbody tr:hover {background:#FAFBFE}
           <thead>
             <tr>
               <th>Reference</th>
+              <th>Transaction Ref</th>
               <th>Student</th>
               <th>Amount</th>
               <th>Method</th>
@@ -759,11 +824,165 @@ tbody tr:hover {background:#FAFBFE}
             </tr>
           </thead>
           <tbody id="paymentTable">
-            <tr><td colspan="8" class="empty-state">Loading payments...</td></tr>
+            <tr><td colspan="9" class="empty-state">Loading payments...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
+  </section>
+
+  <!-- FEE COLLECTION REPORT -->
+  <section class="section" id="fee-report">
+
+    <div class="section-heading">
+      <div>
+        <h2>Fee Collection Report</h2>
+        <p>Institution fee collection, outstanding balances and pending payments</p>
+      </div>
+      <button class="primary-btn" id="printFeeReport">
+        <i class="fa-solid fa-print"></i> Print Report
+      </button>
+    </div>
+
+    <div class="stats-grid">
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <small>Expected Fees</small>
+          <div class="stat-icon icon-blue">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+          </div>
+        </div>
+        <h2 id="feeExpected">$0.00</h2>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <small>Collected</small>
+          <div class="stat-icon icon-green">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+        </div>
+        <h2 id="feeCollected">$0.00</h2>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <small>Outstanding</small>
+          <div class="stat-icon icon-orange">
+            <i class="fa-solid fa-hourglass-half"></i>
+          </div>
+        </div>
+        <h2 id="feeOutstanding">$0.00</h2>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-top">
+          <small>Pending Payments</small>
+          <div class="stat-icon icon-purple">
+            <i class="fa-solid fa-clock"></i>
+          </div>
+        </div>
+        <h2 id="feePending">$0.00</h2>
+      </div>
+
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>Collection Overview</h3>
+          <p>Summary of active invoices and payment records</p>
+        </div>
+      </div>
+
+      <div class="report-summary">
+        <div>
+          Students with invoices
+          <strong id="feeStudentCount">0</strong>
+        </div>
+        <div>
+          Successful payment transactions
+          <strong id="feeSuccessfulCount">0</strong>
+        </div>
+        <div>
+          Unlinked pending payments
+          <strong id="feeUnlinkedPending">$0.00</strong>
+        </div>
+        <div>
+          Excluded duplicate pending records
+          <strong id="feeExcludedDuplicate">$0.00</strong>
+        </div>
+      </div>
+
+      <div class="report-note">
+        The identified duplicate pending payment is excluded from this report's pending total.
+        It remains visible in Payment Management for audit purposes.
+        Successful collections are calculated from invoice paid amounts.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>Fees by Category</h3>
+          <p>Registration, Monthly, Tuition and Graduation fees</p>
+        </div>
+
+        <select class="search-input" id="feeReportCategory">
+          <option value="all">All Categories</option>
+          <option value="Registration Fee">Registration Fee</option>
+          <option value="Monthly Fee">Monthly Fee</option>
+          <option value="Tuition Fee">Tuition Fee</option>
+          <option value="SCC Graduation Fee">SCC Graduation Fee</option>
+          <option value="Other / Review">Other / Review</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fee Category</th>
+              <th>Invoices</th>
+              <th>Expected</th>
+              <th>Collected</th>
+              <th>Outstanding</th>
+            </tr>
+          </thead>
+          <tbody id="feeCategoryTable">
+            <tr>
+              <td colspan="5" class="empty-state">Loading fee report...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <h3>Payment Status Summary</h3>
+          <p>The excluded duplicate is not included in these totals</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Payment Status</th>
+              <th>Transactions</th>
+              <th>Total Amount</th>
+            </tr>
+          </thead>
+          <tbody id="feePaymentStatusTable">
+            <tr><td colspan="3" class="empty-state">Loading payment summary...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </section>
 
   <section class="section" id="graduation">
@@ -890,7 +1109,7 @@ tbody tr:hover {background:#FAFBFE}
 
         <div class="form-group">
           <label for="transactionReference">Transaction Reference (Optional)</label>
-          <input class="form-control" id="transactionReference" placeholder="Enter transaction reference">
+          <input class="form-control" id="transactionReference" placeholder="Automatically generated by GAAWOW EMS">
         </div>
 
         <p class="form-note">
@@ -911,33 +1130,46 @@ tbody tr:hover {background:#FAFBFE}
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="finance-dashboard.js?v=20261119-1"></script>
+<script src="finance-dashboard.js?v=20261121-2"></script>
 
 <script>
 document.querySelectorAll("[data-section]").forEach(btn => {
   btn.addEventListener("click", () => {
     const target = btn.dataset.section;
-    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-    document.querySelectorAll(".nav-link[data-section]").forEach(b => b.classList.remove("active"));
+
+    document.querySelectorAll(".section").forEach(section => {
+      section.classList.remove("active");
+    });
+
+    document.querySelectorAll(".nav-link[data-section]").forEach(link => {
+      link.classList.remove("active");
+    });
+
     document.getElementById(target)?.classList.add("active");
     btn.classList.add("active");
 
     const titles = {
-      overview:"Finance Overview",
-      invoices:"Student Invoices",
-      payments:"Payment Management",
-      graduation:"Graduation Clearance",
-      reports:"Financial Reports",
-      profile:"My Profile"
+      overview: "Finance Overview",
+      invoices: "Student Invoices",
+      payments: "Payment Management",
+      "fee-report": "Fee Collection Report",
+      graduation: "Graduation Clearance",
+      reports: "Financial Reports",
+      profile: "My Profile"
     };
-    document.getElementById("pageTitle").textContent = titles[target] || "Finance Dashboard";
+
+    document.getElementById("pageTitle").textContent =
+      titles[target] || "Finance Dashboard";
+
     document.getElementById("sidebar").classList.remove("open");
   });
 });
 
 document.querySelectorAll("[data-goto]").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelector(`[data-section="${btn.dataset.goto}"]`)?.click();
+    document.querySelector(
+      `[data-section="${btn.dataset.goto}"]`
+    )?.click();
   });
 });
 
