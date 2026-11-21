@@ -5,6 +5,7 @@
 // GAAWOW EMS - FINANCE MANAGER DASHBOARD
 // Secure Supabase RPC payment workflow
 // Automatic Transaction Reference
+// Fee Collection Report
 // ============================================================
 
 // 1. SUPABASE CONFIGURATION
@@ -12,11 +13,15 @@
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-// Keep your existing Publishable Key.
+// Keep the existing Publishable Key.
 // NEVER use service_role key in browser.
 
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+if (!window.supabase) {
+  throw new Error("Supabase library did not load.");
+}
 
 const db = window.supabase.createClient(
   SUPABASE_URL,
@@ -36,6 +41,13 @@ let payments = [];
 let students = [];
 
 const $ = id => document.getElementById(id);
+
+// This exact payment was identified by the user as an
+// erroneous duplicate. It remains visible in Payments,
+// but is excluded from Fee Collection Report totals.
+const EXCLUDED_DUPLICATE_PAYMENT_REFERENCES = new Set([
+  "GA-PAY-2026-309A83F2448A4F87"
+]);
 
 // ============================================================
 // 3. HELPER FUNCTIONS
@@ -139,6 +151,12 @@ function studentLabel(studentId) {
   }
 
   return `${escapeHTML(student.full_name)} (${escapeHTML(student.student_id)})`;
+}
+
+function isExcludedDuplicatePayment(payment) {
+  return EXCLUDED_DUPLICATE_PAYMENT_REFERENCES.has(
+    String(payment?.payment_reference || "")
+  );
 }
 
 // ============================================================
@@ -320,6 +338,7 @@ function renderDashboard() {
   renderPayments();
   renderRecentPayments();
   renderReports();
+  renderFeeCollectionReport();
   populateInvoiceSelect();
 }
 
@@ -331,6 +350,8 @@ function renderStatistics() {
       p => p.status === "successful"
     ).length;
 
+  // This count includes all pending records in Payment
+  // Management, including the identified duplicate.
   $("pendingPayments").textContent =
     payments.filter(
       p => p.status === "pending"
@@ -340,20 +361,28 @@ function renderStatistics() {
   $("graduationRequests").textContent = "—";
 }
 
+// ============================================================
+// 7A. EXISTING FINANCIAL REPORTS
+// ============================================================
+
 function renderReports() {
-  const totalInvoiced = invoices.reduce(
+  const activeInvoices = invoices.filter(
+    invoice => invoice.status !== "cancelled"
+  );
+
+  const totalInvoiced = activeInvoices.reduce(
     (sum, invoice) =>
       sum + Number(invoice.amount || 0),
     0
   );
 
-  const totalCollected = invoices.reduce(
+  const totalCollected = activeInvoices.reduce(
     (sum, invoice) =>
       sum + Number(invoice.paid_amount || 0),
     0
   );
 
-  const balance = invoices.reduce(
+  const balance = activeInvoices.reduce(
     (sum, invoice) =>
       sum + Math.max(
         0,
@@ -378,6 +407,255 @@ function renderReports() {
 
   $("reportSuccessful").textContent =
     successful;
+}
+
+// ============================================================
+// 7B. FEE CATEGORY CLASSIFICATION
+// ============================================================
+
+function getFeeCategory(description) {
+  const value = String(description || "").toLowerCase();
+
+  if (value.includes("monthly")) {
+    return "Monthly Fee";
+  }
+
+  if (value.includes("tuition")) {
+    return "Tuition Fee";
+  }
+
+  if (
+    value.includes("scc") ||
+    value.includes("graduation")
+  ) {
+    return "SCC Graduation Fee";
+  }
+
+  if (
+    value.includes("registration") ||
+    value.includes("register fer") ||
+    value.includes("sallery") ||
+    value.includes("sellary")
+  ) {
+    return "Registration Fee";
+  }
+
+  return "Other / Review";
+}
+
+// ============================================================
+// 7C. FEE COLLECTION REPORT
+// ============================================================
+
+function renderFeeCollectionReport(categoryFilter = "all") {
+  const activeInvoices = invoices.filter(
+    invoice => invoice.status !== "cancelled"
+  );
+
+  // Invoice amounts are the source for expected fees.
+  const expected = activeInvoices.reduce(
+    (sum, invoice) =>
+      sum + Number(invoice.amount || 0),
+    0
+  );
+
+  // Use invoice paid_amount to avoid counting successful
+  // payment records a second time.
+  const collected = activeInvoices.reduce(
+    (sum, invoice) =>
+      sum + Number(invoice.paid_amount || 0),
+    0
+  );
+
+  const outstanding = activeInvoices.reduce(
+    (sum, invoice) =>
+      sum + Math.max(
+        0,
+        Number(invoice.amount || 0) -
+        Number(invoice.paid_amount || 0)
+      ),
+    0
+  );
+
+  // Keep the identified duplicate visible in Payments,
+  // but exclude it from this report's payment totals.
+  const reportPayments = payments.filter(
+    payment => !isExcludedDuplicatePayment(payment)
+  );
+
+  const pendingPayments = reportPayments.filter(
+    payment => payment.status === "pending"
+  );
+
+  const pendingAmount = pendingPayments.reduce(
+    (sum, payment) =>
+      sum + Number(payment.amount || 0),
+    0
+  );
+
+  const unlinkedPending = pendingPayments.filter(
+    payment => !payment.invoice_id
+  );
+
+  const unlinkedPendingAmount = unlinkedPending.reduce(
+    (sum, payment) =>
+      sum + Number(payment.amount || 0),
+    0
+  );
+
+  const excludedDuplicatePayments = payments.filter(
+    payment => isExcludedDuplicatePayment(payment)
+  );
+
+  const excludedDuplicateAmount =
+    excludedDuplicatePayments.reduce(
+      (sum, payment) =>
+        sum + Number(payment.amount || 0),
+      0
+    );
+
+  const successfulPayments = reportPayments.filter(
+    payment => payment.status === "successful"
+  );
+
+  const studentCount = new Set(
+    activeInvoices
+      .map(invoice => invoice.student_id)
+      .filter(Boolean)
+  ).size;
+
+  $("feeExpected").textContent = money(expected);
+  $("feeCollected").textContent = money(collected);
+  $("feeOutstanding").textContent = money(outstanding);
+  $("feePending").textContent = money(pendingAmount);
+
+  $("feeStudentCount").textContent = studentCount;
+
+  $("feeSuccessfulCount").textContent =
+    successfulPayments.length;
+
+  $("feeUnlinkedPending").textContent =
+    money(unlinkedPendingAmount);
+
+  $("feeExcludedDuplicate").textContent =
+    `${money(excludedDuplicateAmount)} (${excludedDuplicatePayments.length})`;
+
+  // ----------------------------------------------------------
+  // GROUP INVOICES BY FEE CATEGORY
+  // ----------------------------------------------------------
+
+  const grouped = {};
+
+  activeInvoices.forEach(invoice => {
+    const category = getFeeCategory(invoice.description);
+
+    if (
+      categoryFilter !== "all" &&
+      category !== categoryFilter
+    ) {
+      return;
+    }
+
+    if (!grouped[category]) {
+      grouped[category] = {
+        count: 0,
+        expected: 0,
+        collected: 0,
+        outstanding: 0
+      };
+    }
+
+    const amount = Number(invoice.amount || 0);
+    const paid = Number(invoice.paid_amount || 0);
+
+    grouped[category].count += 1;
+    grouped[category].expected += amount;
+    grouped[category].collected += paid;
+    grouped[category].outstanding += Math.max(
+      0,
+      amount - paid
+    );
+  });
+
+  const categoryTable = $("feeCategoryTable");
+
+  const categories = Object.entries(grouped)
+    .sort((a, b) => a[0].localeCompare(b[0]));
+
+  if (!categories.length) {
+    categoryTable.innerHTML = `
+      <tr>
+        <td colspan="5" class="empty-state">
+          No fee records found.
+        </td>
+      </tr>
+    `;
+  } else {
+    categoryTable.innerHTML = categories.map(
+      ([category, data]) => `
+        <tr>
+          <td><strong>${escapeHTML(category)}</strong></td>
+          <td>${data.count}</td>
+          <td>${money(data.expected)}</td>
+          <td>${money(data.collected)}</td>
+          <td><strong>${money(data.outstanding)}</strong></td>
+        </tr>
+      `
+    ).join("");
+  }
+
+  // ----------------------------------------------------------
+  // PAYMENT STATUS SUMMARY
+  // ----------------------------------------------------------
+
+  const statuses = [
+    "successful",
+    "pending",
+    "failed",
+    "cancelled",
+    "refunded"
+  ];
+
+  $("feePaymentStatusTable").innerHTML =
+    statuses.map(status => {
+      const records = reportPayments.filter(
+        payment => payment.status === status
+      );
+
+      const total = records.reduce(
+        (sum, payment) =>
+          sum + Number(payment.amount || 0),
+        0
+      );
+
+      return `
+        <tr>
+          <td>${statusBadge(status)}</td>
+          <td>${records.length}</td>
+          <td>${money(total)}</td>
+        </tr>
+      `;
+    }).join("");
+}
+
+// ============================================================
+// 7D. FEE REPORT FILTER AND PRINT
+// ============================================================
+
+const feeCategoryFilter = $("feeReportCategory");
+
+if (feeCategoryFilter) {
+  feeCategoryFilter.addEventListener("change", event => {
+    renderFeeCollectionReport(event.target.value);
+  });
+}
+
+const printFeeReportButton = $("printFeeReport");
+
+if (printFeeReportButton) {
+  printFeeReportButton.addEventListener("click", () => {
+    window.print();
+  });
 }
 
 // ============================================================
@@ -467,7 +745,7 @@ function renderInvoices(filter = "") {
               ? `
                 <button
                   class="primary-btn small-btn"
-                  data-record-invoice="${invoice.id}">
+                  data-record-invoice="${escapeHTML(invoice.id)}">
                   <i class="fa-solid fa-plus"></i>
                   Payment
                 </button>
@@ -538,7 +816,7 @@ function renderPayments(filter = "") {
       ? `
         <button
           class="primary-btn small-btn"
-          data-verify-payment="${payment.id}">
+          data-verify-payment="${escapeHTML(payment.id)}">
           <i class="fa-solid fa-check"></i>
           Verify
         </button>
@@ -554,7 +832,7 @@ function renderPayments(filter = "") {
 
         <td>
           <strong>
-            ${escapeHTML(payment.payment_reference)}
+            ${escapeHTML(payment.payment_reference || "N/A")}
           </strong>
         </td>
 
@@ -638,7 +916,7 @@ function renderRecentPayments() {
 
       <td>
         <strong>
-          ${escapeHTML(payment.payment_reference)}
+          ${escapeHTML(payment.payment_reference || "N/A")}
         </strong>
       </td>
 
@@ -711,7 +989,7 @@ function populateInvoiceSelect() {
       );
 
       return `
-        <option value="${invoice.id}">
+        <option value="${escapeHTML(invoice.id)}">
           ${escapeHTML(invoice.invoice_number)}
           |
           ${escapeHTML(student?.full_name || "Student")}
@@ -766,9 +1044,7 @@ async function recordPayment(event) {
   const payerPhone =
     $("payerPhone").value.trim() || null;
 
-  // IMPORTANT:
   // Transaction Ref is generated automatically by PostgreSQL.
-  // Do not create a reference in JavaScript.
   const transactionReference = null;
 
   if (
@@ -913,6 +1189,16 @@ async function verifyPayment(paymentId, button) {
   if (payment.status !== "pending") {
     showToast(
       "Only pending payments can be verified."
+    );
+
+    return;
+  }
+
+  // Do not allow the known duplicate to be verified
+  // from this dashboard accidentally.
+  if (isExcludedDuplicatePayment(payment)) {
+    showToast(
+      "This payment was identified as a duplicate. It cannot be verified here."
     );
 
     return;
@@ -1093,6 +1379,8 @@ $("refreshPayments").addEventListener(
       );
 
     } catch (error) {
+
+      console.error("Refresh error:", error);
 
       showToast(
         error.message || "Refresh failed."
