@@ -548,14 +548,84 @@ forgotPasswordBtn.addEventListener("click", async function () {
       "Email-ka reset-ka lama diri karin. Mar kale isku day."
     );
 
-  } finally {
+// ============================================================
+// 13.5 FORGOT PASSWORD - SUPABASE EMAIL RESET
+// ============================================================
 
-    forgotPasswordBtn.disabled = false;
-    forgotPasswordBtn.textContent = "Forgot Password?";
+const RESET_PASSWORD_URL =
+  "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/reset-password.html";
 
-  }
+// Use the existing HTML button
+const forgotPasswordBtn =
+  document.getElementById("forgotPasswordBtn");
 
-});
+if (forgotPasswordBtn) {
+
+  forgotPasswordBtn.addEventListener("click", async function () {
+
+    clearMessage();
+
+    const email = String(emailInput?.value || "")
+      .trim()
+      .toLowerCase();
+
+    if (!email) {
+      showMessage("Fadlan marka hore geli email-kaaga.");
+      emailInput?.focus();
+      return;
+    }
+
+    const emailPattern =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(email)) {
+      showMessage("Fadlan geli email sax ah.");
+      emailInput?.focus();
+      return;
+    }
+
+    forgotPasswordBtn.disabled = true;
+    forgotPasswordBtn.textContent = "Sending reset email...";
+
+    try {
+
+      const { error } =
+        await supabaseClient.auth.resetPasswordForEmail(
+          email,
+          {
+            redirectTo: RESET_PASSWORD_URL
+          }
+        );
+
+      if (error) throw error;
+
+      showMessage(
+        "Codsiga waa la gudbiyey. Haddii email-kaasi leeyahay account, hubi Inbox iyo Spam.",
+        "success"
+      );
+
+    } catch (error) {
+
+      console.error("[FORGOT PASSWORD]", error);
+
+      showMessage(
+        error.message ||
+        "Email-ka reset-ka lama diri karin. Mar kale isku day."
+      );
+
+    } finally {
+
+      forgotPasswordBtn.disabled = false;
+      forgotPasswordBtn.textContent = "Forgot Password?";
+
+    }
+
+  });
+
+} else {
+  console.error("[FORGOT PASSWORD] Button not found.");
+}
+
 
 // 14. CHECK EXISTING SESSION
 
