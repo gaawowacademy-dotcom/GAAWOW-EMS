@@ -1,594 +1,355 @@
 
 "use strict";
 
-// ============================================================
-// GAAWOW EMS - SECURE ROLE-BASED LOGIN
-// Supports all six system roles
-// ============================================================
+/* =========================================================
+   GAAWOW EMS - SECURE LOGIN
+   Supabase Authentication
+   Six system roles
+   Forgot Password / Email Recovery
+   ========================================================= */
 
-// 1. SUPABASE CONFIGURATION
+(() => {
+  // -------------------------------------------------------
+  // 1. SUPABASE CONFIGURATION
+  // -------------------------------------------------------
 
-const SUPABASE_URL =
-  "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+  const SUPABASE_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
-const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjAi5g_RqLCs145";
+  const SUPABASE_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
-if (!window.supabase) {
-  throw new Error("Supabase library is missing.");
-}
+  const RESET_PASSWORD_URL =
+    "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/reset-password.html";
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      flowType: "pkce"
+  if (!window.supabase || !window.supabase.createClient) {
+    console.error("Supabase library was not loaded.");
+    return;
+  }
+
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: "pkce"
+      }
     }
-  }
-);
+  );
 
-// 2. ROLE REDIRECTS
+  // -------------------------------------------------------
+  // 2. HTML ELEMENTS
+  // -------------------------------------------------------
 
-const REDIRECTS = {
-  super_admin: "./dashboard.html",
-  school_admin: "./school-dashboard.html",
-  teacher: "./teacher-portal.html",
-  parent: "./parent.html",
-  student: "./student.html",
-  finance_manager: "./financial.html"
-};
+  const loginForm =
+    document.getElementById("loginForm");
 
-// 3. DOM ELEMENTS
+  const emailInput =
+    document.getElementById("email");
 
-const emailInput =
-  document.getElementById("email") ||
-  document.getElementById("loginEmail");
+  const passwordInput =
+    document.getElementById("password");
 
-const passwordInput =
-  document.getElementById("password") ||
-  document.getElementById("loginPassword");
+  const loginButton =
+    document.getElementById("loginBtn");
 
-const loginBtn =
-  document.getElementById("loginBtn") ||
-  document.getElementById("loginButton");
+  const messageBox =
+    document.getElementById("loginMessage");
 
-const messageEl =
-  document.getElementById("loginMessage") ||
-  document.getElementById("message");
-
-const loginForm =
-  document.getElementById("loginForm") ||
-  emailInput?.closest("form") ||
-  passwordInput?.closest("form");
-
-let loginInProgress = false;
-let redirectInProgress = false;
-
-// 4. MESSAGE HANDLING
-
-function showMessage(message, type = "error") {
-  console.log(`[LOGIN ${type.toUpperCase()}]`, message);
-
-  if (!messageEl) return;
-
-  messageEl.textContent = message;
-  messageEl.className = `login-message ${type}`;
-  messageEl.style.display = "block";
-  messageEl.setAttribute("role", "alert");
-}
-
-function clearMessage() {
-  if (!messageEl) return;
-
-  messageEl.textContent = "";
-  messageEl.style.display = "none";
-}
-
-// 5. LOADING STATE
-
-function setLoading(loading) {
-  if (!loginBtn) return;
-
-  loginBtn.disabled = loading;
-
-  if (loading) {
-    if (!loginBtn.dataset.originalText) {
-      loginBtn.dataset.originalText =
-        loginBtn.textContent;
-    }
-
-    loginBtn.textContent = "Signing in...";
-    loginBtn.setAttribute("aria-busy", "true");
-  } else {
-    loginBtn.textContent =
-      loginBtn.dataset.originalText || "🔐 Sign In";
-
-    loginBtn.removeAttribute("aria-busy");
-  }
-}
-
-// 6. AUTH ERROR HANDLING
-
-function getLoginErrorMessage(error) {
-  const message =
-    String(error?.message || "").toLowerCase();
+  const forgotPasswordBtn =
+    document.getElementById("forgotPasswordBtn");
 
   if (
-    message.includes("invalid login credentials") ||
-    message.includes("invalid credentials")
+    !loginForm ||
+    !emailInput ||
+    !passwordInput ||
+    !loginButton ||
+    !messageBox ||
+    !forgotPasswordBtn
   ) {
-    return "Email ama password khaldan. Hubi xogtaada.";
-  }
-
-  if (message.includes("email not confirmed")) {
-    return "Email-ka lama xaqiijin. La xiriir maamulka.";
-  }
-
-  if (
-    message.includes("too many requests") ||
-    message.includes("rate limit")
-  ) {
-    return "Isku dayo badan ayaa dhacay. Sug wax yar.";
-  }
-
-  if (
-    message.includes("failed to fetch") ||
-    message.includes("network")
-  ) {
-    return "Xiriirka internet-ka ama Supabase ayaa cilad leh.";
-  }
-
-  return error?.message ||
-    "Login-ku wuu fashilmay. Mar kale isku day.";
-}
-
-// 7. GET AUTHENTICATED USER PROFILE
-
-async function getUserProfile(userId) {
-  if (!userId) {
-    throw new Error("Authenticated user ID is missing.");
-  }
-
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select(`
-      id,
-      full_name,
-      email,
-      role,
-      is_active,
-      institution_id
-    `)
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[LOGIN] Profile lookup:", error);
-
-    throw new Error(
-      "Profile-ka lama akhrin karin. Hubi profiles RLS policy."
+    console.error(
+      "[GAAWOW LOGIN] Required HTML element is missing."
     );
+    return;
   }
 
-  if (!data) {
-    throw new Error(
-      "Auth account waa jiraa, laakiin profile lagama helin."
-    );
+  let loginInProgress = false;
+  let resetInProgress = false;
+
+  // -------------------------------------------------------
+  // 3. MESSAGE HANDLER
+  // -------------------------------------------------------
+
+  function showMessage(message, type = "error") {
+    messageBox.textContent = message;
+    messageBox.className = "login-message " + type;
   }
 
-  if (data.id !== userId) {
-    throw new Error("Profile ID iyo Auth ID isma waafaqaan.");
+  function clearMessage() {
+    messageBox.textContent = "";
+    messageBox.className = "login-message";
   }
 
-  if (data.is_active !== true) {
-    throw new Error(
-      "Account-ka waa la joojiyey. La xiriir maamulka."
-    );
-  }
+  // -------------------------------------------------------
+  // 4. ROLE ROUTES
+  // -------------------------------------------------------
 
-  const role = String(data.role || "")
-    .trim()
-    .toLowerCase();
-
-  if (!Object.prototype.hasOwnProperty.call(
-    REDIRECTS,
-    role
-  )) {
-    throw new Error(
-      `Role-ka "${role || "unknown"}" lama aqoonsan.`
-    );
-  }
-
-  return {
-    ...data,
-    role
+  const ROLE_ROUTES = {
+    super_admin: "./dashboard.html",
+    school_admin: "./school-dashboard.html",
+    teacher: "./teacher-portal.html",
+    parent: "./parent.html",
+    student: "./student.html",
+    finance_manager: "./financial.html"
   };
-}
 
-// 8. VERIFY STUDENT ACCOUNT
+  function redirectByRole(role) {
+    const destination = ROLE_ROUTES[role];
 
-async function verifyStudent(userId) {
-  const { data, error } = await supabaseClient
-    .from("students")
-    .select(`
-      id,
-      student_id,
-      full_name,
-      profile_id,
-      auth_user_id,
-      account_enabled,
-      login_username
-    `)
-    .eq("auth_user_id", userId)
-    .maybeSingle();
+    if (!destination) {
+      showMessage(
+        "Your account role is not authorized to access this system."
+      );
+      return false;
+    }
 
-  if (error) {
-    console.error("[LOGIN] Student lookup:", error);
-
-    throw new Error(
-      "Student account lama xaqiijin karin. Hubi RLS policies."
-    );
+    window.location.replace(destination);
+    return true;
   }
 
-  if (!data) {
-    throw new Error(
-      "Student account record lagama helin students table-ka."
-    );
+  // -------------------------------------------------------
+  // 5. PROFILE STATUS CHECK
+  // -------------------------------------------------------
+
+  function profileIsInactive(profile) {
+    if (!profile) return true;
+
+    if (profile.is_active === false) return true;
+    if (profile.active === false) return true;
+
+    const status = String(
+      profile.status || profile.account_status || ""
+    ).toLowerCase();
+
+    return [
+      "inactive",
+      "disabled",
+      "suspended",
+      "blocked"
+    ].includes(status);
   }
 
-  if (data.account_enabled !== true) {
-    throw new Error(
-      "Student account-ka waa la joojiyey."
-    );
-  }
+  // -------------------------------------------------------
+  // 6. GET USER PROFILE
+  // -------------------------------------------------------
 
-  if (
-    data.profile_id &&
-    data.profile_id !== userId
-  ) {
-    throw new Error("Student profile linkage waa khaldan yahay.");
-  }
-
-  return data;
-}
-
-// 9. UPDATE STUDENT LAST LOGIN
-
-async function updateStudentLastLogin(userId) {
-  try {
-    const { error } = await supabaseClient
-      .from("students")
-      .update({
-        last_login_at: new Date().toISOString()
-      })
-      .eq("auth_user_id", userId);
+  async function getUserProfile(userId) {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
 
     if (error) {
-      console.warn(
-        "[LOGIN] Last login update failed:",
-        error.message
+      console.error("[PROFILE ERROR]", error);
+      throw new Error(
+        "Unable to verify your account profile. Please try again."
       );
     }
-  } catch (error) {
-    console.warn(
-      "[LOGIN] Last login exception:",
-      error?.message || error
-    );
-  }
-}
 
-// 10. STORE ROLE SESSION
-
-function storeRoleSession(profile, user) {
-  sessionStorage.setItem("user_role", profile.role);
-  sessionStorage.setItem("user_id", user.id);
-
-  sessionStorage.setItem(
-    "user_name",
-    profile.full_name || user.email || ""
-  );
-
-  sessionStorage.setItem(
-    "user_email",
-    user.email || profile.email || ""
-  );
-
-  if (profile.institution_id) {
-    sessionStorage.setItem(
-      "institution_id",
-      profile.institution_id
-    );
-  } else {
-    sessionStorage.removeItem("institution_id");
-  }
-}
-
-// 11. ROLE REDIRECT
-
-async function redirectByRole(profile, user) {
-  const role = String(profile.role || "")
-    .trim()
-    .toLowerCase();
-
-  const destination = REDIRECTS[role];
-
-  if (!destination) {
-    throw new Error(`Role-ka "${role}" lama taageero.`);
-  }
-
-  if (redirectInProgress) return;
-
-  console.info("[LOGIN] User:", user.id);
-  console.info("[LOGIN] Role:", role);
-  console.info("[LOGIN] Destination:", destination);
-
-  // STUDENT
-  if (role === "student") {
-    const student = await verifyStudent(user.id);
-
-    sessionStorage.setItem(
-      "student_id",
-      student.student_id || ""
-    );
-
-    sessionStorage.setItem(
-      "student_name",
-      student.full_name || profile.full_name || ""
-    );
-
-    storeRoleSession(profile, user);
-
-    await updateStudentLastLogin(user.id);
-  }
-
-  // ALL OTHER ROLES
-  else {
-    storeRoleSession(profile, user);
-  }
-
-  // FINANCE MANAGER
-  if (role === "finance_manager") {
-    console.info(
-      "[LOGIN] Finance Manager authenticated:",
-      user.email
-    );
-  }
-
-  redirectInProgress = true;
-
-  window.location.replace(destination);
-}
-
-// 12. MAIN LOGIN
-
-async function login(event) {
-  if (event) {
-    event.preventDefault();
-  }
-
-  if (loginInProgress || redirectInProgress) {
-    return;
-  }
-
-  clearMessage();
-
-  const email = String(emailInput?.value || "")
-    .trim()
-    .toLowerCase();
-
-  const password = String(passwordInput?.value || "");
-
-  if (!email) {
-    showMessage("Fadlan geli email-kaaga.");
-    emailInput?.focus();
-    return;
-  }
-
-  if (!password) {
-    showMessage("Fadlan geli password-kaaga.");
-    passwordInput?.focus();
-    return;
-  }
-
-  loginInProgress = true;
-  setLoading(true);
-
-  try {
-    // AUTHENTICATION
-
-    const { data: authData, error: authError } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-
-    if (authError) {
-      throw new Error(getLoginErrorMessage(authError));
+    if (!data) {
+      throw new Error(
+        "Your account profile was not found. Please contact GAAWOW EMS administration."
+      );
     }
 
-    if (!authData?.user?.id) {
-      throw new Error("Supabase user account sax ah ma soo celin.");
+    if (profileIsInactive(data)) {
+      throw new Error(
+        "Your account is inactive or suspended. Please contact your administrator."
+      );
     }
 
-    const user = authData.user;
+    if (!data.role || !ROLE_ROUTES[data.role]) {
+      throw new Error(
+        "Your account has no valid system role. Contact your administrator."
+      );
+    }
 
-    // PROFILE VERIFICATION
+    return data;
+  }
+
+  // -------------------------------------------------------
+  // 7. VERIFY STUDENT ACCOUNT
+  // -------------------------------------------------------
+
+  async function verifyStudent(userId) {
+    const { data, error } = await supabaseClient
+      .from("students")
+      .select("*")
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[STUDENT VERIFICATION ERROR]", error);
+      throw new Error(
+        "Unable to verify your student record. Please contact the school."
+      );
+    }
+
+    if (!data) {
+      throw new Error(
+        "Your student record was not found or is not linked to this login account."
+      );
+    }
+
+    if (data.account_enabled === false) {
+      throw new Error(
+        "Your student login account is disabled. Please contact the school."
+      );
+    }
+
+    return data;
+  }
+
+  // -------------------------------------------------------
+  // 8. COMPLETE AUTHENTICATED LOGIN
+  // -------------------------------------------------------
+
+  async function completeLogin(user) {
+    if (!user || !user.id) {
+      throw new Error("Authentication session is invalid.");
+    }
 
     const profile = await getUserProfile(user.id);
 
-    // ROLE REDIRECTION
-
-    await redirectByRole(profile, user);
-
-  } catch (error) {
-    console.error("[LOGIN] Process failed:", error);
-
-    showMessage(
-      error?.message ||
-      "Login-ku wuu fashilmay. Mar kale isku day."
-    );
-
-  } finally {
-    loginInProgress = false;
-
-    if (!redirectInProgress) {
-      setLoading(false);
-    }
-  }
-}
-
-// 13. FORM SUBMISSION
-// One handler only. Prevents duplicate login attempts.
-
-if (loginForm) {
-  loginForm.addEventListener("submit", login);
-} else if (loginBtn) {
-  loginBtn.addEventListener("click", login);
-} else {
-  console.error("[LOGIN] Login form/button not found.");
-}
-
-// ============================================================
-// 13.5 FORGOT PASSWORD - SUPABASE EMAIL RESET
-// ============================================================
-
-const RESET_PASSWORD_URL =
-  "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/reset-password.html";
-
-// Create Forgot Password link automatically
-const forgotPasswordBtn = document.createElement("button");
-
-forgotPasswordBtn.type = "button";
-forgotPasswordBtn.id = "forgotPasswordBtn";
-forgotPasswordBtn.textContent = "Forgot Password?";
-
-forgotPasswordBtn.style.cssText = `
-  display: block;
-  width: 100%;
-  text-align: right;
-  color: #0B4DA2;
-  background: transparent;
-  border: none;
-  font-size: 13px;
-  font-weight: bold;
-  cursor: pointer;
-  padding: 8px 0;
-  margin: 2px 0 12px;
-`;
-
-if (passwordInput) {
-  const passwordContainer =
-    passwordInput.closest(".form-group") ||
-    passwordInput.parentElement;
-
-  if (passwordContainer) {
-    passwordContainer.before(forgotPasswordBtn);
-  }
-}
-
-// Send reset email
-forgotPasswordBtn.addEventListener("click", async function () {
-
-  clearMessage();
-
-  const email = String(emailInput?.value || "")
-    .trim()
-    .toLowerCase();
-
-  if (!email) {
-    showMessage("Fadlan marka hore geli email-kaaga.");
-    emailInput?.focus();
-    return;
-  }
-
-  const emailPattern =
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  if (!emailPattern.test(email)) {
-    showMessage("Fadlan geli email sax ah.");
-    emailInput?.focus();
-    return;
-  }
-
-  forgotPasswordBtn.disabled = true;
-  forgotPasswordBtn.textContent = "Sending reset email...";
-
-  try {
-
-    const { error } =
-      await supabaseClient.auth.resetPasswordForEmail(
-        email,
-        {
-          redirectTo: RESET_PASSWORD_URL
-        }
-      );
-
-    if (error) {
-      throw error;
+    if (profile.role === "student") {
+      await verifyStudent(user.id);
     }
 
-    showMessage(
-      "Codsiga waa la gudbiyey. Haddii email-kaasi leeyahay account, waxaad heli doontaa link aad password-ka ku beddesho. Hubi Inbox iyo Spam.",
-      "success"
-    );
+    redirectByRole(profile.role);
+  }
 
-  } catch (error) {
+  // -------------------------------------------------------
+  // 9. LOGIN FORM
+  // -------------------------------------------------------
 
-    console.error(
-      "[FORGOT PASSWORD]",
-      error
-    );
+  loginForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
 
-    showMessage(
-      error.message ||
-      "Email-ka reset-ka lama diri karin. Mar kale isku day."
-    );
-
-// ============================================================
-// 13.5 FORGOT PASSWORD - SUPABASE EMAIL RESET
-// ============================================================
-
-const RESET_PASSWORD_URL =
-  "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/reset-password.html";
-
-// Use the existing HTML button
-const forgotPasswordBtn =
-  document.getElementById("forgotPasswordBtn");
-
-if (forgotPasswordBtn) {
-
-  forgotPasswordBtn.addEventListener("click", async function () {
+    if (loginInProgress) return;
 
     clearMessage();
 
-    const email = String(emailInput?.value || "")
+    const email = String(emailInput.value || "")
+      .trim()
+      .toLowerCase();
+
+    const password = String(passwordInput.value || "");
+
+    if (!email || !password) {
+      showMessage("Please enter your email and password.");
+      return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(email)) {
+      showMessage("Please enter a valid email address.");
+      emailInput.focus();
+      return;
+    }
+
+    loginInProgress = true;
+    loginButton.disabled = true;
+    loginButton.textContent = "Signing in...";
+
+    try {
+      const { data, error } =
+        await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+
+      if (error) {
+        console.error("[LOGIN AUTH ERROR]", error);
+
+        if (
+          error.message.toLowerCase().includes("invalid login credentials")
+        ) {
+          throw new Error(
+            "Incorrect email or password. Please try again."
+          );
+        }
+
+        if (
+          error.message.toLowerCase().includes("email not confirmed")
+        ) {
+          throw new Error(
+            "Your email address has not been confirmed yet."
+          );
+        }
+
+        throw new Error(error.message);
+      }
+
+      if (!data || !data.user) {
+        throw new Error("Login failed. Please try again.");
+      }
+
+      await completeLogin(data.user);
+
+    } catch (error) {
+      console.error("[GAAWOW LOGIN ERROR]", error);
+
+      showMessage(
+        error.message ||
+        "Login failed. Please try again."
+      );
+
+      loginInProgress = false;
+      loginButton.disabled = false;
+      loginButton.textContent = "🔐 Sign In";
+    }
+  });
+
+  // -------------------------------------------------------
+  // 10. FORGOT PASSWORD
+  // -------------------------------------------------------
+
+  forgotPasswordBtn.addEventListener("click", async function () {
+    if (resetInProgress) return;
+
+    clearMessage();
+
+    const email = String(emailInput.value || "")
       .trim()
       .toLowerCase();
 
     if (!email) {
-      showMessage("Fadlan marka hore geli email-kaaga.");
-      emailInput?.focus();
+      showMessage(
+        "Please enter your registered email address first."
+      );
+
+      emailInput.focus();
       return;
     }
 
-    const emailPattern =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailPattern.test(email)) {
-      showMessage("Fadlan geli email sax ah.");
-      emailInput?.focus();
+      showMessage("Please enter a valid email address.");
+      emailInput.focus();
       return;
     }
 
+    resetInProgress = true;
     forgotPasswordBtn.disabled = true;
-    forgotPasswordBtn.textContent = "Sending reset email...";
+    forgotPasswordBtn.textContent = "Sending email...";
 
     try {
-
       const { error } =
         await supabaseClient.auth.resetPasswordForEmail(
           email,
@@ -597,76 +358,75 @@ if (forgotPasswordBtn) {
           }
         );
 
-      if (error) throw error;
+      if (error) {
+        console.error("[PASSWORD RESET ERROR]", error);
+        throw error;
+      }
 
       showMessage(
-        "Codsiga waa la gudbiyey. Haddii email-kaasi leeyahay account, hubi Inbox iyo Spam.",
+        "Password reset request submitted. If this email belongs to an account, check your Inbox and Spam folder.",
         "success"
       );
 
     } catch (error) {
-
-      console.error("[FORGOT PASSWORD]", error);
+      console.error("[FORGOT PASSWORD ERROR]", error);
 
       showMessage(
         error.message ||
-        "Email-ka reset-ka lama diri karin. Mar kale isku day."
+        "Unable to send the password reset email. Please try again."
       );
 
     } finally {
-
+      resetInProgress = false;
       forgotPasswordBtn.disabled = false;
       forgotPasswordBtn.textContent = "Forgot Password?";
-
     }
-
   });
 
-} else {
-  console.error("[FORGOT PASSWORD] Button not found.");
-}
+  // -------------------------------------------------------
+  // 11. CHECK EXISTING SESSION
+  // -------------------------------------------------------
 
+  async function checkExistingSession() {
+    try {
+      const { data, error } =
+        await supabaseClient.auth.getSession();
 
-// 14. CHECK EXISTING SESSION
+      if (error) {
+        console.error("[SESSION CHECK ERROR]", error);
+        return;
+      }
 
-async function checkExistingSession() {
-  try {
-    const { data, error } =
-      await supabaseClient.auth.getSession();
+      const session = data && data.session;
 
-    if (error) {
-      console.warn("[LOGIN] Session check:", error.message);
-      return;
-    }
+      if (!session || !session.user) {
+        return;
+      }
 
-    const session = data?.session;
+      loginButton.disabled = true;
+      loginButton.textContent = "Checking account...";
 
-    if (!session?.user) return;
+      await completeLogin(session.user);
 
-    const profile = await getUserProfile(
-      session.user.id
-    );
+    } catch (error) {
+      console.error("[EXISTING SESSION ERROR]", error);
 
-    await redirectByRole(profile, session.user);
+      loginButton.disabled = false;
+      loginButton.textContent = "🔐 Sign In";
 
-  } catch (error) {
-    console.warn(
-      "[LOGIN] Existing session:",
-      error?.message || error
-    );
-
-    if (!loginInProgress && !redirectInProgress) {
-      showMessage(error?.message || "Session lama xaqiijin karin.");
+      showMessage(
+        error.message ||
+        "Unable to verify your existing session."
+      );
     }
   }
-}
 
-// 15. INITIALIZE
+  // -------------------------------------------------------
+  // 12. START LOGIN SYSTEM
+  // -------------------------------------------------------
 
-if (!emailInput || !passwordInput) {
-  console.error(
-    "[LOGIN] Email or password input is missing."
-  );
-}
+  checkExistingSession();
 
-checkExistingSession();
+  console.log("GAAWOW EMS Secure Login initialized.");
+
+})();
