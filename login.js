@@ -452,6 +452,111 @@ if (loginForm) {
   console.error("[LOGIN] Login form/button not found.");
 }
 
+// ============================================================
+// 13.5 FORGOT PASSWORD - SUPABASE EMAIL RESET
+// ============================================================
+
+const RESET_PASSWORD_URL =
+  "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/reset-password.html";
+
+// Create Forgot Password link automatically
+const forgotPasswordBtn = document.createElement("button");
+
+forgotPasswordBtn.type = "button";
+forgotPasswordBtn.id = "forgotPasswordBtn";
+forgotPasswordBtn.textContent = "Forgot Password?";
+
+forgotPasswordBtn.style.cssText = `
+  display: block;
+  width: 100%;
+  text-align: right;
+  color: #0B4DA2;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 8px 0;
+  margin: 2px 0 12px;
+`;
+
+if (passwordInput) {
+  const passwordContainer =
+    passwordInput.closest(".form-group") ||
+    passwordInput.parentElement;
+
+  if (passwordContainer) {
+    passwordContainer.before(forgotPasswordBtn);
+  }
+}
+
+// Send reset email
+forgotPasswordBtn.addEventListener("click", async function () {
+
+  clearMessage();
+
+  const email = String(emailInput?.value || "")
+    .trim()
+    .toLowerCase();
+
+  if (!email) {
+    showMessage("Fadlan marka hore geli email-kaaga.");
+    emailInput?.focus();
+    return;
+  }
+
+  const emailPattern =
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailPattern.test(email)) {
+    showMessage("Fadlan geli email sax ah.");
+    emailInput?.focus();
+    return;
+  }
+
+  forgotPasswordBtn.disabled = true;
+  forgotPasswordBtn.textContent = "Sending reset email...";
+
+  try {
+
+    const { error } =
+      await supabaseClient.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: RESET_PASSWORD_URL
+        }
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    showMessage(
+      "Codsiga waa la gudbiyey. Haddii email-kaasi leeyahay account, waxaad heli doontaa link aad password-ka ku beddesho. Hubi Inbox iyo Spam.",
+      "success"
+    );
+
+  } catch (error) {
+
+    console.error(
+      "[FORGOT PASSWORD]",
+      error
+    );
+
+    showMessage(
+      error.message ||
+      "Email-ka reset-ka lama diri karin. Mar kale isku day."
+    );
+
+  } finally {
+
+    forgotPasswordBtn.disabled = false;
+    forgotPasswordBtn.textContent = "Forgot Password?";
+
+  }
+
+});
+
 // 14. CHECK EXISTING SESSION
 
 async function checkExistingSession() {
