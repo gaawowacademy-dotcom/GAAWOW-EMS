@@ -3,21 +3,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <meta
-    name="theme-color"
-    content="#0B1E63"
-  >
-
-  <meta
-    name="description"
-    content="GAAWOW EMS Secure Login"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1E63">
+  <meta name="description" content="GAAWOW EMS Secure Login">
 
   <title>GAAWOW EMS — Secure Login</title>
 
@@ -31,19 +19,10 @@
     body {
       min-height: 100vh;
       font-family: Arial, Helvetica, sans-serif;
-
-      background:
-        linear-gradient(
-          135deg,
-          #06143f 0%,
-          #0B1E63 45%,
-          #0B4DA2 100%
-        );
-
+      background: linear-gradient(135deg, #06143f 0%, #0B1E63 45%, #0B4DA2 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-
       padding: 20px;
       color: #1F2937;
     }
@@ -53,21 +32,13 @@
       max-width: 440px;
     }
 
-    /* LOGIN CARD */
-
     .login-card {
       background: #ffffff;
       border-radius: 26px;
       padding: 35px 30px 30px;
-
-      box-shadow:
-        0 25px 70px rgba(0, 0, 0, .28);
-
-      border: 1px solid
-        rgba(255, 255, 255, .35);
+      box-shadow: 0 25px 70px rgba(0, 0, 0, .28);
+      border: 1px solid rgba(255, 255, 255, .35);
     }
-
-    /* BRAND */
 
     .brand {
       text-align: center;
@@ -77,16 +48,12 @@
     .brand-logo {
       width: 82px;
       height: 82px;
-
       object-fit: contain;
       background: #fff;
       border-radius: 20px;
       padding: 7px;
       margin-bottom: 15px;
-
-      box-shadow:
-        0 8px 25px rgba(11, 30, 99, .15);
-
+      box-shadow: 0 8px 25px rgba(11, 30, 99, .15);
       border: 1px solid #E5E7EB;
     }
 
@@ -104,23 +71,18 @@
       line-height: 1.5;
     }
 
-    /* SECURITY BADGE */
-
     .secure-badge {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 7px;
-
       background: #ECFDF5;
       color: #15803D;
       border: 1px solid #BBF7D0;
       border-radius: 999px;
-
       padding: 8px 12px;
       width: fit-content;
       margin: 0 auto 24px;
-
       font-size: 11px;
       font-weight: 800;
     }
@@ -131,8 +93,6 @@
       border-radius: 50%;
       background: #16A34A;
     }
-
-    /* FORM */
 
     .form-group {
       margin-bottom: 18px;
@@ -153,36 +113,25 @@
     input {
       width: 100%;
       height: 50px;
-
       border: 1px solid #D1D5DB;
       border-radius: 12px;
-
       background: #F8FAFC;
       color: #111827;
-
       font-size: 14px;
       padding: 0 14px;
       outline: none;
-
-      transition:
-        border-color .2s,
-        box-shadow .2s,
-        background .2s;
+      transition: border-color .2s, box-shadow .2s, background .2s;
     }
 
     input:focus {
       border-color: #0B4DA2;
       background: #fff;
-
-      box-shadow:
-        0 0 0 3px rgba(11, 77, 162, .10);
+      box-shadow: 0 0 0 3px rgba(11, 77, 162, .10);
     }
 
     input::placeholder {
       color: #94A3B8;
     }
-
-    /* PASSWORD */
 
     #password {
       padding-right: 75px;
@@ -193,11 +142,9 @@
       right: 10px;
       top: 50%;
       transform: translateY(-50%);
-
       border: 0;
       background: transparent;
       color: #0B4DA2;
-
       font-size: 11px;
       font-weight: 800;
       cursor: pointer;
@@ -208,42 +155,51 @@
       color: #0B1E63;
     }
 
-    /* LOGIN BUTTON */
+    /* FORGOT PASSWORD */
+
+    .forgot-password-wrapper {
+      text-align: right;
+      margin: -8px 0 15px;
+    }
+
+    .forgot-password-btn {
+      border: none;
+      background: transparent;
+      color: #0B4DA2;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 8px 0;
+    }
+
+    .forgot-password-btn:hover {
+      color: #0B1E63;
+      text-decoration: underline;
+    }
+
+    .forgot-password-btn:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
 
     .login-btn {
       width: 100%;
       height: 52px;
-
       border: 0;
       border-radius: 13px;
-
-      background:
-        linear-gradient(
-          135deg,
-          #0B1E63,
-          #0B4DA2
-        );
-
+      background: linear-gradient(135deg, #0B1E63, #0B4DA2);
       color: #ffffff;
       font-size: 14px;
       font-weight: 900;
       cursor: pointer;
       margin-top: 5px;
-
-      transition:
-        transform .2s,
-        box-shadow .2s,
-        opacity .2s;
-
-      box-shadow:
-        0 8px 20px rgba(11, 30, 99, .20);
+      transition: transform .2s, box-shadow .2s, opacity .2s;
+      box-shadow: 0 8px 20px rgba(11, 30, 99, .20);
     }
 
     .login-btn:hover {
       transform: translateY(-1px);
-
-      box-shadow:
-        0 12px 25px rgba(11, 30, 99, .28);
+      box-shadow: 0 12px 25px rgba(11, 30, 99, .28);
     }
 
     .login-btn:active {
@@ -256,34 +212,11 @@
       transform: none;
       box-shadow: none;
     }
-        <!-- FORGOT PASSWORD -->
-
-        <div style="text-align:right; margin: -8px 0 15px;">
-
-          <button
-            type="button"
-            id="forgotPasswordBtn"
-            style="
-              border: none;
-              background: transparent;
-              color: #0B4DA2;
-              font-size: 13px;
-              font-weight: 800;
-              cursor: pointer;
-              padding: 8px 0;
-            "
-          >
-            Forgot Password?
-          </button>
-
-        </div>
-    /* MESSAGE */
 
     .login-message {
       display: none;
       margin-top: 16px;
       padding: 12px 14px;
-
       border-radius: 11px;
       font-size: 12px;
       line-height: 1.5;
@@ -305,12 +238,9 @@
       color: #166534;
     }
 
-    /* INFORMATION */
-
     .login-info {
       margin-top: 20px;
       padding: 14px;
-
       border-radius: 12px;
       background: #F8FAFC;
       border: 1px solid #E5E7EB;
@@ -329,8 +259,6 @@
       line-height: 1.6;
     }
 
-    /* FOOTER */
-
     .footer {
       text-align: center;
       color: rgba(255,255,255,.78);
@@ -342,8 +270,6 @@
     .footer strong {
       color: #D4AF37;
     }
-
-    /* MOBILE */
 
     @media (max-width: 480px) {
       body {
@@ -386,9 +312,7 @@
     <main class="login-card">
 
       <!-- BRAND -->
-
       <div class="brand">
-
         <img
           class="brand-logo"
           src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
@@ -401,36 +325,22 @@
           Education Management &amp;
           Verification System
         </p>
-
       </div>
 
       <!-- SECURITY -->
-
       <div class="secure-badge">
-
         <span class="secure-dot"></span>
-
         Secure Authentication
-
       </div>
 
       <!-- LOGIN FORM -->
-
-      <form
-        id="loginForm"
-        autocomplete="on"
-      >
+      <form id="loginForm" autocomplete="on">
 
         <!-- EMAIL -->
-
         <div class="form-group">
-
-          <label for="email">
-            Email Address
-          </label>
+          <label for="email">Email Address</label>
 
           <div class="input-wrapper">
-
             <input
               type="email"
               id="email"
@@ -439,21 +349,14 @@
               autocomplete="username"
               required
             >
-
           </div>
-
         </div>
 
         <!-- PASSWORD -->
-
         <div class="form-group">
-
-          <label for="password">
-            Password
-          </label>
+          <label for="password">Password</label>
 
           <div class="input-wrapper">
-
             <input
               type="password"
               id="password"
@@ -471,13 +374,21 @@
             >
               Show
             </button>
-
           </div>
+        </div>
 
+        <!-- FORGOT PASSWORD -->
+        <div class="forgot-password-wrapper">
+          <button
+            type="button"
+            id="forgotPasswordBtn"
+            class="forgot-password-btn"
+          >
+            Forgot Password?
+          </button>
         </div>
 
         <!-- LOGIN BUTTON -->
-
         <button
           type="submit"
           id="loginBtn"
@@ -487,7 +398,6 @@
         </button>
 
         <!-- MESSAGE -->
-
         <div
           id="loginMessage"
           class="login-message"
@@ -498,9 +408,7 @@
       </form>
 
       <!-- INFORMATION -->
-
       <div class="login-info">
-
         <div class="login-info-title">
           🔒 Account Security
         </div>
@@ -508,44 +416,33 @@
         <p>
           Your account access is controlled by
           your assigned system role. Students,
-          teachers, parents, school administrators,
-          finance managers and super administrators
+          teachers, parents, finance managers,
+          school administrators and super administrators
           are automatically redirected to their
           authorized portal.
         </p>
-
       </div>
 
     </main>
 
     <!-- FOOTER -->
-
     <div class="footer">
-
       <strong>GAAWOW ACADEMY</strong>
-
       <br>
-
       Ilayska Aqoonta iyo Xirfadda
-
       <br>
-
       © 2026 GAAWOW EMS
-
     </div>
 
   </div>
 
-  <!-- SUPABASE LIBRARY: LOAD ONCE -->
-
+  <!-- SUPABASE LIBRARY -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- LOGIN LOGIC: LOAD ONCE -->
-
-  <script src="./login.js?v=20261115"></script>
+  <!-- LOGIN LOGIC -->
+  <script src="./login.js?v=20261122"></script>
 
   <!-- PASSWORD VISIBILITY -->
-
   <script>
     document.addEventListener("DOMContentLoaded", function () {
 
@@ -574,9 +471,7 @@
           );
 
         });
-
       }
-
     });
   </script>
 
