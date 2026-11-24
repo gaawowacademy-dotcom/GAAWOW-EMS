@@ -22,11 +22,15 @@ label{display:block;font-size:11px;font-weight:800;color:#374151;text-transform:
 .field{margin-bottom:13px}
 input,select{width:100%;padding:10px 11px;border:1px solid #d1d5db;border-radius:7px;background:#fff;outline:none;font-size:13px}
 input:focus,select:focus{border-color:#0B4DA2;box-shadow:0 0 0 2px rgba(11,77,162,.1)}
+input[type="color"]{height:40px;padding:3px;cursor:pointer}
 .readonly{background:#f8fafc}
+.section-title{font-size:11px;font-weight:800;color:#0B1E63;text-transform:uppercase;letter-spacing:.4px;margin:18px 0 10px;padding-top:14px;border-top:1px solid #e5e7eb}
+.color-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}
 .btn{border:0;border-radius:7px;padding:10px 12px;cursor:pointer;font-weight:800;font-size:12px}
 .btn-primary{background:#0B4DA2;color:#fff}.btn-gold{background:#D4AF37;color:#111827}.btn-light{background:#e5e7eb;color:#111827}.btn-green{background:#16A34A;color:#fff}
 .btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-wide{width:100%;margin-top:2px}
 .message{display:none;margin:0 0 14px;padding:11px;border-radius:7px;font-size:12px;font-weight:700}.message.success{display:block;background:#dcfce7;color:#166534}.message.error{display:block;background:#fee2e2;color:#991b1b}.message.info{display:block;background:#dbeafe;color:#1e40af}
 .photo-preview{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid #D4AF37;background:#f3f4f6;display:block;margin:0 auto 10px}
 .help{font-size:10px;color:#6b7280;line-height:1.45;margin-top:4px}
@@ -60,6 +64,18 @@ input:focus,select:focus{border-color:#0B4DA2;box-shadow:0 0 0 2px rgba(11,77,16
     <section class="card">
       <div class="card-head">Generate Certificate</div>
       <div class="card-body">
+
+        <!-- TEMPLATE DROPDOWN -->
+        <div class="field">
+          <label for="templateSelect">Certificate Template</label>
+          <select id="templateSelect">
+            <option value="">Loading templates...</option>
+          </select>
+          <div class="help">
+            Dooro naqshadda shahaadada. Template cusub waxaa lagu daraa liiska
+            <strong>TEMPLATES</strong> ee <strong>certificate.js</strong>.
+          </div>
+        </div>
 
         <div class="field">
           <label for="institutionSelect">Institution</label>
@@ -161,10 +177,25 @@ input:focus,select:focus{border-color:#0B4DA2;box-shadow:0 0 0 2px rgba(11,77,16
           <input id="courseName" class="readonly" readonly>
         </div>
 
-        <div class="help">
+        <!-- DESIGN COLOURS -->
+        <div class="section-title">Design Colours</div>
+        <div class="color-row">
+          <div class="field">
+            <label for="nameColor">Name / Course / Signatures</label>
+            <input id="nameColor" type="color" value="#0A1A44">
+          </div>
+          <div class="field">
+            <label for="infoColor">Information Text</label>
+            <input id="infoColor" type="color" value="#111827">
+          </div>
+        </div>
+        <button class="btn btn-light btn-wide" id="resetColorsBtn" type="button">Reset Colours</button>
+
+        <div class="help" style="margin-top:12px">
           Template-ka rasmiga ah waa <strong>certificate-template-v9.png</strong>
-          oo ku jira root-ka GAAWOW-EMS. Design, icons, fonts, borders,
-          signatures iyo background lama beddelayo.
+          oo ku jira root-ka GAAWOW-EMS. Background-ka, borders-ka iyo icons-ka
+          template-ka lama beddelayo, kaliya midabka qoraalka iyo template-ka
+          la dooranayo.
         </div>
 
         <div class="actions">
@@ -195,7 +226,10 @@ input:focus,select:focus{border-color:#0B4DA2;box-shadow:0 0 0 2px rgba(11,77,16
      from a CDN automatically if this one fails or is blocked). -->
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
+<!-- jsPDF: required by the "Download PDF" button (window.jspdf). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <!-- GAAWOW Certificate Generator. Must load LAST. -->
-<script src="certificate.js?v=908"></script>
+<script src="certificate.js?v=912"></script>
 </body>
 </html>
