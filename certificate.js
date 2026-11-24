@@ -1,9 +1,10 @@
 /* =========================================================
    GAAWOW EMS
-   CERTIFICATE GENERATOR V9.2
+   CERTIFICATE GENERATOR V9.3
    CLEAN-TEMPLATE / DATABASE-SAFE
    + Template dropdown (choose which certificate design to use)
    + Editable design colours (name / course colour, info text colour)
+   + Financial clearance gate (gaawow_student_financially_cleared)
 
    Uses existing certificates schema only. No schema changes.
    Supabase connection, auth, save and regenerate logic are unchanged.
@@ -647,6 +648,8 @@ function syncStudent() {
   const student = selectedStudent();
 
   if (!student) {
+    renderClearance("hidden");
+    setClearanceButtons(false);
     $("studentName").value = "";
     $("dateStarted").value = "";
     $("photoBox").style.display = "none";
@@ -656,6 +659,7 @@ function syncStudent() {
 
   $("studentName").value = student.full_name || "";
   $("dateStarted").value = student.admission_date || "";
+  updateClearance();
 
   if (student.photo_url) {
     $("studentPhotoPreview").src = student.photo_url;
@@ -986,6 +990,178 @@ async function drawQR(ctx, code) {
   ctx.restore();
 }
 
+/* ---------------- FINANCIAL CLEARANCE ----------------
+   Uses the existing database function
+     public.gaawow_student_financially_cleared(p_student_id, p_scope)
+   with scope "certificates". That function is STRICT for certificates:
+   any unpaid balance blocks issuing, and financial exceptions are NOT
+   accepted. No exception/override is offered here for that reason.
+
+   Only NEW certificates are gated. Regenerating an already issued
+   certificate (?regen=...) is not blocked.
+   Authentication letters are not gated (change CLEARANCE_REQUIRED_TYPES
+   if that should change). */
+
+const CLEARANCE_RPC = "gaawow_student_financially_cleared";
+const CLEARANCE_SCOPE = "certificates";
+const CLEARANCE_REQUIRED_TYPES = ["certificate", "diploma"];
+const CLEARANCE_BUTTONS = ["generateBtn", "saveBtn", "pngBtn", "pdfBtn", "printBtn"];
+
+let clearanceToken = 0;
+
+function clearanceRequired() {
+  if (regenerateId) return false;
+  return CLEARANCE_REQUIRED_TYPES.includes(
+    normalizeCertificateType($("certificateType")?.value)
+  );
+}
+
+async function fetchClearance(studentUuid) {
+  const { data, error } = await supabaseClient.rpc(CLEARANCE_RPC, {
+    p_student_id: studentUuid,
+    p_scope: CLEARANCE_SCOPE
+  });
+  if (error) throw new Error(`Clearance check failed: ${error.message}`);
+  return data === true;
+}
+
+/* Display only. The real decision always comes from the database function. */
+async function fetchOutstandingInvoices(studentUuid) {
+  const { data, error } = await supabaseClient
+    .from("invoices")
+    .select("invoice_number,description,amount,paid_amount,currency,status,due_date")
+    .eq("student_id", studentUuid)
+    .order("due_date", { ascending: true });
+
+  if (error) {
+    console.warn("Invoice list unavailable:", error.message);
+    return [];
+  }
+
+  return (data || []).filter(i =>
+    String(i.status) !== "cancelled" &&
+    Number(i.amount || 0) - Number(i.paid_amount || 0) > 0
+  );
+}
+
+function setClearanceButtons(blocked) {
+  for (const id of CLEARANCE_BUTTONS) {
+    const el = $(id);
+    if (el) el.disabled = blocked;
+  }
+}
+
+function renderClearance(state, invoices = [], detail = "") {
+  const box = $("clearanceBox");
+  if (!box) return;
+
+  box.className = "clearance-box";
+  box.innerHTML = "";
+
+  if (state === "hidden") {
+    box.style.display = "none";
+    return;
+  }
+
+  box.style.display = "block";
+
+  const title = document.createElement("div");
+  title.className = "clearance-title";
+
+  const note = document.createElement("div");
+  note.className = "clearance-note";
+
+  if (state === "checking") {
+    box.classList.add("checking");
+    title.textContent = "Checking financial clearance...";
+  } else if (state === "cleared") {
+    box.classList.add("cleared");
+    title.textContent = "✔ Financially cleared";
+    note.textContent = "No outstanding balance. Certificate can be issued.";
+  } else if (state === "blocked") {
+    box.classList.add("blocked");
+    title.textContent = "✖ Not cleared — outstanding balance";
+    note.textContent =
+      "Certificate cannot be generated or saved until all invoices are paid.";
+  } else {
+    box.classList.add("blocked");
+    title.textContent = "✖ Clearance could not be verified";
+    note.textContent = detail || "Try again. Certificate issuing stays blocked.";
+  }
+
+  box.append(title);
+  if (note.textContent) box.append(note);
+
+  if (state === "blocked" && invoices.length) {
+    const list = document.createElement("div");
+    list.className = "clearance-list";
+    for (const inv of invoices) {
+      const balance = Number(inv.amount || 0) - Number(inv.paid_amount || 0);
+      const row = document.createElement("div");
+      row.className = "clearance-row";
+      row.textContent =
+        `${inv.invoice_number || "Invoice"} — ` +
+        `${balance.toFixed(2)} ${inv.currency || ""} due` +
+        (inv.due_date ? ` (${formatDate(inv.due_date)})` : "");
+      list.append(row);
+    }
+    box.append(list);
+  }
+}
+
+/* Refreshes the clearance panel for the selected student.
+   Returns true (cleared / not required), false (blocked or unknown). */
+async function updateClearance() {
+  const token = ++clearanceToken;
+  const student = selectedStudent();
+
+  if (!student || !clearanceRequired()) {
+    renderClearance("hidden");
+    setClearanceButtons(false);
+    return true;
+  }
+
+  renderClearance("checking");
+  setClearanceButtons(true);
+
+  try {
+    const cleared = await fetchClearance(student.id);
+    if (token !== clearanceToken) return cleared;   // a newer check is running
+
+    if (cleared) {
+      renderClearance("cleared");
+      setClearanceButtons(false);
+      return true;
+    }
+
+    const invoices = await fetchOutstandingInvoices(student.id);
+    if (token !== clearanceToken) return false;
+    renderClearance("blocked", invoices);
+    setClearanceButtons(true);
+    return false;
+  } catch (e) {
+    console.error("Clearance error:", e);
+    if (token === clearanceToken) {
+      renderClearance("error", [], e.message);
+      setClearanceButtons(true);
+    }
+    return false;   // fail closed
+  }
+}
+
+/* Called right before rendering and before saving. */
+async function assertCleared() {
+  if (!clearanceRequired() || !selectedStudent()) return;
+
+  const ok = await updateClearance();
+  if (!ok) {
+    throw new Error(
+      "Financial clearance required: this student has an unpaid balance or " +
+      "clearance could not be verified. Certificate was not issued."
+    );
+  }
+}
+
 /* ---------------- RENDER ---------------- */
 
 async function renderCertificate() {
@@ -998,6 +1174,8 @@ async function renderCertificate() {
 
   if (!student) throw new Error("Please select a student.");
   if (!course) throw new Error("Please select a course.");
+
+  await assertCleared();
 
   await ensureFonts();
 
@@ -1146,6 +1324,7 @@ function normalizeCertificateType(value) {
 /* ---------------- SAVE ---------------- */
 
 async function saveCertificate() {
+  await assertCleared();
   if (!generated) await renderCertificate();
 
   const student = selectedStudent();
@@ -1398,6 +1577,9 @@ function setupEvents() {
     $(id)?.addEventListener("change", markDirty);
   });
   $("resetColorsBtn")?.addEventListener("click", resetDesignColors);
+
+  // Clearance depends on the document type (certificate / diploma / letter)
+  $("certificateType")?.addEventListener("change", () => updateClearance());
 
   // Anything that appears on the certificate invalidates the preview.
   [
