@@ -33,6 +33,14 @@ input[type="color"]{height:40px;padding:3px;cursor:pointer}
 .btn-wide{width:100%;margin-top:2px}
 .message{display:none;margin:0 0 14px;padding:11px;border-radius:7px;font-size:12px;font-weight:700}.message.success{display:block;background:#dcfce7;color:#166534}.message.error{display:block;background:#fee2e2;color:#991b1b}.message.info{display:block;background:#dbeafe;color:#1e40af}
 .photo-preview{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid #D4AF37;background:#f3f4f6;display:block;margin:0 auto 10px}
+.clearance-box{display:none;margin:0 0 13px;padding:11px 12px;border-radius:8px;font-size:12px;line-height:1.5;border:1px solid #d1d5db;background:#f8fafc}
+.clearance-box.checking{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
+.clearance-box.cleared{background:#dcfce7;border-color:#86efac;color:#166534}
+.clearance-box.blocked{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+.clearance-title{font-weight:800}
+.clearance-note{margin-top:3px}
+.clearance-list{margin-top:8px;border-top:1px solid rgba(0,0,0,.12);padding-top:6px}
+.clearance-row{font-size:11px;padding:2px 0}
 .help{font-size:10px;color:#6b7280;line-height:1.45;margin-top:4px}
 .preview-card{background:#111827;border-radius:12px;padding:14px;box-shadow:0 4px 18px rgba(0,0,0,.12)}
 .preview-wrap{width:100%;background:#fff;overflow:hidden;display:flex;justify-content:center}
@@ -94,6 +102,9 @@ input[type="color"]{height:40px;padding:3px;cursor:pointer}
         <div id="photoBox" style="display:none">
           <img id="studentPhotoPreview" class="photo-preview" alt="Student Photo">
         </div>
+
+        <!-- FINANCIAL CLEARANCE (filled by certificate.js) -->
+        <div id="clearanceBox" class="clearance-box" role="status" aria-live="polite"></div>
 
         <div class="field">
           <label for="courseSelect">Course</label>
@@ -230,6 +241,6 @@ input[type="color"]{height:40px;padding:3px;cursor:pointer}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <!-- GAAWOW Certificate Generator. Must load LAST. -->
-<script src="certificate.js?v=912"></script>
+<script src="certificate.js?v=913"></script>
 </body>
 </html>
