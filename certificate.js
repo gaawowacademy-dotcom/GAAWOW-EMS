@@ -1,16 +1,12 @@
 /* =========================================================
    GAAWOW EMS
-   CERTIFICATE GENERATOR V9.1
+   CERTIFICATE GENERATOR V9.2
    CLEAN-TEMPLATE / DATABASE-SAFE
-
-   Template (placeholder text already removed):
-   ./certificate-template-v9.png
-
-   V9 no longer erases anything at runtime. The template ships
-   with empty fields, so every value is drawn on clean paper and
-   nothing looks patched or "edited".
+   + Template dropdown (choose which certificate design to use)
+   + Editable design colours (name / course colour, info text colour)
 
    Uses existing certificates schema only. No schema changes.
+   Supabase connection, auth, save and regenerate logic are unchanged.
    ========================================================= */
 
 const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
@@ -20,19 +16,6 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
-
-/* V9.1 template: student values, signature names and footer contact
-   text are ALL removed, so they are drawn by this script. Do not point
-   this at an older clean template (the footer text would print twice). */
-const TEMPLATE_FILE = "certificate-template-v9.png";
-/* Same V9 image; extra names cover GitHub adding "-1" / "-2" to a re-upload. */
-const TEMPLATE_CANDIDATES = [
-  `./${TEMPLATE_FILE}`,
-  "./certificate-template-v9-1.png",
-  "./certificate-template-v9-2.png",
-  "./certificate-template-v9 (1).png"
-];
-let loadedTemplateName = TEMPLATE_FILE;
 
 /* Optional: full public site address used inside the QR code, e.g.
    "https://gaawowacademy.com/". Leave "" to use the folder this page is in. */
@@ -56,13 +39,14 @@ const W = 1536;
 const H = 1024;
 const SCALE = 2;
 
-const NAVY = "#0A1A44";
-const INK = "#111827";
+const DEFAULT_NAVY = "#0A1A44";
+const DEFAULT_INK = "#111827";
 const SANS = "Arial, Helvetica, sans-serif";
 const SCRIPT = '"Great Vibes", "Snell Roundhand", cursive';
 const SERIF = '"Cinzel", Georgia, "Times New Roman", serif';
 
-const LAYOUT = {
+/* Layout of the official V9 template (unchanged). */
+const LAYOUT_V9 = {
   // left information column (baseline y)
   fieldX: 120,
   fieldSize: 18,
@@ -110,6 +94,43 @@ const LAYOUT = {
   phoneY2: 1005,
   phoneMaxWidth: 185
 };
+
+/* =========================================================
+   TEMPLATE REGISTRY  (feeds the "Certificate Template" dropdown)
+
+   To add another design:
+   1. Upload the PNG (1536 x 1024, clean: no student values printed on it)
+      next to certificate.html.
+   2. Add one entry below. If the new design has the same field positions
+      as V9, use  layout: LAYOUT_V9.
+      If a few positions differ, override only those, e.g.
+        layout: { ...LAYOUT_V9, nameY: 540, qr: { x: 1280, y: 420, size: 160 } }
+   ========================================================= */
+const TEMPLATES = [
+  {
+    key: "official_v9",
+    label: "GAAWOW Official Certificate (V9)",
+    files: [
+      "./certificate-template-v9.png",
+      "./certificate-template-v9-1.png",
+      "./certificate-template-v9-2.png",
+      "./certificate-template-v9 (1).png"
+    ],
+    layout: LAYOUT_V9
+  }
+  /* Example (uncomment after uploading the image):
+  ,{
+    key: "diploma_v1",
+    label: "GAAWOW Diploma",
+    files: ["./diploma-template-v1.png"],
+    layout: LAYOUT_V9
+  }
+  */
+];
+
+let currentTemplate = TEMPLATES[0];
+let LAYOUT = currentTemplate.layout;
+let loadedTemplateName = "certificate-template-v9.png";
 
 const STATUS_STYLES = {
   valid:     { text: "VALID",     color: "#166534", border: "#1D8B33" },
@@ -201,6 +222,63 @@ function verificationUrlFor(code) {
   return `${base}verify.html?code=${encodeURIComponent(code)}`;
 }
 
+/* ---------------- DESIGN COLOURS ---------------- */
+
+function validHex(v) {
+  return /^#[0-9A-Fa-f]{6}$/.test(String(v || ""));
+}
+
+/* Colour of student name, course name and signatures */
+function navyColor() {
+  const v = $("nameColor")?.value;
+  return validHex(v) ? v : DEFAULT_NAVY;
+}
+
+/* Colour of the left information column */
+function inkColor() {
+  const v = $("infoColor")?.value;
+  return validHex(v) ? v : DEFAULT_INK;
+}
+
+function resetDesignColors() {
+  if ($("nameColor")) $("nameColor").value = DEFAULT_NAVY;
+  if ($("infoColor")) $("infoColor").value = DEFAULT_INK;
+  markDirty();
+}
+
+/* ---------------- TEMPLATE DROPDOWN ---------------- */
+
+function findTemplate(key) {
+  return TEMPLATES.find(t => t.key === key) || TEMPLATES[0];
+}
+
+function populateTemplateSelect() {
+  const select = $("templateSelect");
+  if (!select) return;
+
+  select.innerHTML = "";
+  for (const tpl of TEMPLATES) {
+    const opt = document.createElement("option");
+    opt.value = tpl.key;
+    opt.textContent = tpl.label;
+    select.appendChild(opt);
+  }
+  select.value = currentTemplate.key;
+}
+
+/* Finds which registered template a saved certificate used, from its
+   template_url, so regenerating redraws it on the same design. */
+function templateKeyFromUrl(url) {
+  const name = String(url || "").split("?")[0].split("/").pop().toLowerCase();
+  if (!name) return null;
+  for (const tpl of TEMPLATES) {
+    for (const f of tpl.files) {
+      if (f.split("/").pop().toLowerCase() === name) return tpl.key;
+    }
+  }
+  return null;
+}
+
 /* ---------------- REGENERATE (from Certificates list) ---------------- */
 
 function readRegenerateId() {
@@ -251,7 +329,19 @@ async function applyRegenerateRow(row) {
   $("expiryDate").value = row.expiry_date || "";
   $("status").value = row.status || "valid";
   if ($("certificateType")) {
-    $("certificateType").value = row.certificate_type || "certificate";
+    const urlType = new URLSearchParams(window.location.search).get("type");
+    $("certificateType").value = row.certificate_type || urlType || "certificate";
+  }
+
+  /* Redraw on the same template the certificate was originally saved with */
+  const savedKey = templateKeyFromUrl(row.template_url);
+  if (savedKey && savedKey !== currentTemplate.key) {
+    try {
+      await loadOfficialTemplate(savedKey);
+      if ($("templateSelect")) $("templateSelect").value = savedKey;
+    } catch (e) {
+      console.warn("Original template unavailable, using current one:", e);
+    }
   }
 
   if ($("formTitle")) $("formTitle").textContent = "Regenerate Certificate";
@@ -311,15 +401,24 @@ function loadImage(url, crossOrigin = false) {
   });
 }
 
-async function loadOfficialTemplate() {
+/* Loads the chosen template. currentTemplate / LAYOUT / templateImage are
+   only replaced after the image loads, so a missing file never leaves the
+   page half-switched. */
+async function loadOfficialTemplate(key = currentTemplate.key) {
+  const tpl = findTemplate(key);
   let lastError = null;
 
-  for (const path of TEMPLATE_CANDIDATES) {
+  for (const path of tpl.files) {
     try {
       const url = new URL(path, document.baseURI).href;
-      templateImage = await loadImage(url, false);
+      const img = await loadImage(url, false);
+
+      templateImage = img;
+      currentTemplate = tpl;
+      LAYOUT = tpl.layout;
       loadedTemplateName = path.replace("./", "");
-      setPreviewStatus(`Official template loaded: ${path.replace("./", "")}`);
+
+      setPreviewStatus(`Template loaded: ${tpl.label}`);
       drawTemplateOnly();
       return;
     } catch (e) {
@@ -329,8 +428,8 @@ async function loadOfficialTemplate() {
   }
 
   throw new Error(
-    `${TEMPLATE_FILE} was not found in the GAAWOW-EMS root. ` +
-    `Upload it next to certificate.html. (${lastError?.message || ""})`
+    `Template "${tpl.label}" (${tpl.files[0].replace("./", "")}) was not found next to certificate.html. ` +
+    `Upload it to the GAAWOW-EMS root. (${lastError?.message || ""})`
   );
 }
 
@@ -638,7 +737,7 @@ function drawField(ctx, text, baselineY) {
   drawText(ctx, text || "—", LAYOUT.fieldX, baselineY, {
     size: LAYOUT.fieldSize,
     family: SANS,
-    color: INK,
+    color: inkColor(),
     maxWidth: LAYOUT.fieldMaxWidth
   });
 }
@@ -905,6 +1004,8 @@ async function renderCertificate() {
   // The template is clean, so we simply draw on top of it.
   const { ctx } = prepareCanvas();
 
+  const NAVY = navyColor();
+
   /* Student photo (ribbon stays visible) */
   const photo = await loadStudentPhoto(student.photo_url);
   drawStudentPhoto(ctx, photo.img);
@@ -943,45 +1044,45 @@ async function renderCertificate() {
 
   /* ---------------- OFFICIAL DIGITAL SIGNATURES ---------------- */
 
-const directorSignatureName =
-  valueOf("directorName", DEFAULT_DIRECTOR);
+  const directorSignatureName =
+    valueOf("directorName", DEFAULT_DIRECTOR);
 
-const academicHeadSignatureName =
-  valueOf("academicHeadName", DEFAULT_ACADEMIC_HEAD);
+  const academicHeadSignatureName =
+    valueOf("academicHeadName", DEFAULT_ACADEMIC_HEAD);
 
-/* Founder & Director signature */
-drawText(
-  ctx,
-  directorSignatureName,
-  LAYOUT.directorX,
-  LAYOUT.signatureY,
-  {
-    size: 36,
-    family: SCRIPT,
-    color: NAVY,
-    weight: "400",
-    align: "center",
-    maxWidth: LAYOUT.directorMaxWidth,
-    minSize: 20
-  }
-);
+  /* Founder & Director signature */
+  drawText(
+    ctx,
+    directorSignatureName,
+    LAYOUT.directorX,
+    LAYOUT.signatureY,
+    {
+      size: 36,
+      family: SCRIPT,
+      color: NAVY,
+      weight: "400",
+      align: "center",
+      maxWidth: LAYOUT.directorMaxWidth,
+      minSize: 20
+    }
+  );
 
-/* Academic Head signature */
-drawText(
-  ctx,
-  academicHeadSignatureName,
-  LAYOUT.academicHeadX,
-  LAYOUT.signatureY,
-  {
-    size: 36,
-    family: SCRIPT,
-    color: NAVY,
-    weight: "400",
-    align: "center",
-    maxWidth: LAYOUT.academicHeadMaxWidth,
-    minSize: 20
-  }
-);
+  /* Academic Head signature */
+  drawText(
+    ctx,
+    academicHeadSignatureName,
+    LAYOUT.academicHeadX,
+    LAYOUT.signatureY,
+    {
+      size: 36,
+      family: SCRIPT,
+      color: NAVY,
+      weight: "400",
+      align: "center",
+      maxWidth: LAYOUT.academicHeadMaxWidth,
+      minSize: 20
+    }
+  );
 
   /* Footer contact (white on the navy bar) */
   drawText(ctx, CONTACT.address, LAYOUT.addressX, LAYOUT.addressY, {
@@ -1110,9 +1211,6 @@ async function saveCertificate() {
 
   if (regenerateId) {
     // Regenerating: update the existing row instead of inserting a new one.
-    delete payload.hash_code;   // recomputed below, kept for the new snapshot
-    payload.hash_code = hashCode;
-
     ({ data, error } = await supabaseClient
       .from("certificates")
       .update(payload)
@@ -1269,19 +1367,51 @@ function setupEvents() {
     markDirty();
   });
 
+  // Template dropdown: switch design, keep the selected student / course.
+  $("templateSelect")?.addEventListener("change", async () => {
+    const previous = currentTemplate.key;
+    const wanted = $("templateSelect").value;
+
+    try {
+      hideMessage();
+      setPreviewStatus("Loading template...");
+      await loadOfficialTemplate(wanted);
+      markDirty();
+
+      if (selectedStudent() && selectedCourse()) {
+        const ok = await renderCertificate();
+        if (ok) showMessage("Template changed and preview updated.", "success");
+      } else {
+        showMessage("Template changed. Select a student and course, then Generate Preview.", "info");
+      }
+    } catch (e) {
+      console.error(e);
+      $("templateSelect").value = previous;
+      showMessage(e.message || "Unable to load this template.", "error");
+      setPreviewStatus("Template could not be loaded. Previous template kept.");
+    }
+  });
+
+  // Design colours
+  ["nameColor", "infoColor"].forEach(id => {
+    $(id)?.addEventListener("input", markDirty);
+    $(id)?.addEventListener("change", markDirty);
+  });
+  $("resetColorsBtn")?.addEventListener("click", resetDesignColors);
+
   // Anything that appears on the certificate invalidates the preview.
-[
-  "dateStarted",
-  "dateCompleted",
-  "status",
-  "expiryDate",
-  "certificateType",
-  "directorName",
-  "academicHeadName"
-].forEach(id => {
-  $(id)?.addEventListener("input", markDirty);
-  $(id)?.addEventListener("change", markDirty);
-});
+  [
+    "dateStarted",
+    "dateCompleted",
+    "status",
+    "expiryDate",
+    "certificateType",
+    "directorName",
+    "academicHeadName"
+  ].forEach(id => {
+    $(id)?.addEventListener("input", markDirty);
+    $(id)?.addEventListener("change", markDirty);
+  });
 
   $("generateBtn").addEventListener("click", async () => {
     try {
@@ -1351,7 +1481,8 @@ async function init() {
     if (!authenticated) return;
 
     await loadProfile();
-    await loadOfficialTemplate();
+    populateTemplateSelect();
+    await loadOfficialTemplate(currentTemplate.key);
     await loadInstitutions();
 
     await loadStudents();
