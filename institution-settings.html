@@ -1,0 +1,780 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B1E63">
+  <title>GAAWOW EMS | Institution Settings</title>
+
+  <style>
+    :root {
+      --navy: #0B1E63;
+      --blue: #0B4DA2;
+      --gold: #D4AF37;
+      --green: #2E7D32;
+      --bg: #F5F7FA;
+      --text: #17233F;
+      --muted: #64748B;
+      --border: #E2E8F0;
+      --white: #FFFFFF;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    header {
+      background: linear-gradient(120deg, var(--navy), var(--blue));
+      color: white;
+      padding: 15px 4%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      background: white;
+      border-radius: 9px;
+      padding: 4px;
+    }
+
+    .brand h1 { margin: 0 0 4px; font-size: 17px; }
+    .brand p { margin: 0; font-size: 11px; opacity: .85; }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button, .back-link {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 12px;
+      text-decoration: none;
+    }
+
+    .back-link {
+      background: #ffffff18;
+      border: 1px solid #ffffff66;
+      color: white;
+    }
+
+    .container {
+      max-width: 1150px;
+      margin: 24px auto;
+      padding: 0 15px 35px;
+    }
+
+    .intro {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+
+    .intro h2 {
+      color: var(--navy);
+      margin: 0 0 7px;
+      font-size: 21px;
+    }
+
+    .intro p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .role-badge {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 7px 11px;
+      border-radius: 20px;
+      background: #EAF1FF;
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .notice {
+      display: none;
+      padding: 13px 15px;
+      border-radius: 9px;
+      margin: 15px 0;
+      font-size: 13px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .notice.show { display: block; }
+    .notice.info { background: #EAF1FF; color: #17468D; }
+    .notice.success { background: #EAF7EC; color: #216B2A; }
+    .notice.error { background: #FFF0F0; color: #A32323; }
+
+    .panel {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      margin-bottom: 17px;
+      overflow: hidden;
+    }
+
+    .panel-heading {
+      padding: 16px 19px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-heading .symbol {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      background: #EDF3FF;
+      font-size: 19px;
+      flex-shrink: 0;
+    }
+
+    .panel-heading h3 {
+      margin: 0 0 4px;
+      color: var(--navy);
+      font-size: 15px;
+    }
+
+    .panel-heading p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .panel-body { padding: 19px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 12px;
+      color: #334155;
+      font-weight: bold;
+    }
+
+    input, select {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      padding: 11px 12px;
+      background: white;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px #0B4DA218;
+    }
+
+    input[type="color"] {
+      height: 43px;
+      padding: 4px;
+      cursor: pointer;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--green);
+    }
+
+    .help {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .institution-selector {
+      background: #FFF9E8;
+      border: 1px solid #F0D98B;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 17px;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .logo-preview {
+      width: 112px;
+      height: 112px;
+      border: 1px dashed #CBD5E1;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: #F8FAFC;
+      overflow: hidden;
+    }
+
+    .logo-preview img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .logo-actions {
+      flex: 1;
+      min-width: 190px;
+    }
+
+    .logo-actions input { margin: 9px 0; }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 0;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .fee-note {
+      background: #F8FAFC;
+      border-left: 3px solid var(--gold);
+      padding: 11px 13px;
+      border-radius: 5px;
+      color: #475569;
+      font-size: 11px;
+      line-height: 1.6;
+      margin-top: 13px;
+    }
+
+    .preview {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 15px;
+    }
+
+    .preview-header {
+      background: var(--navy);
+      color: white;
+      padding: 13px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .preview-content {
+      background: white;
+      color: var(--text);
+      padding: 17px;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .preview-footer {
+      background: var(--navy);
+      color: white;
+      padding: 9px;
+      text-align: center;
+      font-size: 10px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .btn-primary {
+      background: var(--navy);
+      color: white;
+      padding: 12px 20px;
+    }
+
+    .btn-primary:hover { background: var(--blue); }
+
+    .btn-gold {
+      background: var(--gold);
+      color: #17233F;
+    }
+
+    .btn-light {
+      background: #EAF1FF;
+      color: var(--blue);
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .section-hint {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+      margin: 0 0 15px;
+    }
+
+    footer {
+      text-align: center;
+      color: #8290A7;
+      padding: 20px;
+      font-size: 11px;
+    }
+
+    [hidden] { display: none !important; }
+
+    @media (max-width: 650px) {
+      header { padding: 12px; }
+      .brand img { width: 41px; height: 41px; }
+      .brand h1 { font-size: 14px; }
+      .brand p { font-size: 10px; }
+      .back-link { padding: 9px 10px; }
+      .container { margin-top: 15px; }
+      .grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .panel-body { padding: 14px; }
+      .intro { padding: 16px; }
+      .actions button { flex: 1; }
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="brand">
+    <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+         alt="GAAWOW Academy Logo">
+    <div>
+      <h1>GAAWOW EMS</h1>
+      <p>Institution Settings</p>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <a class="back-link" href="school-dashboard.html" id="backLink">
+      ← Dashboard
+    </a>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="intro">
+    <h2>Institution Settings</h2>
+    <p>
+      Manage institution information, branding, fee configuration,
+      certificates and verification preferences.
+    </p>
+    <span class="role-badge" id="roleBadge">Verifying access...</span>
+  </section>
+
+  <div id="pageNotice" class="notice" role="status"></div>
+
+  <section class="institution-selector" id="institutionSelector" hidden>
+    <div class="field">
+      <label for="institutionSelect">Select Institution</label>
+      <select id="institutionSelect">
+        <option value="">Loading institutions...</option>
+      </select>
+      <span class="help">
+        Super Admin can manage settings for each institution separately.
+      </span>
+    </div>
+  </section>
+
+  <div id="settingsContent" hidden>
+
+    <!-- INSTITUTION INFORMATION -->
+    <section class="panel">
+      <div class="panel-heading">
+        <span class="symbol">🏫</span>
+        <div>
+          <h3>Institution Information</h3>
+          <p>Official institution identity and contact information</p>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="grid">
+          <div class="field full">
+            <label for="institutionName">Official Institution Name *</label>
+            <input id="institutionName" type="text" maxlength="180"
+                   placeholder="Official institution name">
+          </div>
+
+          <div class="field">
+            <label for="institutionEmail">Email</label>
+            <input id="institutionEmail" type="email" maxlength="180">
+          </div>
+
+          <div class="field">
+            <label for="institutionPhone">Phone</label>
+            <input id="institutionPhone" type="text" maxlength="60">
+          </div>
+
+          <div class="field">
+            <label for="institutionCity">City</label>
+            <input id="institutionCity" type="text" maxlength="100">
+          </div>
+
+          <div class="field">
+            <label for="institutionCountry">Country</label>
+            <input id="institutionCountry" type="text" maxlength="100">
+          </div>
+
+          <div class="field full">
+            <label for="institutionAddress">Address</label>
+            <input id="institutionAddress" type="text" maxlength="250">
+          </div>
+
+          <div class="field">
+            <label for="institutionWebsite">Website</label>
+            <input id="institutionWebsite" type="url" maxlength="250"
+                   placeholder="https://example.com">
+          </div>
+
+          <div class="field">
+            <label for="institutionMotto">Institution Motto</label>
+            <input id="institutionMotto" type="text" maxlength="180">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOGO -->
+    <section class="panel">
+      <div class="panel-heading">
+        <span class="symbol">🖼️</span>
+        <div>
+          <h3>Institution Logo</h3>
+          <p>Upload and manage official institution branding</p>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <p class="section-hint">
+          PNG, JPG or WebP. Maximum file size: 2 MB.
+          The original logo proportions will be preserved.
+        </p>
+
+        <div class="logo-area">
+          <div class="logo-preview">
+            <img id="logoPreview"
+                 src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+                 alt="Institution logo preview">
+          </div>
+
+          <div class="logo-actions">
+            <label for="logoFile">Choose new logo</label>
+            <input id="logoFile" type="file"
+                   accept="image/png,image/jpeg,image/webp">
+            <button class="btn-gold" id="uploadLogoBtn" type="button">
+              Upload Logo
+            </button>
+            <p class="help">
+              The existing logo remains active until the new upload succeeds.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BRAND COLORS -->
+    <section class="panel">
+      <div class="panel-heading">
+        <span class="symbol">🎨</span>
+        <div>
+          <h3>Branding & Template Colors</h3>
+          <p>Configure the institution's document and template colors</p>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="grid">
+          <div class="field">
+            <label for="primaryColor">Primary Color</label>
+            <input id="primaryColor" type="color" value="#00154F">
+          </div>
+
+          <div class="field">
+            <label for="secondaryColor">Secondary Color</label>
+            <input id="secondaryColor" type="color" value="#F4AF1B">
+          </div>
+
+          <div class="field">
+            <label for="accentColor">Accent Color</label>
+            <input id="accentColor" type="color" value="#2E7D32">
+          </div>
+
+          <div class="field">
+            <label for="backgroundColor">Background Color</label>
+            <input id="backgroundColor" type="color" value="#FFFFFF">
+          </div>
+
+          <div class="field">
+            <label for="textColor">Text Color</label>
+            <input id="textColor" type="color" value="#172033">
+          </div>
+
+          <div class="field">
+            <label for="headerColor">Header Color</label>
+            <input id="headerColor" type="color" value="#00154F">
+          </div>
+
+          <div class="field">
+            <label for="footerColor">Footer Color</label>
+            <input id="footerColor" type="color" value="#00154F">
+          </div>
+
+          <div class="field">
+            <label for="templateName">Template Name</label>
+            <input id="templateName" type="text"
+                   maxlength="80" value="gaawow_official">
+          </div>
+        </div>
+
+        <div class="preview">
+          <div class="preview-header" id="previewHeader">
+            INSTITUTION DOCUMENT PREVIEW
+          </div>
+          <div class="preview-content" id="previewContent">
+            Official Institution Name
+            <p>Ilayska Aqoonta iyo Xirfadda</p>
+            <span>Certificate / Official Document</span>
+          </div>
+          <div class="preview-footer" id="previewFooter">
+            Institution Footer
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MONTHLY FEE -->
+    <section class="panel">
+      <div class="panel-heading">
+        <span class="symbol">📅</span>
+        <div>
+          <h3>Monthly Fee Settings</h3>
+          <p>Institution monthly fee configuration</p>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="grid">
+          <div class="field">
+            <label for="monthlyFeeAmount">Monthly Fee Amount</label>
+            <input id="monthlyFeeAmount" type="number"
+                   min="0" step="0.01" placeholder="e.g. 3.00">
+          </div>
+
+          <div class="field">
+            <label for="monthlyFeeCurrency">Currency</label>
+            <select id="monthlyFeeCurrency">
+              <option value="USD">USD - US Dollar</option>
+              <option value="SOS">SOS - Somali Shilling</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="monthlyDueDay">Invoice Due Day</label>
+            <select id="monthlyDueDay">
+              <option value="0">Last day of the month</option>
+              <option value="1">1st day</option>
+              <option value="5">5th day</option>
+              <option value="10">10th day</option>
+              <option value="15">15th day</option>
+              <option value="20">20th day</option>
+              <option value="25">25th day</option>
+              <option value="28">28th day</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="check-row">
+          <input id="monthlyFeeActive" type="checkbox">
+          Enable Monthly Fee
+        </label>
+
+        <div class="fee-note">
+          Existing billing rules and invoices are not changed by this page.
+          Changes here only update the institution's fee settings.
+          Billing automation must be separately updated and verified before
+          it uses any new fee configuration.
+        </div>
+      </div>
+    </section>
+
+    <!-- GRADUATION FEE -->
+    <section class="panel">
+      <div class="panel-heading">
+        <span class="symbol">🎓</span>
+        <div>
+          <h3>Graduation Fee Settings</h3>
+          <p>Graduation and clearance fee configuration</p>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="grid">
+          <div class="field">
+            <label for="graduationFeeAmount">Graduation Fee Amount</label>
+            <input id="graduationFeeAmount" type="number"
+                   min="0" step="0.01" placeholder="e.g. 35.00">
+          </div>
+
+          <div class="field">
+            <label for="graduationFeeCurrency">Currency</label>
+            <select id="graduationFeeCurrency">
+              <option value="USD">USD - US Dollar</option>
+              <option value="SOS">SOS - Somali Shilling</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="check-row">
+          <input id="graduationFeeActive" type="checkbox">
+          Enable Graduation Fee
+        </label>
+
+        <div class="fee-note">
+          Changing this setting does not automatically change the existing
+          SCC clearance function. That function must be separately updated
+          to read the configured fee before the new amount is used in SCC.
+        </div>
+      </div>
+    </section>
+
+    <!-- CERTIFICATE AND SCC -->
+    <section class="panel">
+      <div class="panel-heading">
+        <span class="symbol">📜</span>
+        <div>
+          <h3>Certificate & SCC Settings</h3>
+          <p>Document templates and certificate numbering</p>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="grid">
+          <div class="field">
+            <label for="certificatePrefix">Certificate Prefix</label>
+            <input id="certificatePrefix" type="text"
+                   maxlength="20" placeholder="GAA">
+          </div>
+
+          <div class="field">
+            <label for="certificateTemplate">Certificate Template URL</label>
+            <input id="certificateTemplate" type="url"
+                   maxlength="500" placeholder="https://...">
+          </div>
+
+          <div class="field">
+            <label for="sccTemplate">SCC Template URL</label>
+            <input id="sccTemplate" type="url"
+                   maxlength="500" placeholder="https://...">
+          </div>
+
+          <div class="field">
+            <label for="receiptTemplate">Receipt Template URL</label>
+            <input id="receiptTemplate" type="url"
+                   maxlength="500" placeholder="https://...">
+          </div>
+
+          <div class="field full">
+            <label for="reportTemplate">Report Template URL</label>
+            <input id="reportTemplate" type="url"
+                   maxlength="500" placeholder="https://...">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QR VERIFICATION -->
+    <section class="panel">
+      <div class="panel-heading">
+        <span class="symbol">🔐</span>
+        <div>
+          <h3>QR & Verification Settings</h3>
+          <p>Configure QR verification preference for official documents</p>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <label class="check-row">
+          <input id="enableQrVerification" type="checkbox" checked>
+          Enable QR Code Verification
+        </label>
+
+        <p class="section-hint">
+          This saves the institution's QR verification preference.
+          It does not independently change existing certificate or SCC
+          generation code.
+        </p>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn-light" id="reloadBtn" type="button">
+        Reload Settings
+      </button>
+      <button class="btn-primary" id="saveBtn" type="button">
+        Save Institution Settings
+      </button>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  GAAWOW Academy · Ilayska Aqoonta iyo Xirfadda
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./institution-settings.js?v=20261124"></script>
+</body>
+</html>
