@@ -999,12 +999,12 @@ async function drawQR(ctx, code) {
 
    Only NEW certificates are gated. Regenerating an already issued
    certificate (?regen=...) is not blocked.
-   Authentication letters are not gated (change CLEARANCE_REQUIRED_TYPES
-   if that should change). */
+   All document types (certificate, diploma, authentication letter) are
+   gated. Edit CLEARANCE_REQUIRED_TYPES to change that. */
 
 const CLEARANCE_RPC = "gaawow_student_financially_cleared";
 const CLEARANCE_SCOPE = "certificates";
-const CLEARANCE_REQUIRED_TYPES = ["certificate", "diploma"];
+const CLEARANCE_REQUIRED_TYPES = ["certificate", "diploma", "authentication_letter"];
 const CLEARANCE_BUTTONS = ["generateBtn", "saveBtn", "pngBtn", "pdfBtn", "printBtn"];
 
 let clearanceToken = 0;
