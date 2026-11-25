@@ -1,268 +1,173 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0B1E63">
-  <meta name="description" content="Official GAAWOW Academy Student Authentication Letter and Academic Verification.">
-
-  <title>GAAWOW ACADEMY | Authentication Letter</title>
-
+  <title>GAAWOW Academy | Authentication Letter</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="authentication-letter.css?v=20261125-1">
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script defer src="authentication-letter.js?v=20261125-1"></script>
+  <link rel="stylesheet" href="authentication-letter.css">
 </head>
-
 <body data-print-blocked="true">
 
-  <noscript>
-    <div class="state-screen">
-      <h2>JavaScript is required</h2>
-      <p>Please enable JavaScript to verify this authentication letter.</p>
-    </div>
-  </noscript>
+  <section id="loading" class="state-screen">
+    <div class="loader" aria-hidden="true"></div>
+    <h2>Verifying Authentication Letter</h2>
+    <p>Please wait while the official record is checked securely.</p>
+  </section>
 
-  <div id="loading" class="state-screen" role="status">
-    <div class="loader"></div>
-    <h2>Loading Authentication Record</h2>
-    <p>Please wait while the official record is verified.</p>
-  </div>
-
-  <main id="errorState" class="state-screen" hidden>
-    <div class="error-mark">!</div>
-    <h2>Authentication Letter Unavailable</h2>
-    <p id="errorMessage">The verification record could not be loaded.</p>
+  <section id="errorState" class="state-screen" hidden>
+    <div class="error-mark" aria-hidden="true">!</div>
+    <h2 id="errorMessage">Verification failed</h2>
     <p id="errorDetails" class="muted"></p>
-    <button id="retryButton" class="primary-button" type="button">
-      Try Again
-    </button>
-  </main>
+    <button id="retryButton" class="primary-button" type="button">Retry Verification</button>
+  </section>
 
   <main id="authenticationLetter" class="document" hidden>
-
-    <!-- FINANCIAL CLEARANCE (filled by authentication-letter.js, screen only) -->
-    <aside id="clearanceBanner" class="clearance-banner no-print"
-           role="status" aria-live="polite" hidden>
-      <span id="clearanceIcon" class="clearance-icon" aria-hidden="true">✔</span>
+    <div id="clearanceBanner" class="clearance-banner no-print" hidden>
+      <div id="clearanceIcon" class="clearance-icon">✓</div>
       <div class="clearance-copy">
-        <strong id="clearanceTitle">Financial clearance</strong>
+        <strong id="clearanceTitle">Financial clearance status</strong>
         <p id="clearanceText"></p>
         <ul id="clearanceList"></ul>
       </div>
-    </aside>
+    </div>
 
     <header class="document-header">
-
       <div class="brand-mark">
-        <img src="logo.png" alt="GAAWOW Academy Logo"
-             onerror="this.style.display='none'">
+        <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png"
+             alt="Official GAAWOW Academy logo"
+             onerror="this.onerror=null;this.src='https://i.ibb.co/4ZCRpm30/gaawow-logo.png';">
       </div>
 
       <div class="brand-copy">
-        <p class="eyebrow">OFFICIAL ACADEMIC DOCUMENT</p>
+        <p class="eyebrow">ILAYSKA AQOONTA IYO XIRFADDA</p>
         <h1>GAAWOW ACADEMY</h1>
-        <p class="motto">ILAYSKA AQOONTA IYO XIRFADDA</p>
-        <p class="document-name">STUDENT AUTHENTICATION LETTER</p>
+        <p class="motto">Ilayska Aqoonta iyo Xirfadda</p>
+        <div class="document-name">AUTHENTICATION LETTER</div>
       </div>
 
-      <div class="header-meta">
-        <span class="meta-label">DOCUMENT STATUS</span>
-        <strong id="status" class="status-pill">Checking</strong>
-        <span class="meta-label">REFERENCE NO.</span>
-        <strong id="referenceNo">—</strong>
-      </div>
-
+      <aside class="header-meta">
+        <span id="status" class="status-pill">Checking</span>
+        <div><span class="meta-label">REFERENCE NO.</span> <strong id="referenceNo">—</strong></div>
+        <div><span class="meta-label">AUTHENTICATION ID</span> <strong id="authenticationId">—</strong></div>
+        <div><span class="meta-label">VERIFICATION CODE</span> <strong id="verificationCode">—</strong></div>
+        <div><span class="meta-label">ISSUED</span> <strong id="issueDate">—</strong></div>
+        <div><span class="meta-label">EXPIRY</span> <strong id="expiryDate">—</strong></div>
+      </aside>
     </header>
 
     <div class="gold-rule"></div>
 
-    <p id="certifyText" class="certify"></p>
+    <p id="certifyText" class="certify">
+      This letter certifies that the student named below is registered at GAAWOW Academy.
+      Official details are subject to online verification.
+    </p>
 
     <section class="identity-section">
-
       <div class="student-photo-wrap">
-        <img id="studentPhoto" alt="Student Photograph" hidden>
-
+        <img id="studentPhoto" alt="Student photograph" hidden>
         <div id="photoPlaceholder" class="photo-placeholder">
-          <span class="photo-icon">▧</span>
-          <span>STUDENT<br>PHOTOGRAPH</span>
+          <span class="photo-icon">👤</span>
+          <span>STUDENT PHOTO</span>
         </div>
       </div>
 
       <div class="student-details">
-
         <div class="section-heading">
           <span class="section-number">01</span>
           <h2>STUDENT INFORMATION</h2>
         </div>
-
-        <h3 id="studentName" class="student-name">—</h3>
-
+        <h2 id="studentName" class="student-name">—</h2>
         <div class="details-grid">
-          <div class="detail">
-            <span>Student ID</span>
-            <strong id="studentId">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Programme / Course</span>
-            <strong id="courseName">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Institution</span>
-            <strong id="institutionName">GAAWOW ACADEMY</strong>
-          </div>
-
-          <div class="detail">
-            <span>Admission Date</span>
-            <strong id="admissionDate">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Study Started</span>
-            <strong id="dateStarted">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Completion Date</span>
-            <strong id="dateCompleted">Not Completed</strong>
-          </div>
+          <div class="detail"><span>Student ID</span><strong id="studentId">—</strong></div>
+          <div class="detail"><span>Programme / Course</span><strong id="courseName">—</strong></div>
+          <div class="detail"><span>Institution</span><strong id="institutionName">GAAWOW ACADEMY</strong></div>
+          <div class="detail"><span>Admission Date</span><strong id="admissionDate">—</strong></div>
+          <div class="detail"><span>Date Started</span><strong id="dateStarted">—</strong></div>
+          <div class="detail"><span>Date Completed</span><strong id="dateCompleted">—</strong></div>
         </div>
-
       </div>
     </section>
 
     <section class="results-section">
-
       <div class="section-heading">
         <span class="section-number">02</span>
         <h2>ACADEMIC RESULTS</h2>
-        <span class="section-note">Published Final Assessments</span>
+        <span class="section-note">Published official results only</span>
       </div>
-
       <div class="table-wrap">
-        <table>
+        <table aria-label="Academic results">
           <thead>
             <tr>
-              <th>NO.</th>
-              <th>SUBJECT / ASSESSMENT</th>
-              <th>ASSESSMENT DATE</th>
-              <th>SCORE</th>
-              <th>MAX SCORE</th>
-              <th>GRADE</th>
-              <th>RESULT</th>
+              <th>#</th><th>Subject</th><th>Exam Date</th><th>Score</th>
+              <th>Max Score</th><th>Grade</th><th>Result</th>
             </tr>
           </thead>
-
           <tbody id="academicResults">
-            <tr>
-              <td colspan="7" class="empty-row">
-                Loading published academic results…
-              </td>
-            </tr>
+            <tr><td colspan="7" class="empty-row">Results will appear after verification.</td></tr>
           </tbody>
         </table>
       </div>
 
       <div id="summaryPanel" class="summary-panel" hidden>
-        <div><span>Subjects</span><strong id="summarySubjects">—</strong></div>
+        <div><span>Total Subjects</span><strong id="summarySubjects">—</strong></div>
         <div><span>Total Score</span><strong id="summaryScore">—</strong></div>
         <div><span>Average</span><strong id="summaryAverage">—</strong></div>
         <div><span>Overall Grade</span><strong id="summaryGrade">—</strong></div>
         <div><span>Failed Subjects</span><strong id="summaryFailed">—</strong></div>
-        <div class="final-result">
-          <span>Final Result</span>
-          <strong id="summaryFinal">—</strong>
-        </div>
+        <div class="final-result"><span>Final Result</span><strong id="summaryFinal">—</strong></div>
       </div>
-
       <p id="academicPendingNote" class="academic-pending-note" hidden>
-        Academic results are pending publication by GAAWOW ACADEMY.
+        Academic result is pending. No published final assessment results are available.
       </p>
-
     </section>
 
     <section class="verification-section">
-
       <div class="verification-copy">
-
         <div class="section-heading">
           <span class="section-number">03</span>
-          <h2>AUTHENTICATION &amp; VERIFICATION</h2>
+          <h2>ONLINE VERIFICATION</h2>
         </div>
-
         <p>
-          This document is issued by GAAWOW ACADEMY. Its authenticity can be
-          checked through the official online verification service.
+          This authentication letter is issued by GAAWOW Academy. Verify its authenticity
+          using the QR code or official verification link shown below.
         </p>
-
         <div class="verification-grid">
-
-          <div class="detail">
-            <span>Authentication ID</span>
-            <strong id="authenticationId">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Verification Code</span>
-            <strong id="verificationCode">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Issue Date</span>
-            <strong id="issueDate">—</strong>
-          </div>
-
-          <div class="detail">
-            <span>Expiry Date</span>
-            <strong id="expiryDate">No expiry stated</strong>
-          </div>
-
+          <div class="detail"><span>Verification Code</span><strong id="verificationCodeCopy">—</strong></div>
+          <div class="detail"><span>Document Reference</span><strong id="referenceCopy">—</strong></div>
+          <div class="detail"><span>Issue Date</span><strong id="issueDateCopy">—</strong></div>
+          <div class="detail"><span>Document Status</span><strong id="statusCopy">—</strong></div>
         </div>
-
-        <p class="verify-url" id="verificationUrlText">
-          Official online verification
-        </p>
-
-        <p id="verificationCheck" class="verification-success">
-          Checking official record...
-        </p>
-
+        <p id="verificationUrlText" class="verify-url">Official verification link will appear here.</p>
+        <p id="verifiedAt" class="verified-at"></p>
+        <p id="verificationCheck" class="verification-success"></p>
       </div>
 
-      <div class="qr-panel">
-        <div id="qrcode" aria-label="QR code for online verification"></div>
+      <aside class="qr-panel">
+        <div id="qrcode" aria-label="Verification QR code"></div>
         <strong>SCAN TO VERIFY</strong>
-        <span>Use your phone camera</span>
-      </div>
-
+        <span>Official online verification</span>
+      </aside>
     </section>
 
     <footer class="document-footer">
-
       <div class="signature-block">
         <div class="signature-space"></div>
         <div class="signature-line"></div>
-        <strong>Dr. Osmaan Mohamed Ibraahin</strong>
-        <span>G-FOUNDER &amp; DIRECTOR</span>
+        <strong>Academic Registrar</strong>
+        <span>GAAWOW ACADEMY</span>
       </div>
 
-      <div class="official-seal">
+      <div class="official-seal" aria-label="GAAWOW Academy official seal">
         <div class="seal-ring">
           <div class="seal-inner">
-            <img src="logo.png" alt=""
-                 onerror="this.style.display='none'">
+            <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW logo seal">
             <strong>GAAWOW</strong>
-            <span>OFFICIAL SEAL</span>
-            <small>ACADEMY</small>
+            <span>ACADEMY</span>
+            <small>BURHAKABA • BAY</small>
           </div>
         </div>
       </div>
@@ -270,39 +175,27 @@
       <div class="signature-block">
         <div class="signature-space"></div>
         <div class="signature-line"></div>
-        <strong>Eng. Moscab Osmaan Mohamed</strong>
-        <span>ACADEMIC HEAD</span>
+        <strong>G-Director / Founder</strong>
+        <span>GAAWOW ACADEMY</span>
       </div>
-
     </footer>
 
     <div class="document-bottom">
       <span>Burhakaba, Bay, Somalia</span>
-      <span>+252 615 228 824 | +252 625 228 824</span>
-      <span id="verifiedAt"></span>
-      <span>GAAWOW ACADEMY • ILAYSKA AQOONTA IYO XIRFADDA</span>
+      <span>615228824 / 625228824</span>
+      <span>www.gaawowacademy.com</span>
+      <span>Ilayska Aqoonta iyo Xirfadda</span>
     </div>
-
-    <div class="action-bar no-print">
-
-      <button id="verifyButton" class="primary-button"
-              type="button" disabled>
-        Verify Online
-      </button>
-
-      <button id="generateButton" class="primary-button"
-              type="button" disabled>
-        Generate Document
-      </button>
-
-      <button id="printButton" class="primary-button"
-              type="button" disabled>
-        Print / Save as PDF
-      </button>
-
-    </div>
-
   </main>
 
+  <div class="action-bar no-print">
+    <button id="verifyButton" class="primary-button" type="button">Verify Record</button>
+    <button id="generateButton" class="primary-button" type="button" disabled>Generate Document</button>
+    <button id="printButton" class="primary-button" type="button" disabled>Print / Save as PDF</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="authentication-letter.js"></script>
 </body>
 </html>
