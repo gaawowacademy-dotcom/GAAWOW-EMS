@@ -1,18 +1,62 @@
-
 (() => {
   "use strict";
 
+  /* =========================================================
+     GAAWOW ACADEMY EMS
+     AUTHENTICATION LETTER  V2
+     + Financial clearance link (gaawow_student_financially_cleared)
+
+     Supabase connection and the verify_authentication_letter RPC
+     are unchanged.
+
+     Clearance rules
+     - A signed-in admin opening the letter from the Certificates list
+       (URL has ?id=<certificates.id>) is checked against the database
+       function, scope "certificates" (strict: no exceptions).
+     - Not cleared, or clearance cannot be verified  -> printing and
+       document generation are blocked, a NOT CLEARED watermark is shown.
+     - Public visitors (no session / no ?id) can still verify the letter.
+       The database cannot be asked about clearance for them from the
+       browser, so no clearance status is shown to them.
+     ========================================================= */
+
   const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjAi5g_RqLCs145";
+  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
   const RPC_NAME = "verify_authentication_letter";
+
+  const CLEARANCE_RPC = "gaawow_student_financially_cleared";
+  const CLEARANCE_SCOPE = "certificates";
 
   const $ = (id) => document.getElementById(id);
   const params = new URLSearchParams(window.location.search);
   const code = (params.get("code") || "").trim();
   const recordId = (params.get("id") || "").trim();
 
+  let supabaseClient = null;
   let verifiedRecord = null;
   let verificationInProgress = false;
+  let statusPrintable = false;
+
+  /* unknown | checking | not_applicable | cleared | blocked | error */
+  let clearance = { state: "unknown", invoices: [], detail: "" };
+
+  function getClient() {
+    if (supabaseClient) return supabaseClient;
+
+    if (
+      !window.supabase ||
+      typeof window.supabase.createClient !== "function"
+    ) {
+      return null;
+    }
+
+    supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+    return supabaseClient;
+  }
 
   function showError(message, details = "") {
     $("loading").hidden = true;
@@ -21,6 +65,7 @@
     $("errorMessage").textContent = message;
     $("errorDetails").textContent = details;
     $("generateButton").disabled = true;
+    document.body.dataset.printBlocked = "true";
   }
 
   function setText(id, value, fallback = "—") {
@@ -74,6 +119,8 @@
     if (className) cell.className = className;
     row.appendChild(cell);
   }
+
+  /* ---------------- ACADEMIC RESULTS ---------------- */
 
   function renderResults(results) {
     const body = $("academicResults");
@@ -193,6 +240,8 @@
             : "";
   }
 
+  /* ---------------- PHOTO / QR / STATUS ---------------- */
+
   function renderPhoto(value) {
     const img = $("studentPhoto");
     const placeholder = $("photoPlaceholder");
@@ -284,6 +333,210 @@
       `using the details below.`;
   }
 
+  /* ---------------- FINANCIAL CLEARANCE ---------------- */
+
+  function clearanceAllowsPrint() {
+    return (
+      clearance.state === "cleared" ||
+      clearance.state === "not_applicable"
+    );
+  }
+
+  async function fetchOutstandingInvoices(client, studentUuid) {
+    try {
+      const { data, error } = await client
+        .from("invoices")
+        .select("invoice_number,amount,paid_amount,currency,status,due_date")
+        .eq("student_id", studentUuid)
+        .order("due_date", { ascending: true });
+
+      if (error || !Array.isArray(data)) return [];
+
+      return data.filter(
+        (i) =>
+          String(i.status) !== "cancelled" &&
+          Number(i.amount || 0) - Number(i.paid_amount || 0) > 0
+      );
+    } catch (_) {
+      return [];
+    }
+  }
+
+  async function checkClearance() {
+    clearance = { state: "unknown", invoices: [], detail: "" };
+
+    const client = getClient();
+
+    // Public visitor / link without a record id: cannot be linked.
+    if (!client || !recordId) {
+      clearance.state = "not_applicable";
+      return;
+    }
+
+    clearance.state = "unknown";
+
+    try {
+      const { data: sessionData, error: sessionError } =
+        await client.auth.getSession();
+
+      if (sessionError) throw sessionError;
+
+      if (!sessionData?.session) {
+        clearance.state = "not_applicable";
+        return;
+      }
+
+      const { data: row, error: rowError } = await client
+        .from("certificates")
+        .select("id,student_id,verify_code")
+        .eq("id", recordId)
+        .maybeSingle();
+
+      if (rowError) {
+        throw new Error("Certificate record lookup failed: " + rowError.message);
+      }
+
+      if (!row || !row.student_id) {
+        throw new Error("The student for this document could not be identified.");
+      }
+
+      if (
+        String(row.verify_code || "").trim().toUpperCase() !==
+        code.toUpperCase()
+      ) {
+        throw new Error("The document and its student record do not match.");
+      }
+
+      const { data: cleared, error: clearanceError } = await client.rpc(
+        CLEARANCE_RPC,
+        {
+          p_student_id: row.student_id,
+          p_scope: CLEARANCE_SCOPE
+        }
+      );
+
+      if (clearanceError) {
+        throw new Error("Clearance check failed: " + clearanceError.message);
+      }
+
+      if (cleared === true) {
+        clearance.state = "cleared";
+        return;
+      }
+
+      clearance.state = "blocked";
+      clearance.invoices = await fetchOutstandingInvoices(client, row.student_id);
+    } catch (error) {
+      console.error("GAAWOW clearance error:", error);
+      clearance.state = "error";
+      clearance.detail =
+        (error && error.message) || "Clearance could not be verified.";
+    }
+  }
+
+  function renderClearanceBanner() {
+    const banner = $("clearanceBanner");
+    if (!banner) return;
+
+    const letter = $("authenticationLetter");
+    const state = clearance.state;
+
+    letter.dataset.clearance = state;
+
+    if (state === "not_applicable" || state === "unknown") {
+      banner.hidden = true;
+      return;
+    }
+
+    banner.hidden = false;
+    banner.className = "clearance-banner no-print is-" + state;
+
+    const list = $("clearanceList");
+    list.replaceChildren();
+
+    if (state === "cleared") {
+      setText("clearanceIcon", "✔");
+      setText("clearanceTitle", "Financially cleared");
+      setText(
+        "clearanceText",
+        "No outstanding balance. This document may be generated and printed."
+      );
+      return;
+    }
+
+    if (state === "blocked") {
+      setText("clearanceIcon", "✖");
+      setText("clearanceTitle", "Not financially cleared");
+      setText(
+        "clearanceText",
+        "This student has an unpaid balance. Printing and document " +
+        "generation are blocked until every invoice is paid."
+      );
+
+      clearance.invoices.slice(0, 5).forEach((inv) => {
+        const balance = Number(inv.amount || 0) - Number(inv.paid_amount || 0);
+        const li = document.createElement("li");
+
+        li.textContent =
+          `${inv.invoice_number || "Invoice"} — ` +
+          `${balance.toFixed(2)} ${inv.currency || ""} due` +
+          (inv.due_date ? ` (${formatDate(inv.due_date)})` : "");
+
+        list.appendChild(li);
+      });
+
+      return;
+    }
+
+    // error: fail closed
+    setText("clearanceIcon", "!");
+    setText("clearanceTitle", "Clearance could not be verified");
+    setText(
+      "clearanceText",
+      (clearance.detail || "Try again.") +
+      " Printing stays blocked until clearance is confirmed."
+    );
+  }
+
+  /* Single place that decides whether the document may be printed. */
+  function refreshActions() {
+    const printable =
+      Boolean(verifiedRecord) &&
+      statusPrintable &&
+      clearanceAllowsPrint();
+
+    const status = String(verifiedRecord?.status || "").toLowerCase();
+
+    $("printButton").disabled = !printable;
+
+    if (!verifiedRecord) {
+      $("printButton").textContent = "Print / Save as PDF";
+    } else if (!statusPrintable) {
+      $("printButton").textContent =
+        "Printing unavailable: document is " + status;
+    } else if (clearance.state === "blocked") {
+      $("printButton").textContent =
+        "Printing blocked: financial clearance required";
+    } else if (clearance.state === "error") {
+      $("printButton").textContent =
+        "Printing blocked: clearance not verified";
+    } else if (clearance.state === "unknown") {
+      $("printButton").textContent = "Checking clearance…";
+    } else {
+      $("printButton").textContent = "Print / Save as PDF";
+    }
+
+    $("generateButton").disabled =
+      !verifiedRecord || !clearanceAllowsPrint();
+
+    $("verifyButton").disabled = verificationInProgress;
+
+    // Also stops Ctrl+P / browser menu printing (see CSS @media print).
+    document.body.dataset.printBlocked = printable ? "false" : "true";
+  }
+
+  /* ---------------- RECORD ---------------- */
+
   function renderRecord(record) {
     if (!record || typeof record !== "object") {
       throw new Error("The verification service returned an empty record.");
@@ -345,21 +598,14 @@
     $("errorState").hidden = true;
     $("authenticationLetter").hidden = false;
 
-    const printable =
-      status === "valid" || status === "graduated";
-
-    $("printButton").disabled = !printable;
-    $("printButton").textContent = printable
-      ? "Print / Save as PDF"
-      : "Printing unavailable: document is " + status;
-
-    $("generateButton").disabled = false;
-    $("verifyButton").disabled = false;
+    statusPrintable = status === "valid" || status === "graduated";
+    verifiedRecord = record;
 
     setText("verificationCheck", "Online verification successful.");
     $("verificationCheck").className = "verification-success";
 
-    verifiedRecord = record;
+    // Print stays disabled until clearance has been checked.
+    refreshActions();
   }
 
   async function verifyLetter() {
@@ -373,10 +619,9 @@
       return;
     }
 
-    if (
-      !window.supabase ||
-      typeof window.supabase.createClient !== "function"
-    ) {
+    const client = getClient();
+
+    if (!client) {
       showError(
         "The verification service could not start.",
         "Supabase library did not load. Check your internet connection."
@@ -385,19 +630,18 @@
     }
 
     verificationInProgress = true;
+    verifiedRecord = null;
+    statusPrintable = false;
+    clearance = { state: "unknown", invoices: [], detail: "" };
 
     $("loading").hidden = false;
     $("errorState").hidden = true;
     $("authenticationLetter").hidden = true;
     $("verifyButton").disabled = true;
     $("generateButton").disabled = true;
+    document.body.dataset.printBlocked = "true";
 
     try {
-      const client = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY
-      );
-
       const { data, error } = await client.rpc(RPC_NAME, {
         p_code: code,
         p_id: recordId || null
@@ -423,6 +667,10 @@
 
       renderRecord(rows[0]);
 
+      // Link to the student's financial clearance.
+      await checkClearance();
+      renderClearanceBanner();
+
     } catch (error) {
       verifiedRecord = null;
 
@@ -435,7 +683,8 @@
 
     } finally {
       verificationInProgress = false;
-      $("verifyButton").disabled = false;
+      if (verifiedRecord) refreshActions();
+      else $("verifyButton").disabled = false;
     }
   }
 
@@ -444,6 +693,14 @@
       setText(
         "verificationCheck",
         "Verify the official record before generating the document."
+      );
+      return;
+    }
+
+    if (!clearanceAllowsPrint()) {
+      setText(
+        "verificationCheck",
+        "Document cannot be generated: financial clearance is required."
       );
       return;
     }
@@ -477,7 +734,9 @@
     $("printButton").addEventListener("click", () => {
       if (
         !$("printButton").disabled &&
-        verifiedRecord
+        verifiedRecord &&
+        statusPrintable &&
+        clearanceAllowsPrint()
       ) {
         window.print();
       }
