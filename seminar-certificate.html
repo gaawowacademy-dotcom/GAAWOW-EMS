@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0B1E63">
+<title>GAAWOW EMS — Seminar Certificate Generator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Great+Vibes&display=swap');
+*{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#1f2937;font-family:Arial,Helvetica,sans-serif}.topbar{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 3px 12px #0002}.brand{display:flex;align-items:center;gap:12px}.brand img{width:46px;height:46px;object-fit:contain;background:#fff;border-radius:9px;padding:3px}.brand h1{font-size:18px;margin:0}.brand p{font-size:11px;margin:4px 0 0;opacity:.85}.back{border:1px solid #ffffff55;background:#ffffff12;color:#fff;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.container{max-width:1600px;margin:auto;padding:18px}.grid{display:grid;grid-template-columns:350px minmax(0,1fr);gap:18px;align-items:start}.card{background:#fff;border:1px solid #e3e8f0;border-radius:12px;box-shadow:0 4px 14px #0b1e6310;overflow:hidden}.head{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:14px 16px;font-weight:800}.body{padding:15px}.field{margin-bottom:12px}label{display:block;font-size:11px;font-weight:800;text-transform:uppercase;color:#374151;margin-bottom:5px}input,select,textarea{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:7px;font:13px Arial;background:white}textarea{min-height:64px;resize:vertical}input:focus,select:focus,textarea:focus{outline:2px solid #0b4da233;border-color:#0B4DA2}.readonly{background:#f8fafc}.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}.btn{border:0;border-radius:7px;padding:10px;font-weight:800;font-size:12px;cursor:pointer}.blue{background:#0B4DA2;color:#fff}.gold{background:#D4AF37;color:#111827}.green{background:#16A34A;color:#fff}.light{background:#e5e7eb;color:#111827}.wide{grid-column:1/-1}.msg{display:none;padding:10px;border-radius:7px;font-size:12px;font-weight:700;margin-bottom:12px}.msg.success{display:block;background:#dcfce7;color:#166534}.msg.error{display:block;background:#fee2e2;color:#991b1b}.msg.info{display:block;background:#dbeafe;color:#1e40af}.hint{font-size:10px;color:#64748b;line-height:1.45;margin-top:4px}.preview{background:#111827;padding:12px;border-radius:12px}.preview-wrap{width:100%;overflow:auto;background:#fff;display:flex;justify-content:center}.canvas{display:block;width:100%;height:auto;max-width:1536px}.status{font-size:11px;color:#cbd5e1;margin-top:9px}.section{border-top:1px solid #e5e7eb;margin-top:15px;padding-top:13px;font-size:11px;font-weight:800;color:#0B1E63;text-transform:uppercase}.photo{width:70px;height:70px;object-fit:cover;border-radius:50%;border:2px solid #D4AF37;display:block;margin:0 auto 9px}.hide{display:none}@media(max-width:1050px){.grid{grid-template-columns:1fr}.preview{order:-1}}@media(max-width:600px){.container{padding:10px}.topbar{padding:10px}.brand h1{font-size:15px}.actions{grid-template-columns:1fr 1fr}.preview{padding:5px}}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="brand"><img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy"><div><h1>GAAWOW EMS</h1><p>Seminar Certificate Generator</p></div></div><button class="back" id="backBtn">← Dashboard</button></header>
+<main class="container"><div id="message" class="msg" role="status" aria-live="polite"></div><div class="grid">
+<section class="card"><div class="head">Academic Seminar Certificate</div><div class="body">
+<div class="field"><label>Institution</label><select id="institution"><option value="">Loading institutions…</option></select></div>
+<div class="field"><label>Student</label><select id="student"><option value="">Select institution first</option></select></div>
+<div id="photoWrap" class="hide"><img id="studentPhoto" class="photo" alt="Student photo"></div>
+<div class="field"><label>Recipient Name</label><input id="recipient" readonly class="readonly"></div>
+<div class="field"><label>Seminar Title</label><input id="seminarTitle" placeholder="e.g. Infection Prevention and Control"></div>
+<div class="field"><label>Seminar Description (optional)</label><textarea id="seminarDescription" placeholder="Brief description of seminar topics"></textarea></div>
+<div class="two"><div class="field"><label>Seminar Date</label><input id="seminarDate" type="date"></div><div class="field"><label>Venue</label><input id="venue" placeholder="Burhakaba, Bay"></div></div>
+<div class="two"><div class="field"><label>Certificate Number</label><input id="certificateNo" readonly class="readonly"></div><div class="field"><label>Issue Date</label><input id="issueDate" type="date"></div></div>
+<div class="field"><label>Verification Code</label><input id="verifyCode" readonly class="readonly"></div>
+<div class="section">Signatory Details</div>
+<div class="field"><label>Academic Registrar</label><input id="registrar" placeholder="Academic Registrar name"></div>
+<div class="field"><label>G-Director / Founder</label><input id="director" placeholder="G-Director / Founder name"></div>
+<div class="section">Text Styling</div><div class="two"><div class="field"><label>Recipient / Title colour</label><input id="nameColor" type="color" value="#0A1A44"></div><div class="field"><label>Details colour</label><input id="infoColor" type="color" value="#111827"></div></div>
+<div class="actions"><button class="btn blue" id="previewBtn">Generate Preview</button><button class="btn gold" id="saveBtn">Save Certificate</button><button class="btn green" id="pngBtn">Download PNG</button><button class="btn light" id="pdfBtn">Download PDF</button><button class="btn light wide" id="printBtn">Print Certificate</button><button class="btn light wide" id="verifyBtn">Verify Online</button></div>
+<p class="hint">Save is enabled only after the seminar_certificates database table is created and a signed-in user has institution-management permission. This module does not change existing certificate records.</p>
+</div></section>
+<section class="preview"><div class="preview-wrap"><canvas id="canvas" width="1536" height="857" class="canvas"></canvas></div><div id="previewStatus" class="status">Loading seminar certificate template…</div></section>
+</div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="./seminar-certificate.js?v=2"></script>
+</body></html>
