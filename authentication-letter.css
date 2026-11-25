@@ -106,4 +106,4 @@ th:first-child,td:first-child{width:5%;text-align:center}th:nth-child(2){width:2
  .results-section{padding:6px 0 5px}th,td{padding-top:3.5px;padding-bottom:3.5px}.verification-section{padding:5px 0 3px}.document-footer{padding-bottom:3px}.signature-space{height:18px}.official-seal{width:82px;height:82px}.seal-inner img{width:34px;height:34px}
  body[data-print-blocked="true"] .document{display:none!important}
  body[data-print-blocked="true"]:before{content:"This document cannot be printed. It is invalid, not financially cleared, or clearance could not be verified.";display:block;padding:60mm 25mm;color:#A32020;font:700 17px Inter,Arial,sans-serif;text-align:center}
-}
+                                                                                                                                       }
