@@ -1001,7 +1001,12 @@ function verifyDocument(x) {
    ========================================================= */
 
 function goGenerate() {
-  location.href = "certificate.html";
+  const type = $("typeFilter")?.value || "";
+
+  location.href =
+    type === "authentication_letter"
+      ? "authentication-letter-generate.html"
+      : "certificate.html";
 }
 
 /* =========================================================
