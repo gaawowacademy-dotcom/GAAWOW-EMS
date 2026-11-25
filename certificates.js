@@ -1,25 +1,39 @@
-JavaScript
-
 "use strict";
 
 /* =========================================================
    GAAWOW ACADEMY EMS
    CERTIFICATES MODULE
-   Authentication Letter Integration V911
+   Authentication Letter Integration V913
    Authentication Session Fix
+   + Financial clearance gate before opening an Authentication Letter
+   + ?type=... pre-selects the document-type filter
    ========================================================= */
 
 const SUPABASE_URL =
   "https://mytyvqwrxnxpxnxpiicj.supabase.co";
 
 const SUPABASE_KEY =
-  "sb_publishable_2AvWfupkF1b_s0RjAi5g_RqLCs145";
+  "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
 
 const COLUMNS =
   "id,student_id,certificate_no,certificate_id,verify_code,issue_date,expiry_date,status,student_name_snapshot,certificate_type";
 
 const CREATE_AUTH_LETTER_RPC =
   "admin_create_authentication_letter";
+
+/* Existing database function. Scope "certificates" is strict:
+   any unpaid balance blocks the document, no exceptions. */
+const CLEARANCE_RPC =
+  "gaawow_student_financially_cleared";
+
+const CLEARANCE_SCOPE =
+  "certificates";
+
+const VALID_TYPE_FILTERS = [
+  "certificate",
+  "diploma",
+  "authentication_letter"
+];
 
 let allCertificates = [];
 
@@ -766,6 +780,48 @@ function openCertificate(x) {
 }
 
 /* =========================================================
+   FINANCIAL CLEARANCE
+   Asks the database function; fails closed on any error.
+   ========================================================= */
+
+async function assertStudentCleared(x) {
+
+  if (!x || !x.student_id) {
+    throw new Error(
+      "Student-ka record-kan lama aqoonsan karin, markaa clearance lama hubin karo."
+    );
+  }
+
+  const {
+    data: cleared,
+    error
+  } = await certificatesSupabase.rpc(
+    CLEARANCE_RPC,
+    {
+      p_student_id: x.student_id,
+      p_scope: CLEARANCE_SCOPE
+    }
+  );
+
+  if (error) {
+    console.error("Clearance RPC error:", error);
+
+    throw new Error(
+      "Clearance lama hubin karin: " +
+      (error.message || "khalad database.") +
+      " Warqadda lama furin."
+    );
+  }
+
+  if (cleared !== true) {
+    throw new Error(
+      "Ardaygan wuxuu leeyahay lacag aan la bixin. " +
+      "Authentication Letter lama furi karo ilaa lacagta la dhammeeyo."
+    );
+  }
+}
+
+/* =========================================================
    AUTHENTICATION LETTER
    CREATE OR REUSE THROUGH SECURE RPC
    ========================================================= */
@@ -818,6 +874,9 @@ async function openAuthenticationLetter(x) {
         "Fadlan marka hore Super Admin ahaan u gal GAAWOW EMS."
       );
     }
+
+    // Financial clearance must pass before the letter is created/opened.
+    await assertStudentCleared(x);
 
     const {
       data,
@@ -1079,6 +1138,18 @@ document.addEventListener("DOMContentLoaded", () => {
     "click",
     closeModal
   );
+
+  // e.g. certificates.html?type=authentication_letter (from the dashboard)
+  const initialType = (
+    new URLSearchParams(window.location.search).get("type") || ""
+  ).trim().toLowerCase();
+
+  if (
+    $("typeFilter") &&
+    VALID_TYPE_FILTERS.includes(initialType)
+  ) {
+    $("typeFilter").value = initialType;
+  }
 
   loadCertificates();
 
