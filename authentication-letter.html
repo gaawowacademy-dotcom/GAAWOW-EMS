@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -14,14 +13,21 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="authentication-letter.css?v=20261112-4">
+  <link rel="stylesheet" href="authentication-letter.css?v=20261125-1">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script defer src="authentication-letter.js?v=20261112-4"></script>
+  <script defer src="authentication-letter.js?v=20261125-1"></script>
 </head>
 
-<body>
+<body data-print-blocked="true">
+
+  <noscript>
+    <div class="state-screen">
+      <h2>JavaScript is required</h2>
+      <p>Please enable JavaScript to verify this authentication letter.</p>
+    </div>
+  </noscript>
 
   <div id="loading" class="state-screen" role="status">
     <div class="loader"></div>
@@ -40,6 +46,17 @@
   </main>
 
   <main id="authenticationLetter" class="document" hidden>
+
+    <!-- FINANCIAL CLEARANCE (filled by authentication-letter.js, screen only) -->
+    <aside id="clearanceBanner" class="clearance-banner no-print"
+           role="status" aria-live="polite" hidden>
+      <span id="clearanceIcon" class="clearance-icon" aria-hidden="true">✔</span>
+      <div class="clearance-copy">
+        <strong id="clearanceTitle">Financial clearance</strong>
+        <p id="clearanceText"></p>
+        <ul id="clearanceList"></ul>
+      </div>
+    </aside>
 
     <header class="document-header">
 
