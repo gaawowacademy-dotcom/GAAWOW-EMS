@@ -578,6 +578,12 @@
     // Document status and academic result are separate.
     const status = renderStatus(record.status);
 
+    // Copies shown in the "Online verification" section (if present in the HTML)
+    setText("verificationCodeCopy", record.verification_code);
+    setText("referenceCopy", record.reference_no);
+    setText("issueDateCopy", formatDate(record.issue_date));
+    setText("statusCopy", status.replace(/_/g, " ").toUpperCase());
+
     $("authenticationLetter").dataset.status = status;
 
     const results = Array.isArray(record.academic_results)
