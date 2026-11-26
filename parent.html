@@ -1,77 +1,195 @@
-<!-- GAAWOW PARENT DASHBOARD CARDS: paste this whole block right BEFORE the last </body> tag -->
+<!DOCTYPE html>
+<html lang="so">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#0B1E63">
+<meta name="description" content="GAAWOW EMS Parent Portal"><title>GAAWOW EMS | Parent Portal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-.quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:6px}
-.quick-card{appearance:none;font-family:inherit;display:flex;flex-direction:column;align-items:flex-start;gap:12px;text-align:left;width:100%;min-height:130px;padding:16px;background:#fff;border:1px solid #e7ecf4;border-top:4px solid var(--c,#0B4DA2);border-radius:16px;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.04);transition:.18s ease;-webkit-tap-highlight-color:transparent}
-.quick-card:hover,.quick-card:active{transform:translateY(-3px);box-shadow:0 10px 22px rgba(11,30,99,.1)}
-.quick-card .ico{width:48px;height:48px;border-radius:13px;background:#f1f5fb;display:flex;align-items:center;justify-content:center;font-size:25px;line-height:1}
-.quick-card b{display:block;font-size:15px;color:#0B1E63}
-.quick-card small{display:block;margin-top:5px;font-size:11px;line-height:1.45;color:#64748b;font-weight:400}
-.back-dash{display:inline-flex;align-items:center;gap:7px;margin:0 0 14px;border:1px solid #dbe3ef;background:#fff;color:#0B1E63;padding:9px 13px;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer}
-.child-section .data-grid.single{grid-template-columns:1fr}
-@media(max-width:650px){.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.quick-card{min-height:118px;padding:12px;gap:9px}.quick-card .ico{width:42px;height:42px;font-size:22px}.quick-card b{font-size:13px}}
-</style>
+:root{--navy:#0B1E63;--blue:#0B4DA2;--gold:#D4AF37;--bg:#F5F7FA;--text:#1F2937;--muted:#64748B;--border:#E5E7EB;--red:#B91C1C}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;padding:16px 20px;box-shadow:0 4px 18px #0002}.header-inner{max-width:1180px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:14px}.brand{display:flex;align-items:center;gap:12px;min-width:0}.brand img{width:50px;height:50px;object-fit:contain;background:#fff;border-radius:10px;padding:4px}.brand h1{font-size:19px;margin:0}.brand p{margin:5px 0 0;font-size:11px;opacity:.9}
+button{cursor:pointer;font-family:inherit;font-weight:bold;border-radius:8px;padding:10px 13px}.logout{background:#ffffff16;border:1px solid #ffffff66;color:#fff}
+main{max-width:1180px;margin:22px auto;padding:0 14px 35px}.welcome{background:linear-gradient(135deg,#fff,#eef4ff);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:18px}.welcome h2{color:var(--navy);margin:0 0 8px;font-size:24px;overflow-wrap:anywhere}.welcome p{margin:0;color:var(--muted);line-height:1.6;font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}.stat{background:#fff;border:1px solid var(--border);border-radius:13px;padding:15px}.stat-label{color:var(--muted);font-size:11px;font-weight:bold}.stat-value{font-size:26px;font-weight:800;color:var(--navy);margin-top:8px}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 0 13px}.section-heading h2{color:var(--navy);margin:0;font-size:20px}.refresh{background:#fff;border:1px solid var(--border);color:var(--blue)}.refresh:disabled{opacity:.6}
+.card{background:#fff;border:1px solid var(--border);border-radius:13px;padding:16px;margin-bottom:12px;box-shadow:0 3px 12px #00000006}.student-card{border-top:4px solid var(--gold);padding:18px}.student-card-head{display:flex;align-items:center;gap:14px}.student-avatar{width:72px;height:72px;border-radius:16px;object-fit:cover;background:#edf3ff;border:1px solid var(--border);flex:0 0 72px}.student-initial{display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue));font-size:24px;font-weight:800}.student-name{font-size:18px;color:var(--navy);font-weight:800;overflow-wrap:anywhere}.student-meta{color:var(--muted);font-size:13px;line-height:1.7;margin-top:6px}
+.student-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.info-box{background:#F8FAFC;border:1px solid #E8EDF4;border-radius:10px;padding:11px}.info-box small{display:block;color:var(--muted);font-size:10px;font-weight:bold;margin-bottom:5px}.info-box strong{color:var(--navy);font-size:13px;overflow-wrap:anywhere}
+.quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.quick-card{appearance:none;display:flex;flex-direction:column;align-items:flex-start;gap:12px;text-align:left;width:100%;min-height:130px;padding:16px;background:#fff;border:1px solid #e7ecf4;border-top:4px solid var(--c,#0B4DA2);border-radius:16px;box-shadow:0 3px 12px #0000000a;transition:.18s;-webkit-tap-highlight-color:transparent}.quick-card:hover,.quick-card:active{transform:translateY(-3px);box-shadow:0 10px 22px #0b1e631a}.quick-card .ico{width:48px;height:48px;border-radius:13px;background:#f1f5fb;display:flex;align-items:center;justify-content:center;font-size:25px}.quick-card b{display:block;font-size:15px;color:var(--navy)}.quick-card small{display:block;margin-top:5px;font-size:11px;line-height:1.45;color:var(--muted);font-weight:400}
+.back-dash{display:inline-flex;align-items:center;gap:7px;margin:0 0 14px;border:1px solid #dbe3ef;background:#fff;color:var(--navy);font-size:12px}
+.data-card h4{margin:0 0 10px;color:var(--navy);font-size:16px}.data-card p{margin:5px 0;color:#475569;font-size:13px;line-height:1.55;overflow-wrap:anywhere}.subtle{color:var(--muted)!important;font-size:12px!important}.list-item{padding:11px 0;border-top:1px solid #EEF2F7}.list-item:first-of-type{border-top:0}.list-item strong{display:block;color:#1E293B;font-size:13px;margin-bottom:4px}
+.badge{display:inline-block;padding:5px 9px;border-radius:20px;font-size:11px;font-weight:800;white-space:nowrap;text-transform:capitalize}.b-ok{color:#166534;background:#dcfce7}.b-bad{color:#991b1b;background:#fee2e2}.b-warn{color:#92400e;background:#fef3c7}.b-info{color:#1e40af;background:#dbeafe}.b-def{color:#475569;background:#e2e8f0}
+.empty,.loading,.error-box,.section-error{background:#fff;padding:20px 16px;text-align:center;border:1px solid var(--border);border-radius:12px;color:var(--muted);line-height:1.7}.error-box,.section-error{color:var(--red);background:#FFF7F7;border-color:#fecaca}.section-error{text-align:left;padding:10px;font-size:12px;margin-bottom:8px}
+.link{color:var(--blue);text-decoration:none;font-weight:bold}.institution-head{display:flex;align-items:center;gap:12px}.institution-logo{width:46px;height:46px;object-fit:contain;border:1px solid var(--border);border-radius:9px;padding:3px;background:#fff}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}[hidden]{display:none!important}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.student-grid{grid-template-columns:1fr}}
+@media(max-width:650px){.brand h1{font-size:16px}.brand p{font-size:10px}.brand img{width:42px;height:42px}.welcome h2{font-size:21px}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.quick-card{min-height:118px;padding:12px;gap:9px}.quick-card .ico{width:42px;height:42px;font-size:22px}.quick-card b{font-size:13px}}
+@media(max-width:360px){.brand p{display:none}}
+</style></head>
+<body>
+<header><div class="header-inner"><div class="brand"><img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy logo"><div><h1>GAAWOW EMS</h1><p>Parent Portal | Ilayska Aqoonta iyo Xirfadda</p></div></div><button id="logoutBtn" class="logout" hidden>Sign Out</button></div></header>
+<main>
+<section class="welcome"><h2 id="welcomeName">Parent Portal</h2><p>Halkan waxaad kala socon kartaa xogta waxbarasho, horumarka, xaadirinta iyo maaliyadda carruurtaada.</p></section>
+<div id="pageMessage" class="loading" role="status" aria-live="polite">Hubinaya gelitaankaaga...</div>
+<div id="portalContent" hidden>
+ <div id="homeView">
+  <section class="stats"><div class="stat"><div class="stat-label">CARRUURTA KU XIRAN</div><div class="stat-value" id="childrenCount">0</div></div><div class="stat"><div class="stat-label">KOORSOOYINKA</div><div class="stat-value" id="coursesCount">0</div></div><div class="stat"><div class="stat-label">IMTIXAANNADA</div><div class="stat-value" id="examsCount">0</div></div><div class="stat"><div class="stat-label">SHAHAADOOYINKA</div><div class="stat-value" id="certificatesCount">0</div></div></section>
+  <div class="section-heading"><h2>👨‍👩‍👧‍👦 Carruurtayda</h2><button id="refreshBtn" class="refresh">Refresh ↻</button></div>
+  <div id="childrenList"><div class="loading">Loading students...</div></div>
+  <div class="section-heading"><h2>Parent Management</h2></div>
+  <div class="quick-grid" id="menuGrid"></div>
+ </div>
+ <div id="sectionView" hidden>
+  <button class="back-dash" id="backBtn" type="button">← Back to Dashboard</button>
+  <div class="section-heading"><h2 id="secTitle"></h2></div>
+  <div id="secBody"></div>
+ </div>
+</div></main>
+<footer>GAAWOW Academy · GAAWOW EMS · Parent Portal</footer>
 <script>
-(function(){
-  "use strict";
-  var colors=["#0B4DA2","#7C3AED","#16A34A","#D4AF37","#0B1E63","#B91C1C"];
-  var desc={
-    "Institution":"Machadka iyo xiriirka",
-    "Courses & Departments":"Koorsooyinka iyo waaxaha",
-    "Classes":"Fasallada iyo macallimiinta",
-    "Subjects":"Maaddooyinka",
-    "Lessons & Teachers":"Casharrada iyo jadwalka",
-    "Attendance":"Xaadirinta ardayga",
-    "Exams":"Imtixaannada iyo natiijada",
-    "Grades & Results":"Dhibcaha iyo darajooyinka",
-    "Academic Progress":"Horumarka waxbarasho",
-    "Certificates":"Shahaadooyinka",
-    "Invoices":"Biilasha iyo haraaga",
-    "Payments":"Lacagaha la bixiyey"
-  };
-  function build(){
-    document.querySelectorAll(".child-section:not([data-dash])").forEach(function(sec){
-      var grid=sec.querySelector(".data-grid");
-      if(!grid)return;
-      sec.dataset.dash="1";
-      var cards=Array.prototype.slice.call(grid.children);
-      var menu=document.createElement("div");menu.className="quick-grid";
-      var back=document.createElement("button");
-      back.type="button";back.className="back-dash";back.textContent="← Back to menu";back.hidden=true;
-      grid.hidden=true;grid.classList.add("single");
-      cards.forEach(function(card,i){
-        var h4=card.querySelector("h4");
-        var full=h4?h4.textContent.trim():"Section";
-        var sp=full.indexOf(" ");
-        var icon=sp>0?full.slice(0,sp):"📁";
-        var label=sp>0?full.slice(sp+1):full;
-        var b=document.createElement("button");
-        b.type="button";b.className="quick-card";
-        b.style.setProperty("--c",colors[i%colors.length]);
-        b.innerHTML='<span class="ico"></span><span><b></b><small></small></span>';
-        b.querySelector(".ico").textContent=icon;
-        b.querySelector("b").textContent=label;
-        b.querySelector("small").textContent=desc[label]||"";
-        b.addEventListener("click",function(){
-          menu.hidden=true;grid.hidden=false;back.hidden=false;
-          cards.forEach(function(c){c.hidden=(c!==card);});
-          sec.scrollIntoView({behavior:"smooth",block:"start"});
-        });
-        menu.appendChild(b);
-      });
-      back.addEventListener("click",function(){
-        grid.hidden=true;back.hidden=true;menu.hidden=false;
-        cards.forEach(function(c){c.hidden=false;});
-        sec.scrollIntoView({behavior:"smooth",block:"start"});
-      });
-      grid.before(menu);
-      grid.before(back);
-    });
-  }
-  var list=document.getElementById("childrenList");
-  if(list){
-    new MutationObserver(build).observe(list,{childList:true});
-    build();
-  }
-})();
-</script>
-</body>
+"use strict";
+const SB_URL="https://mytyvqwrxnxpxnxpiicj.supabase.co",SB_KEY="sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+let sb=window.supabaseClient||null;
+if(!sb&&window.supabase){sb=window.supabase.createClient(SB_URL,SB_KEY);window.supabaseClient=sb;}
+let profile=null,parent=null,children=[],cache={};
+const SECTIONS=[
+["institution","🏫","Institution","Machadka iyo xiriirka","#0B4DA2"],
+["courses","🎓","Courses & Departments","Koorsooyinka iyo waaxaha","#7C3AED"],
+["classes","🏛️","Classes","Fasallada iyo macallimiinta","#16A34A"],
+["subjects","📘","Subjects","Maaddooyinka","#D4AF37"],
+["lessons","👨‍🏫","Lessons & Teachers","Casharrada iyo jadwalka","#0B1E63"],
+["attendance","📅","Attendance","Xaadirinta ardayga","#16A34A"],
+["exams","📝","Exams","Imtixaannada iyo natiijada","#7C3AED"],
+["grades","📊","Grades & Results","Dhibcaha iyo darajooyinka","#D4AF37"],
+["progress","📈","Academic Progress","Horumarka waxbarasho","#0B4DA2"],
+["certs","🏅","Certificates","Shahaadooyinka","#D4AF37"],
+["invoices","🧾","Invoices","Biilasha iyo haraaga","#B91C1C"],
+["payments","💳","Payments","Lacagaha la bixiyey","#16A34A"]];
+const el=id=>document.getElementById(id);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtDate=v=>{if(!v)return"—";const d=new Date(v+(/^\d{4}-\d\d-\d\d$/.test(String(v))?"T00:00:00":""));return isNaN(d)?"—":d.toLocaleDateString("en-GB")};
+const fmtMoney=(v,cur="USD")=>Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+" "+esc(cur);
+const tm=v=>v?esc(String(v).slice(0,5)):"";
+function badge(v){const s=String(v||"").toLowerCase();const c=["present","paid","active","completed"].includes(s)?"b-ok":["absent","unpaid","dropped"].includes(s)?"b-bad":["late","partial","pending"].includes(s)?"b-warn":["excused","issued"].includes(s)?"b-info":"b-def";return `<span class="badge ${c}">${esc(v||"—")}</span>`}
+const initials=n=>String(n||"A").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase()||"A";
+function photo(url,name){const i=initials(name);return url?`<img class="student-avatar" src="${esc(url)}" alt="${esc(name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'student-avatar student-initial',textContent:'${esc(i)}'}))">`:`<div class="student-avatar student-initial">${esc(i)}</div>`}
+function setMessage(t,type){const n=el("pageMessage");n.className=type==="error"?"error-box":"loading";n.textContent=t;n.hidden=false}
+function showContent(s){el("portalContent").hidden=!s;el("logoutBtn").hidden=!s}
+async function sq(table,select,apply){let q=sb.from(table).select(select);if(apply)q=apply(q);const{data,error}=await q;if(error){console.warn("Parent portal "+table,error);return{data:[],error:error.message||String(error)}}return{data:data||[],error:null}}
+const none=Promise.resolve({data:[],error:null});
+const errHtml=e=>e?`<div class="section-error">Xogtan hadda lama soo bandhigi karin: ${esc(e)}. Haddii ay tahay cilad oggolaansho, maamulka ha hubiyo RLS policy-ga.</div>`:"";
+const rows=(a,f,e="Weli xog lagama diiwaangelin.")=>a.length?a.map(f).join(""):`<p class="subtle">${esc(e)}</p>`;
+
+async function initialize(){
+ showContent(false);
+ try{
+  if(!sb)throw new Error("Supabase lama diyaarsana. Hubi internet-ka.");
+  const{data:s,error:se}=await sb.auth.getSession();if(se)throw se;
+  if(!s?.session?.user?.id){location.replace("index.html");return}
+  const uid=s.session.user.id;
+  const{data:p,error:pe}=await sb.from("profiles").select("id,full_name,role,is_active,institution_id").eq("id",uid).maybeSingle();if(pe)throw pe;
+  if(!p)throw new Error("Profile-ka akoonkan laguma helin.");
+  if(p.role!=="parent"){const d={super_admin:"dashboard.html",school_admin:"school-dashboard.html",teacher:"teacher-portal.html",student:"student.html"};if(d[p.role]){location.replace(d[p.role]);return}throw new Error("Akoonkan looma oggola Parent Portal.")}
+  if(p.is_active!==true)throw new Error("Akoonka waalidka waa la joojiyey. La xiriir maamulka.");
+  const{data:pa,error:pare}=await sb.from("parents").select("id,institution_id,profile_id,full_name,phone,email,address,occupation").eq("profile_id",uid).maybeSingle();if(pare)throw pare;
+  if(!pa)throw new Error("Akoonkaagu ma laha diiwaan waalid oo ku xiran.");
+  profile=p;parent=pa;
+  el("welcomeName").textContent="Ku soo dhowow, "+(pa.full_name||p.full_name||"Waalid");
+  await loadPortal();showContent(true);el("pageMessage").hidden=true;
+ }catch(e){console.error(e);showContent(false);setMessage(e.message||"Gelitaanku wuu fashilmay.","error")}
+}
+
+async function loadPortal(){
+ const L=await sq("parent_students","student_id,relationship,is_primary,institution_id",q=>q.eq("parent_id",parent.id));
+ if(L.error)throw new Error("Xiriirka waalidka iyo ardayga: "+L.error);
+ const ids=[...new Set(L.data.map(x=>x.student_id).filter(Boolean))];
+ if(!ids.length){children=[];el("childrenCount").textContent="0";el("childrenList").innerHTML='<div class="empty">Weli arday kuma xirna akoonkan. Fadlan la xiriir maamulka.</div>';return}
+ const S=await sq("students","id,institution_id,student_id,full_name,gender,date_of_birth,phone,email,address,photo_url,admission_date,status,emergency_contact_name,emergency_contact_phone",q=>q.in("id",ids));
+ if(S.error)throw new Error("Xogta ardayda: "+S.error);
+ const lm=new Map(L.data.map(x=>[x.student_id,x]));
+ children=S.data.map(s=>({...s,relationship:lm.get(s.id)?.relationship||"Waalid"}));
+ el("childrenCount").textContent=children.length;
+ const inst=[...new Set(children.map(s=>s.institution_id).filter(Boolean))];
+ const[I,E,G,A,P,C,V,Y]=await Promise.all([
+  sq("institutions","id,name,code,email,phone,address,city,country,logo_url,website_url",q=>q.in("id",inst)),
+  sq("enrollments","id,institution_id,student_id,course_id,class_id,enrollment_number,enrollment_date,start_date,end_date,status",q=>q.in("student_id",ids)),
+  sq("grades","id,institution_id,exam_id,student_id,score,grade,remarks,created_at",q=>q.in("student_id",ids)),
+  sq("attendance","id,institution_id,lesson_id,student_id,status,notes,recorded_at",q=>q.in("student_id",ids).eq("is_published",true).order("recorded_at",{ascending:false}).limit(300)),
+  sq("academic_progress","id,institution_id,student_id,course_id,academic_year,total_courses,completed_courses,attendance_percentage,average_score,remarks,created_at",q=>q.in("student_id",ids)),
+  sq("certificates","id,institution_id,student_id,course_id,certificate_no,certificate_id,verify_code,issue_date,expiry_date,status,certificate_url,pdf_url,course_name_snapshot,certificate_type,verification_url",q=>q.in("student_id",ids)),
+  sq("invoices","id,institution_id,student_id,invoice_number,description,amount,paid_amount,due_date,status,created_at",q=>q.in("student_id",ids)),
+  sq("payments","id,institution_id,invoice_id,student_id,amount,currency,payment_method,provider,transaction_reference,status,paid_at,payment_reference,receipt_number,created_at",q=>q.in("student_id",ids))]);
+ const en=E.data,cids=[...new Set(en.map(x=>x.course_id).filter(Boolean))],clids=[...new Set(en.map(x=>x.class_id).filter(Boolean))];
+ const[Co,Cl,Su]=await Promise.all([
+  cids.length?sq("courses","id,institution_id,department_id,name,code,description,duration_months,fee,is_active",q=>q.in("id",cids)):none,
+  clids.length?sq("classes","id,institution_id,course_id,name,code,academic_year,teacher_id,room,start_date,end_date,is_active,status",q=>q.in("id",clids)):none,
+  cids.length?sq("subjects","id,institution_id,course_id,name,code,max_score,is_active",q=>q.in("course_id",cids)):none]);
+ const dids=[...new Set(Co.data.map(x=>x.department_id).filter(Boolean))],tids=[...new Set(Cl.data.map(x=>x.teacher_id).filter(Boolean))];
+ const[D,T]=await Promise.all([
+  dids.length?sq("departments","id,name,code",q=>q.in("id",dids)):none,
+  tids.length?sq("profiles","id,full_name,phone,email",q=>q.in("id",tids)):none]);
+ const exF="id,institution_id,course_id,class_id,title,exam_type,exam_date,max_score,duration_minutes,description,subject_id";
+ const[Lc,Xc,Xk]=await Promise.all([
+  clids.length?sq("lessons","id,institution_id,class_id,teacher_id,title,description,lesson_date,start_time,end_time,room",q=>q.in("class_id",clids).order("lesson_date",{ascending:false}).limit(300)):none,
+  cids.length?sq("exams",exF,q=>q.in("course_id",cids)):none,
+  clids.length?sq("exams",exF,q=>q.in("class_id",clids)):none]);
+ const em=new Map([...Xc.data,...Xk.data].map(x=>[x.id,x]));
+ const miss=[...new Set(G.data.map(x=>x.exam_id).filter(Boolean))].filter(i=>!em.has(i));
+ if(miss.length){(await sq("exams",exF,q=>q.in("id",miss))).data.forEach(x=>em.set(x.id,x))}
+ let subs=[...Su.data];
+ const sneed=[...new Set([...em.values()].map(x=>x.subject_id).filter(Boolean))].filter(i=>!subs.some(x=>x.id===i));
+ if(sneed.length)subs=subs.concat((await sq("subjects","id,institution_id,course_id,name,code,max_score,is_active",q=>q.in("id",sneed))).data);
+ // attendance lessons not in class lessons
+ let lessons=[...Lc.data];
+ const lneed=[...new Set(A.data.map(x=>x.lesson_id).filter(Boolean))].filter(i=>!lessons.some(x=>x.id===i));
+ if(lneed.length)lessons=lessons.concat((await sq("lessons","id,institution_id,class_id,teacher_id,title,description,lesson_date,start_time,end_time,room",q=>q.in("id",lneed))).data);
+ cache={institutions:I.data,enrollments:en,courses:Co.data,classes:Cl.data,subjects:subs,departments:D.data,teachers:T.data,lessons,exams:[...em.values()],grades:G.data,attendance:A.data,progress:P.data,certs:C.data,invoices:V.data,payments:Y.data,
+  errors:{institution:I.error,courses:E.error||Co.error||D.error,classes:Cl.error,subjects:Su.error,lessons:Lc.error||T.error,attendance:A.error,exams:Xc.error||Xk.error,grades:G.error,progress:P.error,certs:C.error,invoices:V.error,payments:Y.error}};
+ el("coursesCount").textContent=cids.length;el("examsCount").textContent=cache.exams.length;el("certificatesCount").textContent=cache.certs.length;
+ renderHome();
+}
+
+function renderHome(){
+ el("childrenList").innerHTML=children.map((s,i)=>{
+  const ins=cache.institutions.find(x=>x.id===s.institution_id);
+  return `<article class="card student-card"><div class="student-card-head">${photo(s.photo_url,s.full_name)}<div><div class="student-name">${esc(s.full_name)}</div><div class="student-meta">Student ID: ${esc(s.student_id)}<br>Machad: ${esc(ins?.name||"—")}</div></div></div>
+  <div class="student-grid"><div class="info-box"><small>STATUS</small><strong>${badge(s.status)}</strong></div><div class="info-box"><small>RELATIONSHIP</small><strong>${esc(s.relationship)}</strong></div><div class="info-box"><small>GENDER</small><strong>${esc(s.gender||"—")}</strong></div><div class="info-box"><small>DATE OF BIRTH</small><strong>${fmtDate(s.date_of_birth)}</strong></div><div class="info-box"><small>PHONE / EMAIL</small><strong>${esc(s.phone||"—")}<br>${esc(s.email||"—")}</strong></div><div class="info-box"><small>ADMISSION DATE</small><strong>${fmtDate(s.admission_date)}</strong></div><div class="info-box"><small>ADDRESS</small><strong>${esc(s.address||"—")}</strong></div><div class="info-box"><small>EMERGENCY CONTACT</small><strong>${esc(s.emergency_contact_name||"—")}<br>${esc(s.emergency_contact_phone||"—")}</strong></div></div></article>`}).join("");
+}
+function buildMenu(){
+ el("menuGrid").innerHTML=SECTIONS.map(d=>`<button type="button" class="quick-card" data-k="${d[0]}" style="--c:${d[4]}"><span class="ico">${d[1]}</span><span><b>${esc(d[2])}</b><small>${esc(d[3])}</small></span></button>`).join("");
+ el("menuGrid").onclick=e=>{const b=e.target.closest("[data-k]");if(b)openSection(b.dataset.k)};
+}
+function ctx(s){const c=cache,enr=c.enrollments.filter(x=>x.student_id===s.id),cids=enr.map(x=>x.course_id),clids=enr.map(x=>x.class_id);
+ return{s,c,
+  institution:c.institutions.find(x=>x.id===s.institution_id),
+  courses:c.courses.filter(x=>cids.includes(x.id)),classes:c.classes.filter(x=>clids.includes(x.id)),
+  subjects:c.subjects.filter(x=>cids.includes(x.course_id)),lessons:c.lessons.filter(x=>clids.includes(x.class_id)),
+  exams:c.exams.filter(x=>cids.includes(x.course_id)||clids.includes(x.class_id)),
+  grades:c.grades.filter(x=>x.student_id===s.id),attendance:c.attendance.filter(x=>x.student_id===s.id),progress:c.progress.filter(x=>x.student_id===s.id),
+  certs:c.certs.filter(x=>x.student_id===s.id),invoices:c.invoices.filter(x=>x.student_id===s.id),payments:c.payments.filter(x=>x.student_id===s.id),
+  teacher:new Map(c.teachers.map(x=>[x.id,x])),dept:new Map(c.departments.map(x=>[x.id,x])),subj:new Map(c.subjects.map(x=>[x.id,x])),exam:new Map(c.exams.map(x=>[x.id,x])),lesson:new Map(c.lessons.map(x=>[x.id,x]))}}
+const B={
+institution:x=>{const i=x.institution;return i?`<div class="institution-head">${i.logo_url?`<img class="institution-logo" src="${esc(i.logo_url)}" alt="">`:""}<div><strong>${esc(i.name)}</strong><p class="subtle">${esc(i.code)} · ${esc([i.city,i.country].filter(Boolean).join(", "))}</p></div></div><p>☎ ${esc(i.phone||"—")} · ✉ ${esc(i.email||"—")}</p><p>${esc(i.address||"—")}</p>${i.website_url?`<a class="link" href="${esc(i.website_url)}" target="_blank" rel="noopener">Website</a>`:""}`:`<p class="subtle">Xogta machadka lama helin.</p>`},
+courses:x=>rows(x.courses,c=>`<div class="list-item"><strong>${esc(c.name)} (${esc(c.code)})</strong><p>${esc(x.dept.get(c.department_id)?.name||"Department aan la cayimin")} · ${c.duration_months?esc(c.duration_months)+" bilood":"Muddada lama cayimin"}</p><p class="subtle">Fee: ${fmtMoney(c.fee)} · ${badge(c.is_active?"Active":"Inactive")}</p>${c.description?`<p>${esc(c.description)}</p>`:""}</div>`),
+classes:x=>rows(x.classes,c=>`<div class="list-item"><strong>${esc(c.name)} (${esc(c.code)})</strong><p>Academic Year: ${esc(c.academic_year||"—")} · Room: ${esc(c.room||"—")}</p><p>Teacher: ${esc(x.teacher.get(c.teacher_id)?.full_name||"Aan la qoon")}</p><p class="subtle">${fmtDate(c.start_date)} – ${fmtDate(c.end_date)} · ${badge(c.status||(c.is_active?"Active":"Inactive"))}</p></div>`),
+subjects:x=>rows(x.subjects,s=>`<div class="list-item"><strong>${esc(s.name)} ${s.code?`(${esc(s.code)})`:""}</strong><p>Max Score: ${esc(s.max_score)} · ${badge(s.is_active?"Active":"Inactive")}</p></div>`),
+lessons:x=>rows(x.lessons,l=>`<div class="list-item"><strong>${esc(l.title)}</strong><p>${esc(l.description||"")}</p><p>${fmtDate(l.lesson_date)} ${tm(l.start_time)} ${l.end_time?"– "+tm(l.end_time):""} · Room: ${esc(l.room||"—")}</p><p class="subtle">Class: ${esc(x.c.classes.find(k=>k.id===l.class_id)?.name||"—")} · Teacher: ${esc(x.teacher.get(l.teacher_id)?.full_name||"Aan la qoon")}</p></div>`),
+attendance:x=>{const n=t=>x.attendance.filter(a=>a.status===t).length,p=n("present"),d=p+n("absent")+n("late");
+ const head=x.attendance.length?`<p><b>Present ${p}</b> · Absent ${n("absent")} · Late ${n("late")} · Excused ${n("excused")} · Rate: <b>${d?(p/d*100).toFixed(1)+"%":"—"}</b></p>`:"";
+ return head+rows(x.attendance.slice(0,60),a=>{const l=x.lesson.get(a.lesson_id);return `<div class="list-item"><strong>${esc(l?.title||"Lesson")} · ${fmtDate(l?.lesson_date||a.recorded_at)}</strong><p>${badge(a.status)} ${a.notes?"· "+esc(a.notes):""}</p></div>`},"Attendance record lama hayo.")},
+exams:x=>rows(x.exams,e=>{const g=x.grades.filter(r=>r.exam_id===e.id);return `<div class="list-item"><strong>${esc(e.title)}</strong><p>${esc(e.exam_type)} · ${fmtDate(e.exam_date)} · Max score: ${esc(e.max_score)}</p><p>Subject: ${esc(x.subj.get(e.subject_id)?.name||"—")}</p>${g.length?g.map(r=>`<p><b>Result:</b> ${esc(r.score)} / ${esc(e.max_score)} ${r.grade?"· Grade "+esc(r.grade):""} ${r.remarks?"· "+esc(r.remarks):""}</p>`).join(""):'<p class="subtle">Natiijo weli lama gelin.</p>'}</div>`}),
+grades:x=>rows(x.grades,g=>{const e=x.exam.get(g.exam_id);return `<div class="list-item"><strong>${esc(e?.title||"Exam")}</strong><p>Score: ${esc(g.score)} ${e?.max_score?"/ "+esc(e.max_score):""} · Grade: ${esc(g.grade||"—")}</p><p>${esc(g.remarks||"")}</p><p class="subtle">${fmtDate(g.created_at)}</p></div>`},"Weli grades lama diiwaangelin."),
+progress:x=>rows(x.progress,p=>`<div class="list-item"><strong>${esc(p.academic_year||"Academic Progress")}</strong><p>Courses: ${esc(p.completed_courses)} / ${esc(p.total_courses)} completed</p><p>Attendance: ${esc(p.attendance_percentage)}% · Average Score: ${esc(p.average_score)}%</p><p>${esc(p.remarks||"")}</p></div>`,"Academic progress lama diiwaangelin."),
+certs:x=>rows(x.certs,c=>{const u=c.verification_url||c.certificate_url||c.pdf_url;return `<div class="list-item"><strong>${esc(c.certificate_no||c.certificate_id)}</strong><p>${esc(c.course_name_snapshot||"Certificate")} · ${esc(c.certificate_type||"")}</p><p>Issued: ${fmtDate(c.issue_date)} · Expiry: ${fmtDate(c.expiry_date)} · ${badge(c.status)}</p>${u?`<a class="link" href="${esc(u)}" target="_blank" rel="noopener">Verify / Open</a>`:""}</div>`},"Weli shahaado lama bixin."),
+invoices:x=>rows(x.invoices,i=>`<div class="list-item"><strong>${esc(i.invoice_number)}</strong><p>${esc(i.description||"Invoice")}</p><p>Amount: ${fmtMoney(i.amount)} · Paid: ${fmtMoney(i.paid_amount)} · Balance: <b>${fmtMoney(Math.max(0,Number(i.amount||0)-Number(i.paid_amount||0)))}</b></p><p>Due: ${fmtDate(i.due_date)} · ${badge(i.status)}</p></div>`,"Invoice lama diiwaangelin."),
+payments:x=>rows(x.payments,p=>`<div class="list-item"><strong>${esc(p.receipt_number||p.payment_reference||"Payment")}</strong><p>${fmtMoney(p.amount,p.currency||"USD")} · ${esc(p.payment_method||p.provider||"Payment")}</p><p>Reference: ${esc(p.transaction_reference||p.payment_reference||"—")}</p><p>${fmtDate(p.paid_at||p.created_at)} · ${badge(p.status)}</p></div>`,"Payment lama diiwaangelin.")};
+function openSection(k){
+ const d=SECTIONS.find(x=>x[0]===k);if(!d)return;
+ el("secTitle").textContent=d[1]+" "+d[2];
+ el("secBody").innerHTML=children.map(s=>`<article class="card data-card"><h4>🎓 ${esc(s.full_name)}</h4>${errHtml(cache.errors[k])}${B[k](ctx(s))}</article>`).join("");
+ el("homeView").hidden=true;el("sectionView").hidden=false;window.scrollTo({top:0,behavior:"smooth"});
+}
+function goHome(){el("sectionView").hidden=true;el("homeView").hidden=false;window.scrollTo({top:0,behavior:"smooth"})}
+async function refresh(){const b=el("refreshBtn");try{b.disabled=true;b.textContent="Loading...";await loadPortal();el("pageMessage").hidden=true}catch(e){setMessage(e.message||"Cusboonaysiintu way fashilantay.","error")}finally{b.disabled=false;b.textContent="Refresh ↻"}}
+async function logout(){try{const{error}=await sb.auth.signOut();if(error)throw error;location.replace("index.html")}catch(e){setMessage(e.message||"Logout-ku wuu fashilmay.","error")}}
+document.addEventListener("DOMContentLoaded",()=>{buildMenu();el("refreshBtn").addEventListener("click",refresh);el("logoutBtn").addEventListener("click",logout);el("backBtn").addEventListener("click",goHome);initialize()});
+</script></body></html>
