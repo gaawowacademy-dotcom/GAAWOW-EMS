@@ -243,7 +243,7 @@
 
   const $ = (id) => document.getElementById(id);
   const state = {
-    user: null, profile: null, classes: [], lessons: [], students: [],
+    user: null, profile: null, classes: [], lessons: [], students: [], studentNames: {},
     attendance: [], exams: [], grades: [], classNames: {}
   };
 
@@ -286,6 +286,15 @@
   };
   const tr = cells => `<tr>${cells.map(c=>`<td>${c}</td>`).join("")}</tr>`;
   const className = id => state.classNames[id] || "Class";
+  function studentName(id) {
+    if (id == null || id === "") return "Magaca lama helin";
+    const key = String(id).trim();
+    const mapped = state.studentNames[key];
+    if (mapped && !/^user$|^student$|^unnamed/i.test(mapped.trim())) return mapped;
+    const student = state.students.find(s => String(s.id || "").trim() === key || String(s.student_id || "").trim() === key);
+    const name = student?.full_name;
+    return name && !/^user$|^student$|^unnamed/i.test(String(name).trim()) ? name : "Magaca lama helin";
+  }
   const go = view => {
     document.querySelectorAll(".content-view").forEach(el => el.classList.toggle("active", el.id === "view-" + view));
     document.querySelectorAll(".nav-btn").forEach(el => el.classList.toggle("active", el.dataset.view === view));
@@ -339,6 +348,9 @@
       "My Classes"
     );
     state.classes.forEach(c => state.classNames[c.id] = c.name || c.code || "Class");
+
+    // Load student records before attendance and grades so names are available.
+    await loadStudents();
 
     state.lessons = await queryOrEmpty(
       supabase.from("lessons").select("id,institution_id,class_id,teacher_id,title,description,lesson_date,start_time,end_time,room")
@@ -427,9 +439,9 @@
   function renderAttendance() {
     const rows = state.attendance.map(a => {
       const lesson = state.lessons.find(l => l.id === a.lesson_id);
-      return tr([safe(lesson?.title || "Lesson"), safe(a.student_id || "—"), `<span class="pill">${safe(a.status || "—")}</span>`, dateText(a.recorded_at), safe(a.notes || "—")]);
+      return tr([safe(lesson?.title || "Lesson"), `<strong>${safe(studentName(a.student_id))}</strong>`, safe(a.student_id || "—"), `<span class="pill">${safe(a.status || "—")}</span>`, dateText(a.recorded_at), safe(a.notes || "—")]);
     });
-    renderTable("attendanceTable", ["Lesson","Student ID","Status","Recorded","Notes"], rows, "Xaadirin lama helin ama RLS ma oggola akhriska.");
+    renderTable("attendanceTable", ["Lesson","Student Name","Student ID","Status","Recorded","Notes"], rows, "Xaadirin lama helin ama RLS ma oggola akhriska.");
   }
   function renderExams(filter="") {
     const q = filter.toLowerCase();
@@ -441,9 +453,9 @@
   }
   function renderGrades(filter="") {
     const q = filter.toLowerCase();
-    const list = state.grades.filter(g => [g.exam_id,g.student_id,g.grade,g.score,g.remarks].join(" ").toLowerCase().includes(q));
-    renderTable("gradesTable", ["Exam ID","Student ID","Score","Grade","Remarks"], list.map(g=>tr([
-      safe(g.exam_id || "—"), safe(g.student_id || "—"), safe(g.score ?? "—"), `<span class="pill">${safe(g.grade || "—")}</span>`, safe(g.remarks || "—")
+    const list = state.grades.filter(g => [g.exam_id,g.student_id,studentName(g.student_id),g.grade,g.score,g.remarks].join(" ").toLowerCase().includes(q));
+    renderTable("gradesTable", ["Exam ID","Student Name","Student ID","Score","Grade","Remarks"], list.map(g=>tr([
+      safe(g.exam_id || "—"), `<strong>${safe(studentName(g.student_id))}</strong>`, safe(g.student_id || "—"), safe(g.score ?? "—"), `<span class="pill">${safe(g.grade || "—")}</span>`, safe(g.remarks || "—")
     ])), "Dhibco laguu oggolaaday lama helin.");
   }
 
@@ -451,33 +463,76 @@
     const target = $("studentsTable");
     target.innerHTML = '<div class="empty">Ardayda waa la soo rarayaa...</div>';
     const classIds = state.classes.map(c=>c.id);
+    state.studentNames = {};
     if (!classIds.length) {
       state.students = [];
       $("studentCount").textContent = "0";
       renderTable("studentsTable", [], [], "Fasal laguu xilsaaray ma jiro.");
       return;
     }
-    // Student records are reached through enrollments in the teacher's assigned classes.
     const enrollments = await queryOrEmpty(
       supabase.from("enrollments").select("student_id,class_id,institution_id,status")
         .eq("institution_id", state.profile.institution_id).in("class_id", classIds),
       "Student enrollments"
     );
-    const ids = [...new Set(enrollments.map(e=>e.student_id).filter(Boolean))];
+    const ids = [...new Set(enrollments.map(e=>e.student_id).filter(Boolean).map(v=>String(v).trim()))];
     if (!ids.length) {
       state.students = [];
       $("studentCount").textContent = "0";
       renderTable("studentsTable", [], [], "Arday ku qoran fasalladaada lama helin, ama RLS ayaa xaddiday.");
       return;
     }
-    state.students = await queryOrEmpty(
+
+    // Search by both primary UUID and student number. Some enrollment records
+    // store students.id, while others store students.student_id.
+    const byId = await queryOrEmpty(
       supabase.from("students").select("id,student_id,full_name,gender,phone,status")
         .eq("institution_id", state.profile.institution_id).in("id", ids),
-      "Students"
+      "Students by record ID"
     );
+    const byCode = await queryOrEmpty(
+      supabase.from("students").select("id,student_id,full_name,gender,phone,status")
+        .eq("institution_id", state.profile.institution_id).in("student_id", ids),
+      "Students by student number"
+    );
+    const merged = [...byId, ...byCode];
+    const seen = new Set();
+    state.students = merged.filter(st => {
+      const k = String(st.id || st.student_id || "");
+      if (!k || seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+
+    // Build name lookup using both the database UUID and student code.
+    state.students.forEach(st => {
+      const name = String(st.full_name || "").trim();
+      if (name && !/^user$|^student$|^unnamed/i.test(name)) {
+        if (st.id) state.studentNames[String(st.id).trim()] = name;
+        if (st.student_id) state.studentNames[String(st.student_id).trim()] = name;
+      }
+    });
+
+    // If an enrollment/attendance/grade student_id is a profile UUID,
+    // try reading the corresponding profile name as a secondary fallback.
+    const profileIds = ids.filter(v => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v));
+    if (profileIds.length) {
+      const profiles = await queryOrEmpty(
+        supabase.from("profiles").select("id,full_name")
+          .in("id", profileIds),
+        "Student profile names"
+      );
+      profiles.forEach(pr => {
+        const name = String(pr.full_name || "").trim();
+        if (name && !/^user$|^student$|^unnamed/i.test(name)) state.studentNames[String(pr.id).trim()] = name;
+      });
+    }
+
     $("studentCount").textContent = state.students.length;
     renderStudents();
+    renderAttendance();
+    renderGrades();
   }
+
   function renderStudents(filter="") {
     const q = filter.toLowerCase();
     const list = state.students.filter(s => [s.full_name,s.student_id,s.gender,s.phone,s.status].join(" ").toLowerCase().includes(q));
