@@ -698,63 +698,713 @@ function renderContacts(list){
 
   box.innerHTML=valid.map(function(c,i){
 
-    const label=c.role==="super_admin"
-      ?"Super Admin"
-      :"School Admin";
+<!-- =========================================================
+ GAAWOW ACADEMY
+ TEACHER DASHBOARD + WHATSAPP CONTACT ADMIN
+ CLEAN SINGLE MODULE
+========================================================= -->
 
-    return `
-      <div class="wa-contact">
+<style>
+.quick-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+}
 
+.quick {
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 130px;
+  padding: 16px !important;
+  background: #fff;
+  border: 1px solid #e7ecf4;
+  border-top: 4px solid var(--c, #0B4DA2);
+  border-radius: 16px !important;
+  box-shadow: 0 3px 12px rgba(0,0,0,.04);
+  cursor: pointer;
+  transition: .2s;
+}
+
+.quick:hover,
+.quick:active {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(11,30,99,.1);
+}
+
+.quick .qicon {
+  width: 48px;
+  height: 48px;
+  margin: 0 !important;
+  border-radius: 13px;
+  background: #f1f5fb;
+  display: grid;
+  place-items: center;
+  font-size: 25px !important;
+}
+
+.quick strong {
+  font-size: 14px !important;
+}
+
+.quick span:not(.qicon) {
+  font-size: 11px !important;
+}
+
+.back-dash {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 14px;
+  border: 1px solid #dbe3ef;
+  background: #fff;
+  color: #0B1E63;
+  padding: 9px 13px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.wa-contact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid #e5eaf2;
+  border-radius: 13px;
+  margin-bottom: 10px;
+  background: #fff;
+}
+
+.wa-contact strong {
+  display: block;
+  color: #0B1E63;
+  font-size: 13px;
+}
+
+.wa-contact small {
+  color: #68738a;
+  font-size: 11px;
+}
+
+.wa-send {
+  background: #25D366 !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  padding: 10px 14px !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+}
+
+#waText {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 95px;
+}
+
+#view-contact .wa-error {
+  padding: 13px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff7f7;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+#view-contact .wa-retry {
+  margin-top: 10px;
+  padding: 9px 14px;
+  background: #0B1E63;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+@media(max-width:760px) {
+  .quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .quick {
+    min-height: 118px;
+    padding: 12px !important;
+  }
+
+  .quick .qicon {
+    width: 42px;
+    height: 42px;
+    font-size: 22px !important;
+  }
+
+  .quick strong {
+    font-size: 13px !important;
+  }
+
+  .wa-contact {
+    flex-wrap: wrap;
+  }
+}
+</style>
+
+<script>
+(function () {
+  "use strict";
+
+  /* Prevent duplicate initialization */
+  if (window.__GAAWOW_TEACHER_CONTACT__) return;
+  window.__GAAWOW_TEACHER_CONTACT__ = true;
+
+  /* Supabase configuration */
+  const SB_URL =
+    "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+
+  const SB_KEY =
+    "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+  const COUNTRY_CODE = "252";
+
+  const TOPICS = {
+    general: "",
+    attendance: "Waxaan rabaa inaan kala hadlo xaadirinta ardayda.",
+    grades: "Waxaan rabaa inaan kala hadlo imtixaannada iyo dhibcaha.",
+    lesson: "Waxaan rabaa inaan kala hadlo jadwalka casharrada.",
+    help: "Waxaan u baahanahay caawimaad farsamo oo EMS ah."
+  };
+
+  const COLORS = {
+    classes: "#0B4DA2",
+    lessons: "#7C3AED",
+    students: "#16A34A",
+    attendance: "#D4AF37",
+    exams: "#0B1E63",
+    grades: "#B91C1C"
+  };
+
+  /* Supabase availability */
+  if (
+    !window.supabase ||
+    typeof window.supabase.createClient !== "function"
+  ) {
+    console.error("GAAWOW: Supabase JS CDN is missing.");
+    window.__GAAWOW_TEACHER_CONTACT__ = false;
+    return;
+  }
+
+  const sb = window.supabase.createClient(
+    SB_URL,
+    SB_KEY,
+    {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true
+      }
+    }
+  );
+
+  let contactsLoaded = false;
+  let contactsCache = [];
+
+  /* Helpers */
+  function escapeHTML(value) {
+    return String(value == null ? "" : value)
+      .replace(/[&<>"']/g, function (c) {
+        return {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        }[c];
+      });
+  }
+
+  function normalizePhone(phone) {
+    let digits = String(phone || "").replace(/\D/g, "");
+
+    if (digits.startsWith("00")) {
+      digits = digits.slice(2);
+    }
+
+    if (digits.startsWith("0")) {
+      digits = COUNTRY_CODE + digits.replace(/^0+/, "");
+    } else if (!digits.startsWith(COUNTRY_CODE)) {
+      digits = COUNTRY_CODE + digits;
+    }
+
+    return digits.length >= 10 && digits.length <= 15
+      ? digits
+      : "";
+  }
+
+  function teacherName() {
+    const element = document.getElementById("welcomeName");
+
+    return element
+      ? element.textContent.trim()
+      : "Macallin";
+  }
+
+  function buildMessage() {
+    const topic = document.getElementById("waTopic");
+    const selected = topic ? topic.value : "general";
+
+    return (
+      "Assalaamu calaykum, waxaan ahay macallin " +
+      teacherName() +
+      " ee GAAWOW Academy. " +
+      (TOPICS[selected] || "")
+    );
+  }
+
+  /* Dashboard card styling */
+  document.querySelectorAll(".quick[data-go]").forEach(function (button) {
+    button.style.setProperty(
+      "--c",
+      COLORS[button.dataset.go] || "#0B4DA2"
+    );
+
+    button.addEventListener("click", function () {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    });
+  });
+
+  const two = document.querySelector(
+    "#view-overview .grid-two"
+  );
+
+  if (two) {
+    two.style.gridTemplateColumns = "1fr";
+  }
+
+  const quickGrid = document.querySelector(".quick-grid");
+
+  if (quickGrid) {
+    const panel = quickGrid.closest(".panel");
+    const heading = panel
+      ? panel.querySelector("h3")
+      : null;
+
+    if (heading) {
+      heading.textContent = "Teacher Management";
+    }
+  }
+
+  /* Back buttons in existing views */
+  document.querySelectorAll(
+    ".content-view:not(#view-overview):not(#view-contact)"
+  ).forEach(function (view) {
+
+    if (view.querySelector(".back-dash")) return;
+
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "back-dash";
+    button.textContent = "← Back to Dashboard";
+
+    button.addEventListener("click", function () {
+      const overview = document.querySelector(
+        '.nav-btn[data-view="overview"]'
+      );
+
+      if (overview) overview.click();
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    });
+
+    view.insertBefore(button, view.firstChild);
+  });
+
+  /* Main portal container */
+  const main = document.querySelector("main");
+
+  if (!main) {
+    console.error("GAAWOW: Main container not found.");
+    return;
+  }
+
+  /* Create Contact Admin view only once */
+  let contactView = document.getElementById("view-contact");
+
+  if (!contactView) {
+    contactView = document.createElement("section");
+
+    contactView.className = "content-view";
+    contactView.id = "view-contact";
+
+    contactView.innerHTML = `
+      <button type="button"
+        class="back-dash"
+        id="waBack">
+        ← Back to Dashboard
+      </button>
+
+      <div class="section-head">
         <div>
-          <strong>${escapeHTML(c.full_name||label)}</strong>
-          <span class="pill">${label}</span>
-          <br>
-          <small>${escapeHTML(c.phone)}</small>
+          <h3>Contact Admin</h3>
+          <p>
+            La xiriir Super Admin ama School Admin
+            si toos ah WhatsApp.
+          </p>
+        </div>
+      </div>
+
+      <div class="panel">
+
+        <div class="field" style="margin-bottom:12px">
+          <label for="waTopic">Mawduuca</label>
+
+          <select id="waTopic">
+            <option value="general">Guud</option>
+            <option value="attendance">Xaadirin</option>
+            <option value="grades">Imtixaan / Dhibco</option>
+            <option value="lesson">Cashar / Jadwal</option>
+            <option value="help">Caawimaad farsamo</option>
+          </select>
         </div>
 
-        <button type="button"
-          class="wa-send"
-          data-wa-index="${i}">
-          WhatsApp
-        </button>
+        <div class="field" style="margin-bottom:14px">
+          <label for="waText">Farriinta</label>
+
+          <textarea
+            id="waText"
+            rows="4"
+            placeholder="Qor farriintaada..."></textarea>
+        </div>
+
+        <div id="waContacts">
+          <div class="empty">
+            Contacts lama soo rarin weli.
+          </div>
+        </div>
 
       </div>
     `;
 
-  }).join("");
+    const footer = main.querySelector(".footer");
 
-  box.onclick=function(event){
+    if (footer) {
+      main.insertBefore(contactView, footer);
+    } else {
+      main.appendChild(contactView);
+    }
+  }
 
-    const button=event.target.closest("[data-wa-index]");
+  /* Navigation button */
+  let navButton = document.querySelector(
+    '.nav-btn[data-view="contact"]'
+  );
 
-    if(!button) return;
+  if (!navButton) {
+    navButton = document.createElement("button");
 
-    const contact=valid[Number(button.dataset.waIndex)];
+    navButton.type = "button";
+    navButton.className = "nav-btn";
+    navButton.dataset.view = "contact";
 
-    if(!contact) return;
+    navButton.innerHTML =
+      '<span class="icon">💬</span>Contact Admin';
 
-    const phone=normalizePhone(contact.phone);
+    const after = document.querySelector(
+      '.nav-btn[data-view="grades"]'
+    );
 
-    const textarea=document.getElementById("waText");
+    if (after) {
+      after.after(navButton);
+    } else {
+      const sidebar = document.getElementById("sidebar");
+      if (sidebar) sidebar.appendChild(navButton);
+    }
+  }
 
-    const text=textarea?.value.trim()||buildMessage();
+  /* Quick access card */
+  let quickCard = document.querySelector(
+    ".quick[data-wa-contact]"
+  );
 
-    const url=
-      "https://wa.me/"+phone+
-      "?text="+encodeURIComponent(text);
+  if (quickGrid && !quickCard) {
+    quickCard = document.createElement("button");
 
-    window.open(url,"_blank","noopener,noreferrer");
+    quickCard.type = "button";
+    quickCard.className = "quick";
+    quickCard.dataset.waContact = "true";
 
-  };
+    quickCard.style.setProperty("--c", "#25D366");
 
-}
+    quickCard.innerHTML = `
+      <span class="qicon">💬</span>
+      <strong>Contact Admin</strong>
+      <span>WhatsApp Super Admin / School Admin</span>
+    `;
 
-/* END MODULE */
+    quickGrid.appendChild(quickCard);
+  }
+
+  /* Open contact page */
+  function openContact() {
+    document.querySelectorAll(".content-view").forEach(function (view) {
+      view.classList.toggle(
+        "active",
+        view.id === "view-contact"
+      );
+    });
+
+    document.querySelectorAll(".nav-btn").forEach(function (button) {
+      button.classList.toggle(
+        "active",
+        button.dataset.view === "contact"
+      );
+    });
+
+    const sidebar = document.getElementById("sidebar");
+
+    if (sidebar) {
+      sidebar.classList.remove("open");
+    }
+
+    const textarea = document.getElementById("waText");
+
+    if (textarea) {
+      textarea.value = buildMessage();
+    }
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+
+    loadContacts();
+  }
+
+  navButton.addEventListener("click", openContact);
+
+  if (quickCard) {
+    quickCard.addEventListener("click", openContact);
+  }
+
+  const backButton = document.getElementById("waBack");
+
+  if (backButton) {
+    backButton.addEventListener("click", function () {
+      const overview = document.querySelector(
+        '.nav-btn[data-view="overview"]'
+      );
+
+      if (overview) overview.click();
+    });
+  }
+
+  const topicSelect = document.getElementById("waTopic");
+
+  if (topicSelect) {
+    topicSelect.addEventListener("change", function () {
+      const textarea = document.getElementById("waText");
+
+      if (textarea) {
+        textarea.value = buildMessage();
+      }
+    });
+  }
+
+  /* Load contacts from Supabase */
+  async function loadContacts() {
+    const box = document.getElementById("waContacts");
+
+    if (!box) return;
+
+    if (contactsLoaded) {
+      renderContacts(contactsCache);
+      return;
+    }
+
+    box.innerHTML =
+      '<div class="empty">Waa la soo rarayaa...</div>';
+
+    try {
+      const { data: sessionData, error: sessionError } =
+        await sb.auth.getSession();
+
+      if (sessionError) throw sessionError;
+
+      const session = sessionData
+        ? sessionData.session
+        : null;
+
+      if (!session) {
+        throw new Error(
+          "Session lama helin. Dib uga gal Teacher Portal-ka."
+        );
+      }
+
+      const uid = session.user.id;
+
+      const { data: me, error: meError } = await sb
+        .from("profiles")
+        .select("id, role, institution_id, full_name")
+        .eq("id", uid)
+        .maybeSingle();
+
+      if (meError) throw meError;
+
+      if (!me || me.role !== "teacher") {
+        throw new Error(
+          "Teacher profile lama xaqiijin."
+        );
+      }
+
+      if (!me.institution_id) {
+        throw new Error(
+          "Institution-ka macallinka lama helin."
+        );
+      }
+
+      const { data: admins, error: adminError } = await sb
+        .from("profiles")
+        .select("full_name, role, phone, institution_id")
+        .in("role", ["super_admin", "school_admin"])
+        .eq("is_active", true);
+
+      if (adminError) throw adminError;
+
+      contactsCache = (admins || []).filter(function (person) {
+        return (
+          person.phone &&
+          (
+            person.role === "super_admin" ||
+            (
+              person.role === "school_admin" &&
+              person.institution_id === me.institution_id
+            )
+          )
+        );
+      });
+
+      contactsLoaded = true;
+
+      renderContacts(contactsCache);
+
+    } catch (error) {
+      console.error(
+        "GAAWOW Contact Admin error:",
+        error
+      );
+
+      box.innerHTML = `
+        <div class="wa-error">
+          <strong>Contacts lama soo heli karo.</strong>
+          <p>${escapeHTML(error.message || "Hubi xiriirka Supabase.")}</p>
+          <p>
+            Haddii ay tahay RLS error, waxaa loo baahan yahay
+            oggolaansho ammaan ah oo database-ka ah.
+          </p>
+          <button type="button" class="wa-retry" id="waRetry">
+            Mar kale isku day
+          </button>
+        </div>
+      `;
+
+      const retry = document.getElementById("waRetry");
+
+      if (retry) {
+        retry.addEventListener("click", loadContacts);
+      }
+    }
+  }
+
+  /* Render contacts */
+  function renderContacts(list) {
+    const box = document.getElementById("waContacts");
+
+    if (!box) return;
+
+    const valid = (list || []).filter(function (person) {
+      return normalizePhone(person.phone);
+    });
+
+    if (!valid.length) {
+      box.innerHTML = `
+        <div class="wa-error">
+          Lambarrada maamulka lama helin.
+          Fadlan hubi phone numbers-ka maamulka
+          iyo oggolaanshaha database-ka.
+        </div>
+      `;
+      return;
+    }
+
+    box.innerHTML = valid.map(function (person, index) {
+      const label = person.role === "super_admin"
+        ? "Super Admin"
+        : "School Admin";
+
+      return `
+        <div class="wa-contact">
+          <div>
+            <strong>${escapeHTML(person.full_name || label)}</strong>
+            <span class="pill">${label}</span>
+            <br>
+            <small>${escapeHTML(person.phone)}</small>
+          </div>
+
+          <button
+            type="button"
+            class="wa-send"
+            data-wa-index="${index}">
+            WhatsApp
+          </button>
+        </div>
+      `;
+    }).join("");
+
+    box.onclick = function (event) {
+      const button = event.target.closest("[data-wa-index]");
+
+      if (!button) return;
+
+      const index = Number(button.dataset.waIndex);
+      const person = valid[index];
+
+      if (!person) return;
+
+      const phone = normalizePhone(person.phone);
+
+      if (!phone) return;
+
+      const textarea = document.getElementById("waText");
+
+      const message = textarea
+        ? textarea.value.trim()
+        : buildMessage();
+
+      const url =
+        "https://wa.me/" +
+        phone +
+        "?text=" +
+        encodeURIComponent(message);
+
+      window.open(
+        url,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    };
+  }
 
 })();
 </script>
 
-<!-- END GAAWOW TEACHER PORTAL MODULE -->
+<!-- END GAAWOW TEACHER DASHBOARD MODULE -->
 
 </body>
 </html>
