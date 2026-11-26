@@ -35,3 +35,128 @@
 })();
 </script>
 /body>.
+<!-- GAAWOW TEACHER PORTAL: "Contact Admin" via WhatsApp. Paste this whole block right BEFORE the last </body> tag of teacher-portal.html -->
+<script>
+(function () {
+  "use strict";
+  var COUNTRY_CODE = "252";
+  // Used only if the database cannot return admin phone numbers (RLS) or none are saved.
+  // Example: {name:"Super Admin", role:"super_admin", phone:"061xxxxxxx"}
+  var FALLBACK = [
+    // {name:"Super Admin", role:"super_admin", phone:"06XXXXXXXX"},
+    // {name:"School Admin", role:"school_admin", phone:"06XXXXXXXX"}
+  ];
+  var SB_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+  var SB_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  var TOPICS = {
+    general: "",
+    attendance: "Waxaan rabaa inaan kala hadlo xaadirinta ardayda.",
+    grades: "Waxaan rabaa inaan kala hadlo imtixaannada iyo dhibcaha.",
+    lesson: "Waxaan rabaa inaan kala hadlo jadwalka casharrada.",
+    help: "Waxaan u baahanahay caawimaad farsamo oo ku saabsan nidaamka."
+  };
+  var sb = window.supabase ? window.supabase.createClient(SB_URL, SB_KEY, { auth: { autoRefreshToken: false, persistSession: true } }) : null;
+  var loaded = false;
+
+  function esc(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function normalize(raw) {
+    var d = String(raw || "").replace(/[^\d+]/g, "");
+    if (d.charAt(0) === "+") d = d.slice(1);
+    else { d = d.replace(/^00/, ""); if (d.indexOf(COUNTRY_CODE) !== 0) d = COUNTRY_CODE + d.replace(/^0+/, ""); }
+    return d.length >= 10 && d.length <= 15 ? d : "";
+  }
+  function teacherName() { var n = document.getElementById("welcomeName"); return n ? n.textContent.trim() : "Macallin"; }
+  function buildMessage() {
+    var t = document.getElementById("waTopic").value;
+    return "Assalaamu calaykum, waxaan ahay macallin " + teacherName() + " ee GAAWOW Academy. " + (TOPICS[t] || "");
+  }
+
+  // Build the view and navigation entries
+  var main = document.querySelector("main");
+  var footer = document.querySelector("main .footer");
+  if (!main) return;
+  var view = document.createElement("section");
+  view.className = "content-view";
+  view.id = "view-contact";
+  view.innerHTML =
+    '<button type="button" class="back-dash" id="waBack" style="display:inline-flex;margin:0 0 14px;border:1px solid #dbe3ef;background:#fff;color:#0B1E63;padding:9px 13px;border-radius:10px;font-weight:700;font-size:12px">← Back to Dashboard</button>' +
+    '<div class="section-head"><div><h3>Contact Admin</h3><p>La xiriir Super Admin ama School Admin si toos ah WhatsApp.</p></div></div>' +
+    '<div class="panel">' +
+    '<div class="field" style="margin-bottom:12px"><label for="waTopic">Mawduuca</label><select id="waTopic">' +
+    '<option value="general">Guud</option><option value="attendance">Xaadirin</option><option value="grades">Imtixaan / Dhibco</option><option value="lesson">Cashar / Jadwal</option><option value="help">Caawimaad farsamo</option></select></div>' +
+    '<div class="field" style="margin-bottom:14px"><label for="waText">Farriinta</label><textarea id="waText" rows="4"></textarea></div>' +
+    '<div id="waContacts"><div class="empty">Waa la soo rarayaa...</div></div></div>';
+  if (footer) main.insertBefore(view, footer); else main.appendChild(view);
+
+  var navBtn = document.createElement("button");
+  navBtn.className = "nav-btn";
+  navBtn.dataset.view = "contact";
+  navBtn.innerHTML = '<span class="icon">💬</span>Contact Admin';
+  var after = document.querySelector('.nav-btn[data-view="grades"]');
+  if (after) after.after(navBtn);
+
+  var qg = document.querySelector(".quick-grid");
+  var card = null;
+  if (qg) {
+    card = document.createElement("button");
+    card.className = "quick";
+    card.style.setProperty("--c", "#25D366");
+    card.innerHTML = '<span class="qicon">💬</span><strong>Contact Admin</strong><span>WhatsApp Super Admin / Admin</span>';
+    qg.appendChild(card);
+  }
+
+  function openView() {
+    document.querySelectorAll(".content-view").forEach(function (v) { v.classList.toggle("active", v.id === "view-contact"); });
+    document.querySelectorAll(".nav-btn").forEach(function (b) { b.classList.toggle("active", b.dataset.view === "contact"); });
+    var sb2 = document.getElementById("sidebar"); if (sb2) sb2.classList.remove("open");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    document.getElementById("waText").value = buildMessage();
+    loadContacts();
+  }
+  navBtn.addEventListener("click", openView);
+  if (card) card.addEventListener("click", openView);
+  document.getElementById("waBack").addEventListener("click", function () {
+    var n = document.querySelector('.nav-btn[data-view="overview"]'); if (n) n.click();
+  });
+  document.getElementById("waTopic").addEventListener("change", function () { document.getElementById("waText").value = buildMessage(); });
+
+  async function loadContacts() {
+    if (loaded) return;
+    loaded = true;
+    var contacts = [];
+    try {
+      var s = await sb.auth.getSession();
+      var uid = s.data.session && s.data.session.user.id;
+      var me = await sb.from("profiles").select("institution_id").eq("id", uid).maybeSingle();
+      var inst = me.data && me.data.institution_id;
+      var r = await sb.from("profiles").select("full_name,role,phone,institution_id").in("role", ["super_admin", "school_admin"]).eq("is_active", true);
+      contacts = (r.data || []).filter(function (p) { return p.phone && (p.role === "super_admin" || p.institution_id === inst); });
+    } catch (e) { console.warn("Admin contacts:", e); }
+    if (!contacts.length) contacts = FALLBACK;
+    render(contacts);
+  }
+
+  function render(list) {
+    var box = document.getElementById("waContacts");
+    var valid = list.filter(function (c) { return normalize(c.phone); });
+    if (!valid.length) {
+      box.innerHTML = '<div class="notice error">Lambarrada admin-ka weli lama dhigin. Maamulku ha ku daro lambarka telefoonka profile-ka admin-ka, ama lagu qoro FALLBACK ee koodhka.</div>';
+      return;
+    }
+    box.innerHTML = valid.map(function (c, i) {
+      var label = c.role === "super_admin" ? "Super Admin" : "School Admin";
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:1px solid #e5eaf2;border-radius:13px;margin-bottom:10px">' +
+        '<div><strong style="display:block;color:#0B1E63;font-size:13px">' + esc(c.full_name || c.name || label) + '</strong>' +
+        '<span class="pill">' + label + '</span> <span style="font-size:11px;color:#68738a">' + esc(c.phone) + '</span></div>' +
+        '<button type="button" class="btn" data-wa="' + i + '" style="background:#25D366;color:#fff">WhatsApp</button></div>';
+    }).join("");
+    box.onclick = function (e) {
+      var b = e.target.closest("[data-wa]"); if (!b) return;
+      var c = valid[Number(b.dataset.wa)];
+      var text = document.getElementById("waText").value || buildMessage();
+      window.open("https://wa.me/" + normalize(c.phone) + "?text=" + encodeURIComponent(text), "_blank", "noopener");
+    };
+  }
+})();
+</script>
+
