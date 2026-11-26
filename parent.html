@@ -193,3 +193,4 @@ async function refresh(){const b=el("refreshBtn");try{b.disabled=true;b.textCont
 async function logout(){try{const{error}=await sb.auth.signOut();if(error)throw error;location.replace("index.html")}catch(e){setMessage(e.message||"Logout-ku wuu fashilmay.","error")}}
 document.addEventListener("DOMContentLoaded",()=>{buildMenu();el("refreshBtn").addEventListener("click",refresh);el("logoutBtn").addEventListener("click",logout);el("backBtn").addEventListener("click",goHome);initialize()});
 </script></body></html>
+<script src="whatsapp-links.js?v=1"></script>
