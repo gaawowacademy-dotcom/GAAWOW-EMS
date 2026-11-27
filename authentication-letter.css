@@ -156,3 +156,10 @@ th:first-child,td:first-child{width:5%;text-align:center}th:nth-child(2){width:2
  body[data-print-blocked="true"] .document{display:none!important}
  body[data-print-blocked="true"]:before{content:"This document cannot be printed. It is invalid, not financially cleared, or clearance could not be verified.";display:block;padding:60mm 25mm;color:#A32020;font:700 17px Inter,Arial,sans-serif;text-align:center}
 }
+/* ===== OFFICIAL GOLD STAMP V4: big logo, no text ===== */
+.official-seal{background:conic-gradient(from 210deg,#F6E7A2,#D4AF37 18%,#A77C18 38%,#F8E9A7 55%,#C39829 75%,#F6E7A2);box-shadow:0 5px 12px rgba(103,75,9,.35),0 0 0 1px #8B6818,inset 0 0 0 2px #FFF4BE,inset 0 0 0 4px #B58A1E,inset 0 0 0 5.5px #F8E9A7}
+.official-seal:before{content:"";position:absolute;inset:2.5px;border-radius:50%;border:1px dotted rgba(98,70,12,.8);pointer-events:none}
+.seal-ring{padding:4px;border:2px solid #8B6818;background:radial-gradient(circle,#FFFDF2 0,#F3E3A6 100%)}
+.seal-inner{padding:0;gap:0;background:#fff;border:1px solid rgba(98,70,12,.75)}
+.seal-inner strong,.seal-inner span,.seal-inner small{display:none!important}
+.seal-inner img{width:100%;height:100%;margin:0;border-radius:50%;object-fit:contain}
