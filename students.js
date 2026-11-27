@@ -1,9 +1,16 @@
+
 /* =========================================================
    GAAWOW EMS - STUDENTS MANAGEMENT
-   COMPLETE students.js
+   FIXED COMPLETE VERSION
    Institution -> Course -> Academic Year -> Class
-   Student List filters + Class display fix
-   Student registration / editing / photo / account
+   Student list / filters / photo / account management
+
+   Preserves:
+   - Existing Supabase project and publishable key
+   - create_student_with_enrollment RPC
+   - student-photos Storage bucket
+   - create-student-account Edge Function
+   - Existing account request payload
    ========================================================= */
 
 (() => {
@@ -12,13 +19,11 @@
   /* ---------------- CONFIGURATION ---------------- */
 
   const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
-  const ACCOUNT_FUNCTION =
-    SUPABASE_URL + "/functions/v1/create-student-account";
-
+  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjAi5g_RqLCs145";
+  const ACCOUNT_FUNCTION = SUPABASE_URL + "/functions/v1/create-student-account";
   const PHOTO_BUCKET = "student-photos";
 
-  const $ = (id) => document.getElementById(id);
+  const $ = id => document.getElementById(id);
 
   if (!window.supabase) {
     console.error("Supabase library is not loaded.");
@@ -26,10 +31,7 @@
     return;
   }
 
-  const db = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   /* ---------------- STATE ---------------- */
 
@@ -44,11 +46,12 @@
   let selectedStudent = null;
   let currentPhotoUrl = null;
   let isSaving = false;
+  let messageTimer = null;
 
   /* ---------------- HELPERS ---------------- */
 
   function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
       "&": "&amp;",
       "<": "&lt;",
       ">": "&gt;",
@@ -67,17 +70,21 @@
 
   function showMessage(message, type = "success") {
     const box = $("message");
+
     if (!box) {
       alert(message);
       return;
     }
 
+    if (messageTimer) clearTimeout(messageTimer);
+
     box.textContent = message;
     box.className = "message " + type;
     box.style.display = "block";
 
-    window.setTimeout(() => {
+    messageTimer = window.setTimeout(() => {
       box.style.display = "none";
+      box.className = "message";
     }, 6000);
   }
 
@@ -90,23 +97,19 @@
       button.textContent = text;
     } else {
       button.disabled = false;
-      button.textContent =
-        button.dataset.oldText || button.textContent;
+      button.textContent = button.dataset.oldText || button.textContent;
+      delete button.dataset.oldText;
     }
   }
 
   function dateOnly(date) {
-    if (!date) return "";
-    return String(date).slice(0, 10);
+    return date ? String(date).slice(0, 10) : "";
   }
 
   function formatDate(date) {
     if (!date) return "—";
-
     const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return "—";
-
-    return d.toLocaleDateString();
+    return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
   }
 
   function normalizeStatus(status) {
@@ -114,32 +117,21 @@
   }
 
   function getInstitutionName(id) {
-    if (!id) return "Not assigned";
-
     const item = institutions.find(x => x.id === id);
-    return item?.name ||
-      item?.institution_name ||
-      item?.title ||
-      "Not assigned";
+    return item?.name || item?.institution_name || item?.title || "Not assigned";
   }
 
   function getCourseName(id) {
-    if (!id) return "Not assigned";
-
     const item = allCourses.find(x => x.id === id);
     return item?.name || item?.course_name || "Not assigned";
   }
 
   function getClassName(id) {
-    if (!id) return "Not assigned";
-
     const item = allClasses.find(x => x.id === id);
     return item?.name || item?.class_name || "Not assigned";
   }
 
   function getYearName(id) {
-    if (!id) return "";
-
     const item = allAcademicYears.find(x => x.id === id);
     return item?.year_name || "";
   }
@@ -148,37 +140,8 @@
     return enrollments.find(e => e.student_id === studentDbId) || null;
   }
 
-  function getStudentEmail(student) {
-    return student?.email || "";
-  }
-
   function getStudentPhoto(student) {
     return student?.photo_url || "";
-  }
-
-  function getStudentLabel(student) {
-    return student?.full_name || student?.student_id || "Student";
-  }
-
-  function setSelectOptions(elementId, rows, placeholder, labelFn) {
-    const select = $(elementId);
-    if (!select) return;
-
-    const previous = select.value;
-
-    select.innerHTML =
-      '<option value="">' + escapeHTML(placeholder) + "</option>";
-
-    rows.forEach(row => {
-      const option = document.createElement("option");
-      option.value = row.id;
-      option.textContent = labelFn(row);
-      select.appendChild(option);
-    });
-
-    if (previous && rows.some(row => row.id === previous)) {
-      select.value = previous;
-    }
   }
 
   function showProgress(show, percent = 0, message = "") {
@@ -187,11 +150,43 @@
     }
 
     if ($("progressBar")) {
-      $("progressBar").style.width = percent + "%";
+      $("progressBar").style.width = Math.max(0, Math.min(100, percent)) + "%";
     }
 
     if ($("progressText")) {
       $("progressText").textContent = message;
+    }
+  }
+
+  /* ---------------- DROPDOWN HELPER ---------------- */
+
+  function setSelectOptions(elementId, rows, placeholder, labelFn, options = {}) {
+    const select = $(elementId);
+    if (!select) return;
+
+    const previous = select.value;
+    const shouldDisableWhenEmpty = options.disableWhenEmpty !== false;
+
+    select.innerHTML = "";
+
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = placeholder;
+    select.appendChild(first);
+
+    (rows || []).forEach(row => {
+      const option = document.createElement("option");
+      option.value = row.id;
+      option.textContent = labelFn(row);
+      select.appendChild(option);
+    });
+
+    select.disabled = shouldDisableWhenEmpty && (!rows || rows.length === 0);
+
+    if (previous && (rows || []).some(row => String(row.id) === String(previous))) {
+      select.value = previous;
+    } else {
+      select.value = "";
     }
   }
 
@@ -231,44 +226,39 @@
       "institutionSelect",
       institutions,
       "Select institution",
-      label
+      label,
+      { disableWhenEmpty: true }
     );
 
     setSelectOptions(
       "institutionFilter",
       institutions,
       "All institutions",
-      label
+      label,
+      { disableWhenEmpty: false }
     );
   }
 
-  /* ---------------- CASCADING REGISTRATION DROPDOWNS ---------------- */
+  /* ---------------- REGISTRATION DROPDOWNS ---------------- */
 
   function loadRegistrationCourses() {
     const institutionId = value("institutionSelect");
 
     const rows = allCourses.filter(course =>
-      !institutionId || course.institution_id === institutionId
+      institutionId && String(course.institution_id) === String(institutionId)
     );
 
     setSelectOptions(
       "courseSelect",
       rows,
-      "Select course",
+      institutionId ? "Select course" : "Select institution first",
       row => row.name || row.course_name || "Course"
-    );
-
-    setSelectOptions(
-      "academicYearSelect",
-      [],
-      "Select academic year",
-      row => row.year_name
     );
 
     setSelectOptions(
       "classSelect",
       [],
-      "Select class",
+      "Select course and year first",
       row => row.name
     );
   }
@@ -277,20 +267,20 @@
     const institutionId = value("institutionSelect");
 
     const rows = allAcademicYears.filter(year =>
-      !institutionId || year.institution_id === institutionId
+      institutionId && String(year.institution_id) === String(institutionId)
     );
 
     setSelectOptions(
       "academicYearSelect",
       rows,
-      "Select academic year",
-      row => row.year_name
+      institutionId ? "Select academic year" : "Select institution first",
+      row => row.year_name || "Academic Year"
     );
 
     setSelectOptions(
       "classSelect",
       [],
-      "Select class",
+      "Select course and year first",
       row => row.name
     );
   }
@@ -300,19 +290,21 @@
     const courseId = value("courseSelect");
     const yearId = value("academicYearSelect");
 
-    const year = allAcademicYears.find(x => x.id === yearId);
-    const yearName = year?.year_name || "";
+    const selectedYear = allAcademicYears.find(
+      item => String(item.id) === String(yearId)
+    );
+
+    const yearName = String(selectedYear?.year_name || "");
 
     const rows = allClasses.filter(item => {
       const institutionMatch =
-        !institutionId || item.institution_id === institutionId;
+        institutionId && String(item.institution_id) === String(institutionId);
 
       const courseMatch =
-        !courseId || item.course_id === courseId;
+        courseId && String(item.course_id) === String(courseId);
 
       const classYear = String(item.academic_year || "");
-      const yearMatch =
-        !yearName || !classYear || classYear === yearName;
+      const yearMatch = !classYear || !yearName || classYear === yearName;
 
       return institutionMatch && courseMatch && yearMatch;
     });
@@ -320,32 +312,35 @@
     setSelectOptions(
       "classSelect",
       rows,
-      "Select class",
+      !courseId ? "Select course first" :
+        !yearId ? "Select academic year first" : "Select class",
       row => row.name || row.class_name || "Class"
     );
   }
 
-  /* ---------------- STUDENT LIST FILTER DROPDOWNS ---------------- */
+  /* ---------------- FILTER DROPDOWNS ---------------- */
 
   function loadFilterCourses() {
     const institutionId = value("institutionFilter");
 
     const rows = allCourses.filter(course =>
-      !institutionId || course.institution_id === institutionId
+      !institutionId || String(course.institution_id) === String(institutionId)
     );
 
     setSelectOptions(
       "courseFilter",
       rows,
       "All courses",
-      row => row.name || row.course_name || "Course"
+      row => row.name || row.course_name || "Course",
+      { disableWhenEmpty: false }
     );
 
     setSelectOptions(
       "classFilter",
       [],
       "All classes",
-      row => row.name
+      row => row.name,
+      { disableWhenEmpty: false }
     );
   }
 
@@ -355,10 +350,10 @@
 
     const rows = allClasses.filter(item => {
       const institutionMatch =
-        !institutionId || item.institution_id === institutionId;
+        !institutionId || String(item.institution_id) === String(institutionId);
 
       const courseMatch =
-        !courseId || item.course_id === courseId;
+        !courseId || String(item.course_id) === String(courseId);
 
       return institutionMatch && courseMatch;
     });
@@ -367,13 +362,14 @@
       "classFilter",
       rows,
       "All classes",
-      row => row.name || row.class_name || "Class"
+      row => row.name || row.class_name || "Class",
+      { disableWhenEmpty: false }
     );
 
     renderStudents();
   }
 
-  /* ---------------- LOAD STUDENTS AND ENROLLMENTS ---------------- */
+  /* ---------------- LOAD STUDENTS ---------------- */
 
   async function loadStudents() {
     const table = $("studentsTableBody");
@@ -395,19 +391,12 @@
         .order("created_at", { ascending: false }),
 
       db.from("enrollments")
-        .select(
-          "id,institution_id,student_id,course_id,class_id,academic_year_id,enrollment_number,enrollment_date,start_date,end_date,status,created_at"
-        )
+        .select("id,institution_id,student_id,course_id,class_id,academic_year_id,enrollment_number,enrollment_date,start_date,end_date,status,created_at")
         .order("created_at", { ascending: false }),
 
-      db.from("courses")
-        .select("id,institution_id,name,code"),
-
-      db.from("classes")
-        .select("id,institution_id,course_id,name,code,academic_year"),
-
-      db.from("academic_years")
-        .select("id,institution_id,year_name")
+      db.from("courses").select("id,institution_id,name,code"),
+      db.from("classes").select("id,institution_id,course_id,name,code,academic_year"),
+      db.from("academic_years").select("id,institution_id,year_name")
     ]);
 
     if (studentResult.error) throw studentResult.error;
@@ -419,19 +408,15 @@
     allCourses = courseResult.data || [];
     allClasses = classResult.data || [];
     allAcademicYears = yearResult.data || [];
+    enrollments = enrollmentResult.data || [];
 
-    const enrollmentRows = enrollmentResult.data || [];
-
-    // The query is newest first, so the first enrollment is the latest.
     const latestEnrollment = new Map();
 
-    enrollmentRows.forEach(enrollment => {
+    enrollments.forEach(enrollment => {
       if (!latestEnrollment.has(enrollment.student_id)) {
         latestEnrollment.set(enrollment.student_id, enrollment);
       }
     });
-
-    enrollments = enrollmentRows;
 
     students = (studentResult.data || []).map(student => ({
       ...student,
@@ -440,6 +425,7 @@
 
     renderStudents();
     updateStatistics();
+    updateAccountControls();
   }
 
   /* ---------------- STUDENT TABLE ---------------- */
@@ -473,9 +459,9 @@
       ].join(" ").toLowerCase();
 
       if (search && !searchable.includes(search)) return false;
-      if (institutionFilter && institutionId !== institutionFilter) return false;
-      if (courseFilter && courseId !== courseFilter) return false;
-      if (classFilter && classId !== classFilter) return false;
+      if (institutionFilter && String(institutionId) !== String(institutionFilter)) return false;
+      if (courseFilter && String(courseId) !== String(courseFilter)) return false;
+      if (classFilter && String(classId) !== String(classFilter)) return false;
       if (statusFilter && status !== statusFilter) return false;
 
       return true;
@@ -503,10 +489,11 @@
       const status = normalizeStatus(student.status);
 
       const photo = getStudentPhoto(student);
+
       const photoHTML = photo
         ? '<img src="' + escapeHTML(photo) +
-          '" alt="Student" class="student-avatar">'
-        : '<div class="student-avatar placeholder-avatar">' +
+          '" alt="Student" class="student-photo" loading="lazy">'
+        : '<div class="initials">' +
           escapeHTML((student.full_name || "S").charAt(0).toUpperCase()) +
           "</div>";
 
@@ -524,18 +511,20 @@
           <td>${escapeHTML(student.gender || "—")}</td>
           <td>${escapeHTML(student.phone || "—")}</td>
           <td>${escapeHTML(student.email || "—")}</td>
-          <td><span class="status-badge status-${escapeHTML(status)}">${escapeHTML(status)}</span></td>
+          <td><span class="status status-${escapeHTML(status)}">${escapeHTML(status)}</span></td>
           <td>${escapeHTML(formatDate(student.admission_date))}</td>
           <td>
-            <span class="status-badge ${accountActive ? "status-active" : "status-pending"}">
+            <span class="status ${accountActive ? "status-active" : "status-inactive"}">
               ${accountActive ? "Enabled" : "No account"}
             </span>
           </td>
-          <td class="action-buttons">
-            <button type="button" data-action="view" data-id="${escapeHTML(student.id)}" title="View">View</button>
-            <button type="button" data-action="edit" data-id="${escapeHTML(student.id)}" title="Edit">Edit</button>
-            <button type="button" data-action="account" data-id="${escapeHTML(student.id)}" title="Account">Account</button>
-            <button type="button" data-action="delete" data-id="${escapeHTML(student.id)}" title="Delete">Delete</button>
+          <td>
+            <div class="actions">
+              <button type="button" class="btn-small action-view" data-action="view" data-id="${escapeHTML(student.id)}">View</button>
+              <button type="button" class="btn-small action-edit" data-action="edit" data-id="${escapeHTML(student.id)}">Edit</button>
+              <button type="button" class="btn-small action-create-account" data-action="account" data-id="${escapeHTML(student.id)}">Account</button>
+              <button type="button" class="btn-small action-delete" data-action="delete" data-id="${escapeHTML(student.id)}">Delete</button>
+            </div>
           </td>
         </tr>
       `;
@@ -546,14 +535,8 @@
 
   function updateStatistics() {
     const total = students.length;
-    const active = students.filter(s =>
-      normalizeStatus(s.status) === "active"
-    ).length;
-
-    const graduated = students.filter(s =>
-      normalizeStatus(s.status) === "graduated"
-    ).length;
-
+    const active = students.filter(s => normalizeStatus(s.status) === "active").length;
+    const graduated = students.filter(s => normalizeStatus(s.status) === "graduated").length;
     const other = total - active - graduated;
 
     if ($("totalStudents")) $("totalStudents").textContent = total;
@@ -562,11 +545,35 @@
     if ($("otherStudents")) $("otherStudents").textContent = other;
   }
 
+  /* ---------------- ACCOUNT BUTTONS IN FORM ---------------- */
+
+  function updateAccountControls() {
+    const createButton = $("createAccountButton");
+    const resetButton = $("resetPasswordButton");
+    const statusLabel = $("accountStatus");
+
+    const student = selectedStudent;
+    const hasAccount = Boolean(
+      student && (student.auth_user_id || student.account_enabled)
+    );
+
+    if (createButton) createButton.style.display =
+      student && !hasAccount ? "inline-block" : "none";
+
+    if (resetButton) resetButton.style.display =
+      student && hasAccount ? "inline-block" : "none";
+
+    if (statusLabel) {
+      statusLabel.textContent = hasAccount ? "Account Enabled" : "No Account";
+      statusLabel.className = "status " +
+        (hasAccount ? "status-active" : "status-inactive");
+    }
+  }
+
   /* ---------------- PHOTO UPLOAD ---------------- */
 
   async function uploadStudentPhoto(studentDbId) {
-    const input = $("photoInput");
-    const file = input?.files?.[0];
+    const file = $("photoInput")?.files?.[0];
 
     if (!file) return currentPhotoUrl;
 
@@ -578,12 +585,19 @@
       throw new Error("Sawirka waa inuu ka yaraadaa 5MB.");
     }
 
-    const extension =
-      (file.name.split(".").pop() || "jpg").toLowerCase();
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error("Sawirka waa inuu noqdaa JPG, PNG ama WEBP.");
+    }
 
-    const path =
-      "students/" + studentDbId + "/" +
-      crypto.randomUUID() + "." + extension;
+    const extension = file.type === "image/png" ? "png" :
+      file.type === "image/webp" ? "webp" : "jpg";
+
+    const uniqueName = crypto.randomUUID
+      ? crypto.randomUUID()
+      : Date.now() + "-" + Math.random().toString(36).slice(2);
+
+    const path = "students/" + studentDbId + "/" + uniqueName + "." + extension;
 
     const { error: uploadError } = await db.storage
       .from(PHOTO_BUCKET)
@@ -595,16 +609,25 @@
 
     if (uploadError) throw uploadError;
 
-    const { data } = db.storage
-      .from(PHOTO_BUCKET)
-      .getPublicUrl(path);
-
+    const { data } = db.storage.from(PHOTO_BUCKET).getPublicUrl(path);
     return data?.publicUrl || null;
   }
 
   function previewSelectedPhoto() {
     const file = $("photoInput")?.files?.[0];
     if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showMessage("Fadlan dooro sawir sax ah.", "error");
+      $("photoInput").value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showMessage("Sawirka waa inuu ka yaraadaa 5MB.", "error");
+      $("photoInput").value = "";
+      return;
+    }
 
     const reader = new FileReader();
 
@@ -642,44 +665,50 @@
   }
 
   function validateStudentForm(data) {
-    if (!data.institution_id) {
-      throw new Error("Fadlan dooro Institution.");
-    }
+    if (!data.institution_id) throw new Error("Fadlan dooro Institution.");
+    if (!data.course_id) throw new Error("Fadlan dooro Course.");
+    if (!data.academic_year_id) throw new Error("Fadlan dooro Academic Year.");
+    if (!data.class_id) throw new Error("Fadlan dooro Class.");
+    if (!data.full_name) throw new Error("Fadlan geli magaca ardayga.");
+    if (!data.admission_date) throw new Error("Fadlan geli Admission Date.");
 
-    if (!data.course_id) {
-      throw new Error("Fadlan dooro Course.");
-    }
-
-    if (!data.academic_year_id) {
-      throw new Error("Fadlan dooro Academic Year.");
-    }
-
-    if (!data.class_id) {
-      throw new Error("Fadlan dooro Class.");
-    }
-
-    if (!data.full_name) {
-      throw new Error("Fadlan geli magaca ardayga.");
-    }
-
-    if (!data.admission_date) {
-      throw new Error("Fadlan geli Admission Date.");
-    }
-
-    const selectedClass = allClasses.find(
-      item => item.id === data.class_id
+    const selectedCourse = allCourses.find(
+      item => String(item.id) === String(data.course_id)
     );
 
-    if (!selectedClass) {
-      throw new Error("Class-ka la doortay lama helin.");
+    const selectedYear = allAcademicYears.find(
+      item => String(item.id) === String(data.academic_year_id)
+    );
+
+    const selectedClass = allClasses.find(
+      item => String(item.id) === String(data.class_id)
+    );
+
+    if (!selectedCourse) throw new Error("Course-ka la doortay lama helin.");
+    if (!selectedYear) throw new Error("Academic Year-ka la doortay lama helin.");
+    if (!selectedClass) throw new Error("Class-ka la doortay lama helin.");
+
+    if (String(selectedCourse.institution_id) !== String(data.institution_id)) {
+      throw new Error("Course-kan kuma jiro Institution-ka la doortay.");
     }
 
-    if (selectedClass.institution_id !== data.institution_id) {
+    if (String(selectedYear.institution_id) !== String(data.institution_id)) {
+      throw new Error("Academic Year-kan kuma jiro Institution-ka la doortay.");
+    }
+
+    if (String(selectedClass.institution_id) !== String(data.institution_id)) {
       throw new Error("Class-kan kuma jiro Institution-ka la doortay.");
     }
 
-    if (selectedClass.course_id !== data.course_id) {
+    if (String(selectedClass.course_id) !== String(data.course_id)) {
       throw new Error("Class-kan kuma jiro Course-ka la doortay.");
+    }
+
+    const classYear = String(selectedClass.academic_year || "");
+    const yearName = String(selectedYear.year_name || "");
+
+    if (classYear && yearName && classYear !== yearName) {
+      throw new Error("Class-kan kuma jiro Academic Year-ka la doortay.");
     }
   }
 
@@ -704,7 +733,6 @@
 
     if (error) throw error;
 
-    // Support common JSON return shapes from the existing RPC.
     const payload = result || {};
     const studentRecord =
       payload.student || payload.data?.student || payload;
@@ -717,11 +745,10 @@
 
     if (!studentDbId) {
       throw new Error(
-        "Student waa la sameeyay, laakiin RPC response kuma jiro student database ID. Hubi response-ka RPC."
+        "RPC response kuma jiro Student Database ID. Hubi jawaabta RPC-ga ka hor registration kale."
       );
     }
 
-    // Retrieve the newest enrollment created by the RPC.
     const { data: enrollment, error: enrollmentError } = await db
       .from("enrollments")
       .select("id,student_id")
@@ -734,12 +761,10 @@
 
     if (!enrollment?.id) {
       throw new Error(
-        "Student waa la sameeyay, laakiin enrollment lama helin. Ha ku celin registration-ka ilaa la hubiyo."
+        "Student waa la sameeyay, laakiin enrollment lama helin. Ha ku celin registration-ka ilaa xogta la hubiyo."
       );
     }
 
-    // The existing RPC does not accept class_id or academic_year_id.
-    // Link the chosen class/year to the enrollment it just created.
     const { error: linkError } = await db
       .from("enrollments")
       .update({
@@ -756,14 +781,11 @@
       throw new Error(
         "Student waa la sameeyay, laakiin Class/Academic Year laguma xiriirin. " +
         "Enrollment ID: " + enrollment.id +
-        ". Fadlan hubi RLS permission-ka enrollments ka hor intaadan mar kale diiwaangelin."
+        ". Hubi RLS permission-ka enrollments. Ha ku celin registration-ka."
       );
     }
 
-    return {
-      studentDbId,
-      rpcResult: payload
-    };
+    return { studentDbId, rpcResult: payload };
   }
 
   /* ---------------- UPDATE STUDENT ---------------- */
@@ -787,19 +809,19 @@
 
     if (error) throw error;
 
-    // Existing enrollment is deliberately preserved during student editing.
-    // Class/course/year changes should be handled as a separate enrollment action.
+    // Existing enrollment is intentionally not changed during profile editing.
+    // This preserves the existing enrollment workflow and records.
   }
 
   /* ---------------- SAVE STUDENT ---------------- */
 
   async function saveStudent(event) {
     event?.preventDefault();
-
     if (isSaving) return;
 
     const button = $("saveButton");
     const data = getStudentFormData();
+    const wasEditing = Boolean(editingStudentId);
 
     try {
       validateStudentForm(data);
@@ -810,9 +832,8 @@
 
       let studentDbId = editingStudentId;
 
-      if (editingStudentId) {
+      if (wasEditing) {
         await updateStudent(editingStudentId, data);
-        studentDbId = editingStudentId;
       } else {
         const created = await createStudent(data);
         studentDbId = created.studentDbId;
@@ -829,14 +850,14 @@
           .eq("id", studentDbId);
 
         if (photoError) throw photoError;
+        currentPhotoUrl = photoUrl;
       }
 
       showProgress(true, 100, "Finishing...");
 
       showMessage(
-        editingStudentId
-          ? "Student information updated successfully."
-          : "Student registered successfully.",
+        wasEditing ? "Student information updated successfully." :
+          "Student registered successfully.",
         "success"
       );
 
@@ -856,16 +877,20 @@
   /* ---------------- RESET FORM ---------------- */
 
   function resetStudentForm() {
-    const form = $("studentForm");
-    if (form) form.reset();
+    $("studentForm")?.reset();
 
     editingStudentId = null;
+    selectedStudent = null;
     currentPhotoUrl = null;
 
     setValue("editStudentDbId", "");
 
     if ($("saveButton")) {
-      $("saveButton").textContent = "Save Student";
+      $("saveButton").textContent = "Save Student & Enroll";
+    }
+
+    if ($("formTitle")) {
+      $("formTitle").textContent = "Add Student";
     }
 
     if ($("studentId")) {
@@ -882,13 +907,19 @@
       $("photoPlaceholder").style.display = "flex";
     }
 
+    if ($("photoInput")) $("photoInput").value = "";
+
     loadRegistrationCourses();
+    loadRegistrationYears();
+
+    setSelectOptions("classSelect", [], "Select course and year first", row => row.name);
+    updateAccountControls();
   }
 
   /* ---------------- EDIT STUDENT ---------------- */
 
   function editStudent(studentDbId) {
-    const student = students.find(s => s.id === studentDbId);
+    const student = students.find(s => String(s.id) === String(studentDbId));
     if (!student) return;
 
     editingStudentId = student.id;
@@ -908,34 +939,34 @@
     setValue("status", student.status);
     setValue("address", student.address);
 
-    // Show current enrollment selections for reference.
     const institutionId =
       enrollment?.institution_id || student.institution_id || "";
 
     setValue("institutionSelect", institutionId);
     loadRegistrationCourses();
-
     setValue("courseSelect", enrollment?.course_id || "");
+
     loadRegistrationYears();
-
     setValue("academicYearSelect", enrollment?.academic_year_id || "");
-    loadRegistrationClasses();
 
+    loadRegistrationClasses();
     setValue("classSelect", enrollment?.class_id || "");
 
-    if ($("photoPreview") && student.photo_url) {
-      $("photoPreview").src = student.photo_url;
-      $("photoPreview").style.display = "block";
+    if ($("photoPreview")) {
+      $("photoPreview").src = student.photo_url || "";
+      $("photoPreview").style.display = student.photo_url ? "block" : "none";
     }
 
     if ($("photoPlaceholder")) {
-      $("photoPlaceholder").style.display =
-        student.photo_url ? "none" : "flex";
+      $("photoPlaceholder").style.display = student.photo_url ? "none" : "flex";
     }
 
-    if ($("saveButton")) {
-      $("saveButton").textContent = "Update Student";
-    }
+    if ($("photoInput")) $("photoInput").value = "";
+
+    if ($("saveButton")) $("saveButton").textContent = "Update Student";
+    if ($("formTitle")) $("formTitle").textContent = "Edit Student";
+
+    updateAccountControls();
 
     $("studentForm")?.scrollIntoView({
       behavior: "smooth",
@@ -945,65 +976,82 @@
 
   /* ---------------- VIEW STUDENT ---------------- */
 
+  function profileItem(label, content) {
+    return `
+      <div class="profile-item">
+        <strong>${escapeHTML(label)}</strong>
+        <span>${escapeHTML(content || "—")}</span>
+      </div>
+    `;
+  }
+
   function viewStudent(studentDbId) {
-    const student = students.find(s => s.id === studentDbId);
+    const student = students.find(s => String(s.id) === String(studentDbId));
     if (!student) return;
 
     selectedStudent = student;
-
     const enrollment = student.enrollment || getEnrollment(student.id);
 
     const institutionId =
       enrollment?.institution_id || student.institution_id || "";
 
+    const hasAccount = Boolean(student.auth_user_id || student.account_enabled);
+
     const photo = student.photo_url
-      ? '<img src="' + escapeHTML(student.photo_url) +
-        '" alt="Student photo" class="profile-photo">'
-      : "";
+      ? `<img src="${escapeHTML(student.photo_url)}" alt="Student photo" class="profile-photo">`
+      : `<div class="initials" style="width:90px;height:90px;font-size:30px">${escapeHTML((student.full_name || "S").charAt(0).toUpperCase())}</div>`;
 
     const content = `
-      <div class="student-profile-view">
+      <div class="profile-top">
         ${photo}
-        <h3>${escapeHTML(student.full_name || "Student")}</h3>
-        <p><strong>Student ID:</strong> ${escapeHTML(student.student_id || "—")}</p>
-        <p><strong>Institution:</strong> ${escapeHTML(getInstitutionName(institutionId))}</p>
-        <p><strong>Course:</strong> ${escapeHTML(getCourseName(enrollment?.course_id))}</p>
-        <p><strong>Class:</strong> ${escapeHTML(getClassName(enrollment?.class_id))}</p>
-        <p><strong>Academic Year:</strong> ${escapeHTML(getYearName(enrollment?.academic_year_id) || "—")}</p>
-        <p><strong>Gender:</strong> ${escapeHTML(student.gender || "—")}</p>
-        <p><strong>Date of Birth:</strong> ${escapeHTML(formatDate(student.date_of_birth))}</p>
-        <p><strong>Phone:</strong> ${escapeHTML(student.phone || "—")}</p>
-        <p><strong>Email:</strong> ${escapeHTML(student.email || "—")}</p>
-        <p><strong>Admission Date:</strong> ${escapeHTML(formatDate(student.admission_date))}</p>
-        <p><strong>Status:</strong> ${escapeHTML(student.status || "—")}</p>
-        <p><strong>Address:</strong> ${escapeHTML(student.address || "—")}</p>
-        <p><strong>Portal Account:</strong>
-          ${student.auth_user_id || student.account_enabled ? "Enabled" : "Not created"}
-        </p>
+        <div>
+          <div class="profile-name">${escapeHTML(student.full_name || "Student")}</div>
+          <div class="profile-id">${escapeHTML(student.student_id || "No Student ID")}</div>
+          <p style="margin-top:8px">
+            <span class="status ${hasAccount ? "status-active" : "status-inactive"}">
+              ${hasAccount ? "Account Enabled" : "No Account"}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <div class="profile-grid">
+        ${profileItem("Institution", getInstitutionName(institutionId))}
+        ${profileItem("Course", getCourseName(enrollment?.course_id))}
+        ${profileItem("Class", getClassName(enrollment?.class_id))}
+        ${profileItem("Academic Year", getYearName(enrollment?.academic_year_id))}
+        ${profileItem("Gender", student.gender)}
+        ${profileItem("Date of Birth", formatDate(student.date_of_birth))}
+        ${profileItem("Phone", student.phone)}
+        ${profileItem("Email", student.email)}
+        ${profileItem("Admission Date", formatDate(student.admission_date))}
+        ${profileItem("Status", student.status)}
+        ${profileItem("Address", student.address)}
+        ${profileItem("Portal Account", hasAccount ? "Enabled" : "Not created")}
       </div>
     `;
 
-    if ($("profileContent")) {
-      $("profileContent").innerHTML = content;
-    }
+    if ($("profileContent")) $("profileContent").innerHTML = content;
 
     if ($("profileModal")) {
-      $("profileModal").style.display = "flex";
-      $("profileModal").classList.add("open");
+      $("profileModal").classList.add("show");
+      $("profileModal").setAttribute("aria-hidden", "false");
     }
+
+    updateAccountControls();
   }
 
   function closeProfile() {
     if ($("profileModal")) {
-      $("profileModal").style.display = "none";
-      $("profileModal").classList.remove("open");
+      $("profileModal").classList.remove("show");
+      $("profileModal").setAttribute("aria-hidden", "true");
     }
   }
 
   /* ---------------- DELETE STUDENT ---------------- */
 
   async function deleteStudent(studentDbId) {
-    const student = students.find(s => s.id === studentDbId);
+    const student = students.find(s => String(s.id) === String(studentDbId));
     if (!student) return;
 
     const confirmed = window.confirm(
@@ -1036,11 +1084,10 @@
   /* ---------------- EDGE FUNCTION: ACCOUNT ---------------- */
 
   async function getAccessToken() {
-    let { data, error } = await db.auth.getSession();
-
+    const { data, error } = await db.auth.getSession();
     if (error) throw error;
 
-    let token = data?.session?.access_token;
+    const token = data?.session?.access_token;
 
     if (!token) {
       throw new Error("Fadlan marka hore login samee.");
@@ -1068,7 +1115,6 @@
 
     if (response.status === 401) {
       const { data, error } = await db.auth.refreshSession();
-
       if (error) throw error;
 
       token = data?.session?.access_token;
@@ -1090,8 +1136,7 @@
 
     if (!response.ok || result.success === false) {
       throw new Error(
-        result.error ||
-        result.message ||
+        result.error || result.message ||
         "Student account operation failed (" + response.status + ")."
       );
     }
@@ -1102,23 +1147,17 @@
   /* ---------------- CREATE STUDENT ACCOUNT ---------------- */
 
   async function createStudentAccount(studentDbId) {
-    const student = students.find(s => s.id === studentDbId);
+    const student = students.find(s => String(s.id) === String(studentDbId));
     if (!student) throw new Error("Student lama helin.");
 
     if (student.auth_user_id || student.account_enabled) {
       throw new Error("Student-kan account hore ayuu u leeyahay. Isticmaal Reset Password.");
     }
 
-    const email = student.email || window.prompt(
-      "Geli email-ka student-ka:"
-    );
-
+    const email = student.email || window.prompt("Geli email-ka student-ka:");
     if (!email) return;
 
-    const password = window.prompt(
-      "Geli temporary password-ka student-ka:"
-    );
-
+    const password = window.prompt("Geli temporary password-ka student-ka:");
     if (!password) return;
 
     if (password.length < 6) {
@@ -1135,8 +1174,7 @@
     });
 
     showMessage(
-      "Student account waa la sameeyay. " +
-      (result.email || email),
+      "Student account waa la sameeyay. " + (result.email || email),
       "success"
     );
 
@@ -1146,17 +1184,14 @@
   /* ---------------- RESET STUDENT PASSWORD ---------------- */
 
   async function resetStudentPassword(studentDbId) {
-    const student = students.find(s => s.id === studentDbId);
+    const student = students.find(s => String(s.id) === String(studentDbId));
     if (!student) throw new Error("Student lama helin.");
 
     if (!student.auth_user_id && !student.account_enabled) {
       throw new Error("Student-kan account ma laha. Marka hore Create Account samee.");
     }
 
-    const password = window.prompt(
-      "Geli password-ka cusub ee student-ka:"
-    );
-
+    const password = window.prompt("Geli password-ka cusub ee student-ka:");
     if (!password) return;
 
     if (password.length < 6) {
@@ -1179,7 +1214,7 @@
   }
 
   async function handleAccountAction(studentDbId) {
-    const student = students.find(s => s.id === studentDbId);
+    const student = students.find(s => String(s.id) === String(studentDbId));
     if (!student) return;
 
     try {
@@ -1207,7 +1242,6 @@
 
     const action = button.dataset.action;
     const studentDbId = button.dataset.id;
-
     if (!studentDbId) return;
 
     if (action === "view") viewStudent(studentDbId);
@@ -1265,10 +1299,16 @@
 
     $("refreshStudentsButton")?.addEventListener("click", async () => {
       try {
+        await loadReferenceData();
         await loadStudents();
+        loadRegistrationCourses();
+        loadRegistrationYears();
+        loadFilterCourses();
+        loadFilterClasses();
         showMessage("Student list refreshed.", "success");
       } catch (error) {
-        showMessage(error.message, "error");
+        console.error(error);
+        showMessage(error.message || "Refresh failed.", "error");
       }
     });
 
@@ -1333,6 +1373,7 @@
 
       await loadStudents();
 
+      // Initialize dropdowns after reference data and student data are ready.
       loadRegistrationCourses();
       loadRegistrationYears();
       loadFilterCourses();
@@ -1355,10 +1396,7 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener(
-      "DOMContentLoaded",
-      initializeStudentsPage
-    );
+    document.addEventListener("DOMContentLoaded", initializeStudentsPage);
   } else {
     initializeStudentsPage();
   }
