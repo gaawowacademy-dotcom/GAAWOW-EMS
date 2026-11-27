@@ -4,36 +4,141 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0B1E63">
-<title>GAAWOW EMS — Seminar Certificate Generator</title>
+<title>GAAWOW EMS | Seminar Certificate Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Great+Vibes&family=Herr+Von+Muellerhoff&family=Mrs+Saint+Delafield&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Great+Vibes&display=swap');
-*{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#1f2937;font-family:Arial,Helvetica,sans-serif}.topbar{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 3px 12px #0002}.brand{display:flex;align-items:center;gap:12px}.brand img{width:46px;height:46px;object-fit:contain;background:#fff;border-radius:9px;padding:3px}.brand h1{font-size:18px;margin:0}.brand p{font-size:11px;margin:4px 0 0;opacity:.85}.back{border:1px solid #ffffff55;background:#ffffff12;color:#fff;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}.container{max-width:1600px;margin:auto;padding:18px}.grid{display:grid;grid-template-columns:350px minmax(0,1fr);gap:18px;align-items:start}.card{background:#fff;border:1px solid #e3e8f0;border-radius:12px;box-shadow:0 4px 14px #0b1e6310;overflow:hidden}.head{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:14px 16px;font-weight:800}.body{padding:15px}.field{margin-bottom:12px}label{display:block;font-size:11px;font-weight:800;text-transform:uppercase;color:#374151;margin-bottom:5px}input,select,textarea{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:7px;font:13px Arial;background:white}textarea{min-height:64px;resize:vertical}input:focus,select:focus,textarea:focus{outline:2px solid #0b4da233;border-color:#0B4DA2}.readonly{background:#f8fafc}.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}.btn{border:0;border-radius:7px;padding:10px;font-weight:800;font-size:12px;cursor:pointer}.blue{background:#0B4DA2;color:#fff}.gold{background:#D4AF37;color:#111827}.green{background:#16A34A;color:#fff}.light{background:#e5e7eb;color:#111827}.wide{grid-column:1/-1}.msg{display:none;padding:10px;border-radius:7px;font-size:12px;font-weight:700;margin-bottom:12px}.msg.success{display:block;background:#dcfce7;color:#166534}.msg.error{display:block;background:#fee2e2;color:#991b1b}.msg.info{display:block;background:#dbeafe;color:#1e40af}.hint{font-size:10px;color:#64748b;line-height:1.45;margin-top:4px}.preview{background:#111827;padding:12px;border-radius:12px}.preview-wrap{width:100%;overflow:auto;background:#fff;display:flex;justify-content:center}.canvas{display:block;width:100%;height:auto;max-width:1536px}.status{font-size:11px;color:#cbd5e1;margin-top:9px}.section{border-top:1px solid #e5e7eb;margin-top:15px;padding-top:13px;font-size:11px;font-weight:800;color:#0B1E63;text-transform:uppercase}.photo{width:70px;height:70px;object-fit:cover;border-radius:50%;border:2px solid #D4AF37;display:block;margin:0 auto 9px}.hide{display:none}@media(max-width:1050px){.grid{grid-template-columns:1fr}.preview{order:-1}}@media(max-width:600px){.container{padding:10px}.topbar{padding:10px}.brand h1{font-size:15px}.actions{grid-template-columns:1fr 1fr}.preview{padding:5px}}
+:root{--navy:#0B1E63;--deep:#07144A;--blue:#0B4DA2;--gold:#D4AF37;--gold2:#F3E3A6;--bg:#EEF2F9;--line:#E1E7F1;--ink:#1B2740;--muted:#64748B;--green:#16834A}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(900px 380px at 50% -8%,rgba(11,77,162,.14),transparent 70%),var(--bg);color:var(--ink);font-family:Inter,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;color:#fff;background:linear-gradient(135deg,var(--deep),var(--navy) 55%,var(--blue));box-shadow:0 4px 16px rgba(11,30,99,.25);border-bottom:3px solid var(--gold)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand img{width:46px;height:46px;object-fit:contain;background:#fff;border:2px solid var(--gold);border-radius:50%;padding:3px}
+.brand h1{margin:0;font-size:18px;letter-spacing:.3px}.brand p{margin:3px 0 0;font-size:11px;color:var(--gold2)}
+.back{border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;border-radius:9px;padding:9px 13px;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap}
+.container{max-width:1600px;margin:auto;padding:20px 16px 40px}
+.grid{display:grid;grid-template-columns:400px minmax(0,1fr);gap:20px;align-items:start}
+.panel{display:grid;gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 6px 20px rgba(11,30,99,.07);overflow:hidden}
+.head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fff,#F8FAFD);color:var(--navy);font-weight:800;font-size:13px;letter-spacing:.3px}
+.step{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,var(--deep),var(--blue));color:var(--gold);font-size:11px;font-weight:800}
+.body{padding:15px 16px}
+.field{margin-bottom:12px}.field:last-child{margin-bottom:0}
+label{display:block;margin-bottom:5px;color:#475569;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid #D2DAE7;border-radius:10px;background:#fff;color:var(--ink);font:14px Arial,sans-serif;transition:.15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(11,77,162,.13)}
+textarea{min-height:64px;resize:vertical}
+.readonly{background:#F5F7FB;color:#56627A}
+input[type=color]{height:42px;padding:4px;cursor:pointer}
+input[type=file]{padding:9px;font-size:12px}
+input[type=range]{padding:0;height:26px;accent-color:var(--blue);border:0;box-shadow:none}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{margin:6px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
+.check{display:flex;align-items:center;gap:8px;margin:0 0 10px;text-transform:none;font-size:13px;color:var(--ink);letter-spacing:0;font-weight:700}
+.check input{width:18px;height:18px;accent-color:var(--blue)}
+.photo{display:block;width:72px;height:72px;margin:0 auto 10px;border:3px solid var(--gold);border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px var(--gold2)}
+.hide{display:none}
+details.card summary{list-style:none;cursor:pointer}details.card summary::-webkit-details-marker{display:none}
+details.card summary:after{content:"▾";margin-left:auto;color:var(--muted)}
+details[open].card summary:after{content:"▴"}
+.slider{display:grid;grid-template-columns:92px 1fr 44px;align-items:center;gap:8px;margin-bottom:4px;font-size:11px;color:var(--muted);font-weight:700}
+.slider b{color:var(--navy);text-align:right;font-size:11px}
+.gen .body{background:linear-gradient(180deg,#FFFDF6,#fff)}
+.gen{border:1px solid #E6D493;box-shadow:0 8px 24px rgba(212,175,55,.18)}
+.gen .head{background:linear-gradient(135deg,var(--deep),var(--navy) 55%,var(--blue));color:#fff}
+.gen .head .step{background:var(--gold);color:var(--deep)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.btn{border:0;border-radius:11px;padding:12px 10px;font-weight:800;font-size:13px;cursor:pointer;transition:.15s;box-shadow:0 3px 8px rgba(11,30,99,.14)}
+.btn:hover:not(:disabled){transform:translateY(-1px)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.blue{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff}
+.gold{background:linear-gradient(135deg,#C39829,var(--gold));color:#2B2106}
+.green{background:linear-gradient(135deg,#10542D,var(--green));color:#fff}
+.light{background:#E8EDF5;color:var(--navy);box-shadow:none}
+.wide{grid-column:1/-1}
+.msg{display:none;padding:12px 14px;border-radius:11px;margin-bottom:14px;font-size:13px;font-weight:700;line-height:1.5;overflow-wrap:anywhere}
+.msg.success{display:block;background:#DCFCE7;color:#166534}.msg.error{display:block;background:#FEE2E2;color:#991B1B}.msg.info{display:block;background:#DBEAFE;color:#1E40AF}
+.preview{position:sticky;top:14px;padding:14px;border-radius:18px;background:linear-gradient(160deg,#0B1330,#14224E);box-shadow:0 12px 36px rgba(11,30,99,.3);border:1px solid rgba(212,175,55,.5)}
+.preview-wrap{overflow:auto;border-radius:10px;background:#fff;box-shadow:0 0 0 3px var(--gold),0 8px 24px rgba(0,0,0,.35)}
+.canvas{display:block;width:100%;height:auto;max-width:1536px}
+.status{margin-top:11px;color:#CBD5E1;font-size:11px;text-align:center}
+@media(max-width:1050px){.grid{grid-template-columns:1fr}.preview{position:static;order:-1}}
+@media(max-width:560px){.container{padding:12px 10px 32px}.topbar{padding:10px 12px}.brand h1{font-size:15px}.two{grid-template-columns:1fr}.slider{grid-template-columns:78px 1fr 40px}.preview{padding:8px}}
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand"><img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy"><div><h1>GAAWOW EMS</h1><p>Seminar Certificate Generator</p></div></div><button class="back" id="backBtn">← Dashboard</button></header>
-<main class="container"><div id="message" class="msg" role="status" aria-live="polite"></div><div class="grid">
-<section class="card"><div class="head">Academic Seminar Certificate</div><div class="body">
-<div class="field"><label>Institution</label><select id="institution"><option value="">Loading institutions…</option></select></div>
-<div class="field"><label>Student</label><select id="student"><option value="">Select institution first</option></select></div>
+<header class="topbar"><div class="brand"><img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy"><div><h1>GAAWOW EMS</h1><p>Seminar Certificate Generator</p></div></div><button class="back" id="backBtn" type="button">← Dashboard</button></header>
+
+<main class="container">
+<div id="message" class="msg" role="status" aria-live="polite"></div>
+<div class="grid">
+<div class="panel">
+
+<section class="card"><div class="head"><span class="step">1</span>Recipient</div><div class="body">
+<div class="field"><label for="institution">Institution</label><select id="institution"><option value="">Loading institutions…</option></select></div>
+<div class="field"><label for="student">Student</label><select id="student"><option value="">Select institution first</option></select></div>
 <div id="photoWrap" class="hide"><img id="studentPhoto" class="photo" alt="Student photo"></div>
-<div class="field"><label>Recipient Name</label><input id="recipient" readonly class="readonly"></div>
-<div class="field"><label>Seminar Title</label><input id="seminarTitle" placeholder="e.g. Infection Prevention and Control"></div>
-<div class="field"><label>Seminar Description (optional)</label><textarea id="seminarDescription" placeholder="Brief description of seminar topics"></textarea></div>
-<div class="two"><div class="field"><label>Seminar Date</label><input id="seminarDate" type="date"></div><div class="field"><label>Venue</label><input id="venue" placeholder="Burhakaba, Bay"></div></div>
-<div class="two"><div class="field"><label>Certificate Number</label><input id="certificateNo" readonly class="readonly"></div><div class="field"><label>Issue Date</label><input id="issueDate" type="date"></div></div>
-<div class="field"><label>Verification Code</label><input id="verifyCode" readonly class="readonly"></div>
-<div class="section">Signatory Details</div>
-<div class="field"><label>Academic Registrar</label><input id="registrar" placeholder="Academic Registrar name"></div>
-<div class="field"><label>G-Director / Founder</label><input id="director" placeholder="G-Director / Founder name"></div>
-<div class="section">Text Styling</div><div class="two"><div class="field"><label>Recipient / Title colour</label><input id="nameColor" type="color" value="#0A1A44"></div><div class="field"><label>Details colour</label><input id="infoColor" type="color" value="#111827"></div></div>
-<div class="actions"><button class="btn blue" id="previewBtn">Generate Preview</button><button class="btn gold" id="saveBtn">Save Certificate</button><button class="btn green" id="pngBtn">Download PNG</button><button class="btn light" id="pdfBtn">Download PDF</button><button class="btn light wide" id="printBtn">Print Certificate</button><button class="btn light wide" id="verifyBtn">Verify Online</button></div>
-<p class="hint">Save is enabled only after the seminar_certificates database table is created and a signed-in user has institution-management permission. This module does not change existing certificate records.</p>
+<div class="field"><label for="recipient">Recipient name</label><input id="recipient" readonly class="readonly"></div>
 </div></section>
+
+<section class="card"><div class="head"><span class="step">2</span>Seminar details</div><div class="body">
+<div class="field"><label for="seminarTitle">Seminar title</label><input id="seminarTitle" placeholder="e.g. Infection Prevention and Control"></div>
+<div class="field"><label for="seminarDescription">Description (optional)</label><textarea id="seminarDescription" placeholder="Brief description of seminar topics"></textarea></div>
+<div class="two"><div class="field"><label for="seminarDate">Seminar date</label><input id="seminarDate" type="date"></div><div class="field"><label for="venue">Venue</label><input id="venue" placeholder="Burhakaba, Bay"></div></div>
+<div class="two"><div class="field"><label for="certificateNo">Certificate no.</label><input id="certificateNo" readonly class="readonly"></div><div class="field"><label for="issueDate">Issue date</label><input id="issueDate" type="date"></div></div>
+<div class="field"><label for="verifyCode">Verification code</label><input id="verifyCode" readonly class="readonly"></div>
+</div></section>
+
+<section class="card"><div class="head"><span class="step">3</span>Signatories</div><div class="body">
+<div class="field"><label for="registrar">Academic Registrar</label><input id="registrar" value="Eng. Moscab Osmaan Mohamed"></div>
+<div class="field"><label for="director">Director / Founder</label><input id="director" value="Dr. Osmaan Mohamed Ibraahin"></div>
+<label class="check"><input type="checkbox" id="lySigOn" checked> Show handwritten signatures</label>
+<p class="hint">Signatures are written automatically from the names above in an official handwriting font.</p>
+</div></section>
+
+<section class="card"><div class="head"><span class="step">4</span>Student photo</div><div class="body">
+<label class="check"><input type="checkbox" id="lyPhotoOn" checked> Show photo on the certificate</label>
+<div class="field"><label for="photoFile">Upload a photo (optional)</label><input id="photoFile" type="file" accept="image/jpeg,image/png,image/webp"></div>
+<button class="btn light wide" id="photoReset" type="button" style="width:100%">Use the student's saved photo</button>
+<p class="hint">By default the student's photo from EMS is used. An uploaded photo replaces it for this certificate only.</p>
+</div></section>
+
+<details class="card"><summary class="head"><span class="step">5</span>Position &amp; style</summary><div class="body">
+<div class="two"><div class="field"><label for="nameColor">Name / title colour</label><input id="nameColor" type="color" value="#0A1A44"></div><div class="field"><label for="infoColor">Details colour</label><input id="infoColor" type="color" value="#111827"></div></div>
+<div class="slider">Photo X<input type="range" id="lyPhotoX" min="0" max="1536"><b></b></div>
+<div class="slider">Photo Y<input type="range" id="lyPhotoY" min="0" max="857"><b></b></div>
+<div class="slider">Photo size<input type="range" id="lyPhotoSize" min="70" max="300"><b></b></div>
+<div class="slider">Registrar X<input type="range" id="lyRegX" min="0" max="1536"><b></b></div>
+<div class="slider">Registrar Y<input type="range" id="lyRegY" min="0" max="857"><b></b></div>
+<div class="slider">Director X<input type="range" id="lyDirX" min="0" max="1536"><b></b></div>
+<div class="slider">Director Y<input type="range" id="lyDirY" min="0" max="857"><b></b></div>
+<div class="slider">Signature size<input type="range" id="lySigSize" min="24" max="80"><b></b></div>
+<label class="check" style="margin-top:8px"><input type="checkbox" id="lyNamesOn"> Print typed names under signatures</label>
+<button class="btn light" id="lyReset" type="button" style="width:100%">Reset positions</button>
+<p class="hint">Move the sliders until the photo and signatures sit exactly where you want. Your layout is remembered on this device.</p>
+</div></details>
+
+<section class="card gen"><div class="head"><span class="step">6</span>Generate</div><div class="body">
+<div class="actions">
+<button class="btn blue" id="previewBtn" type="button">Generate Preview</button>
+<button class="btn gold" id="saveBtn" type="button">Save Certificate</button>
+<button class="btn green" id="pngBtn" type="button">Download PNG</button>
+<button class="btn light" id="pdfBtn" type="button">Download PDF</button>
+<button class="btn light wide" id="printBtn" type="button">Print Certificate</button>
+<button class="btn light wide" id="verifyBtn" type="button">Verify Online</button>
+</div>
+<p class="hint">Save works after the seminar_certificates table exists and you are signed in with permission. Existing certificates are never changed.</p>
+</div></section>
+
+</div>
+
 <section class="preview"><div class="preview-wrap"><canvas id="canvas" width="1536" height="857" class="canvas"></canvas></div><div id="previewStatus" class="status">Loading seminar certificate template…</div></section>
-</div></main>
+</div>
+</main>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="./seminar-certificate.js?v=2"></script>
-</body></html>
+<script src="./seminar-certificate.js?v=3"></script>
+<script src="./seminar-certificate-extras.js?v=1"></script>
+</body>
+</html>
