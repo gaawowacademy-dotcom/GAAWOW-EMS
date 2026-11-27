@@ -93,20 +93,20 @@
   }
 
   function getInstitutionName(id) {
-    return institutions.find(x => x.id === id)?.name || "Not assigned";
-  }
+  return institutions.find(x => x.id === id)?.name || "Not assigned";
+}
 
-  function getCourseName(id) {
-    return courses.find(x => x.id === id)?.name || "Not assigned";
-  }
+function getCourseName(id) {
+  return allCourses.find(x => x.id === id)?.name || "Not assigned";
+}
 
-  function getClassName(id) {
-    return classes.find(x => x.id === id)?.name || "Not assigned";
-  }
+function getClassName(id) {
+  return allClasses.find(x => x.id === id)?.name || "Not assigned";
+}
 
-  function getYearName(id) {
-    return years.find(x => x.id === id)?.year_name || "";
-  }
+function getYearName(id) {
+  return allAcademicYears.find(x => x.id === id)?.year_name || "";
+}
 
   async function loadInstitutions() {
     const {data, error} = await db
