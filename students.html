@@ -3,16 +3,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0B1E63">
 <link rel="manifest" href="./manifest.json">
-<title>GAAWOW EMS — Students</title>
+<title>GAAWOW EMS | Students</title>
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,Helvetica,sans-serif;background:#f5f7fa;color:#1f2937}
 button,input,select,textarea{font:inherit}
-.header{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:50;box-shadow:0 4px 15px rgba(0,0,0,.15)}
+.header{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:50;box-shadow:0 4px 15px #0002}
 .brand{display:flex;align-items:center;gap:12px}
 .brand img{width:48px;height:48px;object-fit:contain;background:#fff;border-radius:11px;padding:4px}
 .brand h1{font-size:19px}
@@ -22,35 +22,34 @@ button,input,select,textarea{font:inherit}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}
 .topbar h2{color:#0B1E63;font-size:24px}
 .topbar p{color:#6b7280;font-size:13px;margin-top:4px}
-.toolbar{display:flex;gap:9px;flex-wrap:wrap}
+.toolbar,.form-actions,.account-tools{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
 .btn{border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:700}
 .btn-primary{background:#0B4DA2;color:#fff}
 .btn-secondary{background:#fff;color:#0B1E63;border:1px solid #dbe2ea}
 .btn-danger{background:#dc2626;color:#fff}
 .btn:disabled{opacity:.55;cursor:not-allowed}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
-.stat{background:#fff;border-radius:14px;padding:17px;box-shadow:0 5px 18px rgba(0,0,0,.06);border-top:4px solid #0B4DA2}
+.stat{background:#fff;border-radius:14px;padding:17px;box-shadow:0 5px 18px #0001;border-top:4px solid #0B4DA2}
 .stat:nth-child(2){border-top-color:#16A34A}
 .stat:nth-child(3){border-top-color:#D4AF37}
 .stat:nth-child(4){border-top-color:#7C3AED}
 .stat span{display:block;color:#6b7280;font-size:12px;margin-bottom:5px}
 .stat strong{font-size:25px;color:#0B1E63}
-.panel{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:0 5px 18px rgba(0,0,0,.05)}
+.panel{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:20px;margin-bottom:18px;box-shadow:0 5px 18px #0000000d}
 .panel h3{color:#0B1E63;margin-bottom:15px}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
 .field{display:flex;flex-direction:column;gap:6px}
 .field label{font-size:12px;font-weight:700;color:#374151}
 .field input,.field select,.field textarea{width:100%;border:1px solid #d1d5db;border-radius:9px;padding:10px 11px;background:#fff;outline:none}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:#0B4DA2;box-shadow:0 0 0 3px rgba(11,77,162,.1)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#0B4DA2;box-shadow:0 0 0 3px #0b4da21a}
 .field textarea{min-height:82px;resize:vertical}
 .span-2{grid-column:span 2}
 .span-4{grid-column:1/-1}
 .field-hint{font-size:11px;color:#64748b;line-height:1.5}
-.photo-box{display:flex;gap:14px;align-items:center}
-.photo-preview{width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #e5e7eb;background:#eef2f7;display:none}
-.photo-placeholder{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#eef2f7;color:#6b7280;font-size:32px}
-.form-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:16px}
-.account-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.photo-box{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.photo-preview,.photo-placeholder{width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #e5e7eb;background:#eef2f7}
+.photo-preview{display:none}
+.photo-placeholder{display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:32px}
 .status{display:inline-flex;align-items:center;border-radius:20px;padding:5px 9px;font-size:11px;font-weight:800}
 .status-active{background:#dcfce7;color:#166534}
 .status-inactive{background:#fee2e2;color:#991b1b}
@@ -59,17 +58,18 @@ button,input,select,textarea{font:inherit}
 .progress-bar-inner{height:100%;width:0;background:#0B4DA2;transition:width .2s}
 .progress-text{font-size:11px;color:#6b7280;margin-top:5px}
 .message{display:none;padding:12px 14px;border-radius:10px;margin-bottom:15px;white-space:pre-wrap;font-size:13px}
-.message.success{display:block;background:#dcfce7;color:#166534}
-.message.error{display:block;background:#fee2e2;color:#991b1b}
-.message.warning{display:block;background:#fef3c7;color:#92400e}
-.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-.filters input,.filters select{border:1px solid #d1d5db;border-radius:9px;padding:10px 11px;background:#fff}
+.message.success,.message.error,.message.warning{display:block}
+.message.success{background:#dcfce7;color:#166534}
+.message.error{background:#fee2e2;color:#991b1b}
+.message.warning{background:#fef3c7;color:#92400e}
+.filters{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.filters input,.filters select{width:100%;border:1px solid #d1d5db;border-radius:9px;padding:10px 11px;background:#fff;min-width:0}
 .students-table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.students-table{width:100%;min-width:1100px;border-collapse:collapse}
+.students-table{width:100%;min-width:1450px;border-collapse:collapse}
 .students-table th,.students-table td{padding:11px 9px;border-bottom:1px solid #edf0f4;text-align:left;font-size:12px;vertical-align:middle;white-space:nowrap}
 .students-table th{background:#f8fafc;color:#475569;font-size:11px;text-transform:uppercase}
-.student-photo{width:42px;height:42px;border-radius:50%;object-fit:cover}
-.initials{width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#e8eef8;color:#0B1E63;font-weight:800}
+.student-photo,.initials{width:42px;height:42px;border-radius:50%;object-fit:cover}
+.initials{display:inline-flex;align-items:center;justify-content:center;background:#e8eef8;color:#0B1E63;font-weight:800}
 .actions{display:flex;flex-wrap:wrap;gap:6px;min-width:255px}
 .btn-small{border:0;border-radius:7px;padding:7px 9px;cursor:pointer;font-size:11px;font-weight:700}
 .action-view{background:#e0ecff;color:#0B4DA2}
@@ -78,7 +78,7 @@ button,input,select,textarea{font:inherit}
 .action-reset-password{background:#fef3c7;color:#92400e}
 .action-delete{background:#fee2e2;color:#991b1b}
 .empty{text-align:center!important;color:#6b7280;padding:28px!important}
-.modal{position:fixed;inset:0;background:rgba(2,6,23,.62);display:none;align-items:center;justify-content:center;padding:18px;z-index:100}
+.modal{position:fixed;inset:0;background:#0206179e;display:none;align-items:center;justify-content:center;padding:18px;z-index:100}
 .modal.show{display:flex}
 .modal-card{background:#fff;border-radius:16px;width:min(760px,100%);max-height:90vh;overflow:auto;padding:22px;position:relative}
 .modal-close{position:absolute;right:12px;top:10px;border:0;background:transparent;font-size:28px;cursor:pointer;color:#64748b}
@@ -89,24 +89,10 @@ button,input,select,textarea{font:inherit}
 .profile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .profile-item{background:#f8fafc;border-radius:10px;padding:12px}
 .profile-item strong{display:block;color:#64748b;font-size:10px;text-transform:uppercase;margin-bottom:4px}
-.profile-item span{font-size:13px}
+.profile-item span{font-size:13px;overflow-wrap:anywhere}
 .footer{text-align:center;color:#64748b;font-size:11px;padding:15px}
-@media(max-width:950px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.span-4{grid-column:1/-1}}
-@media(max-width:600px){
-.header{padding:12px 14px}
-.brand img{width:42px;height:42px}
-.brand h1{font-size:16px}
-.badge{font-size:9px}
-.container{padding:16px 12px 35px}
-.topbar{align-items:flex-start;flex-direction:column}
-.stats{grid-template-columns:1fr 1fr;gap:9px}
-.stat{padding:13px}
-.stat strong{font-size:21px}
-.grid{grid-template-columns:1fr}
-.span-2,.span-4{grid-column:auto}
-.panel{padding:15px}
-.profile-grid{grid-template-columns:1fr}
-}
+@media(max-width:950px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){.header{padding:12px 14px}.brand img{width:42px;height:42px}.brand h1{font-size:16px}.container{padding:16px 12px 35px}.topbar{align-items:flex-start;flex-direction:column}.stats{grid-template-columns:1fr 1fr;gap:9px}.stat{padding:13px}.stat strong{font-size:21px}.grid{grid-template-columns:1fr}.span-2,.span-4{grid-column:auto}.panel{padding:15px}.filters{grid-template-columns:1fr 1fr}.profile-grid{grid-template-columns:1fr}}
 </style>
 </head>
 
@@ -119,7 +105,7 @@ button,input,select,textarea{font:inherit}
       <p>Education Management & Verification System</p>
     </div>
   </div>
-  <div class="badge">SUPER ADMIN</div>
+  <div class="badge">STUDENT MANAGEMENT</div>
 </header>
 
 <main class="container">
@@ -145,7 +131,6 @@ button,input,select,textarea{font:inherit}
 
   <section class="panel">
     <h3 id="formTitle">Add Student</h3>
-
     <form id="studentForm" novalidate>
       <input type="hidden" id="editStudentDbId">
 
@@ -162,13 +147,25 @@ button,input,select,textarea{font:inherit}
           <select id="courseSelect" required disabled>
             <option value="">Select institution first</option>
           </select>
-          <span id="courseHint" class="field-hint">Choose the course the student is registering for.</span>
+        </div>
+
+        <div class="field">
+          <label for="academicYearSelect">Academic Year *</label>
+          <select id="academicYearSelect" required disabled>
+            <option value="">Select institution first</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="classSelect">Class *</label>
+          <select id="classSelect" required disabled>
+            <option value="">Select course and year first</option>
+          </select>
         </div>
 
         <div class="field">
           <label for="studentId">Student ID</label>
           <input id="studentId" type="text" readonly placeholder="Generated automatically">
-          <span class="field-hint">Generated by the database when the student is saved.</span>
         </div>
 
         <div class="field">
@@ -197,7 +194,7 @@ button,input,select,textarea{font:inherit}
 
         <div class="field">
           <label for="email">Email / Login Username</label>
-          <input id="email" type="email" autocomplete="email" placeholder="student@example.com">
+          <input id="email" type="email" autocomplete="email">
         </div>
 
         <div class="field">
@@ -234,11 +231,10 @@ button,input,select,textarea{font:inherit}
       <div class="form-actions">
         <button id="saveButton" type="submit" class="btn btn-primary">Save Student & Enroll</button>
         <button id="resetFormButton" type="button" class="btn btn-secondary">Clear</button>
-
         <div class="account-tools">
           <span id="accountStatus" class="status status-inactive">No Account</span>
-          <button id="createAccountButton" type="button" class="btn btn-primary" style="display:none">🔐 Create Account</button>
-          <button id="resetPasswordButton" type="button" class="btn btn-secondary" style="display:none">🔑 Reset Password</button>
+          <button id="createAccountButton" type="button" class="btn btn-primary" style="display:none">Create Account</button>
+          <button id="resetPasswordButton" type="button" class="btn btn-secondary" style="display:none">Reset Password</button>
         </div>
       </div>
 
@@ -252,7 +248,18 @@ button,input,select,textarea{font:inherit}
   <section class="panel">
     <h3>Students List</h3>
     <div class="filters">
-      <input id="searchInput" type="search" placeholder="Search name, ID, phone, email...">
+      <select id="institutionFilter">
+        <option value="">All Institutions</option>
+      </select>
+
+      <select id="courseFilter" disabled>
+        <option value="">All Courses</option>
+      </select>
+
+      <select id="classFilter" disabled>
+        <option value="">All Classes</option>
+      </select>
+
       <select id="statusFilter">
         <option value="">All Statuses</option>
         <option value="active">Active</option>
@@ -261,19 +268,25 @@ button,input,select,textarea{font:inherit}
         <option value="suspended">Suspended</option>
         <option value="withdrawn">Withdrawn</option>
       </select>
+
+      <input id="searchInput" type="search" placeholder="Search name, ID, phone, email...">
+      <button type="button" id="resetFiltersButton" class="btn btn-secondary">Reset Filters</button>
     </div>
+
+    <p id="filterCount" class="field-hint" style="margin-bottom:12px">Loading students...</p>
 
     <div class="students-table-scroll">
       <table class="students-table">
         <thead>
           <tr>
-            <th>Photo</th><th>Student ID</th><th>Name</th><th>Gender</th>
-            <th>Phone</th><th>Email</th><th>Status</th><th>Admission</th>
-            <th>Account</th><th>Actions</th>
+            <th>Photo</th><th>Student ID</th><th>Name</th>
+            <th>Institution</th><th>Course</th><th>Class</th>
+            <th>Gender</th><th>Phone</th><th>Email</th>
+            <th>Status</th><th>Admission</th><th>Account</th><th>Actions</th>
           </tr>
         </thead>
         <tbody id="studentsTableBody">
-          <tr><td colspan="10" class="empty">Loading students...</td></tr>
+          <tr><td colspan="13" class="empty">Loading students...</td></tr>
         </tbody>
       </table>
     </div>
@@ -290,20 +303,16 @@ button,input,select,textarea{font:inherit}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./students.js?v=8"></script>
-
+<script src="./students.js?v=10"></script>
 <script>
 (function(){
-  "use strict";
   if("serviceWorker" in navigator){
     window.addEventListener("load",function(){
       navigator.serviceWorker.register("./service-worker.js")
-        .then(reg=>console.log("GAAWOW EMS PWA registered:",reg.scope))
         .catch(err=>console.error("PWA registration failed:",err));
     });
   }
 })();
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="students.js?v=9"></script>
+</script>
 </body>
 </html>
