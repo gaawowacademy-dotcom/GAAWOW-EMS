@@ -1,450 +1,1352 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0B1E63">
-<meta name="description" content="Secure GAAWOW EMS student portal for academic information, published results, certificates and payments.">
-<title>GAAWOW EMS | Student Portal V14</title>
+<meta name="description" content="GAAWOW EMS Student Portal">
+<title>GAAWOW EMS | Student Portal V15</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.min.js"></script>
+
 <style>
+:root{
+ --navy:#0B1E63;--blue:#0B4DA2;--gold:#D4AF37;
+ --green:#16834A;--red:#B91C1C;--bg:#F5F7FA;
+ --text:#172033;--muted:#64748B;--border:#E5EAF2;
+}
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f7fb;color:#172033}
-.header{background:linear-gradient(135deg,#0B1E63,#0B4DA2);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:15px}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 .brand{display:flex;align-items:center;gap:12px}
 .brand img{width:46px;height:46px;background:#fff;border-radius:10px;padding:4px;object-fit:contain}
 .brand h1{font-size:18px;margin:0}
-.brand p{font-size:11px;color:#f0c94a;margin:4px 0 0}
-.portal-tag{font-size:11px;font-weight:800;background:#D4AF37;color:#172033;padding:7px 10px;border-radius:18px}
-.logout{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;padding:9px 13px;border-radius:9px;cursor:pointer}
+.brand p{font-size:11px;color:#f0d36c;margin:4px 0 0}
+.header-right{display:flex;align-items:center;gap:10px}
+.portal-tag{font-size:10px;font-weight:800;background:var(--gold);color:#172033;padding:7px 10px;border-radius:20px}
+.logout{border:1px solid #ffffff66;background:#ffffff15;color:#fff;padding:9px 13px;border-radius:9px}
 .wrap{max-width:1200px;margin:auto;padding:18px 14px 45px}
-.message{display:none;padding:12px 14px;border-radius:10px;margin-bottom:15px;font-size:13px}
+.message{display:none;padding:12px 14px;border-radius:10px;margin-bottom:15px;font-size:13px;overflow-wrap:anywhere}
 .message.error{display:block;background:#fee2e2;color:#991b1b}
 .message.success{display:block;background:#dcfce7;color:#166534}
-.loading{text-align:center;padding:45px;color:#64748b}
-.hero,.section,.card{background:#fff;box-shadow:0 5px 18px rgba(0,0,0,.05)}
-.hero{border-radius:16px;padding:20px;margin-bottom:18px;border-left:4px solid #D4AF37}
+.loading{text-align:center;padding:45px;color:var(--muted)}
+.hero,.section,.card,.portal-nav{background:#fff;box-shadow:0 5px 18px #00000008}
+.hero{border-radius:16px;padding:20px;margin-bottom:18px;border-left:4px solid var(--gold)}
 .student-head{display:flex;gap:15px;align-items:center}
-.avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;background:#e8eef8;display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:800;color:#0B1E63;overflow:hidden;flex-shrink:0}
-.hero h2{margin:0;color:#0B1E63}
-.hero p{margin:5px 0;color:#64748b;font-size:13px}
+.avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;background:#e8eef8;display:flex;align-items:center;justify-content:center;font-size:25px;font-weight:800;color:var(--navy);overflow:hidden;flex-shrink:0}
+.hero h2{margin:0;color:var(--navy)}
+.hero p{margin:5px 0;color:var(--muted);font-size:13px}
 .badge{display:inline-block;padding:6px 10px;border-radius:20px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:18px}
-.card{border-radius:14px;padding:15px;border-top:4px solid #0B4DA2;min-width:0}
-.card:nth-child(2){border-top-color:#D4AF37}
+.card{border-radius:14px;padding:15px;border-top:4px solid var(--blue);min-width:0}
+.card:nth-child(2){border-top-color:var(--gold)}
 .card:nth-child(3){border-top-color:#16A34A}
 .card:nth-child(4){border-top-color:#7C3AED}
-.card small{display:block;color:#64748b;font-size:11px;text-transform:uppercase}
-.card strong{display:block;margin-top:6px;font-size:18px;color:#0B1E63;overflow-wrap:anywhere}
-.section{border-radius:14px;padding:18px;margin-bottom:18px}
-.section h3{margin:0 0 14px;color:#0B1E63}
+.card small{display:block;color:var(--muted);font-size:11px;text-transform:uppercase}
+.card strong{display:block;margin-top:6px;font-size:18px;color:var(--navy);overflow-wrap:anywhere}
+.section{border-radius:14px;padding:18px;margin-bottom:18px;min-width:0}
+.section h3{margin:0 0 14px;color:var(--navy)}
 .info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .item{background:#f8fafc;border-radius:10px;padding:12px;min-width:0}
-.item b{display:block;color:#64748b;font-size:10px;text-transform:uppercase;margin-bottom:5px}
+.item b{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;margin-bottom:5px}
 .item span{font-size:13px;overflow-wrap:anywhere}
 .table-wrap{overflow-x:auto}
 .table{width:100%;border-collapse:collapse;min-width:650px}
-.table th,.table td{padding:10px 9px;border-bottom:1px solid #edf0f4;text-align:left;font-size:12px}
+.table th,.table td{padding:10px 9px;border-bottom:1px solid #edf0f4;text-align:left;font-size:12px;vertical-align:middle}
 .table th{background:#f8fafc;color:#475569;font-size:10px;text-transform:uppercase}
 .empty{text-align:center;padding:20px;color:#94a3b8;font-size:13px}
-.money{font-weight:700}
-.status{padding:5px 8px;border-radius:15px;font-size:10px;font-weight:700;background:#eef2ff;color:#3730a3}
-a{color:#0B4DA2;font-weight:700;text-decoration:none}
+.status{display:inline-block;padding:5px 8px;border-radius:15px;font-size:10px;font-weight:700;background:#eef2ff;color:#3730a3}
+a{color:var(--blue);font-weight:700;text-decoration:none}
 .grade-pill{padding:5px 9px;border-radius:15px;font-size:10px;font-weight:800;display:inline-block;background:#dcfce7;color:#166534}
 .grade-a{background:#dcfce7;color:#166534}.grade-b{background:#dbeafe;color:#1d4ed8}.grade-c{background:#fef3c7;color:#92400e}.grade-d{background:#ffedd5;color:#9a3412}.grade-f{background:#fee2e2;color:#991b1b}.grade-na{background:#f1f5f9;color:#475569}
-.grades-controls{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px}
+.grades-controls,.att-head,.dash-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .year-control{display:flex;align-items:center;gap:8px}
-.year-control label{color:#475569;font-size:12px;font-weight:700}
-.year-control select{border:1px solid #d7dee9;background:#fff;color:#172033;padding:9px 12px;border-radius:9px;min-width:130px;outline:none;font-size:12px}
-.grades-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.year-control label{font-size:12px;font-weight:700}
+.year-control select,.field input,.field select,.field textarea{border:1px solid #d7dee9;background:#fff;color:var(--text);padding:10px 12px;border-radius:9px;width:100%;outline:none}
+.grades-summary,.att-summary{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
 .summary-card{background:#f8fafc;border-radius:12px;padding:13px;border:1px solid #edf0f4;min-width:0}
-.summary-card small{display:block;color:#64748b;font-size:10px;text-transform:uppercase;font-weight:700}
-.summary-card strong{display:block;margin-top:6px;color:#0B1E63;font-size:19px}
-.grades-note{font-size:11px;color:#64748b;margin:0 0 12px}
+.summary-card small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;font-weight:700}
+.summary-card strong{display:block;margin-top:6px;color:var(--navy);font-size:19px;overflow-wrap:anywhere}
+.grades-note{font-size:11px;color:var(--muted);margin:0 0 12px;line-height:1.5}
 .no-results{text-align:center;padding:25px 15px;color:#94a3b8;background:#f8fafc;border-radius:10px}
-
-/* Navigation */
-.portal-nav{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;margin:0 0 18px;padding:10px;background:#fff;border-radius:14px;box-shadow:0 5px 18px rgba(0,0,0,.05)}
-.nav-btn{border:1px solid #e5eaf2;background:#f8fafc;color:#334155;border-radius:10px;padding:11px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:11px;cursor:pointer;min-height:68px;transition:.18s ease}
-.nav-btn svg{width:19px;height:19px;stroke-width:2}
-.nav-btn:hover{border-color:#D4AF37;background:#fffaf0;color:#0B1E63}
-.nav-btn.active{background:linear-gradient(135deg,#0B1E63,#0B4DA2);border-color:#0B1E63;color:#fff;box-shadow:0 4px 12px #0b1e6328}
+.portal-nav{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:8px;margin:0 0 18px;padding:10px;border-radius:14px}
+.nav-btn{border:1px solid var(--border);background:#f8fafc;color:#334155;border-radius:10px;padding:11px 5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-weight:700;font-size:10px;min-height:65px;transition:.18s}
+.nav-btn svg{width:19px;height:19px}
+.nav-btn:hover{border-color:var(--gold);background:#fffaf0;color:var(--navy)}
+.nav-btn.active{background:linear-gradient(135deg,var(--navy),var(--blue));border-color:var(--navy);color:#fff}
 .section-panel{display:none;animation:panelIn .18s ease}
 .section-panel.active{display:block}
 @keyframes panelIn{from{opacity:.5;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .section-title{display:flex;align-items:center;gap:9px}
-.section-title svg{width:21px;height:21px;color:#D4AF37;stroke-width:2.3}
-.back-dashboard{display:inline-flex;align-items:center;gap:7px;margin:0 0 12px;border:1px solid #dbe3ef;background:#fff;color:#0B1E63;padding:9px 12px;border-radius:9px;font-weight:700;font-size:12px;cursor:pointer}
+.section-title svg{width:21px;height:21px;color:var(--gold)}
+.back-dashboard{display:inline-flex;align-items:center;gap:7px;margin:0 0 12px;border:1px solid #dbe3ef;background:#fff;color:var(--navy);padding:9px 12px;border-radius:9px;font-weight:700;font-size:12px}
 .back-dashboard svg{width:16px;height:16px}
-
-/* Dashboard button cards (like System Management) */
-.dash-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
-.dash-head h3{margin:0}
-.dash-tag{font-size:11px;font-weight:800;color:#0B4DA2;background:#eaf1ff;padding:7px 12px;border-radius:18px}
+.dash-tag{font-size:11px;font-weight:800;color:var(--blue);background:#eaf1ff;padding:7px 12px;border-radius:18px}
 .quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.quick-card{appearance:none;font-family:inherit;display:flex;flex-direction:column;align-items:flex-start;gap:12px;text-align:left;width:100%;min-height:132px;padding:16px;background:#fff;border:1px solid #e7ecf4;border-top:4px solid var(--c,#0B4DA2);border-radius:16px;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.04);transition:.18s ease;-webkit-tap-highlight-color:transparent}
-.quick-card:hover,.quick-card:active{transform:translateY(-3px);box-shadow:0 10px 22px rgba(11,30,99,.1)}
-.quick-card .ico{width:48px;height:48px;border-radius:13px;background:#f1f5fb;display:flex;align-items:center;justify-content:center;font-size:25px;line-height:1}
-.quick-card .txt{display:block}
-.quick-card b{display:block;font-size:15px;color:#0B1E63}
-.quick-card small{display:block;margin-top:5px;font-size:11px;line-height:1.45;color:#64748b}
-
-/* Attendance */
-.att-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-.att-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-.att-bar{height:10px;border-radius:10px;background:#e5e7eb;overflow:hidden;margin:6px 0 8px}
-.att-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#0B4DA2,#16A34A);transition:width .4s ease}
-.refresh-btn{border:0;background:#0B1E63;color:#fff;padding:10px 14px;border-radius:9px;font-weight:700;font-size:12px;cursor:pointer}
+.quick-card{font-family:inherit;display:flex;flex-direction:column;align-items:flex-start;gap:12px;text-align:left;width:100%;min-height:125px;padding:16px;background:#fff;border:1px solid #e7ecf4;border-top:4px solid var(--c,var(--blue));border-radius:16px;box-shadow:0 3px 12px #00000008;transition:.18s}
+.quick-card:hover{transform:translateY(-3px);box-shadow:0 10px 22px #0b1e631a}
+.quick-card .ico{width:45px;height:45px;border-radius:13px;background:#f1f5fb;display:flex;align-items:center;justify-content:center;font-size:24px}
+.quick-card b{display:block;font-size:14px;color:var(--navy)}
+.quick-card small{display:block;margin-top:5px;font-size:11px;line-height:1.45;color:var(--muted)}
+.att-bar,.progress-bar{height:10px;border-radius:10px;background:#e5e7eb;overflow:hidden;margin:7px 0}
+.att-bar i,.progress-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),#16A34A);transition:width .4s}
+.refresh-btn,.primary-btn{border:0;background:var(--navy);color:#fff;padding:10px 14px;border-radius:9px;font-weight:700;font-size:12px}
+.primary-btn{background:#16834A;padding:12px 18px}
+.primary-btn:disabled{opacity:.5;cursor:not-allowed}
 .st-present{background:#dcfce7;color:#166534}.st-absent{background:#fee2e2;color:#991b1b}.st-late{background:#fef3c7;color:#92400e}.st-excused{background:#dbeafe;color:#1d4ed8}
-
-@media(max-width:1000px){.grades-summary{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:850px){.portal-nav{grid-template-columns:repeat(4,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.info{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px){.grades-summary{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:520px){
-.grid,.info{grid-template-columns:1fr}
-.header{padding:12px}.brand h1{font-size:16px}.portal-tag{display:none}
-.portal-nav{gap:6px;padding:7px}
-.nav-btn{min-height:61px;padding:8px 4px;font-size:10px}.nav-btn svg{width:18px;height:18px}
-.quick-grid{grid-template-columns:repeat(2,1fr);gap:10px}
-.quick-card{min-height:120px;padding:12px;gap:9px}
-.quick-card .ico{width:42px;height:42px;font-size:22px}
-.quick-card b{font-size:13px}
-.att-summary{grid-template-columns:repeat(2,1fr)}
-.grades-controls{align-items:flex-start}.year-control{width:100%;justify-content:space-between}.year-control select{flex:1;max-width:180px}
-}
+.progress-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.progress-stat{padding:14px;border-radius:12px;background:#f8fafc;border:1px solid var(--border)}
+.progress-stat small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;font-weight:700}
+.progress-stat strong{display:block;color:var(--navy);font-size:22px;margin-top:6px}
+.progress-meters{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:15px 0}
+.meter{padding:14px;background:#f8fafc;border-radius:12px}
+.meter b{font-size:12px;color:var(--navy)}
+.meter span{display:block;font-size:11px;color:var(--muted);margin-top:5px}
+.warning{display:none;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:9px;padding:10px;font-size:11px;margin:10px 0}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:6px}
+.field textarea{min-height:120px;resize:vertical}
+.support-note{font-size:12px;color:var(--muted);line-height:1.6;background:#f8fafc;padding:12px;border-radius:10px;margin-bottom:14px}
+.whatsapp-head{display:flex;align-items:center;gap:12px;margin-bottom:15px}
+.whatsapp-icon{width:48px;height:48px;border-radius:14px;background:#dcfce7;color:#16834A;display:flex;align-items:center;justify-content:center;font-size:26px}
+.footer{text-align:center;color:#94a3b8;font-size:11px;padding:20px}
+@media(max-width:1000px){.grades-summary{grid-template-columns:repeat(3,1fr)}.portal-nav{grid-template-columns:repeat(5,1fr)}}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.info{grid-template-columns:repeat(2,1fr)}.progress-cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.grades-summary{grid-template-columns:repeat(2,1fr)}.progress-meters{grid-template-columns:1fr}.header{padding:12px}.brand h1{font-size:16px}.portal-tag{display:none}.portal-nav{grid-template-columns:repeat(3,1fr);gap:6px;padding:7px}.nav-btn{min-height:58px;padding:7px 3px;font-size:10px}.quick-grid{grid-template-columns:repeat(2,1fr);gap:10px}.quick-card{min-height:115px;padding:12px;gap:9px}.quick-card b{font-size:13px}.att-summary{grid-template-columns:repeat(2,1fr)}.info{grid-template-columns:1fr}.progress-cards{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
+
 <body>
-<header class="header"><div class="brand"><img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy"><div><h1>GAAWOW EMS</h1><p>Student Education Management Portal</p></div></div><span class="portal-tag">STUDENT PORTAL V14</span><button class="logout" id="logoutBtn">Logout</button></header>
-<main class="wrap"><div id="message" class="message"></div><div id="loading" class="loading">Loading student portal...</div><div id="portal" style="display:none">
+<header class="header">
+ <div class="brand">
+  <img src="https://i.ibb.co/4ZCRpm30/gaawow-logo.png" alt="GAAWOW Academy">
+  <div><h1>GAAWOW EMS</h1><p>Student Education Management Portal</p></div>
+ </div>
+ <div class="header-right">
+  <span class="portal-tag">STUDENT PORTAL V15</span>
+  <button class="logout" id="logoutBtn">Logout</button>
+ </div>
+</header>
 
-<nav class="portal-nav" aria-label="Student portal sections">
-<button class="nav-btn active" data-section="dashboard"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
-<button class="nav-btn" data-section="academic"><i data-lucide="graduation-cap"></i><span>Academic</span></button>
-<button class="nav-btn" data-section="progress"><i data-lucide="chart-no-axes-combined"></i><span>Progress</span></button>
-<button class="nav-btn" data-section="attendance"><i data-lucide="calendar-check"></i><span>Attendance</span></button>
-<button class="nav-btn" data-section="grades"><i data-lucide="book-open-check"></i><span>Grades</span></button>
-<button class="nav-btn" data-section="certificates"><i data-lucide="award"></i><span>Certificates</span></button>
-<button class="nav-btn" data-section="payments"><i data-lucide="wallet"></i><span>Payments</span></button>
-<button class="nav-btn" data-section="profile"><i data-lucide="user-round"></i><span>Profile</span></button>
-</nav>
+<main class="wrap">
+ <div id="message" class="message"></div>
+ <div id="loading" class="loading">Loading student portal...</div>
 
-<div class="section-panel active" data-panel="dashboard">
-<section class="hero"><div class="student-head"><div id="photo" class="avatar">G</div><div><h2 id="studentName">—</h2><p id="studentId">Student ID: —</p><span class="badge" id="studentStatus">—</span></div></div></section>
-<section class="grid"><div class="card"><small>Student ID</small><strong id="topStudentId">—</strong></div><div class="card"><small>Course</small><strong id="courseName">—</strong></div><div class="card"><small>Class</small><strong id="className">—</strong></div><div class="card"><small>Department</small><strong id="departmentName">—</strong></div></section>
-<section class="section">
-<div class="dash-head"><h3>Student Management</h3><span class="dash-tag">7 Modules</span></div>
-<div class="quick-grid">
-<button class="quick-card" data-section="academic" style="--c:#0B4DA2"><span class="ico">🎓</span><span class="txt"><b>Academic Information</b><small>Course, class and enrollment</small></span></button>
-<button class="quick-card" data-section="progress" style="--c:#7C3AED"><span class="ico">📊</span><span class="txt"><b>Academic Progress</b><small>Progress and average score</small></span></button>
-<button class="quick-card" data-section="attendance" style="--c:#16A34A"><span class="ico">📅</span><span class="txt"><b>My Attendance</b><small>Present, absent and late records</small></span></button>
-<button class="quick-card" data-section="grades" style="--c:#D4AF37"><span class="ico">📚</span><span class="txt"><b>Grades & Results</b><small>Published examination marks</small></span></button>
-<button class="quick-card" data-section="certificates" style="--c:#D4AF37"><span class="ico">🏆</span><span class="txt"><b>Certificates</b><small>View and verify certificates</small></span></button>
-<button class="quick-card" data-section="payments" style="--c:#16A34A"><span class="ico">💳</span><span class="txt"><b>Payments</b><small>Payment history</small></span></button>
-<button class="quick-card" data-section="profile" style="--c:#0B1E63"><span class="ico">👤</span><span class="txt"><b>My Profile</b><small>Personal account information</small></span></button>
-</div></section></div>
+ <div id="portal" style="display:none">
+  <nav class="portal-nav" aria-label="Student portal sections">
+   <button class="nav-btn active" data-section="dashboard"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
+   <button class="nav-btn" data-section="academic"><i data-lucide="graduation-cap"></i><span>Academic</span></button>
+   <button class="nav-btn" data-section="progress"><i data-lucide="chart-no-axes-combined"></i><span>Progress</span></button>
+   <button class="nav-btn" data-section="attendance"><i data-lucide="calendar-check"></i><span>Attendance</span></button>
+   <button class="nav-btn" data-section="grades"><i data-lucide="book-open-check"></i><span>Grades</span></button>
+   <button class="nav-btn" data-section="certificates"><i data-lucide="award"></i><span>Certificates</span></button>
+   <button class="nav-btn" data-section="payments"><i data-lucide="wallet"></i><span>Payments</span></button>
+   <button class="nav-btn" data-section="profile"><i data-lucide="user-round"></i><span>Profile</span></button>
+   <button class="nav-btn" data-section="support"><i data-lucide="message-circle"></i><span>Support</span></button>
+  </nav>
 
-<div class="section-panel" data-panel="academic"><button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i>Back to Dashboard</button><section class="section"><h3 class="section-title"><i data-lucide="graduation-cap"></i> Academic Information</h3><div class="info" id="academicInfo"></div></section></div>
+  <!-- DASHBOARD -->
+  <div class="section-panel active" data-panel="dashboard">
+   <section class="hero">
+    <div class="student-head">
+     <div id="photo" class="avatar">G</div>
+     <div><h2 id="studentName">—</h2><p id="studentId">Student ID: —</p><span class="badge" id="studentStatus">—</span></div>
+    </div>
+   </section>
 
-<div class="section-panel" data-panel="progress"><button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i>Back to Dashboard</button><section class="section"><h3 class="section-title"><i data-lucide="chart-no-axes-combined"></i> Academic Progress</h3><div class="table-wrap"><table class="table"><thead><tr><th>Academic Year</th><th>Total Courses</th><th>Completed</th><th>Attendance</th><th>Average</th><th>Remarks</th></tr></thead><tbody id="progressBody"></tbody></table></div></section></div>
+   <section class="grid">
+    <div class="card"><small>Student ID</small><strong id="topStudentId">—</strong></div>
+    <div class="card"><small>Course</small><strong id="courseName">—</strong></div>
+    <div class="card"><small>Class</small><strong id="className">—</strong></div>
+    <div class="card"><small>Department</small><strong id="departmentName">—</strong></div>
+   </section>
 
-<div class="section-panel" data-panel="attendance"><button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i>Back to Dashboard</button><section class="section">
-<div class="att-head"><h3 class="section-title" style="margin:0"><i data-lucide="calendar-check"></i> My Attendance Record</h3><button class="refresh-btn" id="refreshAttendance">↻ Refresh Attendance</button></div>
-<div class="att-summary">
-<div class="summary-card"><small>Present</small><strong id="attPresent">0</strong></div>
-<div class="summary-card"><small>Absent</small><strong id="attAbsent">0</strong></div>
-<div class="summary-card"><small>Late</small><strong id="attLate">0</strong></div>
-<div class="summary-card"><small>Excused</small><strong id="attExcused">0</strong></div>
-<div class="summary-card"><small>Attendance Rate</small><strong id="attRate">—</strong></div>
-</div>
-<div class="att-bar"><i id="attBar"></i></div>
-<p class="grades-note" id="attNote">—</p>
-<div class="table-wrap"><table class="table"><thead><tr><th>Lesson</th><th>Date</th><th>Start Time</th><th>End Time</th><th>Status</th><th>Notes</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
-</section></div>
+   <section class="section">
+    <div class="dash-head"><h3>Student Management</h3><span class="dash-tag">8 Modules</span></div>
+    <div class="quick-grid">
+     <button class="quick-card" data-section="academic" style="--c:#0B4DA2"><span class="ico">🎓</span><span><b>Academic Information</b><small>Course, class and enrollment</small></span></button>
+     <button class="quick-card" data-section="progress" style="--c:#7C3AED"><span class="ico">📊</span><span><b>Academic Progress</b><small>Course progress and average score</small></span></button>
+     <button class="quick-card" data-section="attendance" style="--c:#16A34A"><span class="ico">📅</span><span><b>My Attendance</b><small>Published attendance records</small></span></button>
+     <button class="quick-card" data-section="grades" style="--c:#D4AF37"><span class="ico">📚</span><span><b>Grades & Results</b><small>Published examination marks</small></span></button>
+     <button class="quick-card" data-section="certificates" style="--c:#D4AF37"><span class="ico">🏆</span><span><b>Certificates</b><small>View and verify certificates</small></span></button>
+     <button class="quick-card" data-section="payments" style="--c:#16A34A"><span class="ico">💳</span><span><b>Payments</b><small>Payment history</small></span></button>
+     <button class="quick-card" data-section="profile" style="--c:#0B1E63"><span class="ico">👤</span><span><b>My Profile</b><small>Personal account information</small></span></button>
+     <button class="quick-card" data-section="support" style="--c:#16834A"><span class="ico">💬</span><span><b>WhatsApp Support</b><small>Contact GAAWOW EMS support</small></span></button>
+    </div>
+   </section>
+  </div>
 
-<div class="section-panel" data-panel="grades"><button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i>Back to Dashboard</button><section class="section"><h3 class="section-title"><i data-lucide="book-open-check"></i> Grades & Results</h3><div class="grades-controls"><p class="grades-note">Published examination results only. Overall percentage is calculated from total marks where available.</p><div class="year-control"><label for="gradeYear">Academic Year:</label><select id="gradeYear"><option value="ALL">All Years</option></select></div></div><div class="grades-summary"><div class="summary-card"><small>Total Subjects</small><strong id="gradeTotalSubjects">0</strong></div><div class="summary-card"><small>Average Score</small><strong id="gradeAverage">0%</strong></div><div class="summary-card"><small>Highest Score</small><strong id="gradeHighest">0%</strong></div><div class="summary-card"><small>Lowest Score</small><strong id="gradeLowest">0%</strong></div><div class="summary-card"><small>Overall Grade</small><strong id="gradeOverall">—</strong></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Academic Year</th><th>Subject</th><th>Code</th><th>Score</th><th>%</th><th>Grade</th><th>Remarks</th><th>Exam Date</th></tr></thead><tbody id="gradesBody"></tbody></table></div></section></div>
+  <!-- ACADEMIC -->
+  <div class="section-panel" data-panel="academic">
+   <button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i> Back to Dashboard</button>
+   <section class="section"><h3 class="section-title"><i data-lucide="graduation-cap"></i> Academic Information</h3><div class="info" id="academicInfo"></div></section>
+  </div>
 
-<div class="section-panel" data-panel="certificates"><button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i>Back to Dashboard</button><section class="section"><h3 class="section-title"><i data-lucide="award"></i> Certificates</h3><div class="table-wrap"><table class="table"><thead><tr><th>Certificate No.</th><th>Course</th><th>Issue Date</th><th>Expiry</th><th>Status</th><th>Open</th></tr></thead><tbody id="certificatesBody"></tbody></table></div></section></div>
+  <!-- PROGRESS -->
+  <div class="section-panel" data-panel="progress">
+   <button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i> Back to Dashboard</button>
+   <section class="section">
+    <h3 class="section-title"><i data-lucide="chart-no-axes-combined"></i> Academic Progress Overview</h3>
+    <div class="progress-cards">
+     <div class="progress-stat"><small>Total Enrollments</small><strong id="prTotal">0</strong></div>
+     <div class="progress-stat"><small>Completed</small><strong id="prCompleted">0</strong></div>
+     <div class="progress-stat"><small>Attendance Rate</small><strong id="prAttendance">—</strong></div>
+     <div class="progress-stat"><small>Average Result</small><strong id="prAverage">—</strong></div>
+    </div>
+    <div class="progress-meters">
+     <div class="meter"><b>Course Completion</b><div class="progress-bar"><i id="prCourseBar"></i></div><span id="prCourseText">No enrollment data</span></div>
+     <div class="meter"><b>Attendance Performance</b><div class="progress-bar"><i id="prAttendanceBar"></i></div><span id="prAttendanceText">No attendance data</span></div>
+     <div class="meter"><b>Academic Results</b><div class="progress-bar"><i id="prScoreBar"></i></div><span id="prScoreText">No published results</span></div>
+    </div>
+    <div id="progressWarning" class="warning"></div>
+   </section>
+   <section class="section">
+    <h3>Enrollment History</h3>
+    <div class="table-wrap"><table class="table">
+     <thead><tr><th>Academic Year</th><th>Course</th><th>Class</th><th>Enrollment Date</th><th>Start Date</th><th>End Date</th><th>Status</th></tr></thead>
+     <tbody id="progressBody"></tbody>
+    </table></div>
+   </section>
+  </div>
 
-<div class="section-panel" data-panel="payments"><button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i>Back to Dashboard</button><section class="section"><h3 class="section-title"><i data-lucide="wallet"></i> Payments</h3><div class="table-wrap"><table class="table"><thead><tr><th>Amount</th><th>Currency</th><th>Method</th><th>Reference</th><th>Status</th><th>Paid At</th></tr></thead><tbody id="paymentsBody"></tbody></table></div></section></div>
+  <!-- ATTENDANCE -->
+  <div class="section-panel" data-panel="attendance">
+   <button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i> Back to Dashboard</button>
+   <section class="section">
+    <div class="att-head"><h3 class="section-title"><i data-lucide="calendar-check"></i> My Attendance Record</h3><button class="refresh-btn" id="refreshAttendance">↻ Refresh Attendance</button></div>
+    <div class="att-summary">
+     <div class="summary-card"><small>Present</small><strong id="attPresent">0</strong></div>
+     <div class="summary-card"><small>Absent</small><strong id="attAbsent">0</strong></div>
+     <div class="summary-card"><small>Late</small><strong id="attLate">0</strong></div>
+     <div class="summary-card"><small>Excused</small><strong id="attExcused">0</strong></div>
+     <div class="summary-card"><small>Attendance Rate</small><strong id="attRate">—</strong></div>
+    </div>
+    <div class="att-bar"><i id="attBar"></i></div>
+    <p class="grades-note" id="attNote">—</p>
+    <div class="table-wrap"><table class="table">
+     <thead><tr><th>Lesson</th><th>Date</th><th>Start Time</th><th>End Time</th><th>Status</th><th>Notes</th></tr></thead>
+     <tbody id="attendanceBody"></tbody>
+    </table></div>
+   </section>
+  </div>
 
-<div class="section-panel" data-panel="profile"><button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i>Back to Dashboard</button><section class="section"><h3 class="section-title"><i data-lucide="user-round"></i> Profile</h3><div class="info" id="profileInfo"></div></section></div>
+  <!-- GRADES -->
+  <div class="section-panel" data-panel="grades">
+   <button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i> Back to Dashboard</button>
+   <section class="section">
+    <h3 class="section-title"><i data-lucide="book-open-check"></i> Grades & Results</h3>
+    <div class="grades-controls">
+     <p class="grades-note">Published examination results only.</p>
+     <div class="year-control"><label for="gradeYear">Academic Year:</label><select id="gradeYear"><option value="ALL">All Years</option></select></div>
+    </div>
+    <div class="grades-summary">
+     <div class="summary-card"><small>Total Results</small><strong id="gradeTotalSubjects">0</strong></div>
+     <div class="summary-card"><small>Average Score</small><strong id="gradeAverage">—</strong></div>
+     <div class="summary-card"><small>Highest Score</small><strong id="gradeHighest">—</strong></div>
+     <div class="summary-card"><small>Lowest Score</small><strong id="gradeLowest">—</strong></div>
+     <div class="summary-card"><small>Overall Grade</small><strong id="gradeOverall">—</strong></div>
+    </div>
+    <div class="table-wrap"><table class="table">
+     <thead><tr><th>Academic Year</th><th>Subject</th><th>Code</th><th>Score</th><th>%</th><th>Grade</th><th>Remarks</th><th>Exam Date</th></tr></thead>
+     <tbody id="gradesBody"></tbody>
+    </table></div>
+   </section>
+  </div>
 
-</div></main>
+  <!-- CERTIFICATES -->
+  <div class="section-panel" data-panel="certificates">
+   <button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i> Back to Dashboard</button>
+   <section class="section"><h3 class="section-title"><i data-lucide="award"></i> Certificates</h3>
+    <div class="table-wrap"><table class="table">
+     <thead><tr><th>Certificate No.</th><th>Course</th><th>Issue Date</th><th>Expiry</th><th>Status</th><th>Open</th></tr></thead>
+     <tbody id="certificatesBody"></tbody>
+    </table></div>
+   </section>
+  </div>
+
+  <!-- PAYMENTS -->
+  <div class="section-panel" data-panel="payments">
+   <button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i> Back to Dashboard</button>
+   <section class="section"><h3 class="section-title"><i data-lucide="wallet"></i> Payments</h3>
+    <div class="table-wrap"><table class="table">
+     <thead><tr><th>Amount</th><th>Currency</th><th>Method</th><th>Reference</th><th>Status</th><th>Paid At</th></tr></thead>
+     <tbody id="paymentsBody"></tbody>
+    </table></div>
+   </section>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="section-panel" data-panel="profile">
+   <button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i> Back to Dashboard</button>
+   <section class="section"><h3 class="section-title"><i data-lucide="user-round"></i> My Profile</h3><div class="info" id="profileInfo"></div></section>
+  </div>
+
+  <!-- WHATSAPP SUPPORT -->
+  <div class="section-panel" data-panel="support">
+   <button class="back-dashboard" data-section="dashboard"><i data-lucide="arrow-left"></i> Back to Dashboard</button>
+   <section class="section">
+    <div class="whatsapp-head">
+     <div class="whatsapp-icon">☘</div>
+     <div><h3 style="margin:0">GAAWOW EMS WhatsApp Support</h3><p class="grades-note" style="margin:5px 0 0">Contact the academy support team</p></div>
+    </div>
+    <div class="support-note">
+     Use this form to contact GAAWOW Academy. Your student details will be included automatically. When you press the WhatsApp button, WhatsApp will open with your message ready to send. You must press Send in WhatsApp.
+    </div>
+    <div class="field">
+     <label for="waCategory">Support Category</label>
+     <select id="waCategory">
+      <option value="General Support">General Support</option>
+      <option value="Academic Support">Academic Support</option>
+      <option value="Attendance">Attendance</option>
+      <option value="Examination / Results">Examination / Results</option>
+      <option value="Certificates">Certificates</option>
+      <option value="Payments / Finance">Payments / Finance</option>
+      <option value="Account / Login">Account / Login</option>
+      <option value="Other">Other</option>
+     </select>
+    </div>
+    <div class="field">
+     <label for="waMessage">Your Message</label>
+     <textarea id="waMessage" maxlength="1500" placeholder="Write your question or support request here..."></textarea>
+    </div>
+    <button class="primary-btn" id="waSendBtn">💬 Continue to WhatsApp</button>
+    <p class="grades-note" style="margin-top:12px">WhatsApp Support: +252 615 228 824</p>
+   </section>
+  </div>
+ </div>
+ <div class="footer">GAAWOW ACADEMY | ILAYSKA AQOONTA IYO XIRFADDA</div>
+</main>
+
 <script>
 (() => {
 "use strict";
-const SUPABASE_URL="https://mytyvqwrxnxpxnxpiicj.supabase.co";
-const SUPABASE_KEY="sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+
+/* ================= CONFIGURATION ================= */
+const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+const WHATSAPP_NUMBER = "252615228824";
 const REQUEST_TIMEOUT_MS = 15000;
+
 let sb = null;
+let currentStudent = null;
+let allGradeResults = [];
+
 if (window.supabase && typeof window.supabase.createClient === "function") {
-  sb = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-}
-const $=id=>document.getElementById(id);
-function icons(){try{if(window.lucide)window.lucide.createIcons();}catch(_){}}
-function openSection(name){
-  document.querySelectorAll("[data-panel]").forEach(p=>p.classList.toggle("active",p.dataset.panel===name));
-  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.section===name));
-  window.scrollTo({top:0,behavior:"smooth"});
-  icons();
-}
-document.addEventListener("click",e=>{const btn=e.target.closest("[data-section]");if(btn){e.preventDefault();openSection(btn.dataset.section);}});
-
-const esc=v=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
-const val=(v,f="—")=>v==null||String(v).trim()===""?f:String(v);
-const date=v=>{if(!v)return"—";const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleDateString("en-GB");};
-const num=v=>{if(v==null||v==="")return"—";const n=Number(v);return Number.isFinite(n)?n.toLocaleString():String(v);};
-function errText(e){return e?.message||e?.details||e?.hint||"Unknown database error.";}
-function withTimeout(promise, label="Database request", ms=REQUEST_TIMEOUT_MS){
-  let timer;
-  return Promise.race([
-    Promise.resolve(promise),
-    new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(label+" timed out after "+Math.round(ms/1000)+" seconds. Check your internet connection and Supabase status.")),ms);})
-  ]).finally(()=>clearTimeout(timer));
-}
-function showError(t){$("message").textContent=t;$("message").className="message error";$("message").style.display="block";}
-function clearMsg(){$("message").textContent="";$("message").className="message";$("message").style.display="none";}
-function empty(id,n,t){$(id).innerHTML=`<tr><td colspan="${n}" class="empty">${esc(t)}</td></tr>`;}
-async function rows(table,columns,column,value,order){let q=sb.from(table).select(columns).eq(column,value);if(order)q=q.order(order,{ascending:false});const{data,error}=await withTimeout(q,table+" query");if(error)throw error;return data||[];}
-async function one(table,columns,id){if(!id)return null;const{data,error}=await withTimeout(sb.from(table).select(columns).eq("id",id).maybeSingle(),table+" lookup");if(error)throw error;return data||null;}
-
-function renderStudent(s){
-  $("studentName").textContent=val(s.full_name);
-  $("studentId").textContent=`Student ID: ${val(s.student_id)}`;
-  $("topStudentId").textContent=val(s.student_id);
-  $("studentStatus").textContent=val(s.status);
-  const p=$("photo");
-  if(s.photo_url)p.innerHTML=`<img src="${esc(s.photo_url)}" alt="Student photo" style="width:100%;height:100%;object-fit:cover" onerror="this.remove();document.getElementById('photo').textContent='G'">`;
-  else p.textContent=(s.full_name||"G").trim().charAt(0).toUpperCase()||"G";
-  $("profileInfo").innerHTML=`<div class="item"><b>Full Name</b><span>${esc(val(s.full_name))}</span></div><div class="item"><b>Email</b><span>${esc(val(s.email))}</span></div><div class="item"><b>Phone</b><span>${esc(val(s.phone))}</span></div><div class="item"><b>Gender</b><span>${esc(val(s.gender))}</span></div><div class="item"><b>Date of Birth</b><span>${esc(date(s.date_of_birth))}</span></div><div class="item"><b>Admission Date</b><span>${esc(date(s.admission_date))}</span></div><div class="item"><b>Address</b><span>${esc(val(s.address))}</span></div><div class="item"><b>Account</b><span>${s.account_enabled===true?"Enabled":"Disabled"}</span></div>`;
-}
-function renderAcademic(e,c,d,cl,i){
-  $("courseName").textContent=val(c?.name);
-  $("className").textContent=val(cl?.name);
-  $("departmentName").textContent=val(d?.name);
-  $("academicInfo").innerHTML=`<div class="item"><b>Institution</b><span>${esc(val(i?.name))}</span></div><div class="item"><b>Course / Program</b><span>${esc(val(c?.name))}</span></div><div class="item"><b>Course Code</b><span>${esc(val(c?.code))}</span></div><div class="item"><b>Department</b><span>${esc(val(d?.name))}</span></div><div class="item"><b>Class</b><span>${esc(val(cl?.name))}</span></div><div class="item"><b>Class Code</b><span>${esc(val(cl?.code))}</span></div><div class="item"><b>Academic Year</b><span>${esc(val(cl?.academic_year))}</span></div><div class="item"><b>Enrollment Number</b><span>${esc(val(e?.enrollment_number))}</span></div><div class="item"><b>Enrollment Date</b><span>${esc(date(e?.enrollment_date))}</span></div><div class="item"><b>Start Date</b><span>${esc(date(e?.start_date))}</span></div><div class="item"><b>End Date</b><span>${esc(date(e?.end_date))}</span></div><div class="item"><b>Enrollment Status</b><span>${esc(val(e?.status))}</span></div><div class="item"><b>Institution Code</b><span>${esc(val(i?.code))}</span></div><div class="item"><b>Course Duration</b><span>${c?.duration_months==null?"—":esc(c.duration_months+" months")}</span></div><div class="item"><b>Course Fee</b><span>${c?.fee==null?"—":esc(num(c.fee))}</span></div>`;
-}
-
-async function renderDerivedProgress(student){
-  const institutionId=student.institution_id;
-  let enrollments=[], attendance=[], publishedResults=[], years=[];
-  const warnings=[];
-  try{const r=await withTimeout(sb.from("enrollments").select("id,institution_id,student_id,course_id,class_id,status,academic_year_id,enrollment_date,start_date,end_date").eq("student_id",student.id).eq("institution_id",institutionId),"Enrollment progress query");if(r.error)throw r.error;enrollments=r.data||[];}catch(e){warnings.push("Enrollments: "+errText(e));}
-  const yearIds=[...new Set(enrollments.map(x=>x.academic_year_id).filter(Boolean))];
-  if(yearIds.length){try{const q=await withTimeout(sb.from("academic_years").select("id,year_name,is_active,start_date,end_date").eq("institution_id",institutionId).in("id",yearIds),"Academic year query");if(q.error)throw q.error;years=q.data||[];}catch(e){warnings.push("Academic years: "+errText(e));}}
-  try{const q=await withTimeout(sb.from("attendance").select("status").eq("student_id",student.id).eq("institution_id",institutionId).eq("is_published",true),"Attendance progress query");if(q.error)throw q.error;attendance=q.data||[];}catch(e){warnings.push("Attendance: "+errText(e));}
-  try{const q=await withTimeout(sb.from("results").select("score,max_score,percentage").eq("student_id",student.id).eq("institution_id",institutionId).eq("is_published",true),"Published results progress query");if(q.error)throw q.error;publishedResults=q.data||[];}catch(e){warnings.push("Published results: "+errText(e));}
-  const courseIds=[...new Set(enrollments.map(x=>x.course_id).filter(Boolean))];
-  const completedIds=[...new Set(enrollments.filter(x=>String(x.status||"").toLowerCase()==="completed").map(x=>x.course_id).filter(Boolean))];
-  const count=s=>attendance.filter(x=>String(x.status||"").toLowerCase()===s).length;
-  const present=count("present"), absent=count("absent"), late=count("late"), denominator=present+absent+late;
-  const attendancePct=denominator?present/denominator*100:null;
-  const percentages=publishedResults.map(r=>{if(r.percentage!==null&&r.percentage!==undefined&&r.percentage!==""){const n=Number(r.percentage);return Number.isFinite(n)?n:null;}const score=Number(r.score),max=Number(r.max_score);return Number.isFinite(score)&&Number.isFinite(max)&&max>0?score/max*100:null;}).filter(x=>x!==null);
-  const average=percentages.length?percentages.reduce((a,b)=>a+b,0)/percentages.length:null;
-  const activeEnrollment=enrollments.find(x=>String(x.status||"").toLowerCase()==="active")||enrollments[0]||null;
-  const year=years.find(x=>x.id===activeEnrollment?.academic_year_id);
-  const academicYear=year?.year_name||window.__currentAcademicYear||"—";
-  const allCompleted=enrollments.length>0&&enrollments.every(x=>String(x.status||"").toLowerCase()==="completed");
-  const remarks=allCompleted?"Completed":activeEnrollment?"In Progress":"No active enrollment";
-  const attendanceText=attendancePct===null?"No attendance records yet":attendancePct.toFixed(1)+"%";
-  const averageText=average===null?"No published results yet":average.toFixed(2)+"%";
-  $("progressBody").innerHTML=`<tr><td>${esc(academicYear)}</td><td>${courseIds.length}</td><td>${completedIds.length}</td><td>${esc(attendanceText)}</td><td>${esc(averageText)}</td><td>${esc(remarks)}</td></tr>`;
-  if(warnings.length){console.warn("Academic progress partial data:",warnings);showError("Portal loaded, but some progress data could not be read. "+warnings.join(" | "));}
-}
-
-/* ---------- Attendance ---------- */
-function timeText(v){return v?String(v).slice(0,8):"—";}
-async function loadAttendance(student){
-  const {data,error}=await withTimeout(sb.from("attendance").select("id,institution_id,student_id,lesson_id,status,notes,recorded_at,published_at,is_published").eq("student_id",student.id).eq("institution_id",student.institution_id).eq("is_published",true).order("recorded_at",{ascending:false}),"Published attendance query");
-  if(error)throw error;
-  let list=data||[];
-  const lessonIds=[...new Set(list.map(r=>r.lesson_id).filter(Boolean))];
-  let lessonMap=new Map();
-  if(lessonIds.length){
-    try{
-      const q=await withTimeout(sb.from("lessons").select("*").in("id",lessonIds),"Lessons query");
-      if(!q.error)lessonMap=new Map((q.data||[]).map(l=>[l.id,l]));
-    }catch(e){console.warn("Lessons lookup:",e);}
+ sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+   persistSession:true,
+   autoRefreshToken:true,
+   detectSessionInUrl:true
   }
-  const items=list.map(r=>{
-    const l=lessonMap.get(r.lesson_id)||{};
-    return {
-      lesson:l.title||l.name||l.subject||r.lesson_title||"Lesson",
-      date:l.lesson_date||r.recorded_at||null,
-      start:l.start_time||r.start_time||null,
-      end:l.end_time||r.end_time||null,
-      status:String(r.status||"").toLowerCase(),
-      notes:r.notes||r.remarks||""
-    };
-  }).sort((a,b)=>(new Date(b.date||0).getTime())-(new Date(a.date||0).getTime()));
-  renderAttendance(items);
-}
-function renderAttendance(items){
-  const c=s=>items.filter(x=>x.status===s).length;
-  const present=c("present"),absent=c("absent"),late=c("late"),excused=c("excused");
-  const den=present+absent+late;
-  const rate=den?present/den*100:null;
-  $("attPresent").textContent=present;
-  $("attAbsent").textContent=absent;
-  $("attLate").textContent=late;
-  $("attExcused").textContent=excused;
-  $("attRate").textContent=rate===null?"—":rate.toFixed(1)+"%";
-  $("attBar").style.width=(rate===null?0:rate)+"%";
-  $("attNote").textContent=items.length+" published attendance record(s) available.";
-  if(!items.length)return empty("attendanceBody",6,"No attendance records available yet.");
-  $("attendanceBody").innerHTML=items.map(r=>{
-    const label=r.status?r.status.charAt(0).toUpperCase()+r.status.slice(1):"—";
-    const cls=["present","absent","late","excused"].includes(r.status)?"st-"+r.status:"";
-    return `<tr><td>${esc(r.lesson)}</td><td>${esc(date(r.date))}</td><td>${esc(timeText(r.start))}</td><td>${esc(timeText(r.end))}</td><td><span class="status ${cls}">${esc(label)}</span></td><td>${esc(val(r.notes))}</td></tr>`;
-  }).join("");
+ });
 }
 
-/* ---------- Grades ---------- */
-function gradeClass(grade){const g=String(grade||"").trim().toUpperCase();if(g.startsWith("A"))return"grade-a";if(g.startsWith("B"))return"grade-b";if(g.startsWith("C"))return"grade-c";if(g.startsWith("D"))return"grade-d";if(g==="F")return"grade-f";return"grade-na";}
-function calculateGradeFromPercentage(p){if(p==null||!Number.isFinite(Number(p)))return"—";p=Number(p);if(p>=90)return"A+";if(p>=80)return"A";if(p>=70)return"B";if(p>=60)return"C";if(p>=50)return"D";return"F";}
-let allGradeResults=[];
-function populateGradeYears(){const select=$("gradeYear"),current=select.value||"ALL";const years=[...new Set(allGradeResults.map(r=>r.academic_year).filter(v=>v!=null&&String(v).trim()!=="").map(String))].sort((a,b)=>(Number(b)||0)-(Number(a)||0));select.innerHTML='<option value="ALL">All Years</option>';years.forEach(y=>{const o=document.createElement("option");o.value=y;o.textContent=y;select.appendChild(o)});if(current!=="ALL"&&years.includes(current))select.value=current;else if(window.__currentAcademicYear!=null&&years.includes(String(window.__currentAcademicYear)))select.value=String(window.__currentAcademicYear);else select.value="ALL";}
-function renderGradeSummary(results){
-  const normalized=results.map(r=>{
-    const score=r.score==null||r.score===""?null:Number(r.score);
-    const maxScore=r.max_score==null||r.max_score===""?null:Number(r.max_score);
-    const rawPercentage=r.percentage==null||r.percentage===""?(maxScore>0&&score!=null?score/maxScore*100:null):Number(r.percentage);
-    return {...r,_score:Number.isFinite(score)?score:null,_max:Number.isFinite(maxScore)&&maxScore>0?maxScore:null,_pct:Number.isFinite(rawPercentage)?rawPercentage:null};
-  });
-  const scored=normalized.filter(r=>r._score!==null&&r._max!==null);
-  const percentages=normalized.filter(r=>r._pct!==null);
-  $("gradeTotalSubjects").textContent=String(results.length);
-  if(!percentages.length){$("gradeAverage").textContent="—";$("gradeHighest").textContent="—";$("gradeLowest").textContent="—";$("gradeOverall").textContent="—";return;}
-  const totalScore=scored.reduce((s,r)=>s+r._score,0);
-  const totalMax=scored.reduce((s,r)=>s+r._max,0);
-  const average=totalMax>0?totalScore/totalMax*100:percentages.reduce((s,r)=>s+r._pct,0)/percentages.length;
-  const highest=percentages.reduce((b,r)=>r._pct>b._pct?r:b);
-  const lowest=percentages.reduce((w,r)=>r._pct<w._pct?r:w);
-  const overall=calculateGradeFromPercentage(average);
-  const label=r=>esc(val(r.subject_name||r.exam_title||"Subject"));
-  $("gradeAverage").textContent=average.toFixed(2)+"%";
-  $("gradeHighest").innerHTML=`${highest._pct.toFixed(1)}%<div style="font-size:11px;color:#64748b;margin-top:5px">${label(highest)}</div>`;
-  $("gradeLowest").innerHTML=`${lowest._pct.toFixed(1)}%<div style="font-size:11px;color:#64748b;margin-top:5px">${label(lowest)}</div>`;
-  $("gradeOverall").innerHTML='<span class="grade-pill '+gradeClass(overall)+'">'+esc(overall)+'</span>';
+/* ================= HELPERS ================= */
+const $ = id => document.getElementById(id);
+
+const esc = value => String(value ?? "")
+ .replaceAll("&","&amp;")
+ .replaceAll("<","&lt;")
+ .replaceAll(">","&gt;")
+ .replaceAll('"',"&quot;")
+ .replaceAll("'","&#039;");
+
+const val = (value,fallback="—") =>
+ value == null || String(value).trim() === ""
+ ? fallback : String(value);
+
+const date = value => {
+ if (!value) return "—";
+ const d = new Date(value);
+ return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString("en-GB");
+};
+
+const num = value => {
+ if (value == null || value === "") return "—";
+ const n = Number(value);
+ return Number.isFinite(n) ? n.toLocaleString() : String(value);
+};
+
+function errorText(error) {
+ return error?.message || error?.details || error?.hint || "Unknown database error.";
 }
-function renderGrades(results){
-  renderGradeSummary(results);
-  if(!results.length){$("gradesBody").innerHTML='<tr><td colspan="8"><div class="no-results">No published grade records are available for the selected Academic Year.</div></td></tr>';return}
-  $("gradesBody").innerHTML=results.map(r=>{
-    const p=r.percentage!=null?Number(r.percentage):(Number(r.max_score)>0?Number(r.score)/Number(r.max_score)*100:null);
-    const g=val(r.grade,calculateGradeFromPercentage(p));
-    return`<tr><td>${esc(val(r.academic_year))}</td><td>${esc(val(r.subject_name||r.exam_title))}</td><td>${esc(val(r.subject_code))}</td><td>${r.score==null?"—":esc(num(r.score))}${r.max_score!=null?` / ${esc(num(r.max_score))}`:""}</td><td>${p==null?"—":esc(Number(p).toFixed(1)+"%")}</td><td><span class="grade-pill ${gradeClass(g)}">${esc(g)}</span></td><td>${esc(val(r.remarks))}</td><td>${esc(date(r.exam_date))}</td></tr>`;
-  }).join("");
+
+function withTimeout(promise,label="Database request",ms=REQUEST_TIMEOUT_MS) {
+ let timer;
+ return Promise.race([
+  Promise.resolve(promise),
+  new Promise((_,reject) => {
+   timer = setTimeout(() => reject(new Error(
+    label+" timed out. Check your internet connection and Supabase status."
+   )),ms);
+  })
+ ]).finally(() => clearTimeout(timer));
 }
-function applyGradeFilter(){
-  const y=$("gradeYear").value;
-  let filtered=[...allGradeResults];
-  if(y&&y!=="ALL")filtered=filtered.filter(r=>String(r.academic_year??"")===String(y));
-  filtered.sort((a,b)=>{const ya=Number(a.academic_year)||0,yb=Number(b.academic_year)||0;if(ya!==yb)return yb-ya;const da=a.exam_date?new Date(a.exam_date).getTime():0,db=b.exam_date?new Date(b.exam_date).getTime():0;if(da!==db)return db-da;return String(a.subject_name||"").localeCompare(String(b.subject_name||""));});
-  renderGrades(filtered);
+
+function showError(message) {
+ $("message").textContent = message;
+ $("message").className = "message error";
+ $("message").style.display = "block";
 }
-async function loadGrades(studentId){
-  const {data:rpcData,error:rpcError}=await withTimeout(sb.rpc("get_my_student_results"),"Published grades RPC");
-  if(!rpcError&&Array.isArray(rpcData)){
-    allGradeResults=rpcData.map(r=>({
-      id:r.result_id,
-      academic_year:r.academic_year??window.__currentAcademicYear??null,
-      subject_name:r.subject_name??r.exam_title??"Subject",
-      subject_code:r.subject_code??"—",
-      score:r.score,max_score:r.max_score,
-      percentage:r.percentage!=null?Number(r.percentage):(Number(r.max_score)>0?Number(r.score)/Number(r.max_score)*100:null),
-      grade:r.grade||calculateGradeFromPercentage(r.percentage),
-      remarks:r.remarks,exam_title:r.exam_title??null,exam_type:r.exam_type??null,exam_date:r.exam_date??null,created_at:r.created_at??null
-    }));
-    populateGradeYears();applyGradeFilter();return;
+
+function showSuccess(message) {
+ $("message").textContent = message;
+ $("message").className = "message success";
+ $("message").style.display = "block";
+}
+
+function clearMessage() {
+ $("message").textContent = "";
+ $("message").className = "message";
+ $("message").style.display = "none";
+}
+
+function icons() {
+ try { if (window.lucide) window.lucide.createIcons(); } catch (_) {}
+}
+
+function empty(tableId,columnCount,message) {
+ $(tableId).innerHTML =
+  `<tr><td colspan="${columnCount}" class="empty">${esc(message)}</td></tr>`;
+}
+
+async function rows(table,columns,column,value,order) {
+ let query = sb.from(table).select(columns).eq(column,value);
+ if (order) query = query.order(order,{ascending:false});
+ const {data,error} = await withTimeout(query,table+" query");
+ if (error) throw error;
+ return data || [];
+}
+
+async function one(table,columns,id) {
+ if (!id) return null;
+ const {data,error} = await withTimeout(
+  sb.from(table).select(columns).eq("id",id).maybeSingle(),
+  table+" lookup"
+ );
+ if (error) throw error;
+ return data || null;
+}
+
+/* ================= NAVIGATION ================= */
+function openSection(name) {
+ document.querySelectorAll("[data-panel]").forEach(panel => {
+  panel.classList.toggle("active",panel.dataset.panel === name);
+ });
+ document.querySelectorAll(".nav-btn").forEach(button => {
+  button.classList.toggle("active",button.dataset.section === name);
+ });
+ window.scrollTo({top:0,behavior:"smooth"});
+ icons();
+}
+
+document.addEventListener("click",event => {
+ const button = event.target.closest("[data-section]");
+ if (!button) return;
+ event.preventDefault();
+ openSection(button.dataset.section);
+});
+
+/* ================= STUDENT PROFILE ================= */
+function renderStudent(student) {
+ $("studentName").textContent = val(student.full_name);
+ $("studentId").textContent = "Student ID: "+val(student.student_id);
+ $("topStudentId").textContent = val(student.student_id);
+ $("studentStatus").textContent = val(student.status);
+
+ const photo = $("photo");
+ if (student.photo_url) {
+  const image = document.createElement("img");
+  image.src = student.photo_url;
+  image.alt = "Student photo";
+  image.style.cssText = "width:100%;height:100%;object-fit:cover";
+  image.onerror = () => {
+   photo.textContent = (student.full_name || "G").trim().charAt(0).toUpperCase();
+  };
+  photo.replaceChildren(image);
+ } else {
+  photo.textContent = (student.full_name || "G").trim().charAt(0).toUpperCase();
+ }
+
+ $("profileInfo").innerHTML = `
+  <div class="item"><b>Full Name</b><span>${esc(val(student.full_name))}</span></div>
+  <div class="item"><b>Student ID</b><span>${esc(val(student.student_id))}</span></div>
+  <div class="item"><b>Email</b><span>${esc(val(student.email))}</span></div>
+  <div class="item"><b>Phone</b><span>${esc(val(student.phone))}</span></div>
+  <div class="item"><b>Gender</b><span>${esc(val(student.gender))}</span></div>
+  <div class="item"><b>Date of Birth</b><span>${esc(date(student.date_of_birth))}</span></div>
+  <div class="item"><b>Admission Date</b><span>${esc(date(student.admission_date))}</span></div>
+  <div class="item"><b>Address</b><span>${esc(val(student.address))}</span></div>
+  <div class="item"><b>Account</b><span>${student.account_enabled === true ? "Enabled" : "Disabled"}</span></div>
+ `;
+}
+
+/* ================= ACADEMIC INFORMATION ================= */
+function renderAcademic(enrollment,course,department,classInfo,institution) {
+ $("courseName").textContent = val(course?.name);
+ $("className").textContent = val(classInfo?.name);
+ $("departmentName").textContent = val(department?.name);
+
+ $("academicInfo").innerHTML = `
+  <div class="item"><b>Institution</b><span>${esc(val(institution?.name))}</span></div>
+  <div class="item"><b>Institution Code</b><span>${esc(val(institution?.code))}</span></div>
+  <div class="item"><b>Course / Program</b><span>${esc(val(course?.name))}</span></div>
+  <div class="item"><b>Course Code</b><span>${esc(val(course?.code))}</span></div>
+  <div class="item"><b>Department</b><span>${esc(val(department?.name))}</span></div>
+  <div class="item"><b>Class</b><span>${esc(val(classInfo?.name))}</span></div>
+  <div class="item"><b>Class Code</b><span>${esc(val(classInfo?.code))}</span></div>
+  <div class="item"><b>Academic Year</b><span>${esc(val(classInfo?.academic_year))}</span></div>
+  <div class="item"><b>Enrollment Number</b><span>${esc(val(enrollment?.enrollment_number))}</span></div>
+  <div class="item"><b>Enrollment Date</b><span>${esc(date(enrollment?.enrollment_date))}</span></div>
+  <div class="item"><b>Start Date</b><span>${esc(date(enrollment?.start_date))}</span></div>
+  <div class="item"><b>End Date</b><span>${esc(date(enrollment?.end_date))}</span></div>
+  <div class="item"><b>Enrollment Status</b><span>${esc(val(enrollment?.status))}</span></div>
+  <div class="item"><b>Course Duration</b><span>${course?.duration_months == null ? "—" : esc(course.duration_months+" months")}</span></div>
+  <div class="item"><b>Course Fee</b><span>${course?.fee == null ? "—" : esc(num(course.fee))}</span></div>
+ `;
+}
+
+/* ================= ACADEMIC PROGRESS ================= */
+async function loadProgress(student) {
+ const warnings = [];
+ let enrollments = [];
+ let attendance = [];
+ let results = [];
+ let classes = [];
+ let courses = [];
+ let academicYears = [];
+
+ const institutionId = student.institution_id;
+
+ try {
+  const q = await withTimeout(
+   sb.from("enrollments")
+    .select("id,institution_id,student_id,course_id,class_id,status,academic_year_id,enrollment_number,enrollment_date,start_date,end_date")
+    .eq("student_id",student.id)
+    .eq("institution_id",institutionId)
+    .order("enrollment_date",{ascending:false}),
+   "Enrollment history"
+  );
+  if (q.error) throw q.error;
+  enrollments = q.data || [];
+ } catch (e) {
+  warnings.push("Enrollment history: "+errorText(e));
+ }
+
+ const classIds = [...new Set(enrollments.map(x=>x.class_id).filter(Boolean))];
+ const courseIds = [...new Set(enrollments.map(x=>x.course_id).filter(Boolean))];
+ const yearIds = [...new Set(enrollments.map(x=>x.academic_year_id).filter(Boolean))];
+
+ if (classIds.length) {
+  try {
+   const q = await withTimeout(
+    sb.from("classes").select("id,name,code,academic_year").eq("institution_id",institutionId).in("id",classIds),
+    "Progress classes"
+   );
+   if (q.error) throw q.error;
+   classes = q.data || [];
+  } catch(e) { warnings.push("Classes: "+errorText(e)); }
+ }
+
+ if (courseIds.length) {
+  try {
+   const q = await withTimeout(
+    sb.from("courses").select("id,name,code").eq("institution_id",institutionId).in("id",courseIds),
+    "Progress courses"
+   );
+   if (q.error) throw q.error;
+   courses = q.data || [];
+  } catch(e) { warnings.push("Courses: "+errorText(e)); }
+ }
+
+ if (yearIds.length) {
+  try {
+   const q = await withTimeout(
+    sb.from("academic_years").select("id,year_name,is_active").eq("institution_id",institutionId).in("id",yearIds),
+    "Progress academic years"
+   );
+   if (q.error) throw q.error;
+   academicYears = q.data || [];
+  } catch(e) { warnings.push("Academic years: "+errorText(e)); }
+ }
+
+ try {
+  const q = await withTimeout(
+   sb.from("attendance").select("status")
+    .eq("student_id",student.id)
+    .eq("institution_id",institutionId)
+    .eq("is_published",true),
+   "Progress attendance"
+  );
+  if (q.error) throw q.error;
+  attendance = q.data || [];
+ } catch(e) { warnings.push("Attendance: "+errorText(e)); }
+
+ try {
+  const q = await withTimeout(
+   sb.from("results").select("score,max_score,percentage")
+    .eq("student_id",student.id)
+    .eq("institution_id",institutionId)
+    .eq("is_published",true),
+   "Progress published results"
+  );
+  if (q.error) throw q.error;
+  results = q.data || [];
+ } catch(e) { warnings.push("Published results: "+errorText(e)); }
+
+ const completed = enrollments.filter(x =>
+  String(x.status || "").toLowerCase() === "completed"
+ ).length;
+
+ const present = attendance.filter(x => String(x.status||"").toLowerCase()==="present").length;
+ const absent = attendance.filter(x => String(x.status||"").toLowerCase()==="absent").length;
+ const late = attendance.filter(x => String(x.status||"").toLowerCase()==="late").length;
+ const denominator = present + absent + late;
+ const attendanceRate = denominator ? present / denominator * 100 : null;
+
+ let totalScore = 0;
+ let totalMax = 0;
+ const percentages = [];
+
+ results.forEach(r => {
+  const score = Number(r.score);
+  const max = Number(r.max_score);
+  if (r.score != null && r.max_score != null && Number.isFinite(score) && Number.isFinite(max) && max > 0) {
+   totalScore += score;
+   totalMax += max;
   }
-  console.warn("RPC unavailable, using direct results fallback:",rpcError);
-  const {data:source,error:resultsError}=await withTimeout(sb.from("results").select("id,institution_id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at,updated_at").eq("student_id",studentId).eq("is_published",true).order("created_at",{ascending:false}),"Published results fallback");
-  if(resultsError)throw resultsError;
-  const results=Array.isArray(source)?source:[];
-  const subjectIds=[...new Set(results.map(r=>r.subject_id).filter(Boolean))];
-  const examIds=[...new Set(results.map(r=>r.exam_id).filter(Boolean))];
-  let subjects=[],exams=[],classes=[];
-  if(subjectIds.length){try{const q=await sb.from("subjects").select("id,name,code,max_score").in("id",subjectIds);if(!q.error)subjects=q.data||[];}catch(e){console.warn("subjects fallback:",e);}}
-  if(examIds.length){try{const q=await sb.from("exams").select("id,title,exam_type,exam_date,max_score,class_id").in("id",examIds);if(!q.error)exams=q.data||[];}catch(e){console.warn("exams fallback:",e);}}
-  const classIds=[...new Set(exams.map(e=>e.class_id).filter(Boolean))];
-  if(classIds.length){try{const q=await sb.from("classes").select("id,name,code,academic_year").in("id",classIds);if(!q.error)classes=q.data||[];}catch(e){console.warn("classes fallback:",e);}}
-  const subjectMap=new Map(subjects.map(x=>[x.id,x])),examMap=new Map(exams.map(x=>[x.id,x])),classMap=new Map(classes.map(x=>[x.id,x]));
-  allGradeResults=results.map(r=>{
-    const subject=subjectMap.get(r.subject_id)||null,exam=examMap.get(r.exam_id)||null,cl=exam?(classMap.get(exam.class_id)||null):null;
-    const maxScore=r.max_score??subject?.max_score??exam?.max_score??null;
-    const percentage=r.percentage!=null?Number(r.percentage):(Number(maxScore)>0?Number(r.score)/Number(maxScore)*100:null);
-    return {id:r.id,academic_year:cl?.academic_year??window.__currentAcademicYear??null,subject_name:subject?.name??exam?.title??"Subject",subject_code:subject?.code??"—",score:r.score,max_score:maxScore,percentage:Number.isFinite(Number(percentage))?Number(percentage):null,grade:r.grade||calculateGradeFromPercentage(percentage),remarks:r.remarks,exam_title:exam?.title??null,exam_type:exam?.exam_type??null,exam_date:exam?.exam_date??null,created_at:r.created_at};
-  });
-  populateGradeYears();applyGradeFilter();
+  let p = r.percentage != null && r.percentage !== ""
+   ? Number(r.percentage)
+   : (Number.isFinite(score) && Number.isFinite(max) && max > 0 ? score/max*100 : null);
+  if (p != null && Number.isFinite(p)) percentages.push(p);
+ });
+
+ const average = totalMax > 0
+  ? totalScore / totalMax * 100
+  : percentages.length
+   ? percentages.reduce((a,b)=>a+b,0)/percentages.length
+   : null;
+
+ const completionRate = enrollments.length ? completed / enrollments.length * 100 : 0;
+
+ $("prTotal").textContent = enrollments.length;
+ $("prCompleted").textContent = completed;
+ $("prAttendance").textContent = attendanceRate == null ? "—" : attendanceRate.toFixed(1)+"%";
+ $("prAverage").textContent = average == null ? "—" : average.toFixed(1)+"%";
+
+ $("prCourseBar").style.width = completionRate+"%";
+ $("prCourseText").textContent = enrollments.length
+  ? `${completed} of ${enrollments.length} enrollment(s) completed`
+  : "No enrollment data available";
+
+ $("prAttendanceBar").style.width = (attendanceRate || 0)+"%";
+ $("prAttendanceText").textContent = attendanceRate == null
+  ? "No published attendance records"
+  : `${present} present out of ${denominator} counted records`;
+
+ $("prScoreBar").style.width = Math.max(0,Math.min(100,average || 0))+"%";
+ $("prScoreText").textContent = average == null
+  ? "No published examination results"
+  : `${average.toFixed(2)}% average from published results`;
+
+ const classMap = new Map(classes.map(x=>[x.id,x]));
+ const courseMap = new Map(courses.map(x=>[x.id,x]));
+ const yearMap = new Map(academicYears.map(x=>[x.id,x]));
+
+ if (!enrollments.length) {
+  empty("progressBody",7,"No enrollment history available.");
+ } else {
+  $("progressBody").innerHTML = enrollments.map(enrollment => {
+   const c = courseMap.get(enrollment.course_id);
+   const cl = classMap.get(enrollment.class_id);
+   const y = yearMap.get(enrollment.academic_year_id);
+   const academicYear = y?.year_name || cl?.academic_year || "—";
+   return `<tr>
+    <td>${esc(academicYear)}</td>
+    <td>${esc(val(c?.name))}</td>
+    <td>${esc(val(cl?.name))}</td>
+    <td>${esc(date(enrollment.enrollment_date))}</td>
+    <td>${esc(date(enrollment.start_date))}</td>
+    <td>${esc(date(enrollment.end_date))}</td>
+    <td><span class="status">${esc(val(enrollment.status))}</span></td>
+   </tr>`;
+  }).join("");
+ }
+
+ if (warnings.length) {
+  $("progressWarning").style.display = "block";
+  $("progressWarning").textContent = "Some progress information could not be loaded: "+warnings.join(" | ");
+ } else {
+  $("progressWarning").style.display = "none";
+  $("progressWarning").textContent = "";
+ }
 }
+
+/* ================= ATTENDANCE ================= */
+function timeText(value) {
+ return value ? String(value).slice(0,8) : "—";
+}
+
+async function loadAttendance(student) {
+ const {data,error} = await withTimeout(
+  sb.from("attendance")
+   .select("id,institution_id,student_id,lesson_id,status,notes,recorded_at,published_at,is_published")
+   .eq("student_id",student.id)
+   .eq("institution_id",student.institution_id)
+   .eq("is_published",true)
+   .order("recorded_at",{ascending:false}),
+  "Published attendance query"
+ );
+ if (error) throw error;
+
+ const list = data || [];
+ const lessonIds = [...new Set(list.map(r=>r.lesson_id).filter(Boolean))];
+ let lessonMap = new Map();
+
+ if (lessonIds.length) {
+  try {
+   const q = await withTimeout(
+    sb.from("lessons").select("*").in("id",lessonIds),
+    "Lessons lookup"
+   );
+   if (!q.error) lessonMap = new Map((q.data||[]).map(l=>[l.id,l]));
+  } catch(e) {
+   console.warn("Lessons lookup:",e);
+  }
+ }
+
+ const items = list.map(r => {
+  const lesson = lessonMap.get(r.lesson_id) || {};
+  return {
+   lesson:lesson.title || lesson.name || lesson.subject || "Lesson",
+   date:lesson.lesson_date || r.recorded_at,
+   start:lesson.start_time || null,
+   end:lesson.end_time || null,
+   status:String(r.status||"").toLowerCase(),
+   notes:r.notes || ""
+  };
+ });
+
+ renderAttendance(items);
+}
+
+function renderAttendance(items) {
+ const count = status => items.filter(x=>x.status===status).length;
+ const present = count("present");
+ const absent = count("absent");
+ const late = count("late");
+ const excused = count("excused");
+ const denominator = present + absent + late;
+ const rate = denominator ? present/denominator*100 : null;
+
+ $("attPresent").textContent = present;
+ $("attAbsent").textContent = absent;
+ $("attLate").textContent = late;
+ $("attExcused").textContent = excused;
+ $("attRate").textContent = rate == null ? "—" : rate.toFixed(1)+"%";
+ $("attBar").style.width = (rate || 0)+"%";
+ $("attNote").textContent = items.length+" published attendance record(s) available.";
+
+ if (!items.length) return empty("attendanceBody",6,"No published attendance records available.");
+
+ $("attendanceBody").innerHTML = items.map(r => {
+  const label = r.status ? r.status.charAt(0).toUpperCase()+r.status.slice(1) : "—";
+  const cls = ["present","absent","late","excused"].includes(r.status) ? "st-"+r.status : "";
+  return `<tr>
+   <td>${esc(r.lesson)}</td>
+   <td>${esc(date(r.date))}</td>
+   <td>${esc(timeText(r.start))}</td>
+   <td>${esc(timeText(r.end))}</td>
+   <td><span class="status ${cls}">${esc(label)}</span></td>
+   <td>${esc(val(r.notes))}</td>
+  </tr>`;
+ }).join("");
+}
+
+/* ================= GRADES ================= */
+function gradeClass(grade) {
+ const g = String(grade||"").trim().toUpperCase();
+ if (g.startsWith("A")) return "grade-a";
+ if (g.startsWith("B")) return "grade-b";
+ if (g.startsWith("C")) return "grade-c";
+ if (g.startsWith("D")) return "grade-d";
+ if (g==="F") return "grade-f";
+ return "grade-na";
+}
+
+function calculateGrade(p) {
+ if (p == null || !Number.isFinite(Number(p))) return "—";
+ p = Number(p);
+ if (p>=90) return "A+";
+ if (p>=80) return "A";
+ if (p>=70) return "B";
+ if (p>=60) return "C";
+ if (p>=50) return "D";
+ return "F";
+}
+
+function populateGradeYears() {
+ const select = $("gradeYear");
+ const current = select.value || "ALL";
+ const years = [...new Set(allGradeResults
+  .map(r=>r.academic_year)
+  .filter(v=>v!=null && String(v).trim()!=="")
+  .map(String))].sort((a,b)=>(Number(b)||0)-(Number(a)||0));
+
+ select.innerHTML = '<option value="ALL">All Years</option>';
+ years.forEach(year => {
+  const option = document.createElement("option");
+  option.value = year;
+  option.textContent = year;
+  select.appendChild(option);
+ });
+ select.value = years.includes(current) ? current : "ALL";
+}
+
+function renderGradeSummary(results) {
+ const normalized = results.map(r => {
+  const score = r.score == null || r.score === "" ? null : Number(r.score);
+  const max = r.max_score == null || r.max_score === "" ? null : Number(r.max_score);
+  const percentage = r.percentage == null || r.percentage === ""
+   ? (max > 0 && score != null ? score/max*100 : null)
+   : Number(r.percentage);
+  return {
+   ...r,
+   _score:Number.isFinite(score)?score:null,
+   _max:Number.isFinite(max)&&max>0?max:null,
+   _pct:Number.isFinite(percentage)?percentage:null
+  };
+ });
+
+ const scored = normalized.filter(r=>r._score!==null && r._max!==null);
+ const percentages = normalized.filter(r=>r._pct!==null);
+
+ $("gradeTotalSubjects").textContent = results.length;
+
+ if (!percentages.length) {
+  $("gradeAverage").textContent = "—";
+  $("gradeHighest").textContent = "—";
+  $("gradeLowest").textContent = "—";
+  $("gradeOverall").textContent = "—";
+  return;
+ }
+
+ const totalScore = scored.reduce((sum,r)=>sum+r._score,0);
+ const totalMax = scored.reduce((sum,r)=>sum+r._max,0);
+ const average = totalMax > 0
+  ? totalScore/totalMax*100
+  : percentages.reduce((sum,r)=>sum+r._pct,0)/percentages.length;
+
+ const highest = percentages.reduce((a,b)=>a._pct>b._pct?a:b);
+ const lowest = percentages.reduce((a,b)=>a._pct<b._pct?a:b);
+ const overall = calculateGrade(average);
+
+ $("gradeAverage").textContent = average.toFixed(2)+"%";
+ $("gradeHighest").textContent = highest._pct.toFixed(1)+"%";
+ $("gradeLowest").textContent = lowest._pct.toFixed(1)+"%";
+ $("gradeOverall").innerHTML = `<span class="grade-pill ${gradeClass(overall)}">${esc(overall)}</span>`;
+}
+
+function renderGrades(results) {
+ renderGradeSummary(results);
+
+ if (!results.length) {
+  $("gradesBody").innerHTML = '<tr><td colspan="8"><div class="no-results">No published grade records available for the selected academic year.</div></td></tr>';
+  return;
+ }
+
+ $("gradesBody").innerHTML = results.map(r => {
+  const score = Number(r.score);
+  const max = Number(r.max_score);
+  const p = r.percentage != null
+   ? Number(r.percentage)
+   : (Number.isFinite(score)&&Number.isFinite(max)&&max>0 ? score/max*100 : null);
+  const grade = val(r.grade,calculateGrade(p));
+
+  return `<tr>
+   <td>${esc(val(r.academic_year))}</td>
+   <td>${esc(val(r.subject_name||r.exam_title))}</td>
+   <td>${esc(val(r.subject_code))}</td>
+   <td>${r.score==null?"—":esc(num(r.score))}${r.max_score!=null?" / "+esc(num(r.max_score)):""}</td>
+   <td>${p==null?"—":esc(p.toFixed(1)+"%")}</td>
+   <td><span class="grade-pill ${gradeClass(grade)}">${esc(grade)}</span></td>
+   <td>${esc(val(r.remarks))}</td>
+   <td>${esc(date(r.exam_date))}</td>
+  </tr>`;
+ }).join("");
+}
+
+function applyGradeFilter() {
+ const year = $("gradeYear").value;
+ let filtered = [...allGradeResults];
+
+ if (year && year!=="ALL") {
+  filtered = filtered.filter(r=>String(r.academic_year??"")===String(year));
+ }
+
+ filtered.sort((a,b)=>{
+  const ya = Number(a.academic_year)||0;
+  const yb = Number(b.academic_year)||0;
+  if (ya!==yb) return yb-ya;
+  return new Date(b.exam_date||b.created_at||0)-new Date(a.exam_date||a.created_at||0);
+ });
+
+ renderGrades(filtered);
+}
+
+async function loadGrades(student) {
+ const {data:rpcData,error:rpcError} = await withTimeout(
+  sb.rpc("get_my_student_results"),
+  "Published grades RPC"
+ );
+
+ if (!rpcError && Array.isArray(rpcData)) {
+  allGradeResults = rpcData.map(r=>({
+   id:r.result_id,
+   academic_year:r.academic_year ?? null,
+   subject_name:r.subject_name ?? r.exam_title ?? "Subject",
+   subject_code:r.subject_code ?? "—",
+   score:r.score,
+   max_score:r.max_score,
+   percentage:r.percentage != null ? Number(r.percentage) :
+    (Number(r.max_score)>0 ? Number(r.score)/Number(r.max_score)*100 : null),
+   grade:r.grade || calculateGrade(r.percentage),
+   remarks:r.remarks,
+   exam_title:r.exam_title,
+   exam_date:r.exam_date,
+   created_at:r.created_at
+  }));
+  populateGradeYears();
+  applyGradeFilter();
+  return;
+ }
+
+ console.warn("Results RPC unavailable, using fallback:",rpcError);
+
+ const {data:source,error} = await withTimeout(
+  sb.from("results")
+   .select("id,institution_id,student_id,exam_id,subject_id,score,max_score,percentage,grade,remarks,is_published,created_at")
+   .eq("student_id",student.id)
+   .eq("institution_id",student.institution_id)
+   .eq("is_published",true)
+   .order("created_at",{ascending:false}),
+  "Published results fallback"
+ );
+ if (error) throw error;
+
+ const results = source || [];
+ const subjectIds = [...new Set(results.map(r=>r.subject_id).filter(Boolean))];
+ const examIds = [...new Set(results.map(r=>r.exam_id).filter(Boolean))];
+
+ let subjects=[],exams=[],classes=[];
+
+ if (subjectIds.length) {
+  try {
+   const q = await sb.from("subjects").select("id,name,code,max_score").in("id",subjectIds);
+   if (!q.error) subjects=q.data||[];
+  } catch(e) { console.warn("Subject lookup:",e); }
+ }
+
+ if (examIds.length) {
+  try {
+   const q = await sb.from("exams").select("id,title,exam_type,exam_date,max_score,class_id").in("id",examIds);
+   if (!q.error) exams=q.data||[];
+  } catch(e) { console.warn("Exam lookup:",e); }
+ }
+
+ const classIds = [...new Set(exams.map(e=>e.class_id).filter(Boolean))];
+
+ if (classIds.length) {
+  try {
+   const q = await sb.from("classes").select("id,name,code,academic_year").in("id",classIds);
+   if (!q.error) classes=q.data||[];
+  } catch(e) { console.warn("Class lookup:",e); }
+ }
+
+ const subjectMap = new Map(subjects.map(x=>[x.id,x]));
+ const examMap = new Map(exams.map(x=>[x.id,x]));
+ const classMap = new Map(classes.map(x=>[x.id,x]));
+
+ allGradeResults = results.map(r=>{
+  const subject = subjectMap.get(r.subject_id);
+  const exam = examMap.get(r.exam_id);
+  const classInfo = exam ? classMap.get(exam.class_id) : null;
+  const max = r.max_score ?? subject?.max_score ?? exam?.max_score ?? null;
+  const percentage = r.percentage != null
+   ? Number(r.percentage)
+   : (Number(max)>0 ? Number(r.score)/Number(max)*100 : null);
+
+  return {
+   id:r.id,
+   academic_year:classInfo?.academic_year ?? null,
+   subject_name:subject?.name ?? exam?.title ?? "Subject",
+   subject_code:subject?.code ?? "—",
+   score:r.score,
+   max_score:max,
+   percentage:Number.isFinite(Number(percentage))?Number(percentage):null,
+   grade:r.grade || calculateGrade(percentage),
+   remarks:r.remarks,
+   exam_title:exam?.title,
+   exam_date:exam?.exam_date,
+   created_at:r.created_at
+  };
+ });
+
+ populateGradeYears();
+ applyGradeFilter();
+}
+
 $("gradeYear").addEventListener("change",applyGradeFilter);
 
-/* ---------- Certificates & Payments ---------- */
-function renderCertificates(a){
-  if(!a.length)return empty("certificatesBody",6,"No certificates available yet.");
-  $("certificatesBody").innerHTML=a.map(r=>{
-    const code=r.verify_code||"";
-    const generated=code?"https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify.html?code="+encodeURIComponent(code):"";
-    const candidate=r.verification_url||generated||r.certificate_url||r.pdf_url||"";
-    let safeLink="";
-    try{if(candidate){const parsed=new URL(candidate,window.location.href);if(parsed.protocol==="https:"||parsed.protocol==="http:")safeLink=parsed.href;}}catch(_){safeLink="";}
-    const button=safeLink?`<a href="${esc(safeLink)}" target="_blank" rel="noopener noreferrer">Verify / Open</a>`:"Verification link unavailable";
-    return `<tr><td>${esc(val(r.certificate_no||r.certificate_id))}</td><td>${esc(val(r.course_name_snapshot))}</td><td>${esc(date(r.issue_date))}</td><td>${esc(date(r.expiry_date))}</td><td><span class="status">${esc(val(r.status))}</span></td><td>${button}</td></tr>`;
-  }).join("");
-}
-function renderPayments(a){
-  if(!a.length)return empty("paymentsBody",6,"No payment records available yet.");
-  $("paymentsBody").innerHTML=a.map(r=>`<tr><td class="money">${esc(num(r.amount))}</td><td>${esc(val(r.currency))}</td><td>${esc(val(r.payment_method))}</td><td>${esc(val(r.transaction_reference||r.provider_transaction_id))}</td><td><span class="status">${esc(val(r.status))}</span></td><td>${esc(date(r.paid_at||r.created_at))}</td></tr>`).join("");
+/* ================= CERTIFICATES ================= */
+function renderCertificates(list) {
+ if (!list.length) return empty("certificatesBody",6,"No certificates available yet.");
+
+ $("certificatesBody").innerHTML = list.map(r=>{
+  const code = r.verify_code || "";
+  const generated = code
+   ? "https://gaawowacademy-dotcom.github.io/GAAWOW-EMS/verify.html?code="+encodeURIComponent(code)
+   : "";
+  const candidate = r.verification_url || generated || r.certificate_url || r.pdf_url || "";
+  let safeLink = "";
+
+  try {
+   if (candidate) {
+    const parsed = new URL(candidate,window.location.href);
+    if (parsed.protocol==="https:" || parsed.protocol==="http:") safeLink=parsed.href;
+   }
+  } catch(_) {}
+
+  const link = safeLink
+   ? `<a href="${esc(safeLink)}" target="_blank" rel="noopener noreferrer">Verify / Open</a>`
+   : "Verification link unavailable";
+
+  return `<tr>
+   <td>${esc(val(r.certificate_no||r.certificate_id))}</td>
+   <td>${esc(val(r.course_name_snapshot))}</td>
+   <td>${esc(date(r.issue_date))}</td>
+   <td>${esc(date(r.expiry_date))}</td>
+   <td><span class="status">${esc(val(r.status))}</span></td>
+   <td>${link}</td>
+  </tr>`;
+ }).join("");
 }
 
-/* ---------- Main load ---------- */
-async function load(){
-  clearMsg();$("loading").style.display="block";$("portal").style.display="none";
-  try{
-    if(!sb)throw new Error("Supabase library could not load. Refresh the page or check your internet connection.");
-    const {data,error}=await withTimeout(sb.auth.getSession(),"Login session check",12000);if(error)throw error;
-    let session=data?.session;
-    if(!session?.user?.id){
-      const refreshed=await withTimeout(sb.auth.refreshSession(),"Session refresh",12000);
-      if(refreshed.error)throw refreshed.error;session=refreshed.data?.session;
-    }
-    const uid=session?.user?.id;if(!uid)throw new Error("Login session is missing or expired. Please return to the EMS login page and sign in again.");
-    const studentCols="id,institution_id,profile_id,student_id,full_name,gender,date_of_birth,phone,email,address,photo_url,admission_date,status,account_enabled,auth_user_id,login_username,account_created_at,last_login_at,password_changed_at,created_at,updated_at";
-    const students=await rows("students",studentCols,"auth_user_id",uid,"created_at");
-    if(!students.length)throw new Error("Student record not found for this login account. Please contact the GAAWOW administrator.");
-    const s=students[0];window.__student=s;renderStudent(s);
-    let institution=null,enrollment=null,course=null,department=null,cl=null;
-    try{institution=await one("institutions","id,name,code,email,phone,address,city,country,logo_url,website_url,is_active",s.institution_id);}catch(e){console.warn("Institution lookup:",e);}
-    let enrollments=[];
-    try{enrollments=await rows("enrollments","id,institution_id,student_id,course_id,class_id,enrollment_number,enrollment_date,start_date,end_date,status,created_at,updated_at,academic_year_id","student_id",s.id,"created_at");enrollment=enrollments.find(x=>String(x.status||"").toLowerCase()==="active")||enrollments[0]||null;}catch(e){console.warn("Enrollment lookup:",e);}
-    try{if(enrollment?.course_id)course=await one("courses","id,institution_id,department_id,name,code,description,duration_months,fee,is_active,created_at,updated_at",enrollment.course_id);}catch(e){console.warn("Course lookup:",e);}
-    try{if(course?.department_id)department=await one("departments","id,institution_id,name,code,description,head_profile_id,is_active,created_at,updated_at",course.department_id);}catch(e){console.warn("Department lookup:",e);}
-    try{if(enrollment?.class_id)cl=await one("classes","id,institution_id,course_id,name,code,academic_year,teacher_id,room,start_date,end_date,is_active,created_at,updated_at,status",enrollment.class_id);}catch(e){console.warn("Class lookup:",e);}
-    renderAcademic(enrollment,course,department,cl,institution);
-    window.__currentAcademicYear=cl?.academic_year??null;
-    try{await renderDerivedProgress(s);}catch(e){console.error("Progress calculation:",e);empty("progressBody",6,"Academic progress is temporarily unavailable.");}
-    try{await loadAttendance(s);}catch(e){console.warn("Attendance:",e);empty("attendanceBody",6,"Attendance could not be loaded. Check student access permissions.");}
-    try{await loadGrades(s.id);}catch(e){console.warn("Results / Grades:",e);allGradeResults=[];populateGradeYears();renderGrades([]);}
-    try{renderCertificates(await rows("certificates","id,institution_id,student_id,course_id,certificate_no,certificate_id,verify_code,hash_code,issue_date,expiry_date,status,certificate_url,pdf_url,qr_url,student_name_snapshot,course_name_snapshot,issued_by,created_at,updated_at,certificate_type,template_url,student_photo_url,verification_url","student_id",s.id,"created_at"));}catch(e){console.warn("Certificates:",e);empty("certificatesBody",6,"Certificates could not be loaded. Check student access permissions.");}
-    try{renderPayments(await rows("payments","id,institution_id,invoice_id,student_id,amount,currency,payment_method,provider,provider_transaction_id,transaction_reference,payer_phone,status,paid_at,metadata,created_at","student_id",s.id,"created_at"));}catch(e){console.warn("Payments:",e);empty("paymentsBody",6,"Payments could not be loaded. Check student access permissions.");}
-    $("loading").style.display="none";$("portal").style.display="block";openSection("dashboard");icons();
-  }catch(e){console.error("GAAWOW PORTAL ERROR",e);$("loading").style.display="none";showError(errText(e));}
+/* ================= PAYMENTS ================= */
+function renderPayments(list) {
+ if (!list.length) return empty("paymentsBody",6,"No payment records available yet.");
+
+ $("paymentsBody").innerHTML = list.map(r=>`
+  <tr>
+   <td><b>${esc(num(r.amount))}</b></td>
+   <td>${esc(val(r.currency))}</td>
+   <td>${esc(val(r.payment_method))}</td>
+   <td>${esc(val(r.transaction_reference||r.provider_transaction_id))}</td>
+   <td><span class="status">${esc(val(r.status))}</span></td>
+   <td>${esc(date(r.paid_at||r.created_at))}</td>
+  </tr>
+ `).join("");
 }
 
+/* ================= WHATSAPP SUPPORT ================= */
+function sendWhatsAppSupport() {
+ if (!currentStudent) {
+  showError("Student details are not loaded. Please refresh the portal.");
+  return;
+ }
+
+ const category = $("waCategory").value;
+ const message = $("waMessage").value.trim();
+
+ if (!message) {
+  showError("Please write your support message before continuing to WhatsApp.");
+  $("waMessage").focus();
+  return;
+ }
+
+ if (message.length < 5) {
+  showError("Please enter a little more detail in your message.");
+  $("waMessage").focus();
+  return;
+ }
+
+ const text = [
+  "GAAWOW EMS STUDENT SUPPORT",
+  "",
+  "Student Name: "+(currentStudent.full_name||""),
+  "Student ID: "+(currentStudent.student_id||""),
+  "Phone: "+(currentStudent.phone||"Not provided"),
+  "Institution: GAAWOW Academy",
+  "",
+  "Support Category: "+category,
+  "",
+  "Message:",
+  message,
+  "",
+  "Sent through GAAWOW EMS Student Portal."
+ ].join("\n");
+
+ const url = "https://wa.me/"+WHATSAPP_NUMBER+"?text="+encodeURIComponent(text);
+ const opened = window.open(url,"_blank","noopener,noreferrer");
+
+ if (!opened) {
+  showError("Your browser blocked the WhatsApp window. Please allow pop-ups or open WhatsApp manually.");
+  return;
+ }
+
+ showSuccess("WhatsApp opened with your support message. Please review and press Send in WhatsApp.");
+}
+
+$("waSendBtn").addEventListener("click",sendWhatsAppSupport);
+
+/* ================= MAIN PORTAL LOAD ================= */
+async function loadPortal() {
+ clearMessage();
+ $("loading").style.display = "block";
+ $("portal").style.display = "none";
+
+ try {
+  if (!sb) {
+   throw new Error("Supabase library could not load. Check your internet connection.");
+  }
+
+  const sessionResult = await withTimeout(
+   sb.auth.getSession(),
+   "Login session check",
+   12000
+  );
+
+  if (sessionResult.error) throw sessionResult.error;
+
+  let session = sessionResult.data?.session;
+
+  if (!session?.user?.id) {
+   const refreshed = await withTimeout(
+    sb.auth.refreshSession(),
+    "Session refresh",
+    12000
+   );
+   if (refreshed.error) throw refreshed.error;
+   session = refreshed.data?.session;
+  }
+
+  const userId = session?.user?.id;
+
+  if (!userId) {
+   throw new Error("Your login session is missing or expired. Please sign in again.");
+  }
+
+  const studentColumns = [
+   "id","institution_id","profile_id","student_id","full_name","gender",
+   "date_of_birth","phone","email","address","photo_url","admission_date",
+   "status","account_enabled","auth_user_id","login_username",
+   "account_created_at","last_login_at","password_changed_at",
+   "created_at","updated_at"
+  ].join(",");
+
+  const students = await rows(
+   "students",
+   studentColumns,
+   "auth_user_id",
+   userId,
+   "created_at"
+  );
+
+  if (!students.length) {
+   throw new Error("Student record not found for this login account. Please contact the GAAWOW administrator.");
+  }
+
+  currentStudent = students[0];
+  renderStudent(currentStudent);
+
+  let institution=null;
+  let enrollment=null;
+  let course=null;
+  let department=null;
+  let classInfo=null;
+  let enrollmentList=[];
+
+  try {
+   institution = await one(
+    "institutions",
+    "id,name,code,email,phone,address,city,country,logo_url,website_url,is_active",
+    currentStudent.institution_id
+   );
+  } catch(e) { console.warn("Institution lookup:",e); }
+
+  try {
+   enrollmentList = await rows(
+    "enrollments",
+    "id,institution_id,student_id,course_id,class_id,enrollment_number,enrollment_date,start_date,end_date,status,created_at,updated_at,academic_year_id",
+    "student_id",
+    currentStudent.id,
+    "created_at"
+   );
+
+   enrollmentList = enrollmentList.filter(
+    x=>x.institution_id===currentStudent.institution_id
+   );
+
+   enrollment =
+    enrollmentList.find(x=>String(x.status||"").toLowerCase()==="active")
+    || enrollmentList[0]
+    || null;
+  } catch(e) { console.warn("Enrollment lookup:",e); }
+
+  try {
+   if (enrollment?.course_id) {
+    course = await one(
+     "courses",
+     "id,institution_id,department_id,name,code,description,duration_months,fee,is_active,created_at,updated_at",
+     enrollment.course_id
+    );
+   }
+  } catch(e) { console.warn("Course lookup:",e); }
+
+  try {
+   if (course?.department_id) {
+    department = await one(
+     "departments",
+     "id,institution_id,name,code,description,head_profile_id,is_active,created_at,updated_at",
+     course.department_id
+    );
+   }
+  } catch(e) { console.warn("Department lookup:",e); }
+
+  try {
+   if (enrollment?.class_id) {
+    classInfo = await one(
+     "classes",
+     "id,institution_id,course_id,name,code,academic_year,teacher_id,room,start_date,end_date,is_active,created_at,updated_at,status",
+     enrollment.class_id
+    );
+   }
+  } catch(e) { console.warn("Class lookup:",e); }
+
+  renderAcademic(enrollment,course,department,classInfo,institution);
+
+  /* Load individual modules without stopping the whole portal */
+  try {
+   await loadProgress(currentStudent);
+  } catch(e) {
+   console.error("Progress loading:",e);
+   empty("progressBody",7,"Academic progress is temporarily unavailable.");
+   showError("Academic Progress could not be fully loaded: "+errorText(e));
+  }
+
+  try {
+   await loadAttendance(currentStudent);
+  } catch(e) {
+   console.warn("Attendance:",e);
+   empty("attendanceBody",6,"Attendance could not be loaded. Check student access permissions.");
+  }
+
+  try {
+   await loadGrades(currentStudent);
+  } catch(e) {
+   console.warn("Grades:",e);
+   allGradeResults=[];
+   populateGradeYears();
+   renderGrades([]);
+  }
+
+  try {
+   const certificates = await rows(
+    "certificates",
+    "id,institution_id,student_id,course_id,certificate_no,certificate_id,verify_code,hash_code,issue_date,expiry_date,status,certificate_url,pdf_url,qr_url,student_name_snapshot,course_name_snapshot,issued_by,created_at,updated_at,certificate_type,template_url,student_photo_url,verification_url",
+    "student_id",
+    currentStudent.id,
+    "created_at"
+   );
+   renderCertificates(certificates);
+  } catch(e) {
+   console.warn("Certificates:",e);
+   empty("certificatesBody",6,"Certificates could not be loaded. Check student access permissions.");
+  }
+
+  try {
+   const payments = await rows(
+    "payments",
+    "id,institution_id,invoice_id,student_id,amount,currency,payment_method,provider,provider_transaction_id,transaction_reference,payer_phone,status,paid_at,metadata,created_at",
+    "student_id",
+    currentStudent.id,
+    "created_at"
+   );
+   renderPayments(payments);
+  } catch(e) {
+   console.warn("Payments:",e);
+   empty("paymentsBody",6,"Payments could not be loaded. Check student access permissions.");
+  }
+
+  $("loading").style.display = "none";
+  $("portal").style.display = "block";
+  openSection("dashboard");
+  icons();
+
+ } catch(e) {
+  console.error("GAAWOW EMS STUDENT PORTAL ERROR:",e);
+  $("loading").style.display = "none";
+  showError(errorText(e));
+ }
+}
+
+/* ================= REFRESH ATTENDANCE ================= */
 $("refreshAttendance").addEventListener("click",async()=>{
-  const btn=$("refreshAttendance");btn.disabled=true;btn.textContent="Refreshing...";
-  try{await loadAttendance(window.__student);}catch(e){showError("Attendance: "+errText(e));}
-  btn.disabled=false;btn.textContent="↻ Refresh Attendance";
+ const button = $("refreshAttendance");
+ if (!currentStudent) return;
+
+ button.disabled = true;
+ button.textContent = "Refreshing...";
+
+ try {
+  await loadAttendance(currentStudent);
+  showSuccess("Attendance records refreshed.");
+ } catch(e) {
+  showError("Attendance: "+errorText(e));
+ } finally {
+  button.disabled = false;
+  button.textContent = "↻ Refresh Attendance";
+ }
 });
-$("logoutBtn").addEventListener("click",async()=>{try{if(sb)await sb.auth.signOut();}finally{window.location.replace("index.html");}});
-if(sb){sb.auth.onAuthStateChange(event=>{if(event==="SIGNED_OUT")window.location.replace("index.html");});}
-load();
-setTimeout(()=>{if($("loading").style.display!=="none"&&$("portal").style.display!=="block")showError("The student portal did not finish loading. Please refresh the page. If the issue continues, contact GAAWOW EMS support.");},35000);
+
+/* ================= LOGOUT ================= */
+$("logoutBtn").addEventListener("click",async()=>{
+ const button = $("logoutBtn");
+ button.disabled = true;
+ button.textContent = "Logging out...";
+
+ try {
+  if (sb) await sb.auth.signOut();
+ } catch(e) {
+  console.warn("Logout error:",e);
+ } finally {
+  window.location.replace("index.html");
+ }
+});
+
+/* ================= AUTH STATE ================= */
+if (sb) {
+ sb.auth.onAuthStateChange(event=>{
+  if (event==="SIGNED_OUT") {
+   window.location.replace("index.html");
+  }
+ });
+}
+
+/* ================= START ================= */
+loadPortal();
+
+setTimeout(()=>{
+ if ($("loading").style.display!=="none" && $("portal").style.display!=="block") {
+  showError("The student portal is taking too long to load. Please refresh the page. If the issue continues, contact GAAWOW EMS support.");
+ }
+},35000);
+
 })();
 </script>
-  <script src="whatsapp-links.js?v=1"></script>
 </body>
 </html>
