@@ -1,1714 +1,982 @@
 
-/* ============================================================
-   GAAWOW EMS - STUDENTS.JS
-   Student Management | Supabase JS v2
-   ============================================================ */
+"use strict";
 
 (() => {
-  "use strict";
+  const SUPABASE_URL = "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+  const ACCOUNT_FUNCTION = `${SUPABASE_URL}/functions/v1/create-student-account`;
 
-  function boot() {
-    const message = document.getElementById("message");
+  const $ = id => document.getElementById(id);
 
-    function showStartupError(text) {
-      console.error("GAAWOW STUDENTS:", text);
+  const requiredIds = [
+    "studentForm","institutionSelect","courseSelect","academicYearSelect",
+    "classSelect","studentsTableBody","message","saveButton"
+  ];
 
-      if (message) {
-        message.textContent = text;
-        message.className = "message error";
-        message.style.display = "block";
-      }
+  for (const id of requiredIds) {
+    if (!$(id)) {
+      console.error("Missing HTML element:", id);
+      alert("Students page HTML is incomplete. Missing: " + id);
+      return;
     }
+  }
 
-    if (
-      !window.supabase ||
-      typeof window.supabase.createClient !== "function"
-    ) {
-      showStartupError(
-        "Supabase library lama soo dejin. Hubi internet-ka kadibna dib u fur bogga."
-      );
+  if (!window.supabase?.createClient) {
+    alert("Supabase library could not load. Please refresh the page.");
+    return;
+  }
+
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
+
+  let currentUser = null;
+  let students = [];
+  let institutions = [];
+  let courses = [];
+  let years = [];
+  let classes = [];
+  let selectedStudent = null;
+  let currentPhotoUrl = null;
+  let isEditing = false;
+
+  function message(text, type = "success") {
+    const el = $("message");
+    el.textContent = text;
+    el.className = "message " + type;
+    el.style.display = "block";
+    window.scrollTo({top: 0, behavior: "smooth"});
+  }
+
+  function clearMessage() {
+    $("message").textContent = "";
+    $("message").className = "message";
+    $("message").style.display = "none";
+  }
+
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    })[c]);
+  }
+
+  function setProgress(percent, text) {
+    $("progressWrap").style.display = "block";
+    $("progressBar").style.width = `${percent}%`;
+    $("progressText").textContent = text || "";
+  }
+
+  function hideProgress() {
+    $("progressWrap").style.display = "none";
+    $("progressBar").style.width = "0%";
+  }
+
+  function setOptions(select, rows, placeholder, labelFn) {
+    select.innerHTML = "";
+    const first = document.createElement("option");
+    first.value = "";
+    first.textContent = placeholder;
+    select.appendChild(first);
+
+    rows.forEach(row => {
+      const option = document.createElement("option");
+      option.value = row.id;
+      option.textContent = labelFn(row);
+      select.appendChild(option);
+    });
+
+    select.disabled = rows.length === 0;
+  }
+
+  function getInstitutionName(id) {
+    return institutions.find(x => x.id === id)?.name || "Not assigned";
+  }
+
+  function getCourseName(id) {
+    return courses.find(x => x.id === id)?.name || "Not assigned";
+  }
+
+  function getClassName(id) {
+    return classes.find(x => x.id === id)?.name || "Not assigned";
+  }
+
+  function getYearName(id) {
+    return years.find(x => x.id === id)?.year_name || "";
+  }
+
+  async function loadInstitutions() {
+    const {data, error} = await db
+      .from("institutions")
+      .select("id,name,code,is_active")
+      .order("name");
+
+    if (error) throw error;
+
+    institutions = data || [];
+
+    setOptions($("institutionSelect"), institutions, "Select institution", x => x.name);
+    setOptions($("institutionFilter"), institutions, "All Institutions", x => x.name);
+
+    $("institutionFilter").disabled = false;
+  }
+
+  async function loadCourses(institutionId, selectedId = "") {
+    courses = [];
+    setOptions($("courseSelect"), [], "Loading courses...", x => x.name);
+    $("courseSelect").disabled = true;
+
+    if (!institutionId) {
+      $("courseSelect").innerHTML = '<option value="">Select institution first</option>';
       return;
     }
 
-    // Supabase project configuration
-    const SUPABASE_URL =
-      "https://mytyvqwrxnxpxnxpiicj.supabase.co";
+    const {data, error} = await db
+      .from("courses")
+      .select("id,institution_id,name,code,duration_months,fee,is_active")
+      .eq("institution_id", institutionId)
+      .eq("is_active", true)
+      .order("name");
 
-    const SUPABASE_PUBLISHABLE_KEY =
-      "sb_publishable_2AvWfupkF1b_s0RjIbAi5g_RqLCs145";
+    if (error) throw error;
 
-    const ACCOUNT_FUNCTION_URL =
-      `${SUPABASE_URL}/functions/v1/create-student-account`;
-
-    // Initialize Supabase client once.
-    const supabase = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_PUBLISHABLE_KEY.trim(),
-      {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true
-        }
-      }
+    courses = data || [];
+    setOptions($("courseSelect"), courses, "Select course", x =>
+      `${x.name}${x.code ? " (" + x.code + ")" : ""}`
     );
 
-    const $ = id => document.getElementById(id);
+    if (selectedId && courses.some(x => x.id === selectedId)) {
+      $("courseSelect").value = selectedId;
+    }
+  }
 
-    const els = {
-      message: $("message"),
-      form: $("studentForm"),
-      formTitle: $("formTitle"),
-      editStudentDbId: $("editStudentDbId"),
-      institutionSelect: $("institutionSelect"),
-      courseSelect: $("courseSelect"),
-      courseHint: $("courseHint"),
-      studentId: $("studentId"),
-      fullName: $("fullName"),
-      gender: $("gender"),
-      dateOfBirth: $("dateOfBirth"),
-      phone: $("phone"),
-      email: $("email"),
-      admissionDate: $("admissionDate"),
-      status: $("status"),
-      address: $("address"),
-      photoInput: $("photoInput"),
-      photoPreview: $("photoPreview"),
-      photoPlaceholder: $("photoPlaceholder"),
-      accountStatus: $("accountStatus"),
-      createAccountButton: $("createAccountButton"),
-      resetPasswordButton: $("resetPasswordButton"),
-      progressWrap: $("progressWrap"),
-      progressBar: $("progressBar"),
-      progressText: $("progressText"),
-      saveButton: $("saveButton"),
-      resetFormButton: $("resetFormButton"),
-      addStudentButton: $("addStudentButton"),
-      refreshStudentsButton: $("refreshStudentsButton"),
-      searchInput: $("searchInput"),
-      statusFilter: $("statusFilter"),
-      studentsTableBody: $("studentsTableBody"),
-      totalStudents: $("totalStudents"),
-      activeStudents: $("activeStudents"),
-      graduatedStudents: $("graduatedStudents"),
-      otherStudents: $("otherStudents"),
-      profileModal: $("profileModal"),
-      closeProfileModal: $("closeProfileModal"),
-      profileContent: $("profileContent")
-    };
+  async function loadYears(institutionId, selectedId = "") {
+    years = [];
+    $("academicYearSelect").innerHTML = '<option value="">Loading academic years...</option>';
+    $("academicYearSelect").disabled = true;
 
-    let students = [];
-    let editingStudent = null;
-    let searchTimer = null;
-    let courses = [];
-
-    // Check that the required HTML elements exist.
-    function validateElements() {
-      const required = [
-        "form",
-        "institutionSelect",
-        "courseSelect",
-        "studentId",
-        "fullName",
-        "admissionDate",
-        "status",
-        "photoInput",
-        "photoPreview",
-        "photoPlaceholder",
-        "saveButton",
-        "studentsTableBody",
-        "totalStudents",
-        "activeStudents",
-        "graduatedStudents",
-        "otherStudents"
-      ];
-
-      const missing = required.filter(key => !els[key]);
-
-      if (missing.length) {
-        throw new Error(
-          `HTML elements missing: ${missing.join(", ")}. Check students.html.`
-        );
-      }
+    if (!institutionId) {
+      $("academicYearSelect").innerHTML = '<option value="">Select institution first</option>';
+      return;
     }
 
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+    const {data, error} = await db
+      .from("academic_years")
+      .select("id,institution_id,year_name,start_date,end_date,is_active,enrollment_start,enrollment_end")
+      .eq("institution_id", institutionId)
+      .order("start_date", {ascending: false});
+
+    if (error) throw error;
+
+    years = data || [];
+    setOptions($("academicYearSelect"), years, "Select academic year", x =>
+      x.year_name + (x.is_active ? " (Active)" : "")
+    );
+
+    if (selectedId && years.some(x => x.id === selectedId)) {
+      $("academicYearSelect").value = selectedId;
+    }
+  }
+
+  async function loadClasses(institutionId, courseId, yearId, selectedId = "") {
+    classes = [];
+    $("classSelect").innerHTML = '<option value="">Loading classes...</option>';
+    $("classSelect").disabled = true;
+
+    if (!institutionId || !courseId || !yearId) {
+      $("classSelect").innerHTML = '<option value="">Select course and year first</option>';
+      return;
     }
 
-    function showMessage(text, type = "success") {
-      if (!els.message) return;
+    const year = years.find(x => x.id === yearId);
+    if (!year) return;
 
-      els.message.textContent = text;
-      els.message.className = `message ${type}`;
-      els.message.style.display = "block";
+    const {data, error} = await db
+      .from("classes")
+      .select("id,institution_id,course_id,name,code,academic_year,is_active,status")
+      .eq("institution_id", institutionId)
+      .eq("course_id", courseId)
+      .eq("academic_year", year.year_name)
+      .eq("is_active", true)
+      .order("name");
 
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      });
+    if (error) throw error;
+
+    classes = data || [];
+    setOptions($("classSelect"), classes, "Select class", x =>
+      `${x.name}${x.code ? " (" + x.code + ")" : ""}`
+    );
+
+    if (selectedId && classes.some(x => x.id === selectedId)) {
+      $("classSelect").value = selectedId;
     }
-
-    function hideMessage() {
-      if (!els.message) return;
-
-      els.message.style.display = "none";
-      els.message.textContent = "";
-      els.message.className = "message";
-    }
-
-    function setProgress(percent, text = "") {
-      if (!els.progressWrap) return;
-
-      els.progressWrap.style.display = "block";
-      els.progressBar.style.width =
-        `${Math.max(0, Math.min(100, percent))}%`;
-      els.progressText.textContent = text;
-    }
-
-    function hideProgress() {
-      if (!els.progressWrap) return;
-
-      els.progressWrap.style.display = "none";
-      els.progressBar.style.width = "0%";
-      els.progressText.textContent = "";
-    }
-
-    function todayISO() {
-      const now = new Date();
-      const local = new Date(
-        now.getTime() - now.getTimezoneOffset() * 60000
-      );
-
-      return local.toISOString().slice(0, 10);
-    }
-
-    function formatDate(value) {
-      if (!value) return "—";
-
-      try {
-        return new Intl.DateTimeFormat("en-GB", {
-          year: "numeric",
-          month: "short",
-          day: "2-digit"
-        }).format(new Date(value));
-      } catch {
-        return String(value);
-      }
-    }
-
-    function statusBadge(status) {
-      const normalized = String(status ?? "").toLowerCase();
-
-      const className = normalized === "active"
-        ? "status-active"
-        : "status-inactive";
-
-      return `
-        <span class="status ${className}">
-          ${escapeHtml(status || "inactive")}
-        </span>
-      `;
-    }
-
-    function accountBadge(student) {
-      return student.auth_user_id
-        ? `<span class="status status-active">Account Active</span>`
-        : `<span class="status status-inactive">No Account</span>`;
-    }
-
-    function getInitials(name) {
-      const parts = String(name ?? "")
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean);
-
-      return parts.length
-        ? parts.slice(0, 2).map(x => x[0].toUpperCase()).join("")
-        : "ST";
-    }
-
-    function placeholderAvatar(name) {
-      return `
-        <div class="initials" aria-label="Student">
-          ${escapeHtml(getInitials(name))}
-        </div>
-      `;
-    }
-
-    // Get the currently authenticated user session.
-    async function getSessionOrThrow() {
-      const {
-        data: { session },
-        error
-      } = await supabase.auth.getSession();
-
-      if (error) throw error;
-
-      if (!session?.access_token) {
-        throw new Error(
-          "Login session expired. Please login again."
-        );
-      }
-
-      return session;
-    }
-
-    async function refreshSession() {
-      const {
-        data: { session },
-        error
-      } = await supabase.auth.refreshSession();
-
-      if (error) {
-        console.warn("SESSION REFRESH:", error);
-        return null;
-      }
-
-      return session;
-    }
-
-    // Call the create-student-account Edge Function.
-    async function callAccountFunction(payload) {
-      let session = await getSessionOrThrow();
-
-      async function request(currentSession) {
-        return fetch(ACCOUNT_FUNCTION_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": SUPABASE_PUBLISHABLE_KEY,
-            "Authorization": `Bearer ${currentSession.access_token}`
-          },
-          body: JSON.stringify(payload)
-        });
-      }
-
-      let response = await request(session);
-
-      if (response.status === 401) {
-        const refreshed = await refreshSession();
-
-        if (!refreshed?.access_token) {
-          throw new Error(
-            "Login session expired. Please login again."
-          );
-        }
-
-        response = await request(refreshed);
-      }
-
-      let result;
-
-      try {
-        result = await response.json();
-      } catch {
-        throw new Error(
-          `Edge Function returned invalid JSON (${response.status}).`
-        );
-      }
-
-      if (!response.ok || result?.success === false) {
-        throw new Error(
-          result?.error ||
-          result?.message ||
-          `Student account request failed (${response.status}).`
-        );
-      }
-
-      return result;
-    }
-
-    // Load institutions. This is also the first real database
-    // request, so an invalid key or project URL is reported here.
-    async function loadInstitutions() {
-      els.institutionSelect.innerHTML =
-        `<option value="">Loading institutions...</option>`;
-
-      const { data, error } = await supabase
-        .from("institutions")
-        .select("id,name")
-        .order("name", { ascending: true });
-
-      if (error) {
-        console.error("INSTITUTIONS ERROR:", error);
-
-        els.institutionSelect.innerHTML =
-          `<option value="">Unable to load institutions</option>`;
-
-        throw new Error(
-          `Institutions could not be loaded: ${error.message}`
-        );
-      }
-
-      els.institutionSelect.innerHTML =
-        `<option value="">Select institution</option>`;
-
-      for (const institution of data ?? []) {
-        const option = document.createElement("option");
-
-        option.value = institution.id;
-        option.textContent =
-          institution.name || institution.id;
-
-        els.institutionSelect.appendChild(option);
-      }
-    }
-
-    // Load active courses for the selected institution.
-    async function loadCourses(
-      institutionId,
-      selectedCourseId = ""
-    ) {
-      courses = [];
-
-      els.courseSelect.disabled = true;
-      els.courseSelect.innerHTML =
-        `<option value="">Loading courses...</option>`;
-
-      if (!institutionId) {
-        els.courseSelect.innerHTML =
-          `<option value="">Select institution first</option>`;
-
-        if (els.courseHint) {
-          els.courseHint.textContent =
-            "Choose an institution first.";
-        }
-
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("courses")
-        .select(
-          "id,institution_id,name,code,duration_months,fee,is_active"
-        )
-        .eq("institution_id", institutionId)
-        .eq("is_active", true)
-        .order("name", { ascending: true });
-
-      if (error) {
-        console.error("COURSES ERROR:", error);
-
-        els.courseSelect.innerHTML =
-          `<option value="">Unable to load courses</option>`;
-
-        showMessage(
-          `Courses could not be loaded: ${error.message}`,
-          "error"
-        );
-
-        return;
-      }
-
-      courses = data ?? [];
-
-      els.courseSelect.innerHTML =
-        `<option value="">Select course / program</option>`;
-
-      for (const course of courses) {
-        const option = document.createElement("option");
-
-        option.value = course.id;
-        option.textContent =
-          `${course.name}${course.code ? ` (${course.code})` : ""}`;
-
-        els.courseSelect.appendChild(option);
-      }
-
-      if (selectedCourseId) {
-        const existingCourse = courses.find(
-          course => course.id === selectedCourseId
-        );
-
-        if (!existingCourse) {
-          const {
-            data: inactiveCourse,
-            error: oldError
-          } = await supabase
-            .from("courses")
-            .select("id,name,code")
-            .eq("id", selectedCourseId)
-            .maybeSingle();
-
-          if (!oldError && inactiveCourse) {
-            const option = document.createElement("option");
-
-            option.value = inactiveCourse.id;
-            option.textContent =
-              `${inactiveCourse.name}` +
-              `${inactiveCourse.code ? ` (${inactiveCourse.code})` : ""}` +
-              " — Existing course";
-
-            els.courseSelect.appendChild(option);
-          }
-        }
-
-        els.courseSelect.value = selectedCourseId;
-      }
-
-      els.courseSelect.disabled = courses.length === 0;
-
-      // An existing course can still be displayed while editing.
-      if (selectedCourseId && els.courseSelect.value === selectedCourseId) {
-        els.courseSelect.disabled = false;
-      }
-
-      if (els.courseHint) {
-        els.courseHint.textContent = courses.length
-          ? `${courses.length} active course(s) available.`
-          : "No active courses found for this institution.";
-      }
-    }
-
-    // Load student records.
-    async function loadStudents() {
-      els.studentsTableBody.innerHTML =
-        `<tr><td colspan="10" class="empty">Loading students...</td></tr>`;
-
-      let query = supabase
-        .from("students")
-        .select(`
-          id,institution_id,student_id,full_name,gender,date_of_birth,
-          phone,email,address,photo_url,admission_date,status,
-          emergency_contact_name,emergency_contact_phone,
-          created_at,updated_at,account_enabled,auth_user_id,
-          login_username,account_created_at,last_login_at,password_changed_at
-        `)
-        .order("created_at", { ascending: false });
-
-      const selectedStatus =
-        els.statusFilter?.value?.trim();
-
-      if (selectedStatus) {
-        query = query.eq("status", selectedStatus);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error("STUDENTS LOAD ERROR:", error);
-
-        els.studentsTableBody.innerHTML =
-          `<tr><td colspan="10" class="empty">Could not load students.</td></tr>`;
-
-        showMessage(
-          `Students could not be loaded: ${error.message}`,
-          "error"
-        );
-
-        return false;
-      }
-
-      students = data ?? [];
-
+  }
+
+  async function loadFilterCourses(institutionId) {
+    $("courseFilter").innerHTML = '<option value="">All Courses</option>';
+    $("courseFilter").disabled = true;
+    $("classFilter").innerHTML = '<option value="">All Classes</option>';
+    $("classFilter").disabled = true;
+
+    if (!institutionId) {
       renderStudents();
-      updateStats();
+      return;
+    }
+
+    const {data, error} = await db
+      .from("courses")
+      .select("id,name,code")
+      .eq("institution_id", institutionId)
+      .order("name");
+
+    if (error) throw error;
+
+    const opts = data || [];
+    opts.forEach(row => {
+      const o = document.createElement("option");
+      o.value = row.id;
+      o.textContent = row.name;
+      $("courseFilter").appendChild(o);
+    });
+
+    $("courseFilter").disabled = false;
+    renderStudents();
+  }
+
+  async function loadFilterClasses(institutionId, courseId) {
+    $("classFilter").innerHTML = '<option value="">All Classes</option>';
+    $("classFilter").disabled = true;
+
+    if (!institutionId || !courseId) {
+      renderStudents();
+      return;
+    }
+
+    const {data, error} = await db
+      .from("classes")
+      .select("id,name,code")
+      .eq("institution_id", institutionId)
+      .eq("course_id", courseId)
+      .order("name");
+
+    if (error) throw error;
+
+    (data || []).forEach(row => {
+      const o = document.createElement("option");
+      o.value = row.id;
+      o.textContent = row.name;
+      $("classFilter").appendChild(o);
+    });
+
+    $("classFilter").disabled = false;
+    renderStudents();
+  }
+
+  async function loadStudents() {
+    $("studentsTableBody").innerHTML =
+      '<tr><td colspan="13" class="empty">Loading students...</td></tr>';
+
+    const [studentResult, enrollmentResult] = await Promise.all([
+      db.from("students")
+        .select("*")
+        .order("created_at", {ascending: false}),
+      db.from("enrollments")
+        .select("id,institution_id,student_id,course_id,class_id,academic_year_id,enrollment_number,enrollment_date,status,created_at")
+        .order("created_at", {ascending: false})
+    ]);
+
+    if (studentResult.error) throw studentResult.error;
+    if (enrollmentResult.error) throw enrollmentResult.error;
+
+    const enrollmentRows = enrollmentResult.data || [];
+
+    const latestEnrollment = new Map();
+    enrollmentRows.forEach(e => {
+      if (!latestEnrollment.has(e.student_id)) {
+        latestEnrollment.set(e.student_id, e);
+      }
+    });
+
+    students = (studentResult.data || []).map(s => ({
+      ...s,
+      enrollment: latestEnrollment.get(s.id) || null
+    }));
+
+    renderStudents();
+  }
+
+  function getFilteredStudents() {
+    const institutionId = $("institutionFilter").value;
+    const courseId = $("courseFilter").value;
+    const classId = $("classFilter").value;
+    const status = $("statusFilter").value;
+    const search = $("searchInput").value.trim().toLowerCase();
+
+    return students.filter(s => {
+      const e = s.enrollment || {};
+
+      if (institutionId && s.institution_id !== institutionId) return false;
+      if (courseId && e.course_id !== courseId) return false;
+      if (classId && e.class_id !== classId) return false;
+      if (status && String(s.status).toLowerCase() !== status) return false;
+
+      if (search) {
+        const haystack = [
+          s.full_name,s.student_id,s.phone,s.email,s.login_username,
+          getInstitutionName(s.institution_id),
+          getCourseName(e.course_id),
+          getClassName(e.class_id)
+        ].join(" ").toLowerCase();
+
+        if (!haystack.includes(search)) return false;
+      }
 
       return true;
+    });
+  }
+
+  function renderStats(rows) {
+    const total = rows.length;
+    const active = rows.filter(s => String(s.status).toLowerCase() === "active").length;
+    const graduated = rows.filter(s => String(s.status).toLowerCase() === "graduated").length;
+
+    $("totalStudents").textContent = total;
+    $("activeStudents").textContent = active;
+    $("graduatedStudents").textContent = graduated;
+    $("otherStudents").textContent = total - active - graduated;
+  }
+
+  function renderStudents() {
+    const rows = getFilteredStudents();
+    renderStats(rows);
+
+    $("filterCount").textContent = `Showing ${rows.length} of ${students.length} students`;
+
+    if (!rows.length) {
+      $("studentsTableBody").innerHTML =
+        '<tr><td colspan="13" class="empty">No students found.</td></tr>';
+      return;
     }
 
-    function getFilteredStudents() {
-      const term = String(
-        els.searchInput?.value ?? ""
-      ).trim().toLowerCase();
+    $("studentsTableBody").innerHTML = rows.map(s => {
+      const e = s.enrollment || {};
+      const name = escapeHTML(s.full_name || "Unnamed");
+      const photo = s.photo_url
+        ? `<img class="student-photo" src="${escapeHTML(s.photo_url)}" alt="Photo">`
+        : `<span class="initials">${escapeHTML((s.full_name || "?").split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase())}</span>`;
 
-      if (!term) return students;
+      const status = String(s.status || "unknown").toLowerCase();
+      const account = s.auth_user_id || s.account_enabled
+        ? '<span class="status status-active">Enabled</span>'
+        : '<span class="status status-inactive">No Account</span>';
 
-      return students.filter(student => {
-        const searchable = [
-          student.student_id,
-          student.full_name,
-          student.phone,
-          student.email,
-          student.gender,
-          student.status,
-          student.login_username
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
+      return `
+      <tr>
+        <td>${photo}</td>
+        <td>${escapeHTML(s.student_id || "Pending")}</td>
+        <td>${name}</td>
+        <td>${escapeHTML(getInstitutionName(s.institution_id))}</td>
+        <td>${escapeHTML(getCourseName(e.course_id))}</td>
+        <td>${escapeHTML(getClassName(e.class_id))}</td>
+        <td>${escapeHTML(s.gender || "-")}</td>
+        <td>${escapeHTML(s.phone || "-")}</td>
+        <td>${escapeHTML(s.email || "-")}</td>
+        <td><span class="status ${status === "active" || status === "graduated" ? "status-active" : "status-inactive"}">${escapeHTML(status)}</span></td>
+        <td>${escapeHTML(s.admission_date || "-")}</td>
+        <td>${account}</td>
+        <td>
+          <div class="actions">
+            <button class="btn-small action-view" data-action="view" data-id="${s.id}">View</button>
+            <button class="btn-small action-edit" data-action="edit" data-id="${s.id}">Edit</button>
+            ${s.auth_user_id
+              ? `<button class="btn-small action-reset-password" data-action="reset" data-id="${s.id}">Reset Password</button>`
+              : `<button class="btn-small action-create-account" data-action="create" data-id="${s.id}">Create Account</button>`}
+            <button class="btn-small action-delete" data-action="delete" data-id="${s.id}">Delete</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+  }
 
-        return searchable.includes(term);
-      });
+  function resetPhotoPreview() {
+    currentPhotoUrl = null;
+    $("photoInput").value = "";
+    $("photoPreview").src = "";
+    $("photoPreview").style.display = "none";
+    $("photoPlaceholder").style.display = "flex";
+  }
+
+  function showPhoto(url) {
+    if (!url) {
+      resetPhotoPreview();
+      return;
+    }
+    currentPhotoUrl = url;
+    $("photoPreview").src = url;
+    $("photoPreview").style.display = "block";
+    $("photoPlaceholder").style.display = "none";
+  }
+
+  async function uploadPhoto(studentId) {
+    const file = $("photoInput").files?.[0];
+    if (!file) return currentPhotoUrl;
+
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error("Photo must be smaller than 10 MB.");
     }
 
-    function renderStudents() {
-      const filtered = getFilteredStudents();
-
-      if (!filtered.length) {
-        els.studentsTableBody.innerHTML =
-          `<tr><td colspan="10" class="empty">No students found.</td></tr>`;
-
-        return;
-      }
-
-      els.studentsTableBody.innerHTML = filtered.map(student => {
-        const photo = student.photo_url
-          ? `
-            <img
-              src="${escapeHtml(student.photo_url)}"
-              class="student-photo"
-              alt="Student photo"
-            >
-          `
-          : placeholderAvatar(student.full_name);
-
-        return `
-          <tr>
-            <td>${photo}</td>
-
-            <td>
-              <strong>${escapeHtml(student.student_id)}</strong>
-            </td>
-
-            <td>
-              <strong>${escapeHtml(student.full_name)}</strong>
-            </td>
-
-            <td>${escapeHtml(student.gender || "—")}</td>
-            <td>${escapeHtml(student.phone || "—")}</td>
-            <td>${escapeHtml(student.email || "—")}</td>
-            <td>${statusBadge(student.status)}</td>
-            <td>${escapeHtml(formatDate(student.admission_date))}</td>
-            <td>${accountBadge(student)}</td>
-
-            <td>
-              <div class="actions">
-
-                <button
-                  type="button"
-                  class="btn-small action-view"
-                  data-action="view"
-                  data-id="${escapeHtml(student.id)}"
-                >View</button>
-
-                <button
-                  type="button"
-                  class="btn-small action-edit"
-                  data-action="edit"
-                  data-id="${escapeHtml(student.id)}"
-                >Edit</button>
-
-                ${
-                  student.auth_user_id
-                    ? `
-                      <button
-                        type="button"
-                        class="btn-small action-reset-password"
-                        data-action="reset"
-                        data-id="${escapeHtml(student.id)}"
-                      >Reset Password</button>
-                    `
-                    : `
-                      <button
-                        type="button"
-                        class="btn-small action-create-account"
-                        data-action="create-account"
-                        data-id="${escapeHtml(student.id)}"
-                      >Create Account</button>
-                    `
-                }
-
-                <button
-                  type="button"
-                  class="btn-small action-delete"
-                  data-action="delete"
-                  data-id="${escapeHtml(student.id)}"
-                >Delete</button>
-
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join("");
+    const allowed = ["image/jpeg","image/png","image/webp"];
+    if (!allowed.includes(file.type)) {
+      throw new Error("Only JPG, PNG and WEBP photos are allowed.");
     }
 
-    function updateStats() {
-      const total = students.length;
+    const ext = file.name.split(".").pop().toLowerCase();
+    const path = `students/${studentId}/${crypto.randomUUID()}.${ext}`;
 
-      const active = students.filter(
-        x => String(x.status).toLowerCase() === "active"
-      ).length;
+    const {error: uploadError} = await db.storage
+      .from("student-photos")
+      .upload(path, file, {upsert: false, contentType: file.type});
 
-      const graduated = students.filter(
-        x => String(x.status).toLowerCase() === "graduated"
-      ).length;
+    if (uploadError) throw uploadError;
 
-      els.totalStudents.textContent = total;
-      els.activeStudents.textContent = active;
-      els.graduatedStudents.textContent = graduated;
-      els.otherStudents.textContent =
-        total - active - graduated;
+    const {data} = db.storage.from("student-photos").getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  function resetForm() {
+    $("studentForm").reset();
+    $("editStudentDbId").value = "";
+    $("studentId").value = "";
+    $("formTitle").textContent = "Add Student";
+    $("saveButton").textContent = "Save Student & Enroll";
+    $("institutionSelect").disabled = false;
+    $("courseSelect").disabled = true;
+    $("academicYearSelect").disabled = true;
+    $("classSelect").disabled = true;
+    $("courseSelect").innerHTML = '<option value="">Select institution first</option>';
+    $("academicYearSelect").innerHTML = '<option value="">Select institution first</option>';
+    $("classSelect").innerHTML = '<option value="">Select course and year first</option>';
+    $("accountStatus").textContent = "No Account";
+    $("accountStatus").className = "status status-inactive";
+    $("createAccountButton").style.display = "none";
+    $("resetPasswordButton").style.display = "none";
+    selectedStudent = null;
+    isEditing = false;
+    resetPhotoPreview();
+    hideProgress();
+  }
+
+  async function fillEditForm(student) {
+    isEditing = true;
+    selectedStudent = student;
+
+    $("editStudentDbId").value = student.id;
+    $("studentId").value = student.student_id || "";
+    $("fullName").value = student.full_name || "";
+    $("gender").value = student.gender || "";
+    $("dateOfBirth").value = student.date_of_birth || "";
+    $("phone").value = student.phone || "";
+    $("email").value = student.email || "";
+    $("admissionDate").value = student.admission_date || "";
+    $("status").value = student.status || "active";
+    $("address").value = student.address || "";
+
+    $("institutionSelect").value = student.institution_id || "";
+    $("institutionSelect").disabled = true;
+
+    const e = student.enrollment || {};
+
+    await loadCourses(student.institution_id, e.course_id);
+    await loadYears(student.institution_id, e.academic_year_id);
+    await loadClasses(student.institution_id, e.course_id, e.academic_year_id, e.class_id);
+
+    $("courseSelect").disabled = true;
+    $("academicYearSelect").disabled = true;
+    $("classSelect").disabled = true;
+
+    showPhoto(student.photo_url);
+
+    $("formTitle").textContent = "Edit Student";
+    $("saveButton").textContent = "Update Student";
+    $("accountStatus").textContent = student.auth_user_id ? "Account Enabled" : "No Account";
+    $("accountStatus").className = "status " + (student.auth_user_id ? "status-active" : "status-inactive");
+    $("createAccountButton").style.display = student.auth_user_id ? "none" : "inline-block";
+    $("resetPasswordButton").style.display = student.auth_user_id ? "inline-block" : "none";
+
+    $("studentForm").scrollIntoView({behavior:"smooth"});
+  }
+
+  async function saveStudent(event) {
+    event.preventDefault();
+    clearMessage();
+
+    const institutionId = $("institutionSelect").value;
+    const courseId = $("courseSelect").value;
+    const yearId = $("academicYearSelect").value;
+    const classId = $("classSelect").value;
+    const fullName = $("fullName").value.trim();
+    const admissionDate = $("admissionDate").value;
+
+    if (!institutionId || !courseId || !fullName || !admissionDate) {
+      message("Please complete Institution, Course, Full Name and Admission Date.", "warning");
+      return;
     }
 
-    function clearPhotoPreview() {
-      els.photoPreview.removeAttribute("src");
-      els.photoPreview.style.display = "none";
-      els.photoPlaceholder.style.display = "flex";
+    if (!isEditing && (!yearId || !classId)) {
+      message("Please select Academic Year and Class before registering the student.", "warning");
+      return;
     }
 
-    function previewPhoto() {
-      const file = els.photoInput.files?.[0];
+    $("saveButton").disabled = true;
 
-      if (!file) {
-        clearPhotoPreview();
-        return;
-      }
+    try {
+      if (isEditing) {
+        const studentId = $("editStudentDbId").value;
 
-      if (file.size > 10 * 1024 * 1024) {
-        els.photoInput.value = "";
+        setProgress(25, "Updating student information...");
 
-        showMessage(
-          "Photo is too large. Maximum size is 10MB.",
-          "error"
-        );
-
-        return;
-      }
-
-      if (
-        !["image/jpeg", "image/png", "image/webp"].includes(file.type)
-      ) {
-        els.photoInput.value = "";
-
-        showMessage(
-          "Please select a JPG, PNG or WEBP image.",
-          "error"
-        );
-
-        return;
-      }
-
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        els.photoPreview.src = reader.result;
-        els.photoPreview.style.display = "block";
-        els.photoPlaceholder.style.display = "none";
-      };
-
-      reader.onerror = () => {
-        showMessage(
-          "Unable to preview the selected photo.",
-          "error"
-        );
-      };
-
-      reader.readAsDataURL(file);
-    }
-
-    async function uploadPhoto(studentDbId, file) {
-      if (!file) return null;
-
-      setProgress(65, "Uploading student photo...");
-
-      const extension = file.type === "image/png"
-        ? "png"
-        : file.type === "image/webp"
-          ? "webp"
-          : "jpg";
-
-      const uniquePart = crypto.randomUUID
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-      const path =
-        `students/${studentDbId}/${uniquePart}.${extension}`;
-
-      const { error } = await supabase.storage
-        .from("student-photos")
-        .upload(path, file, {
-          upsert: false,
-          contentType: file.type
-        });
-
-      if (error) {
-        throw new Error(
-          `Photo upload failed: ${error.message}`
-        );
-      }
-
-      const { data } = supabase.storage
-        .from("student-photos")
-        .getPublicUrl(path);
-
-      return data.publicUrl;
-    }
-
-    async function saveStudentPhoto(studentId) {
-      const file = els.photoInput.files?.[0];
-
-      if (!file) return null;
-
-      try {
-        const photoUrl = await uploadPhoto(studentId, file);
-
-        if (!photoUrl) return null;
-
-        const { error } = await supabase
-          .from("students")
-          .update({ photo_url: photoUrl })
-          .eq("id", studentId);
+        const {error} = await db.from("students").update({
+          full_name: fullName,
+          gender: $("gender").value || null,
+          date_of_birth: $("dateOfBirth").value || null,
+          phone: $("phone").value.trim() || null,
+          email: $("email").value.trim() || null,
+          address: $("address").value.trim() || null,
+          admission_date: admissionDate,
+          status: $("status").value
+        }).eq("id", studentId);
 
         if (error) throw error;
 
-        return photoUrl;
-
-      } catch (error) {
-        console.error("PHOTO SAVE ERROR:", error);
-
-        showMessage(
-          `Student was saved, but photo upload failed: ${error.message}`,
-          "warning"
-        );
-
-        return null;
-      }
-    }
-
-    function resetAccountUI() {
-      els.accountStatus.textContent = "No Account";
-      els.accountStatus.className = "status status-inactive";
-
-      els.createAccountButton.style.display = "none";
-      els.resetPasswordButton.style.display = "none";
-    }
-
-    function updateAccountUI(student) {
-      if (!student) {
-        resetAccountUI();
-        return;
-      }
-
-      if (student.auth_user_id) {
-        els.accountStatus.textContent = student.account_enabled
-          ? "Account Active"
-          : "Account Disabled";
-
-        els.accountStatus.className = student.account_enabled
-          ? "status status-active"
-          : "status status-inactive";
-
-        els.createAccountButton.style.display = "none";
-        els.resetPasswordButton.style.display = "inline-flex";
-
-      } else {
-        els.accountStatus.textContent = "No Account";
-        els.accountStatus.className = "status status-inactive";
-
-        els.createAccountButton.style.display = "inline-flex";
-        els.resetPasswordButton.style.display = "none";
-      }
-    }
-
-    function clearForm() {
-      editingStudent = null;
-
-      els.form.reset();
-      els.editStudentDbId.value = "";
-
-      els.formTitle.textContent = "Add Student";
-      els.saveButton.textContent = "Save Student & Enroll";
-
-      els.studentId.value = "";
-      els.studentId.placeholder = "Generated automatically";
-
-      els.institutionSelect.disabled = false;
-      els.courseSelect.disabled = true;
-
-      els.courseSelect.innerHTML =
-        `<option value="">Select institution first</option>`;
-
-      if (els.courseHint) {
-        els.courseHint.textContent =
-          "Choose the course the student is registering for.";
-      }
-
-      courses = [];
-
-      clearPhotoPreview();
-      resetAccountUI();
-
-      els.admissionDate.value = todayISO();
-      els.status.value = "active";
-
-      hideProgress();
-    }
-
-    // Editing an existing student must never create another enrollment.
-    async function fillForm(student) {
-      editingStudent = student;
-
-      els.editStudentDbId.value = student.id;
-      els.institutionSelect.value =
-        student.institution_id ?? "";
-
-      els.institutionSelect.disabled = true;
-
-      await loadCourses(student.institution_id);
-
-      const {
-        data: enrollment,
-        error: enrollmentError
-      } = await supabase
-        .from("enrollments")
-        .select(
-          "course_id,enrollment_number,academic_year_id,status"
-        )
-        .eq("student_id", student.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (enrollmentError) {
-        console.warn(
-          "EXISTING ENROLLMENT LOOKUP:",
-          enrollmentError
-        );
-      }
-
-      if (enrollment?.course_id) {
-        await loadCourses(
-          student.institution_id,
-          enrollment.course_id
-        );
-
-        els.courseSelect.disabled = true;
-
-        els.courseHint.textContent =
-          `Existing enrollment: ${enrollment.enrollment_number || "Number unavailable"}. Course is not changed when editing.`;
-
-      } else {
-        els.courseSelect.disabled = true;
-
-        els.courseSelect.innerHTML =
-          `<option value="">No enrollment found</option>`;
-
-        els.courseHint.textContent =
-          "No existing enrollment found. Editing will not create a new enrollment.";
-      }
-
-      els.studentId.value = student.student_id ?? "";
-      els.fullName.value = student.full_name ?? "";
-      els.gender.value = student.gender ?? "";
-      els.dateOfBirth.value = student.date_of_birth ?? "";
-      els.phone.value = student.phone ?? "";
-      els.email.value = student.email ?? "";
-      els.admissionDate.value = student.admission_date ?? "";
-      els.status.value = student.status ?? "active";
-      els.address.value = student.address ?? "";
-
-      if (student.photo_url) {
-        els.photoPreview.src = student.photo_url;
-        els.photoPreview.style.display = "block";
-        els.photoPlaceholder.style.display = "none";
-      } else {
-        clearPhotoPreview();
-      }
-
-      els.formTitle.textContent =
-        `Edit Student — ${student.student_id}`;
-
-      els.saveButton.textContent = "Update Student";
-
-      updateAccountUI(student);
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      });
-    }
-
-    function formData() {
-      return {
-        institution_id:
-          els.institutionSelect.value || null,
-
-        course_id:
-          els.courseSelect.value || null,
-
-        full_name:
-          els.fullName.value.trim(),
-
-        gender:
-          els.gender.value || null,
-
-        date_of_birth:
-          els.dateOfBirth.value || null,
-
-        phone:
-          els.phone.value.trim() || null,
-
-        email:
-          els.email.value.trim().toLowerCase() || null,
-
-        admission_date:
-          els.admissionDate.value,
-
-        status:
-          els.status.value,
-
-        address:
-          els.address.value.trim() || null
-      };
-    }
-
-    async function saveStudent(event) {
-      event.preventDefault();
-      hideMessage();
-
-      const values = formData();
-
-      if (!values.institution_id) {
-        showMessage(
-          "Please select an institution.",
-          "error"
-        );
-        return;
-      }
-
-      if (!values.full_name) {
-        showMessage(
-          "Full name is required.",
-          "error"
-        );
-        return;
-      }
-
-      if (!values.admission_date) {
-        showMessage(
-          "Admission date is required.",
-          "error"
-        );
-        return;
-      }
-
-      if (
-        values.email &&
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)
-      ) {
-        showMessage(
-          "Please enter a valid email address.",
-          "error"
-        );
-        return;
-      }
-
-      if (!editingStudent && !values.course_id) {
-        showMessage(
-          "Please select the student's course before saving.",
-          "error"
-        );
-
-        els.courseSelect.focus();
-        return;
-      }
-
-      els.saveButton.disabled = true;
-
-      try {
-        let savedStudentId;
-        let successText;
-
-        if (editingStudent) {
-          // UPDATE ONLY. Do not create another enrollment.
-          setProgress(
-            20,
-            "Updating student record..."
-          );
-
-          const { error } = await supabase
-            .from("students")
-            .update({
-              full_name: values.full_name,
-              gender: values.gender,
-              date_of_birth: values.date_of_birth,
-              phone: values.phone,
-              email: values.email,
-              admission_date: values.admission_date,
-              status: values.status,
-              address: values.address
-            })
-            .eq("id", editingStudent.id);
-
-          if (error) throw error;
-
-          savedStudentId = editingStudent.id;
-
-          successText =
-            "Student updated successfully. Existing enrollment was not changed.";
-
-        } else {
-          // INSERT STUDENT + ENROLLMENT through the verified RPC.
-          setProgress(
-            20,
-            "Creating student and course enrollment..."
-          );
-
-          const { data, error } = await supabase.rpc(
-            "create_student_with_enrollment",
-            {
-              p_institution_id: values.institution_id,
-              p_course_id: values.course_id,
-              p_full_name: values.full_name,
-              p_admission_date: values.admission_date,
-              p_gender: values.gender,
-              p_date_of_birth: values.date_of_birth,
-              p_phone: values.phone,
-              p_email: values.email,
-              p_address: values.address,
-              p_status: values.status
-            }
-          );
-
-          if (error) throw error;
-
-          if (
-            !data?.success ||
-            !data?.student?.id ||
-            !data?.enrollment?.id
-          ) {
-            throw new Error(
-              "The database did not return the expected student and enrollment records."
-            );
-          }
-
-          savedStudentId = data.student.id;
-
-          successText =
-            `Student ${data.student.student_id} created successfully.\n` +
-            `Enrollment: ${data.enrollment.enrollment_number}\n` +
-            `Status: ${data.enrollment.status}`;
+        setProgress(65, "Uploading photo if selected...");
+        const photoUrl = await uploadPhoto(studentId);
+
+        if (photoUrl && photoUrl !== selectedStudent.photo_url) {
+          const {error: photoError} = await db.from("students")
+            .update({photo_url: photoUrl})
+            .eq("id", studentId);
+          if (photoError) throw photoError;
         }
 
-        // Upload photo after student record exists.
-        if (
-          savedStudentId &&
-          els.photoInput.files?.[0]
-        ) {
-          await saveStudentPhoto(savedStudentId);
-        }
+        setProgress(100, "Update completed.");
+        message("Student information updated successfully.", "success");
 
-        setProgress(
-          90,
-          "Refreshing student records..."
-        );
+      } else {
+        setProgress(20, "Creating student and enrollment...");
 
-        await loadStudents();
+        const rpcArgs = {
+          p_institution_id: institutionId,
+          p_course_id: courseId,
+          p_full_name: fullName,
+          p_admission_date: admissionDate,
+          p_gender: $("gender").value || null,
+          p_date_of_birth: $("dateOfBirth").value || null,
+          p_phone: $("phone").value.trim() || null,
+          p_email: $("email").value.trim() || null,
+          p_address: $("address").value.trim() || null,
+          p_status: $("status").value
+        };
 
-        showMessage(
-          successText,
-          "success"
-        );
-
-        setProgress(100, "Completed.");
-
-        setTimeout(clearForm, 500);
-
-      } catch (error) {
-        console.error(
-          "SAVE STUDENT ERROR:",
-          error
-        );
-
-        showMessage(
-          error?.message ||
-          "Student could not be saved.",
-          "error"
-        );
-
-      } finally {
-        els.saveButton.disabled = false;
-
-        setTimeout(
-          hideProgress,
-          1200
-        );
-      }
-    }
-
-    function generateTemporaryPassword() {
-      const chars =
-        "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-
-      const bytes = new Uint8Array(12);
-
-      crypto.getRandomValues(bytes);
-
-      return Array.from(
-        bytes,
-        byte => chars[byte % chars.length]
-      ).join("");
-    }
-
-    function askPassword(title) {
-      const generated = generateTemporaryPassword();
-
-      const password = window.prompt(
-        `${title}\n\nEnter a password with at least 8 characters.\n\nSuggested temporary password:\n${generated}`,
-        generated
-      );
-
-      if (password === null) return null;
-
-      const value = password.trim();
-
-      if (value.length < 8) {
-        showMessage(
-          "Password must contain at least 8 characters.",
-          "error"
-        );
-
-        return null;
-      }
-
-      return value;
-    }
-
-    async function createStudentAccount(student) {
-      if (!student?.id) return;
-
-      if (student.auth_user_id) {
-        showMessage(
-          "This student already has an account. Use Reset Password.",
-          "warning"
-        );
-        return;
-      }
-
-      if (!student.email) {
-        showMessage(
-          "Add a valid student email first, then save the student.",
-          "warning"
-        );
-        return;
-      }
-
-      const password = askPassword(
-        `Create login account for ${student.full_name}`
-      );
-
-      if (!password) return;
-
-      if (!window.confirm(
-        `Create student login account?\n\nStudent: ${student.full_name}\nID: ${student.student_id}\nEmail: ${student.email}`
-      )) {
-        return;
-      }
-
-      try {
-        setProgress(
-          20,
-          "Creating student account..."
-        );
-
-        const result = await callAccountFunction({
-          action: "create",
-          student_db_id: student.id,
-          student_id: student.student_id,
-          email: student.email,
-          full_name: student.full_name,
-          password
-        });
-
-        showMessage(
-          `${result.message}\n\nUsername: ${student.email}\nTemporary password: ${password}`,
-          "success"
-        );
-
-        await loadStudents();
-
-        const fresh = students.find(
-          x => x.id === student.id
-        );
-
-        if (fresh) {
-          updateAccountUI(fresh);
-          editingStudent = fresh;
-        }
-
-      } catch (error) {
-        console.error(
-          "CREATE STUDENT ACCOUNT ERROR:",
-          error
-        );
-
-        showMessage(
-          error?.message ||
-          "Student account could not be created.",
-          "error"
-        );
-
-      } finally {
-        setTimeout(hideProgress, 800);
-      }
-    }
-
-    async function resetStudentPassword(student) {
-      if (!student?.auth_user_id) {
-        showMessage(
-          "This student has no login account.",
-          "warning"
-        );
-        return;
-      }
-
-      const password = askPassword(
-        `Reset password for ${student.full_name}`
-      );
-
-      if (!password) return;
-
-      if (!window.confirm(
-        `Reset password for ${student.full_name}?\n\nStudent ID: ${student.student_id}`
-      )) {
-        return;
-      }
-
-      try {
-        setProgress(
-          20,
-          "Resetting student password..."
-        );
-
-        const result = await callAccountFunction({
-          action: "reset",
-          student_db_id: student.id,
-          student_id: student.student_id,
-          password
-        });
-
-        showMessage(
-          `${result.message}\n\nNew temporary password: ${password}`,
-          "success"
-        );
-
-        await loadStudents();
-
-      } catch (error) {
-        console.error(
-          "RESET PASSWORD ERROR:",
-          error
-        );
-
-        showMessage(
-          error?.message ||
-          "Password could not be reset.",
-          "error"
-        );
-
-      } finally {
-        setTimeout(hideProgress, 800);
-      }
-    }
-
-    async function deleteStudent(student) {
-      if (!student?.id) return;
-
-      if (!window.confirm(
-        `DELETE STUDENT?\n\n${student.full_name}\n${student.student_id}\n\nThe linked enrollment record may also be deleted.`
-      )) {
-        return;
-      }
-
-      try {
-        const { error } = await supabase
-          .from("students")
-          .delete()
-          .eq("id", student.id);
-
+        const {data, error} = await db.rpc("create_student_with_enrollment", rpcArgs);
         if (error) throw error;
 
-        showMessage(
-          "Student deleted successfully.",
-          "success"
-        );
-
-        await loadStudents();
-
-        if (editingStudent?.id === student.id) {
-          clearForm();
+        if (!data || data.success !== true || !data.student?.id) {
+          throw new Error(data?.message || data?.error || "Student creation returned an unexpected result.");
         }
 
-      } catch (error) {
-        console.error(
-          "DELETE STUDENT ERROR:",
-          error
-        );
+        const newStudentId = data.student.id;
+        setProgress(55, "Linking academic year and class...");
 
-        showMessage(
-          `Student could not be deleted: ${error.message}`,
-          "error"
-        );
-      }
-    }
+        /*
+          The current RPC does not accept class_id or academic_year_id.
+          The enrollment is linked after creation using the existing RLS policy.
+        */
+        let enrollmentId = data.enrollment?.id || null;
 
-    function showProfile(student) {
-      const photo = student.photo_url
-        ? `
-          <img
-            src="${escapeHtml(student.photo_url)}"
-            class="profile-photo"
-            alt="Student photo"
-          >
-        `
-        : placeholderAvatar(student.full_name);
+        if (!enrollmentId) {
+          const {data: enrollment, error: enrollmentError} = await db
+            .from("enrollments")
+            .select("id")
+            .eq("student_id", newStudentId)
+            .eq("institution_id", institutionId)
+            .eq("course_id", courseId)
+            .order("created_at", {ascending:false})
+            .limit(1)
+            .maybeSingle();
 
-      els.profileContent.innerHTML = `
-        <div class="profile-top">
-          ${photo}
-
-          <div>
-            <div class="profile-name">
-              ${escapeHtml(student.full_name)}
-            </div>
-
-            <div class="profile-id">
-              ${escapeHtml(student.student_id)}
-            </div>
-
-            <div style="margin-top:8px;">
-              ${statusBadge(student.status)}
-              ${accountBadge(student)}
-            </div>
-          </div>
-        </div>
-
-        <div class="profile-grid">
-
-          <div class="profile-item">
-            <strong>Institution ID</strong>
-            <span>${escapeHtml(student.institution_id || "—")}</span>
-          </div>
-
-          <div class="profile-item">
-            <strong>Gender</strong>
-            <span>${escapeHtml(student.gender || "—")}</span>
-          </div>
-
-          <div class="profile-item">
-            <strong>Date of Birth</strong>
-            <span>${escapeHtml(formatDate(student.date_of_birth))}</span>
-          </div>
-
-          <div class="profile-item">
-            <strong>Phone</strong>
-            <span>${escapeHtml(student.phone || "—")}</span>
-          </div>
-
-          <div class="profile-item">
-            <strong>Email</strong>
-            <span>${escapeHtml(student.email || "—")}</span>
-          </div>
-
-          <div class="profile-item">
-            <strong>Admission Date</strong>
-            <span>${escapeHtml(formatDate(student.admission_date))}</span>
-          </div>
-
-          <div class="profile-item">
-            <strong>Login Username</strong>
-            <span>${escapeHtml(student.login_username || "—")}</span>
-          </div>
-
-          <div class="profile-item">
-            <strong>Account Created</strong>
-            <span>${escapeHtml(formatDate(student.account_created_at))}</span>
-          </div>
-
-          <div class="profile-item">
-            <strong>Last Login</strong>
-            <span>${escapeHtml(formatDate(student.last_login_at))}</span>
-          </div>
-
-          <div class="profile-item">
-            <strong>Address</strong>
-            <span>${escapeHtml(student.address || "—")}</span>
-          </div>
-
-        </div>
-      `;
-
-      els.profileModal.classList.add("show");
-      els.profileModal.setAttribute(
-        "aria-hidden",
-        "false"
-      );
-    }
-
-    function closeProfile() {
-      els.profileModal.classList.remove("show");
-
-      els.profileModal.setAttribute(
-        "aria-hidden",
-        "true"
-      );
-    }
-
-    async function handleTableAction(event) {
-      const button = event.target.closest(
-        "button[data-action]"
-      );
-
-      if (!button) return;
-
-      const student = students.find(
-        x => x.id === button.dataset.id
-      );
-
-      if (!student) {
-        showMessage(
-          "Student record is no longer available. Refresh the page.",
-          "warning"
-        );
-
-        return;
-      }
-
-      switch (button.dataset.action) {
-        case "view":
-          showProfile(student);
-          break;
-
-        case "edit":
-          await fillForm(student);
-          break;
-
-        case "create-account":
-          await createStudentAccount(student);
-          break;
-
-        case "reset":
-          await resetStudentPassword(student);
-          break;
-
-        case "delete":
-          await deleteStudent(student);
-          break;
-      }
-    }
-
-    function bindEvents() {
-      els.form.addEventListener(
-        "submit",
-        saveStudent
-      );
-
-      els.photoInput.addEventListener(
-        "change",
-        previewPhoto
-      );
-
-      els.institutionSelect.addEventListener(
-        "change",
-        async () => {
-          if (editingStudent) return;
-
-          await loadCourses(
-            els.institutionSelect.value
-          );
+          if (enrollmentError) throw enrollmentError;
+          enrollmentId = enrollment?.id;
         }
-      );
 
-      els.resetFormButton.addEventListener(
-        "click",
-        () => {
-          clearForm();
-          hideMessage();
-        }
-      );
-
-      els.addStudentButton.addEventListener(
-        "click",
-        () => {
-          clearForm();
-          hideMessage();
-
-          window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-          });
-        }
-      );
-
-      els.refreshStudentsButton.addEventListener(
-        "click",
-        loadStudents
-      );
-
-      els.statusFilter.addEventListener(
-        "change",
-        loadStudents
-      );
-
-      els.searchInput.addEventListener(
-        "input",
-        () => {
-          clearTimeout(searchTimer);
-
-          searchTimer = setTimeout(
-            renderStudents,
-            120
-          );
-        }
-      );
-
-      els.studentsTableBody.addEventListener(
-        "click",
-        handleTableAction
-      );
-
-      els.createAccountButton.addEventListener(
-        "click",
-        () => {
-          if (editingStudent) {
-            createStudentAccount(editingStudent);
-          }
-        }
-      );
-
-      els.resetPasswordButton.addEventListener(
-        "click",
-        () => {
-          if (editingStudent) {
-            resetStudentPassword(editingStudent);
-          }
-        }
-      );
-
-      els.closeProfileModal.addEventListener(
-        "click",
-        closeProfile
-      );
-
-      els.profileModal.addEventListener(
-        "click",
-        event => {
-          if (event.target === els.profileModal) {
-            closeProfile();
-          }
-        }
-      );
-
-      document.addEventListener(
-        "keydown",
-        event => {
-          if (event.key === "Escape") {
-            closeProfile();
-          }
-        }
-      );
-
-      supabase.auth.onAuthStateChange(event => {
-        if (event === "SIGNED_OUT") {
-          showMessage(
-            "Your login session has ended. Please login again.",
+        if (!enrollmentId) {
+          message(
+            "Student was created, but the enrollment record could not be located. Please inspect the enrollment before trying again. Student ID: " +
+            (data.student.student_id || newStudentId),
             "warning"
           );
-        }
-      });
-    }
-
-    async function init() {
-      try {
-        hideMessage();
-        validateElements();
-
-        setProgress(
-          15,
-          "Checking login session..."
-        );
-
-        const session = await getSessionOrThrow();
-
-        console.log(
-          "GAAWOW Students session:",
-          session.user.id
-        );
-
-        bindEvents();
-
-        setProgress(
-          40,
-          "Connecting to Supabase and loading institutions..."
-        );
-
-        // This actual database request validates the project
-        // connection and key. No manual API-key Bearer test.
-        await loadInstitutions();
-
-        setProgress(
-          70,
-          "Loading students..."
-        );
-
-        const loaded = await loadStudents();
-
-        clearForm();
-
-        if (loaded) {
-          hideProgress();
-        } else {
-          hideProgress();
+          await loadStudents();
+          resetForm();
+          return;
         }
 
-      } catch (error) {
-        console.error(
-          "STUDENTS INIT ERROR:",
-          error
-        );
+        const {data: updatedEnrollment, error: linkError} = await db
+          .from("enrollments")
+          .update({
+            academic_year_id: yearId,
+            class_id: classId
+          })
+          .eq("id", enrollmentId)
+          .eq("institution_id", institutionId)
+          .select("id");
 
-        const errorMessage = error?.message || "";
-
-        if (
-          /invalid api key|invalid jwt/i.test(errorMessage)
-        ) {
-          showMessage(
-            "Supabase authentication failed. Hubi in Project URL iyo Publishable Key ay ka yimaadeen isla mashruuca mytyvqwrxnxpxnxpiicj.",
-            "error"
+        if (linkError) {
+          message(
+            "Student and enrollment were created, but Class/Academic Year linking failed. Do not register the student again. Error: " +
+            linkError.message,
+            "warning"
           );
-
-        } else if (
-          /login session expired/i.test(errorMessage)
-        ) {
-          showMessage(
-            "Login session expired. Please login again.",
-            "error"
-          );
-
-        } else {
-          showMessage(
-            errorMessage ||
-            "Unable to initialize Students page.",
-            "error"
-          );
+          await loadStudents();
+          resetForm();
+          return;
         }
 
-        if (els.studentsTableBody) {
-          els.studentsTableBody.innerHTML =
-            `<tr><td colspan="10" class="empty">Unable to load students. Check connection and login.</td></tr>`;
+        if (!updatedEnrollment || updatedEnrollment.length === 0) {
+          message(
+            "Student was created, but the enrollment could not be updated. Check enrollment permissions and RLS before retrying.",
+            "warning"
+          );
+          await loadStudents();
+          resetForm();
+          return;
         }
 
-        hideProgress();
+        setProgress(75, "Uploading student photo...");
+        const photoUrl = await uploadPhoto(newStudentId);
+
+        if (photoUrl) {
+          const {error: photoError} = await db.from("students")
+            .update({photo_url: photoUrl})
+            .eq("id", newStudentId);
+          if (photoError) throw photoError;
+        }
+
+        setProgress(100, "Registration completed.");
+        message(
+          "Student registered successfully. Student ID: " +
+          (data.student.student_id || "Generated by database"),
+          "success"
+        );
       }
+
+      await loadStudents();
+      resetForm();
+
+    } catch (error) {
+      console.error("Save student error:", error);
+      message(error.message || "Unable to save student.", "error");
+    } finally {
+      $("saveButton").disabled = false;
+    }
+  }
+
+  async function callAccountFunction(action, student) {
+    if (!student) throw new Error("Student record not found.");
+
+    const {data: sessionData} = await db.auth.getSession();
+    const token = sessionData?.session?.access_token;
+
+    if (!token) throw new Error("Your login session has expired. Please sign in again.");
+
+    const response = await fetch(ACCOUNT_FUNCTION, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "apikey": SUPABASE_KEY
+      },
+      body: JSON.stringify({
+        action,
+        student_id: student.id,
+        institution_id: student.institution_id
+      })
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(result.error || result.message || `Account request failed (${response.status}).`);
     }
 
-    init();
+    return result;
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener(
-      "DOMContentLoaded",
-      boot,
-      { once: true }
-    );
-  } else {
-    boot();
+  async function accountAction(action, student) {
+    const question = action === "create"
+      ? `Create a portal account for ${student.full_name}?`
+      : `Reset the portal password for ${student.full_name}?`;
+
+    if (!confirm(question)) return;
+
+    try {
+      message(action === "create" ? "Creating student account..." : "Resetting student password...", "warning");
+
+      const result = await callAccountFunction(action, student);
+
+      if (result.temporary_password) {
+        alert(
+          "Temporary password:\n\n" + result.temporary_password +
+          "\n\nPlease provide it securely to the student."
+        );
+      }
+
+      message(result.message || "Account operation completed.", "success");
+      await loadStudents();
+
+    } catch (error) {
+      console.error("Account action error:", error);
+      message(error.message, "error");
+    }
   }
+
+  async function deleteStudent(student) {
+    const ok = confirm(
+      `Delete ${student.full_name} (${student.student_id || student.id})?\n\nThis operation may be blocked by database relationships and RLS.`
+    );
+
+    if (!ok) return;
+
+    try {
+      const {error} = await db.from("students").delete().eq("id", student.id);
+      if (error) throw error;
+
+      message("Student deleted successfully.", "success");
+      await loadStudents();
+
+    } catch (error) {
+      console.error("Delete student error:", error);
+      message("Could not delete student: " + error.message, "error");
+    }
+  }
+
+  function openProfile(student) {
+    const e = student.enrollment || {};
+    const photo = student.photo_url
+      ? `<img class="profile-photo" src="${escapeHTML(student.photo_url)}" alt="Student photo">`
+      : `<div class="photo-placeholder">👤</div>`;
+
+    const fields = [
+      ["Student ID", student.student_id],
+      ["Institution", getInstitutionName(student.institution_id)],
+      ["Course", getCourseName(e.course_id)],
+      ["Class", getClassName(e.class_id)],
+      ["Academic Year", getYearName(e.academic_year_id)],
+      ["Full Name", student.full_name],
+      ["Gender", student.gender],
+      ["Date of Birth", student.date_of_birth],
+      ["Phone", student.phone],
+      ["Email", student.email],
+      ["Admission Date", student.admission_date],
+      ["Status", student.status],
+      ["Address", student.address],
+      ["Account", student.auth_user_id ? "Enabled" : "No Account"]
+    ];
+
+    $("profileContent").innerHTML = `
+      <div class="profile-top">
+        ${photo}
+        <div>
+          <div class="profile-name">${escapeHTML(student.full_name || "")}</div>
+          <div class="profile-id">${escapeHTML(student.student_id || "")}</div>
+        </div>
+      </div>
+      <div class="profile-grid">
+        ${fields.map(([label,value]) => `
+          <div class="profile-item">
+            <strong>${escapeHTML(label)}</strong>
+            <span>${escapeHTML(value || "-")}</span>
+          </div>`).join("")}
+      </div>`;
+
+    $("profileModal").classList.add("show");
+    $("profileModal").setAttribute("aria-hidden", "false");
+  }
+
+  function closeProfile() {
+    $("profileModal").classList.remove("show");
+    $("profileModal").setAttribute("aria-hidden", "true");
+  }
+
+  async function refreshAll() {
+    clearMessage();
+    try {
+      await Promise.all([loadStudents()]);
+      message("Student list refreshed.", "success");
+    } catch (error) {
+      message(error.message, "error");
+    }
+  }
+
+  function bindEvents() {
+    $("studentForm").addEventListener("submit", saveStudent);
+
+    $("institutionSelect").addEventListener("change", async () => {
+      try {
+        await loadCourses($("institutionSelect").value);
+        await loadYears($("institutionSelect").value);
+        $("classSelect").innerHTML = '<option value="">Select course and year first</option>';
+        $("classSelect").disabled = true;
+      } catch (error) {
+        message(error.message, "error");
+      }
+    });
+
+    $("courseSelect").addEventListener("change", async () => {
+      try {
+        await loadClasses(
+          $("institutionSelect").value,
+          $("courseSelect").value,
+          $("academicYearSelect").value
+        );
+      } catch (error) {
+        message(error.message, "error");
+      }
+    });
+
+    $("academicYearSelect").addEventListener("change", async () => {
+      try {
+        await loadClasses(
+          $("institutionSelect").value,
+          $("courseSelect").value,
+          $("academicYearSelect").value
+        );
+      } catch (error) {
+        message(error.message, "error");
+      }
+    });
+
+    $("institutionFilter").addEventListener("change", async () => {
+      try {
+        await loadFilterCourses($("institutionFilter").value);
+      } catch (error) {
+        message(error.message, "error");
+      }
+    });
+
+    $("courseFilter").addEventListener("change", async () => {
+      try {
+        await loadFilterClasses(
+          $("institutionFilter").value,
+          $("courseFilter").value
+        );
+      } catch (error) {
+        message(error.message, "error");
+      }
+    });
+
+    ["classFilter","statusFilter"].forEach(id => {
+      $(id).addEventListener("change", renderStudents);
+    });
+
+    $("searchInput").addEventListener("input", renderStudents);
+
+    $("resetFiltersButton").addEventListener("click", async () => {
+      $("institutionFilter").value = "";
+      $("courseFilter").innerHTML = '<option value="">All Courses</option>';
+      $("courseFilter").disabled = true;
+      $("classFilter").innerHTML = '<option value="">All Classes</option>';
+      $("classFilter").disabled = true;
+      $("statusFilter").value = "";
+      $("searchInput").value = "";
+      renderStudents();
+    });
+
+    $("addStudentButton").addEventListener("click", () => {
+      resetForm();
+      $("studentForm").scrollIntoView({behavior:"smooth"});
+    });
+
+    $("resetFormButton").addEventListener("click", resetForm);
+    $("refreshStudentsButton").addEventListener("click", refreshAll);
+
+    $("photoInput").addEventListener("change", () => {
+      const file = $("photoInput").files?.[0];
+      if (!file) return;
+
+      if (!["image/jpeg","image/png","image/webp"].includes(file.type)) {
+        message("Only JPG, PNG and WEBP photos are allowed.", "warning");
+        $("photoInput").value = "";
+        return;
+      }
+
+      const url = URL.createObjectURL(file);
+      $("photoPreview").src = url;
+      $("photoPreview").style.display = "block";
+      $("photoPlaceholder").style.display = "none";
+    });
+
+    $("studentsTableBody").addEventListener("click", async event => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+
+      const student = students.find(s => s.id === button.dataset.id);
+      if (!student) return;
+
+      const action = button.dataset.action;
+
+      try {
+        if (action === "view") openProfile(student);
+        if (action === "edit") await fillEditForm(student);
+        if (action === "create") await accountAction("create", student);
+        if (action === "reset") await accountAction("reset", student);
+        if (action === "delete") await deleteStudent(student);
+      } catch (error) {
+        console.error(error);
+        message(error.message, "error");
+      }
+    });
+
+    $("createAccountButton").addEventListener("click", () => {
+      if (selectedStudent) accountAction("create", selectedStudent);
+    });
+
+    $("resetPasswordButton").addEventListener("click", () => {
+      if (selectedStudent) accountAction("reset", selectedStudent);
+    });
+
+    $("closeProfileModal").addEventListener("click", closeProfile);
+
+    $("profileModal").addEventListener("click", event => {
+      if (event.target === $("profileModal")) closeProfile();
+    });
+  }
+
+  async function init() {
+    try {
+      const {data, error} = await db.auth.getSession();
+      if (error) throw error;
+
+      if (!data.session) {
+        message("Your session is missing. Please sign in again.", "error");
+        return;
+      }
+
+      currentUser = data.session.user;
+
+      bindEvents();
+
+      await loadInstitutions();
+      await loadStudents();
+
+      $("admissionDate").value = new Date().toISOString().slice(0,10);
+
+    } catch (error) {
+      console.error("Students initialization error:", error);
+      message("Students page could not load: " + error.message, "error");
+    }
+  }
+
+  init();
 })();
