@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -14,8 +15,7 @@
 
   <meta name="mobile-web-app-capable" content="yes">
 
-  <meta name="apple-mobile-web-app-capable"
-        content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 
   <meta name="apple-mobile-web-app-status-bar-style"
         content="black-translucent">
@@ -368,14 +368,100 @@
       line-height: 1.7;
     }
 
-    .footer strong {
+    .footer > strong {
       color: #0B1E63;
     }
+
+    /* OFFICIAL GAAWOW BRAND FOOTER */
 
     .security {
       margin-top: 7px;
 
       color: #94a3b8;
+    }
+
+    .security.official-brand {
+      margin-top: 14px;
+
+      padding-top: 14px;
+
+      border-top: 1px solid #e5e7eb;
+
+      color: #64748b;
+
+      line-height: 1.8;
+
+      text-align: center;
+    }
+
+    .official-brand .academy-name {
+      display: block;
+
+      color: #0B1E63;
+
+      font-size: 16px;
+
+      font-weight: 800;
+
+      letter-spacing: 1px;
+    }
+
+    .official-brand .academy-motto {
+      display: block;
+
+      color: #B38718;
+
+      font-size: 11px;
+
+      font-weight: 700;
+
+      letter-spacing: 0.6px;
+    }
+
+    .official-brand .system-title {
+      display: block;
+
+      color: #0B4DA2;
+
+      font-size: 11px;
+
+      font-weight: 700;
+
+      margin-top: 7px;
+    }
+
+    .official-brand .developer-label {
+      display: block;
+
+      color: #94a3b8;
+
+      font-size: 9px;
+
+      font-weight: 700;
+
+      letter-spacing: 1.2px;
+
+      margin-top: 10px;
+    }
+
+    .official-brand .developer-name {
+      display: block;
+
+      color: #0B1E63;
+
+      font-size: 12px;
+
+      font-weight: 800;
+
+      margin-top: 2px;
+    }
+
+    .official-brand .director-title {
+      display: block;
+
+      color: #64748b;
+
+      font-size: 10px;
     }
 
     .login-switch,
@@ -402,6 +488,18 @@
 
       .brand {
         font-size: 24px;
+      }
+
+      .official-brand .academy-name {
+        font-size: 15px;
+      }
+
+      .official-brand .system-title {
+        font-size: 10px;
+      }
+
+      .official-brand .developer-name {
+        font-size: 11px;
       }
 
     }
@@ -446,7 +544,6 @@
         Education Management &amp; Verification System
       </p>
 
-
       <!-- SYSTEM LOGIN -->
 
       <section id="systemLoginSection">
@@ -479,7 +576,6 @@
 
           </div>
 
-
           <div class="form-group">
 
             <label for="password">
@@ -511,7 +607,6 @@
 
           </div>
 
-
           <button
             id="loginButton"
             class="submit-btn"
@@ -524,7 +619,6 @@
 
       </section>
 
-
       <!-- INSTALL APP -->
 
       <button
@@ -535,7 +629,6 @@
         INSTALL GAAWOW EMS
       </button>
 
-
       <div
         id="message"
         class="info"
@@ -544,8 +637,7 @@
         aria-atomic="true"
       ></div>
 
-
-      <!-- FOOTER -->
+      <!-- OFFICIAL GAAWOW ACADEMY FOOTER -->
 
       <footer class="footer">
 
@@ -555,8 +647,32 @@
 
         Ilayska Aqoonta iyo Xirfadda
 
-        <div class="security">
-          Secure access powered by Supabase
+        <div class="security official-brand">
+
+          <span class="academy-name">
+            GAAWOW ACADEMY
+          </span>
+
+          <span class="academy-motto">
+            ILAYSKA AQOONTA &amp; XIRFADDA
+          </span>
+
+          <span class="system-title">
+            GAAWOW EMS | Education Management &amp; Verification System
+          </span>
+
+          <span class="developer-label">
+            DEVELOPED &amp; MANAGED BY
+          </span>
+
+          <span class="developer-name">
+            Dr. Osmaan Mohamed Ibraahin
+          </span>
+
+          <span class="director-title">
+            Founder &amp; Director | GAAWOW ACADEMY
+          </span>
+
         </div>
 
       </footer>
@@ -565,11 +681,9 @@
 
   </main>
 
-
   <!-- SUPABASE LIBRARY -->
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 
   <!-- LOGIN CONTROLLER -->
 
@@ -646,7 +760,6 @@
         }
       );
 
-
       // PASSWORD VISIBILITY
 
       var toggleButton =
@@ -682,7 +795,6 @@
 
       }
 
-
       // SUPABASE CHECK
 
       window.addEventListener("load", function () {
@@ -714,11 +826,9 @@
 
   </script>
 
-
   <!-- EXISTING LOGIN APPLICATION -->
 
   <script src="./app.js"></script>
-
 
   <!-- GAAWOW EMS PWA INSTALLATION -->
 
@@ -736,7 +846,6 @@
       var messageBox =
         document.getElementById("message");
 
-
       function showMessage(text, type) {
 
         messageBox.textContent = text;
@@ -744,7 +853,6 @@
         messageBox.className = type || "info";
 
       }
-
 
       // SERVICE WORKER REGISTRATION
 
@@ -782,7 +890,6 @@
 
       }
 
-
       // ANDROID INSTALL PROMPT
 
       window.addEventListener(
@@ -801,7 +908,6 @@
 
         }
       );
-
 
       // INSTALL BUTTON
 
@@ -853,7 +959,6 @@
         }
       );
 
-
       // INSTALL SUCCESS
 
       window.addEventListener(
@@ -873,7 +978,6 @@
 
         }
       );
-
 
       // ALREADY INSTALLED CHECK
 
